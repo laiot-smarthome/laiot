@@ -15,4 +15,9 @@ return [
     'view_cache' => __DIR__ . '/../var/cache/views',
     'log' => __DIR__ . '/../var/log/mydomo.log',
     'database' => [],
+    'cache' => [
+        'driver' => 'file',
+        'path' => __DIR__ . '/../var/cache/data',
+        'prefix' => 'mydomo.',
+    ],
 ];

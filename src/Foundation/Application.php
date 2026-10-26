@@ -24,6 +24,8 @@ use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
 use LogicException;
 use MajorDoMo\Auth\AdminAuthenticator;
+use MajorDoMo\Cache\CacheFactory;
+use MajorDoMo\Cache\CacheStore;
 use MajorDoMo\Core\Users\UserAccounts;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Database\SettingsRepository;
@@ -56,6 +58,7 @@ final class Application
     private Kernel $kernel;
     private LoggerInterface $logger;
     private DatabaseManager $database;
+    private CacheStore $cache;
     private SessionStore $session;
     private ModuleManager $modules;
     private Yoyo $yoyo;
@@ -91,6 +94,9 @@ final class Application
         $this->database = new DatabaseManager((array)($this->config['database'] ?? []));
         $this->container->instance(DatabaseManager::class, $this->database);
         $this->container->instance(SettingsRepository::class, new SettingsRepository($this->database));
+
+        $this->cache = CacheFactory::create((array)($this->config['cache'] ?? []), $this->database);
+        $this->container->instance(CacheStore::class, $this->cache);
 
         $session = $this->config['session'] ?? null;
         $this->session = $session instanceof SessionStore
@@ -191,6 +197,13 @@ final class Application
         $this->ensureBooted();
 
         return $this->database;
+    }
+
+    public function cache(): CacheStore
+    {
+        $this->ensureBooted();
+
+        return $this->cache;
     }
 
     public function yoyo(): Yoyo

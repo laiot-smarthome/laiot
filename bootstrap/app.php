@@ -11,6 +11,11 @@ $root = dirname(__DIR__);
 Config::boot($root);
 
 $app = new Application($root, [
+    'cache' => [
+        'driver' => Config::string('CACHE_DRIVER', 'file'),
+        'path' => $root . '/var/cache/data',
+        'prefix' => 'mydomo.',
+    ],
     'database' => [
         'driver' => 'mysql',
         'host' => Config::string('DB_HOST', '127.0.0.1'),

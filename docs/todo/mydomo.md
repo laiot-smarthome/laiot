@@ -52,9 +52,11 @@ order: 5
   запрет raw/join; 4 теста.
 - [x] `ModuleBus`: retained events с TTL, namespace и wildcard-подписки;
   4 теста.
-- **UI:** новый дизайн админки не делаем. Core-модули используют alpha-
-  оболочку: `templates/panel.html`, `admin.css`, `ui-system.css`, `MDJUI` и
-  UI Kit; новый layout/CSS не создаём.
+- [x] `CacheStore` + фабрика: array/file/database, TTL, `remember`, `has`,
+  `forget`, типы; 4 теста.
+- **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
+  представления переносим на Blade/Yoyo; используем `admin.css`,
+  `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
 - [ ] Core-модули: интегрировать страницу в alpha-оболочку, затем `ui_kit`
   и `shoutbox`.
 - [ ] Ядро параллельно: кэш, очереди/события, логирование, CLI и панель.
@@ -645,14 +647,12 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 
 ### 6.4. Кэш
 
-- [ ] Ввести `CacheInterface` (PSR-16) и фабрику stores: Redis, database,
-  file, array (tests).
-- [ ] Namespace: `mydomo:{install_hash}:{area}:`; ключи не пересекаются между
-  свойствами, метаданными, сессиями, очередями и модулями.
-- [ ] Поддержать TTL, `remember`, `has`, `forget`, `clearPrefix`, типы
-  (массивы, `false`, `0`, `null`).
-- [ ] Запретить кэширование внутри незавершённой транзакции; инвалидация
-  после commit.
+- [x] `CacheStore` + фабрика stores: array, file, database.
+- [x] TTL, `remember`, `rememberForever`, `has`, `forget`, `pull`,
+  increment/decrement; массивы, `false`, `0`, `null`.
+- [ ] Namespace с `install_hash`: сейчас `mydomo.<key>`.
+- [ ] Redis store и `clearPrefix` через SCAN, без FLUSHDB.
+- [ ] Запрет кэширования в незавершённой транзакции; инвалидация после commit.
 - [ ] Не использовать `FLUSHDB`/`FLUSHALL`; только SCAN по префиксу.
 - [ ] Redis опционален; без него — database/file store с теми же гарантиями.
 - [ ] `predis/predis` — fallback, если ext-redis нет; предпочитать phpredis.
