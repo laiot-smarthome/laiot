@@ -4,6 +4,8 @@ parameters:
         - src
         - tests/Feature
     tmpDir: var/cache/phpstan
+    scanDirectories:
+        - modules/core
     reportUnmatchedIgnoredErrors: false
     scanFiles:
         - modules/core/shoutbox/helpers.php

@@ -15,8 +15,8 @@ legacy-коду. Если документ относится к новому я
 
 ## Статус
 
-**База ядра и веб-админка готовы.** Перенесено **17 core-модулей**;
-остались 12 старых модулей. Старая alpha-панель и её бандл удалены из
+**База ядра и веб-админка готовы.** Перенесено **18 core-модулей**;
+остались 11 старых модулей. Старая alpha-панель и её бандл удалены из
 MyDoMo. Пользовательские обёртки работают.
 
 Уже работает в новом ядре:
@@ -32,6 +32,8 @@ MyDoMo. Пользовательские обёртки работают.
   (объекты, классы, свойства, методы, скрипты, пользователи, локации, модули);
 - центр уведомлений: `notifications`, `NotificationService`, `notify()`,
   колокольчик и drawer `/api/v1/panel/notifications`;
+- входящие webhook `/module/api`: секрет в URL, методы, сценарий/PHP и
+  журнал последнего вызова; публичный вход `/api/v1/webhooks/{secret}`;
 - база знаний `/module/knowledge_base`: `docs/**`, front matter, поиск,
   безопасный Markdown и оглавление;
 - единые 404/405/500, `request_id`, security headers, maintenance mode;
@@ -56,11 +58,11 @@ MyDoMo. Пользовательские обёртки работают.
 
 Перенесённые модули: `shoutbox`, `jobs`, `actions_log`, `settings`, `users`,
 `ui_kit`, `system_errors`, `locations`, `scripts`, `classes`, `properties`,
-`methods`, `objects`, `pvalues`, `history`, `events`, `knowledge_base`.
+`methods`, `objects`, `pvalues`, `history`, `events`, `api`, `knowledge_base`.
 
 Ещё не закрыто:
 
-- 12 старых модулей: api, modes, pinghosts, mqtt, zigbee, xray,
+- 11 старых модулей: modes, pinghosts, mqtt, zigbee, xray,
   blockly_code, ai_assistant, control_modules, linkedobject, market,
   saverestore;
 - UI Kit: Alpine-компоненты (`modal`, `drawer`, alerts) и Yoyo-счётчик

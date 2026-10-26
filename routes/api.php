@@ -9,6 +9,7 @@ use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\ModulesController;
 use MajorDoMo\Http\Controllers\NotificationsController;
 use MajorDoMo\Http\Controllers\PanelSearchController;
+use MajorDoMo\Modules\Core\Api\WebhookEndpoint;
 
 return static function (Router $router): void {
     $router->middleware(['request-id'])->prefix('/api/v1')->group(static function (Router $router): void {
@@ -29,5 +30,9 @@ return static function (Router $router): void {
         $router->post('/panel/notifications/dismiss', [NotificationsController::class, 'dismiss'])
             ->middleware(['auth', 'csrf'])
             ->name('api.panel.notifications.dismiss');
+        // Входящие webhook: аутентификация — секрет в URL, без сессии/токена.
+        $router->match(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], '/webhooks/{secret}', WebhookEndpoint::class)
+            ->where('secret', '[a-f0-9]{48}')
+            ->name('api.webhooks');
     });
 };

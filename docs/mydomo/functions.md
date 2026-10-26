@@ -190,6 +190,10 @@ php bin/mydomo api:token 1 "monitoring"
 `/admin/tokens` (auth + `can:users.manage`) — выпуск/отзыв API-токенов.
 `/admin/modules` (auth) — реестр core-модулей: версии, таблицы, helpers.
 `/admin/api` (auth) — живой список API-маршрутов.
+`/module/api` (auth) — входящие webhook: секрет, методы, сценарий/PHP,
+последний статус. Публичный вызов — `GET|POST|PUT|PATCH|DELETE
+/api/v1/webhooks/{secret}`; секрет 48 hex, хранится только SHA-256, при
+создании/ротации показывается один раз. Ошибки: 404/405 (`Allow`)/403/500.
 `/module/events` — журнал цепочки событий свойства (`property_events`).
 `/module/actions_log` — аудит: вход/выход и изменения пользователей пишутся
 в `action_log`.

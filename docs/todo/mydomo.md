@@ -85,6 +85,9 @@ order: 5
   `mydomo.css`/`mydomo.js`, `x-md.*` и Alpine, без нового layout/CSS.
 - [x] Первый core-модуль `shoutbox` перенесён полностью: `modules/core`,
   `ModuleDb`, Blade, alpha-layout; старый код удалён.
+- [x] `api`: входящие webhook на `module_api_webhooks`, секрет SHA-256,
+  методы, сценарий/PHP, `/api/v1/webhooks/{secret}`; старый `modules/api`
+  удалён; 4 теста, документация.
 - [x] Blade-компоненты `x-md.button/icon/badge/card/section-heading/alert/
   avatar/empty-state/kpi/progress/status/field/input/textarea/select/
   checkbox/switch/disclosure/drawer/modal/skeleton/activity-feed/hint` и
@@ -411,6 +414,7 @@ project/
 | 2026-10-26 | `.env.bak.20261022-202814` | `.env.example` + `Config`; резервные копии `.env` не храним в git |
 | 2026-10-26 | `public/admin.php`, `public/nf.php`, `modules/panel.class.php`, `modules/apps.php`, `modules/first_start.php`, `modules/inc_panel_ajax.php`, `templates/panel*`, `common_header_admin.html`, `lib/admin_router.php`, `lib/core/AdminApplication.php`, `lib/core/Api/Panel*`, `lib/dashboard_data.php` | новый `layouts.alpha` + `PanelRenderer`; alpha-панель остаётся в ветке `alpha` |
 | 2026-10-26 | `resources/js/app.js`, `bootstrap.js`, `modules/admin_panel/*`, `vite*.config.js`, `public/assets/admin/admin.js|admin.css|charts|codeeditor|codehighlight` | `resources/js/mydomo/*`, `vite.mydomo.config.js`, `mydomo.js`/`mydomo.css` без jQuery и alpha-модулей |
+| 2026-10-26 | `modules/api`, `templates/api/*`, `public/assets/modules/api/*` | `modules/core/api` на `module_api_webhooks`; legacy `public/api.php` и `lib/core/Api/*` оставлены только как вход alpha |
 
 ## 4. Стек и Composer
 
@@ -843,6 +847,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   `notify()` для сценариев; 7 тестов.
 - [x] Старая панель и alpha-бандл удалены; новый shell `mydomo.js`/`mydomo.css`
   без jQuery/alpha-модулей; 2 теста.
+- [x] `api`-модуль: входящие webhook, публичный `/api/v1/webhooks/{secret}`,
+  секрет только SHA-256; 4 теста.
 - [x] `knowledge_base`: страница `docs/**` с поиском, категориями, безопасным
   Markdown и оглавлением; 4 теста.
 - [x] `/admin/modules`: реестр core-модулей; 1 тест.

@@ -133,8 +133,8 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 - `src/Http/Controllers/PanelSearchController.php` — `/api/v1/panel/search`
   в конверте `{ok,data}` для `resources/js/mydomo/api.js`;
 - `src/Http/Controllers/NotificationsController.php` — `/api/v1/panel/notifications`
-  и `dismiss`; колокольчик и drawer строятся из `layouts.alpha` и JS
-  `60/61_module_notifications`, `20_drawer`;
+  и `dismiss`; колокольчик и drawer строятся из `layouts.alpha` и
+  `resources/js/mydomo/notifications.js`/`drawer.js`;
 - `resources/views/login.blade.php` — alpha-вход (`md-auth`, логотип, `x-md`);
 - `resources/views/pages/dashboard.blade.php` — веб-админка `/admin`;
 - `resources/views/pages/status.blade.php` — первая страница нового kernel
@@ -145,6 +145,9 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 - `resources/views/pages/modules.blade.php` — реестр модулей, `/admin/modules`;
 - `modules/core/events/views/index.blade.php` — журнал цепочки событий,
   `/module/events`;
+- `modules/core/api/` — входящие webhook `/module/api` и публичный
+  `/api/v1/webhooks/{secret}`; секрет хранится SHA-256, обработчики — сценарий
+  или PHP через `ScriptRunner`/`CodeRunner`;
 - `modules/core/knowledge_base/` — база знаний `docs/**` в alpha-layout,
   `/module/knowledge_base`; Markdown рендерится `src/Docs/MarkdownRenderer.php`;
 - `resources/views/pages/shoutbox.blade.php` — промежуточная страница.

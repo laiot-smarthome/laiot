@@ -216,6 +216,10 @@ Third-party (позже):
 - `events` — журнал `property_events`: шаги «значение изменилось» и «вызван
   OnChange-метод», фильтры и статусы; старый `modules/events` и его шаблоны
   удалены;
+- `api` — входящие webhook `module_api_webhooks`: секрет в URL (SHA-256),
+  методы, сценарий/PHP, последний статус; публичный вход
+  `/api/v1/webhooks/{secret}`. Старый `modules/api`, шаблоны и page-ассеты
+  удалены; legacy `public/api.php` остаётся только входом alpha;
 - `knowledge_base` — `docs/**` в alpha-layout: категории, поиск, безопасный
   Markdown и оглавление; без собственной таблицы. Старый модуль, шаблоны и
   page-ассеты удалены; `lib/knowledge_base.php`/`lib/markdown.php` остаются

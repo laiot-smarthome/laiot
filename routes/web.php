@@ -18,7 +18,7 @@ use MajorDoMo\Http\Controllers\YoyoDemoController;
 
 return static function (Router $router): void {
     $router->middleware(['request-id'])->group(function (Router $router): void {
-        // Корень ведёт в новый вход; старый shell остаётся на /panel/.
+        // Корень ведёт в новый вход; legacy-панели в MyDoMo нет.
         $router->get('/', [LoginController::class, 'show'])->name('home');
         $router->get('/health', [HealthController::class, '__invoke'])->name('health');
         $router->get('/admin', DashboardController::class)
