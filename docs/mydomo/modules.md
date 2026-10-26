@@ -203,6 +203,8 @@ Third-party (позже):
   старый scheduler-модуль удалён;
 - `actions_log` перенесён на новую `action_log`: фильтр/поиск/soft delete;
 - `settings` перенесён на новую lowercase-таблицу `settings`;
+- `users` перенесён на новую таблицу `users`: список/создание/редактирование/
+  soft delete, пароли через `password_hash`;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 8. Публичные helpers модуля
