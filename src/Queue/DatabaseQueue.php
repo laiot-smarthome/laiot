@@ -68,6 +68,11 @@ final class DatabaseQueue implements Queue
         ]);
     }
 
+    public function pushJob(Job $job, string $queue = 'default', int $delaySeconds = 0): int
+    {
+        return $this->push($queue, $job->name(), $job->payload(), $delaySeconds);
+    }
+
     public function pop(string $queue): ?QueueJob
     {
         $this->assertName($queue, 'queue');

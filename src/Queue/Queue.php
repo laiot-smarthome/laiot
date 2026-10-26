@@ -20,6 +20,8 @@ interface Queue
      */
     public function push(string $queue, string $job, array $payload = [], int $delaySeconds = 0): int;
 
+    public function pushJob(Job $job, string $queue = 'default', int $delaySeconds = 0): int;
+
     public function pop(string $queue): ?QueueJob;
 
     public function ack(QueueJob $job): void;

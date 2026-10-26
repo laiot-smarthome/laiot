@@ -72,6 +72,9 @@ order: 5
   1 unit-тест и CLI-тест.
 - [x] Базовая `Model` (`ID`, без timestamps) и `DatabaseManager::transaction()`;
   2 теста.
+- [x] Redis-кэш (`CacheFactory`) через Predis и SCAN-clear; live Redis в
+  тестах не поднимался.
+- [x] Typed jobs: `Job` + `Queue::pushJob()`; 2 теста.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
@@ -720,7 +723,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `JobRegistry`, `JobHandler`, `QueueWorker`; CLI `queue:work`.
 - [ ] Redis-быстрый путь и typed jobs.
 - [x] `ModuleBus`: retained events с TTL для публичного обмена core-модулей.
-- [ ] Типизированные задания вместо произвольных строк; валидация payload.
+- [x] `Job` + `Queue::pushJob()`: класс задания задаёт имя и payload;
+  worker ищет обработчик по имени.
+- [ ] JSON Schema/валидация payload на границе задания.
 - [ ] Идемпотентность, ключи повторов, dead-letter, лимиты попыток.
 - [ ] Полосы `object:<id>` и `serial` сохранить; они уже доказали порядок.
 - [ ] События: append-only `system_events`, PSR-14 для локальных слушателей,
