@@ -38,6 +38,20 @@ final class CoreShoutboxTest extends TestCase
         self::assertStringContainsString('md-admin-shell', (string)$response->getContent());
     }
 
+    public function testSayWrapperWritesToModuleTable(): void
+    {
+        require_once dirname(__DIR__, 2) . '/src/Support/legacy_helpers.php';
+        say('Сообщение через say()', 0, 1, 'test');
+
+        $row = $this->app->database()->connection()
+            ->table('module_shoutbox_messages')
+            ->whereNull('deleted_at')
+            ->first();
+        self::assertNotNull($row);
+        self::assertSame('Сообщение через say()', $row->message);
+        self::assertSame('test', $row->source);
+    }
+
     public function testMessageCanBeCreatedAndSoftDeleted(): void
     {
         $create = $this->app->handle(Request::create('/module/shoutbox', 'POST', [

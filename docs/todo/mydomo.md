@@ -956,7 +956,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 
 Сохранить как фасады над новыми сервисами:
 
-- `getGlobal`, `setGlobal`, `gg`, `sg`;
+- [x] `say` — уже пишет в Shoutbox core-модуля (level пока игнорируется);
+- [ ] `getGlobal`, `setGlobal`, `gg`, `sg`;
 - `setTimeOut`, `clearTimeOut`;
 - `callMethod`, `callMethodSafe`, `callScript`, `runScript`;
 - `say`, `sayReply`;

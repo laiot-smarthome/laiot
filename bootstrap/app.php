@@ -36,5 +36,6 @@ $app = new Application($root, [
     ],
 ]);
 $app->boot();
+require_once __DIR__ . '/../src/Support/legacy_helpers.php';
 
 return $app;

@@ -48,6 +48,7 @@ use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Queue\DatabaseQueue;
 use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
+use MajorDoMo\Support\AppContext;
 use MajorDoMo\Support\Clock;
 use MajorDoMo\View\BladeComponents;
 use MajorDoMo\View\BladeView;
@@ -102,6 +103,7 @@ final class Application
         Container::setInstance($this->container);
         $this->container->instance(Container::class, $this->container);
         $this->container->instance(self::class, $this);
+        AppContext::set($this);
 
         foreach (['var', 'var/cache', 'var/log'] as $directory) {
             $path = $this->root . '/' . $directory;

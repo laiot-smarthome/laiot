@@ -174,10 +174,20 @@ php bin/mydomo api:token 1 "monitoring"
 
 ## 10. Пользовательские обёртки
 
-В `alpha` сценарии и методы используют `gg`, `sg`, `say`, `setTimeOut`,
-`callMethod`, `getObject`, `getHistory`. В MyDoMo эти имена **пока не
-перенесены**; новый код должен использовать сервисы, а перенос обёрток
-делается отдельным этапом.
+`say()` уже работает в MyDoMo:
+
+```php
+say('Дверь открыта', 0, 0, 'script');
+```
+
+- пишет в `module_shoutbox_messages` (core-модуль Shoutbox);
+- сообщение обрезается до 255 символов;
+- `level` пока игнорируется;
+- при отсутствии таблицы/БД пишет warning в лог, не роняет сценарий.
+
+`gg`, `sg`, `setTimeOut`, `clearTimeOut`, `callMethod`, `getObject`,
+`getHistory` **пока не перенесены**: они зависят от объектов/свойств/методов,
+которые ещё не стали core-сервисами. Не обещайте их в новом API.
 
 Планируемый контракт (ещё не реализован):
 
@@ -185,15 +195,11 @@ php bin/mydomo api:token 1 "monitoring"
 | --- | --- | --- |
 | `gg($name, $default = null)` | публичное состояние/свойство | mixed |
 | `sg($name, $value)` | записать публичное состояние | bool/результат сервиса |
-| `say($message)` | сообщение в журнал | void |
 | `setTimeOut($name, $delay, $method)` | таймер | id/результат |
 | `clearTimeOut($id)` | снять таймер | bool |
 | `callMethod($object, $method, $params = [])` | вызвать метод | mixed |
 | `getObject($name)` | объект по имени | object/array |
 | `getHistory($object, $property, $limit)` | история свойства | array |
-
-До реализации этих обёрток **не обещайте** их в новом API. После реализации
-таблица переедет из «планируется» в «работает», с сигнатурами и примерами.
 
 ## 11. Для агента
 
