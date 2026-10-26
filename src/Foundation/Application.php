@@ -44,6 +44,7 @@ use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Queue\DatabaseQueue;
 use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
+use MajorDoMo\View\BladeComponents;
 use MajorDoMo\View\BladeView;
 use MajorDoMo\Yoyo\Counter;
 use Psr\Log\LoggerInterface;
@@ -300,7 +301,10 @@ final class Application
         // Yoyo и Blade-компоненты ищут эти сервисы через контейнер.
         $this->container->instance('blade.compiler', $compiler);
         $this->container->instance('view.engine.resolver', $resolver);
+        $this->container->instance(Factory::class, $factory);
+        $this->container->instance(ViewFactory::class, $factory);
         $this->container->instance('view', $bladeView);
+        BladeComponents::register($compiler, $views);
         $this->container->instance(BladeView::class, $bladeView);
         $this->container->instance('config', new Fluent([
             'view' => [

@@ -37,9 +37,6 @@ final class BladeRenderer
 
         $files = new Filesystem();
         $compiler = new BladeCompiler($files, $cache);
-        foreach (['activity-feed', 'alert', 'avatar', 'badge', 'button', 'card', 'checkbox', 'disclosure', 'drawer', 'empty-state', 'field', 'hint', 'icon', 'input', 'kpi', 'modal', 'progress', 'section-heading', 'select', 'skeleton', 'status', 'switch', 'textarea'] as $component) {
-            $compiler->component('components.md.' . $component, 'md.' . $component);
-        }
         $resolver = new EngineResolver();
         $resolver->register('blade', static fn (): CompilerEngine => new CompilerEngine($compiler, $files));
 
@@ -55,7 +52,7 @@ final class BladeRenderer
         $container->instance(ViewFactory::class, $this->factory);
         $container->instance('view', $this->factory);
         $this->factory->setContainer($container);
-        $compiler->anonymousComponentPath($views . '/components');
+        BladeComponents::register($compiler, $views);
     }
 
     /**

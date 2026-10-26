@@ -134,6 +134,9 @@ GET /api/v1/about    — версия, PHP, число core-модулей
 GET /api/v1/modules  — список core-модулей
 ```
 
+Страница `/status` (auth) показывает версию, PHP, БД/кэш и число модулей
+в alpha-layout.
+
 Ошибки — JSON с `error.code` и `request_id`. Пока это публичный срез без
 токенов; auth API — следующий этап.
 
