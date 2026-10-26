@@ -39,6 +39,11 @@ interface Queue
     public function failed(string $queue, int $limit = 50): array;
 
     /**
+     * @return list<array{id:int,job:string,attempts:int,available_at:string}>
+     */
+    public function pending(string $queue, int $limit = 50): array;
+
+    /**
      * Вернуть failed-задание в очередь с нулевыми попытками.
      */
     public function retry(int $id): bool;

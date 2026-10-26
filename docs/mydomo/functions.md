@@ -67,6 +67,7 @@ if ($job !== null) {
 
 $queue->stats('default');   // pending/reserved/failed
 $queue->failed('default');  // список
+$queue->pending('default'); // ожидают worker
 $queue->retry($id);
 $queue->forget($id);
 ```

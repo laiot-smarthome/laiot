@@ -198,6 +198,37 @@ final class DatabaseQueue implements Queue
             ->all();
     }
 
+    /**
+     * @return list<array{id:int,job:string,attempts:int,available_at:string}>
+     */
+    public function pending(string $queue, int $limit = 50): array
+    {
+        $this->assertName($queue, 'queue');
+        $this->ensureTable();
+        $now = ($this->clock)();
+        $reservationCutoff = date('Y-m-d H:i:s', $now - $this->reservationTimeout);
+
+        return $this->database->connection()->table($this->table)
+            ->where('queue', $queue)
+            ->whereNull('deleted_at')
+            ->whereNull('failed_at')
+            ->where('available_at', '<=', date('Y-m-d H:i:s', $now))
+            ->where(static function ($query) use ($reservationCutoff): void {
+                $query->whereNull('reserved_at')
+                    ->orWhere('reserved_at', '<=', $reservationCutoff);
+            })
+            ->orderBy('id')
+            ->limit(max(1, min(500, $limit)))
+            ->get()
+            ->map(static fn (object $row): array => [
+                'id' => (int)$row->id,
+                'job' => (string)$row->job,
+                'attempts' => (int)$row->attempts,
+                'available_at' => (string)$row->available_at,
+            ])
+            ->all();
+    }
+
     public function retry(int $id): bool
     {
         $this->ensureTable();

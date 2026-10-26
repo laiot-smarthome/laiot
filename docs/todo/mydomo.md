@@ -381,6 +381,7 @@ project/
 | 2026-10-26 | прототип `modules/welcome` | `modules/core` + первый реальный core-модуль |
 | 2026-10-26 | `templates/shoutbox/*`, `modules/shoutbox/*` | `modules/core/shoutbox` на `ModuleDb` + alpha-layout |
 | 2026-10-26 | промежуточная `pages/shoutbox.blade.php` | `modules/core/shoutbox/views/index.blade.php` |
+| 2026-10-26 | `modules/jobs`, `templates/jobs/*` | `modules/core/jobs` на core `Queue` |
 
 ## 4. Стек и Composer
 
@@ -796,8 +797,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] Первая страница на `layouts.alpha`: `/status` (БД, кэш, версия, модули).
 - [x] `PanelRenderer`/`PanelPage` — единая сборка страниц в alpha-layout;
   меню автоматически из core-модулей.
-- [x] `shoutbox`: полный вертикальный срез (ModuleDb, Blade, alpha-layout);
-  старые `modules/shoutbox` удалены.
+- [x] `shoutbox`: полный вертикальный срез (ModuleDb, Blade, alpha-layout).
+- [x] `jobs`: очередь на `Queue`, pending/failed, retry/forget; старый модуль
+  удалён.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
   остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.

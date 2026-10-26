@@ -197,8 +197,10 @@ Third-party (позже):
 - `ModuleManager` сканирует только `modules/core`;
 - `modules/welcome` удалён;
 - `ModuleDb`/`ModuleBus` готовы;
-- первый core-модуль `shoutbox` перенесён полностью: `modules/core/shoutbox`,
-  `ModuleDb`, Blade, alpha-layout; старый `modules/shoutbox` удалён;
+- `shoutbox` перенесён полностью: `modules/core/shoutbox`, `ModuleDb`, Blade,
+  alpha-layout; старый код удалён;
+- `jobs` перенесён на core-очередь: pending/reserved/failed, retry/forget;
+  старый scheduler-модуль удалён;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 9. Что запрещено

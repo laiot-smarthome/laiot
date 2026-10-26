@@ -1,0 +1,15 @@
+{
+    "id": "jobs",
+    "type": "core",
+    "name": "Очередь",
+    "version": "2.0.0",
+    "namespace": "MajorDoMo\\Modules\\Core\\Jobs\\",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "menu": {
+        "title": "Очередь",
+        "route": "jobs.index",
+        "order": 90
+    }
+}

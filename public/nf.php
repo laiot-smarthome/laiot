@@ -67,6 +67,10 @@ if ($requestPath === rtrim($rootHTML, '/') . '/panel/shoutbox.html') {
     header('Location: ' . rtrim($rootHTML, '/') . '/module/shoutbox', true, 302);
     exit;
 }
+if ($requestPath === rtrim($rootHTML, '/') . '/panel/jobs.html') {
+    header('Location: ' . rtrim($rootHTML, '/') . '/module/jobs', true, 302);
+    exit;
+}
 
 $found=0;
 foreach($requests as $key => $value)
