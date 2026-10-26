@@ -19,6 +19,8 @@ use Illuminate\View\Engines\EngineResolver;
 use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
 use LogicException;
+use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Database\SettingsRepository;
 use MajorDoMo\Http\Kernel;
 use MajorDoMo\Http\Middleware\RequestIdMiddleware;
 use Monolog\Handler\StreamHandler;
@@ -30,10 +32,9 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Каркас MyDoMo: контейнер, конфиг, логгер, Blade, роутер и HTTP-kernel.
  *
- * Это первый вертикальный срез нового ядра. Он намеренно не подключает
- * legacy loader и не зависит от базы: задача среза — доказать, что выбранный
- * стек собирается и отдаёт запрос. Следующие этапы добавляют Eloquent,
- * сессии, auth и модули.
+ * Это вертикальный срез нового ядра. Он не подключает legacy loader,
+ * лениво открывает PDO-соединение через Illuminate Database и пока не
+ * содержит сессий, auth и модулей.
  */
 final class Application
 {
@@ -41,6 +42,7 @@ final class Application
     private Router $router;
     private Kernel $kernel;
     private LoggerInterface $logger;
+    private DatabaseManager $database;
 
     /** @var array<string, mixed> */
     private array $config;
@@ -69,6 +71,10 @@ final class Application
 
         $this->logger = $this->createLogger();
         $this->container->instance(LoggerInterface::class, $this->logger);
+
+        $this->database = new DatabaseManager((array)($this->config['database'] ?? []));
+        $this->container->instance(DatabaseManager::class, $this->database);
+        $this->container->instance(SettingsRepository::class, new SettingsRepository($this->database));
 
         $events = new Dispatcher($this->container);
         $this->container->instance(Dispatcher::class, $events);
@@ -135,6 +141,13 @@ final class Application
         $this->ensureBooted();
 
         return $this->logger;
+    }
+
+    public function database(): DatabaseManager
+    {
+        $this->ensureBooted();
+
+        return $this->database;
     }
 
     public function config(string $key, mixed $default = null): mixed

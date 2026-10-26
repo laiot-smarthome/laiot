@@ -33,13 +33,13 @@ final class SpikeTest extends TestCase
         self::assertNotEmpty($response->headers->get('X-Request-Id'));
     }
 
-    public function testJsonRoute(): void
+    public function testHealthWithoutDatabase(): void
     {
         $response = $this->app->handle(Request::create('/health', 'GET'));
 
-        self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('"status":"ok"', (string)$response->getContent());
-        self::assertStringContainsString('"app":"MyDoMo"', (string)$response->getContent());
+        self::assertSame(503, $response->getStatusCode());
+        self::assertStringContainsString('"status":"degraded"', (string)$response->getContent());
+        self::assertStringContainsString('"database":"not_configured"', (string)$response->getContent());
     }
 
     public function testRouteParameter(): void

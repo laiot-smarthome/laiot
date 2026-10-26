@@ -9,8 +9,10 @@ declare(strict_types=1);
  * рабочей конфигурации. На следующем этапе значения переедут в Config.
  */
 return [
+    'version' => '2.0.0-dev',
     'debug' => true,
     'views' => __DIR__ . '/../resources/views',
     'view_cache' => __DIR__ . '/../var/cache/views',
     'log' => __DIR__ . '/../var/log/mydomo.log',
+    'database' => [],
 ];

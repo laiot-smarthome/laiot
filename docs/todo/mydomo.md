@@ -31,7 +31,11 @@ order: 5
 - [x] `composer check`, PHPStan, PHP-CS-Fixer, Rector dry-run и ручные HTTP-
   проверки проходят локально.
 - [x] Добавлен CI-workflow; первый зелёный прогон на GitHub ещё нужен.
-- [ ] Этап 1: перенос конфигурации, БД и базового kernel из spike в `src/`.
+- [x] Этап 1: `Config` + PDO/Eloquent, health-check, настройки через
+  репозиторий, базовые `Controller`/`Repository` и трейт ответов.
+- [x] MariaDB-проверка на одноразовом контейнере: схема, insert, select,
+  drop прошли.
+- [ ] Этап 2: auth, сессии, полноценный HTTP-middleware и Yoyo/Blade UI.
 
 ## 1. Решение и границы
 
@@ -169,6 +173,92 @@ modules/<id>/               модуль как пакет
 6. `module:list`, `module:enable`, `module:migrate`, `module:remove` —
    обязательные CLI-команды.
 
+### 3.4. Структура проекта и точки входа
+
+Целевое дерево:
+
+```text
+project/
+├── bin/majordomo              единственная CLI-точка входа
+├── bootstrap/app.php          сборка приложения, не публикуется
+├── config/                    app, database, cache, queue, logging, modules
+├── database/
+│   ├── migrations/
+│   └── schema/
+├── modules/<id>/              код модулей, не публикуется
+├── public/                    document root, только web
+│   ├── index.php              единственный HTTP-front controller
+│   ├── install.php            мастер первого запуска (исключение: БД может быть пуста)
+│   ├── assets/                собранная статика
+│   └── media/                 опубликованные пользовательские файлы
+├── resources/
+│   ├── views/                 Blade
+│   ├── css/
+│   └── js/
+├── routes/                    web.php, api.php, console.php
+├── src/                       ядро и приложение
+│   ├── Core/
+│   ├── Database/
+│   ├── Http/
+│   ├── Modules/
+│   ├── Routing/
+│   └── Support/
+├── storage/                   cache, logs, sessions, module data
+├── tests/                     Unit, Feature, Integration
+├── tools/                     dev-инструменты, не публикуется
+├── docs/                      документация, не публикуется напрямую
+├── composer.json / composer.lock
+├── package.json / package-lock.json
+├── phpunit.xml / phpstan.neon / rector.php / .php-cs-fixer.dist.php
+├── vite*.config.js
+├── README.md / AGENTS.md / LICENSE / .env.example / .gitignore
+└── docker/                    только локальная отладка
+```
+
+Правила:
+
+- Web-точка входа только в `public/`. Никаких PHP-файлов в корне, `lib/`,
+  `modules/`, `scripts/`, `tools/` и `cms/`, доступных как приложение.
+- `public/admin.php`, `public/nf.php`, `public/api.php`, `public/404.php` и
+  `public/spike.php` удаляются. API, админка, сайт, 404 и health идут через
+  `public/index.php`.
+- `public/install.php` — единственное исключение: мастер обязан работать без
+  БД и без общего boot.
+- Nginx: `root` строго на `public/`; никаких `root`-override на `modules/`,
+  `cms/` и `docs/`. Статика модулей публикуется в `public/assets/modules/`;
+  пользовательские медиа — в `public/media/`; документация читается
+  контроллером базы знаний.
+- `cms/` и `var/` — legacy-хранилища alpha. Новое — `storage/`; перенос
+  данных и медиа делается миграцией, а не симлинками наружу.
+- CLI — `bin/majordomo`; `deploy.sh` и `dev_server.php` переезжают в `bin/`
+  и `tools/`; `php majordomo` остаётся совместимым алиасом на время alpha.
+- В корне остаются только манифесты, конфиги инструментов, README/AGENTS,
+  лицензия и `docker/`. Это правило проверяется тестом структуры.
+
+### 3.5. Стиль кода: сахар, трейты, наследование
+
+Пользователь просит больше сахара, трейтов и наследования. Применяем
+осознанно, чтобы не получить «магию», которую не видит PHPStan.
+
+- Базовые классы: `Http\Controller`, `Database\Repository`, `Core\Service`,
+  `Database\Model`, `Database\Migration`, `Console\Command`.
+- Трейты для повторяющегося поведения без состояния:
+  `Http\Concerns\CreatesResponses`, `Support\Concerns\HasLogger`,
+  `Support\Concerns\InteractsWithTime`, `Support\Concerns\HasUuid`.
+  Трейт не прячет обязательные зависимости: соединение и логгер передаются
+  через конструктор, а не берутся из глобального состояния.
+- Сахар: `$this->json()/html()/text()`, именованные конструкторы,
+  scope-методы моделей, `collect()`, `route()`, `Setting::value()`,
+  `Response`-хелперы. Глобальные функции не добавляем, кроме совместимых
+  обёрток пользовательского кода.
+- Наследование — для общей реализации (контроллеры, репозитории, миграции,
+  команды). Композиция — для зависимостей. Если базовый класс начинает
+  знать про конкретный модуль, это ошибка.
+- Любая магия (`__call`, `__get`, динамические фасады) документируется
+  `@method`/`@property` и покрывается тестом; иначе PHPStan и IDE слепнут.
+- Контроллеры и сервисы по возможности `readonly`; изменяемое состояние —
+  только у моделей, сессий и долгоживущих воркеров.
+
 ## 4. Стек и Composer
 
 ### 4.1. PHP
@@ -217,6 +307,7 @@ Laravel-роутинг, Eloquent, коллекции, кэш, Blade и конт�
 | `illuminate/cache` | `^12.0` | Кэш с TTL и store-абстракцией | Берём |
 | `illuminate/redis` | `^12.0` | Redis-store | Берём |
 | `illuminate/view` | `^12.0` | Blade | Берём |
+| `clickfwd/yoyo` | `^0.15.1` | Livewire-подобные компоненты + htmx | Оценить как UI-слой |
 | `illuminate/filesystem` | `^12.0` | Blade и файлы | Транзитивно |
 | `illuminate/events` | `^12.0` | События view/container | Транзитивно |
 | `predis/predis` | `^2.4` | Redis без ext-redis | Берём как fallback |
@@ -273,7 +364,7 @@ handler).
 
 ### 4.4. Команды установки (spike)
 
-Не выполнять все сразу. Сначала spike на отдельной ветке:
+Не выполнять все сразу. Сначала spike в `MyDoMo`:
 
 ```bash
 composer require illuminate/routing:^12.0 illuminate/http:^12.0 \
@@ -310,31 +401,79 @@ Predis 2.4.1; 38 пакетов). Dev-набор без `roave/security-advisori
 Если нужен дополнительный барьер, вынести `roave` в отдельный nightly-job
 с актуальным патчем PHP, но не в общую матрицу сборки.
 
-### 4.6. Spike 0 (выполнен локально)
+### 4.6. Spike 0 и Stage 1 (выполнены локально)
 
-В ветке `MyDoMo` собран вертикальный срез:
+В ветке `MyDoMo` собран вертикальный срез и подключён слой данных:
 
 - `src/Foundation/Application.php` — контейнер, конфиг, Monolog, Blade,
-  Illuminate Router, kernel;
+  Illuminate Router, kernel, ленивый `DatabaseManager`;
 - `src/Http/Kernel.php` — 404/405/500, `X-Request-Id`, без stack trace;
-- `src/Http/Controllers/SpikeController.php` — DI + Blade;
+- `src/Http/Controller.php`, `src/Http/Concerns/CreatesResponses.php` —
+  базовый контроллер и сахар ответов;
+- `src/Database/DatabaseManager.php` — Illuminate Capsule, PDO, ping;
+- `src/Database/Setting.php`, `SettingsRepository.php`, `Repository.php` —
+  Eloquent-модель и репозиторий настроек;
+- `src/Http/Controllers/HealthController.php`,
+  `SettingController.php`, `SpikeController.php`;
 - `src/Http/Middleware/RequestIdMiddleware.php` — проверка pipeline;
-- `src/Database/SpikeNote.php` — Eloquent на SQLite;
+- `bootstrap/app.php` — `Config::boot()` + параметры MySQL для `DatabaseManager`;
 - `config/app.php`, `routes/web.php`, `resources/views/spike.blade.php`,
-  `bootstrap/app.php`, временный `public/spike.php`;
-- `tests/Feature/SpikeTest.php` и `EloquentSpikeTest.php` — 7 тестов;
+  временный `public/spike.php`;
+- `tests/Feature/SpikeTest.php`, `EloquentSpikeTest.php`,
+  `DatabaseTest.php` — 11 тестов;
+- `tests/Integration/MariaDbConnectionTest.php` — реальная MariaDB-проверка;
 - `phpunit.xml`, `phpstan.neon`, `rector.php`, `.php-cs-fixer.dist.php`,
   `.github/workflows/ci.yml`.
 
-Локальные результаты: `composer check` — 105 файлов lint, PHPStan без ошибок,
-PHP-CS-Fixer 0 замечаний, Rector dry-run чистый, PHPUnit 7/7, ручные
-`/spike`, `/health`, 404 и 405 отвечают корректно. Старые
-`config_smoke`/`routing_smoke`/`php majordomo about` после установки пакетов
-тоже проходят.
+Локальные результаты: `composer check` — 115 файлов lint, PHPStan без ошибок,
+PHP-CS-Fixer 0 замечаний, Rector dry-run чистый, PHPUnit 11/11, MariaDB
+integration 1/1 на одноразовом контейнере, ручные `/spike`, `/health`, 404,
+405 и `/db/setting/...` отвечают корректно. Старые
+`config_smoke`/`routing_smoke`/`php majordomo about` тоже проходят.
 
-Это ещё не этап 1: конфиг остаётся массивом, БД не подключена к MariaDB,
-auth/сессии/модулей нет. Следующий шаг — перенести решения среза в
-`Application`/`Kernel` этапа 1 и подключить `Config`/PDO.
+Границы этапа: auth, сессии, полноценный middleware, кэш и модули ещё не
+перенесены; `public/spike.php` временный. Следующий этап — auth/сессии,
+глобальный middleware и Yoyo/Blade UI-слой.
+
+### 4.7. Yoyo: что это и как встраивать
+
+**Важно:** `clickfwd/yoyo` ещё не подключён. Сейчас в ветке стоит
+Illuminate Routing + Blade; Yoyo — следующий spike, а не текущая зависимость.
+
+Yoyo — не HTTP-роутер и не замена контроллерам. Это Livewire-подобный
+full-stack-слой для серверных компонентов и htmx: страницу по-прежнему
+отдаёт контроллер/Blade, а Yoyo обновляет отдельные компоненты через свой
+endpoint. Поэтому архитектура такая:
+
+- `public/index.php` → `Http\Kernel` → Illuminate Router → контроллер;
+- контроллер возвращает Blade-страницу;
+- в Blade-странице `@yoyo('component')` рендерит компонент;
+- `POST /yoyo` (или `/panel/yoyo`) обслуживает обновления компонентов;
+- модули регистрируют свои namespace/компоненты через манифест.
+
+Почему нужен отдельный spike:
+
+- официальная связка Yoyo с Blade через `jenssegers/blade` 2.x поддерживает
+  Illuminate 9–11, а у нас Illuminate 12. Нужен собственный адаптер:
+  `view.engine.resolver`, `blade.compiler`, `view`, `config` и
+  `YoyoBladeCompilerEngine` + `BladeViewProvider`;
+- `yoyo.js` и htmx нельзя грузить с CDN: кладём в `resources/js/vendor/` или
+  `public/assets/vendor/yoyo/`, собираем Vite, фиксируем версию и лицензию;
+- update-endpoint обязан требовать сеанс администратора и CSRF; публичные
+  свойства компонента уходят в браузер, поэтому секреты в них запрещены;
+- компоненты модулей получают namespace `MajorDoMo\Modules\<Name>\Yoyo\`;
+  ядро не должно знать конкретные модули.
+
+Spike считается успешным, если:
+
+- [ ] Blade-страница рендерит Yoyo-компонент на первичной загрузке;
+- [ ] `POST /yoyo` возвращает обновлённый HTML и принимает CSRF/сессию;
+- [ ] компонент модуля регистрируется без правки ядра;
+- [ ] htmx/yoyo.js отдаются локально, без CDN;
+- [ ] CSP/безопасность и тесты не хуже текущего Blade-слоя.
+
+Если адаптер окажется слишком хрупким, оставляем Blade + HTMX/Alpine без
+Yoyo. Решение фиксируем после spike, а не заранее.
 
 ## 5. Этапы
 
@@ -342,7 +481,7 @@ auth/сессии/модулей нет. Следующий шаг — пере�
 | --- | --- | --- |
 | 0 | Решения, CI, инструменты, spike | CI зелёный, spike работает |
 | 1 | Каркас: контейнер, конфиг, логи, ошибки, БД | Один запрос и одна модель |
-| 2 | HTTP, роутер, middleware, auth, Blade | `/panel/` и API-эндпоинт |
+| 2 | HTTP, роутер, middleware, auth, Blade, Yoyo spike | `/panel/` и API-эндпоинт |
 | 3 | Данные: Eloquent, репозитории, миграции | CRUD объекта и свойства |
 | 4 | Кэш, очередь, события, планировщик | Операция через очередь |
 | 5 | Модульный SDK и lifecycle | Фикстурный модуль |
@@ -494,8 +633,12 @@ auth/сессии/модулей нет. Следующий шаг — пере�
 - [ ] Перенести `MDJUI` в Blade-компоненты или оставить PHP-хелперы,
   вызываемые из Blade; не держать две разметки.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.
-- [ ] Заменить `partLoad` на `fetch` + History API или HTMX; решение — после
-  spike, но jQuery в новом коде не используем.
+- [ ] Yoyo spike: Blade-страница + компонент + `/yoyo` update endpoint;
+  Yoyo остаётся UI-слоем, а не роутером (см. 4.7).
+- [ ] htmx и `yoyo.js` — локальные ассеты Vite, без CDN; версия и лицензия
+  зафиксированы.
+- [ ] Заменить `partLoad` на Yoyo/HTMX или `fetch` + History API; решение —
+  после spike, но jQuery в новом коде не используем.
 - [ ] Удалить `jTemplate`/`parser` после переноса базовых модулей.
 - [ ] Ассеты: Vite, один core entry + page entries; без новых `<script>` в
   шаблонах.
@@ -556,7 +699,7 @@ auth/сессии/модулей нет. Следующий шаг — пере�
 - [ ] Фабрики/Faker для объектов, свойств, сценариев, модулей.
 - [ ] Контрактные тесты API v1 и v2; 404/405/CSRF/rate limit.
 - [ ] PHPStan: уровень 6+ для нового кода, baseline для старого; позже 8.
-- [ ] Rector: dry-run в CI, автофиксы отдельными PR.
+- [ ] Rector: dry-run в CI, автофиксы отдельными коммитами.
 - [ ] PHP-CS-Fixer: PSR-12 + правила проекта; `--dry-run` в CI.
 - [ ] `php -l`/`parallel-lint`, `node --check`, `npm run build`.
 - [ ] Покрытие: не гнаться за 100%; цель — 70% нового кода и все критичные
@@ -629,16 +772,50 @@ auth/сессии/модулей нет. Следующий шаг — пере�
 
 ### 8.2. Сценарии и методы
 
-- Сохранить `gg`, `sg`, `getGlobal`, `setGlobal`, `callMethod`,
-  `callMethodSafe`, `say`, `runScript`, `SQLSelect*` как фасады над новыми
-  сервисами.
-- `$this` в методах остаётся объектом MajorDoMo.
-- Старые сценарии не переписывать автоматически; предоставить отчёт
-  `legacy:scan` с найденными вызовами.
-- Ошибки в старом коде не должны ронять весь новый runtime; логировать с
-  trace и показывать в «Ошибках системы».
-- После стабилизации — отдельный проект миграции пользовательского кода,
-  не в первом проходе.
+Пользовательский код — не модули. Его удобные обёртки сохраняем, даже если
+под капотом будет другой сервис.
+
+Сохранить как фасады над новыми сервисами:
+
+- `getGlobal`, `setGlobal`, `gg`, `sg`;
+- `setTimeOut`, `clearTimeOut`;
+- `callMethod`, `callMethodSafe`, `callScript`, `runScript`;
+- `say`, `sayReply`;
+- `getObject`, `getObjectsByClass`, `getObjectsByProperty`;
+- `getHistory`, `getHistoryValue`, `getHistoryAvg`, `getHistoryMin`,
+  `getHistoryMax`, `getHistorySum`, `getHistoryCount`;
+- `$this` в методах остаётся объектом MajorDoMo;
+- `transcript` в текущем ядре не найден: если это пользовательская функция
+  или обёртка из ваших сценариев, её сигнатуру нужно подтвердить и сохранить
+  отдельно.
+
+Прямой SQL в пользовательском коде запрещён полностью:
+
+- `SQLSelect`, `SQLSelectOne`, `SQLExec`, `SQLInsert`, `SQLUpdate`;
+- `$db`, `$mysqli`, `mysql_*`, `mysqli_*`, `PDO` и прямые `query()/exec()`;
+- строки `SELECT ...`, `INSERT ...`, `UPDATE ...`, `DELETE ...`,
+  `REPLACE ...`, `ALTER ...`, `DROP ...`, `TRUNCATE ...` в вызовах БД.
+
+Вместо SQL пользователь получает `gg/sg`, методы объектов, сервисы `Core::*`
+и SDK модуля. Для собственных данных модуль объявляет репозиторий/сервис,
+а не отдаёт таблицу наружу.
+
+Проверка:
+
+- `UserCode\CodeGuard` разбирает PHP через `nikic/php-parser` и ищет
+  запрещённые функции, `$db` и SQL-вызовы; ошибка содержит строку и причину;
+- проверка выполняется при сохранении метода/сценария и перед выполнением,
+  чтобы старый код нельзя было обойти через импорт;
+- `php bin/majordomo legacy:scan` показывает все найденные места и код
+  возврата для CI;
+- ошибки в пользовательском коде не роняют весь runtime: они логируются с
+  trace и показываются в «Ошибках системы»;
+- `$this`, типы и старые сигнатуры обёрток покрываются тестами на реальных
+  сценариях/методах из демо-дампа.
+
+Автоматически переписывать пользовательский код не будем: владелец портирует
+свои методы и свойства вручную, а guard не даёт сохранить заведомо
+несовместимый SQL.
 
 ### 8.3. API
 

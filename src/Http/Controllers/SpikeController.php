@@ -6,11 +6,12 @@ namespace MajorDoMo\Http\Controllers;
 
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Response;
+use MajorDoMo\Http\Controller;
 
 /**
  * Контроллер вертикального среза: DI контейнера + Blade.
  */
-final readonly class SpikeController
+final readonly class SpikeController extends Controller
 {
     public function __construct(private Factory $view)
     {
@@ -27,11 +28,11 @@ final readonly class SpikeController
             ],
         ])->render();
 
-        return new Response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+        return $this->html($html);
     }
 
     public function show(string $id): Response
     {
-        return new Response('Spike item ' . $id, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+        return $this->text('Spike item ' . $id);
     }
 }
