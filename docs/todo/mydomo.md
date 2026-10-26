@@ -852,6 +852,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `history`: `property_history`, запись при `sg`, страница и `getHistory`.
 - [x] users: назначение ролей в форме, `syncUserRoles`; 1 тест.
 - [x] `callMethod`: поиск объекта/класса/метода и выполнение без eval; 1 тест.
+- [x] `setTimeOut`/`clearTimeOut`: `runtime_timeouts`, явный `timeout:run`;
+  1 тест.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
   остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.

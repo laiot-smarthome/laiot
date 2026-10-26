@@ -59,6 +59,8 @@ use MajorDoMo\Properties\ValueRepository;
 use MajorDoMo\Queue\DatabaseQueue;
 use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
+use MajorDoMo\Runtime\CodeRunner;
+use MajorDoMo\Runtime\TimeoutRepository;
 use MajorDoMo\Scripts\ScriptRepository;
 use MajorDoMo\Support\AppContext;
 use MajorDoMo\Support\Clock;
@@ -180,6 +182,8 @@ final class Application
         $objectRepository = new ObjectRepository($this->database);
         $this->container->instance(ObjectRepository::class, $objectRepository);
         $this->container->instance(MethodRunner::class, new MethodRunner($objectRepository, new MethodRepository($this->database)));
+        $this->container->instance(TimeoutRepository::class, new TimeoutRepository($this->database));
+        $this->container->instance(CodeRunner::class, new CodeRunner());
         $history = new HistoryRepository($this->database);
         $this->container->instance(HistoryRepository::class, $history);
         $this->container->instance(ValueRepository::class, new ValueRepository($this->database, $history));

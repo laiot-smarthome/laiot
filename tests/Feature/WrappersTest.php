@@ -73,6 +73,15 @@ final class WrappersTest extends TestCase
                 $table->timestamps();
                 $table->softDeletes();
             },
+            'runtime_timeouts' => static function (Blueprint $table): void {
+                $table->increments('id');
+                $table->string('title');
+                $table->text('code');
+                $table->dateTime('run_at');
+                $table->dateTime('executed_at')->nullable();
+                $table->timestamps();
+                $table->softDeletes();
+            },
         ] as $name => $definition) {
             $app->database()->schema()->create($name, $definition);
         }
@@ -90,6 +99,8 @@ final class WrappersTest extends TestCase
         ]);
 
         self::assertSame(10, callMethod('Кухня', 'double', ['x' => 5]));
+        self::assertGreaterThan(0, setTimeOut('demo', 'return 1;', 0));
+        self::assertTrue(clearTimeOut('demo'));
         self::assertTrue(sg('Кухня.temperature', '23.5'));
         self::assertSame('23.5', gg('Кухня.temperature'));
         self::assertSame('Кухня', getObject('Кухня')['title'] ?? null);

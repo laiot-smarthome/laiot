@@ -170,6 +170,7 @@ php bin/mydomo doctor
 php bin/mydomo maintenance status
 php bin/mydomo maintenance on
 php bin/mydomo maintenance off
+php bin/mydomo timeout:run
 php bin/mydomo health
 php bin/mydomo route:list
 php bin/mydomo module:list
@@ -244,14 +245,16 @@ getObject('Кухня');            // array|null
 метод и выполняет доверенный пользовательский PHP через временный файл
 (без eval). Код методов — как в alpha, доверенный.
 
-`setTimeOut`, `clearTimeOut` **пока не перенесены**.
+`setTimeOut($title, $code, $seconds)` создаёт запись в `runtime_timeouts`;
+`clearTimeOut($title)` снимает её. Выполнение — только явно:
+`php bin/mydomo timeout:run` (без автоматических циклов).
 
 Планируемый контракт (ещё не реализован):
 
 | Обёртка | Смысл | Возврат |
 | --- | --- | --- |
-| `setTimeOut($name, $delay, $method)` | таймер | id/результат |
-| `clearTimeOut($id)` | снять таймер | bool |
+| `setTimeOut($title, $code, $seconds)` | отложенная запись | int |
+| `clearTimeOut($title)` | снять отложенную запись | bool |
 | — | `callMethod` уже работает | mixed |
 | — | `getHistory` уже работает | array |
 

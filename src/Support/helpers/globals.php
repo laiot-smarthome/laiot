@@ -7,6 +7,7 @@ use MajorDoMo\Methods\MethodRunner;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
 use MajorDoMo\Properties\ValueRepository;
+use MajorDoMo\Runtime\TimeoutRepository;
 use MajorDoMo\Support\AppContext;
 
 if (!function_exists('getObject')) {
@@ -85,6 +86,27 @@ if (!function_exists('callMethod')) {
         }
 
         return $app->container()->make(MethodRunner::class)->run($object, $method, $params);
+    }
+}
+
+if (!function_exists('setTimeOut')) {
+    function setTimeOut(string $title, string $commands, int $timeout = 0, int $expire = 0): int
+    {
+        $app = AppContext::get();
+        if ($app === null) {
+            return 0;
+        }
+
+        return $app->container()->make(TimeoutRepository::class)->set($title, $commands, $timeout);
+    }
+}
+
+if (!function_exists('clearTimeOut')) {
+    function clearTimeOut(string $title): bool
+    {
+        $app = AppContext::get();
+
+        return $app !== null && $app->container()->make(TimeoutRepository::class)->clear($title);
     }
 }
 
