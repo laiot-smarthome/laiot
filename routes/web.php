@@ -6,6 +6,7 @@ use Illuminate\Routing\Router;
 use MajorDoMo\Http\Controllers\DashboardController;
 use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\LoginController;
+use MajorDoMo\Http\Controllers\ProfileController;
 use MajorDoMo\Http\Controllers\RolesController;
 use MajorDoMo\Http\Controllers\StatusController;
 use MajorDoMo\Http\Controllers\TokensController;
@@ -20,6 +21,12 @@ return static function (Router $router): void {
         $router->get('/admin', DashboardController::class)
             ->middleware(['auth'])
             ->name('admin.dashboard');
+        $router->get('/admin/profile', [ProfileController::class, 'show'])
+            ->middleware(['auth'])
+            ->name('admin.profile');
+        $router->post('/admin/profile', [ProfileController::class, 'save'])
+            ->middleware(['auth', 'csrf'])
+            ->name('admin.profile.save');
         $router->get('/status', StatusController::class)
             ->middleware(['auth'])
             ->name('status');

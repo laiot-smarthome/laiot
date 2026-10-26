@@ -103,6 +103,7 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 - `resources/views/pages/status.blade.php` — первая страница нового kernel
   на `layouts.alpha`, `/status`;
 - `resources/views/pages/roles.blade.php` — роли/права, `/roles`;
+- `resources/views/pages/profile.blade.php` — профиль, `/admin/profile`;
 - `resources/views/pages/shoutbox.blade.php` — промежуточная страница.
 
 Новый layout/CSS не создаём. Alpha-shell и `MDJUI` остаются эталоном, пока

@@ -138,6 +138,26 @@ final readonly class UserRepository
         $this->database->connection()->table('users')->where('id', $id)->update($values);
     }
 
+    public function changeProfile(int $id, string $name, ?string $password = null): void
+    {
+        $name = trim($name);
+        if ($name === '' || mb_strlen($name) > 191) {
+            throw new InvalidArgumentException('Имя обязательно, до 191 символа.');
+        }
+        if ($this->find($id) === null) {
+            throw new InvalidArgumentException('Пользователь не найден.');
+        }
+        if ($password !== null && $password !== '') {
+            $this->validatePassword($password);
+        }
+
+        $values = ['name' => $name, 'updated_at' => date('Y-m-d H:i:s')];
+        if ($password !== null && $password !== '') {
+            $values['password'] = password_hash($password, PASSWORD_DEFAULT);
+        }
+        $this->database->connection()->table('users')->where('id', $id)->update($values);
+    }
+
     public function delete(int $id): void
     {
         $now = date('Y-m-d H:i:s');
