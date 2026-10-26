@@ -1,0 +1,15 @@
+{
+    "id": "methods",
+    "type": "core",
+    "name": "Методы",
+    "version": "2.0.0",
+    "namespace": "MajorDoMo\\Modules\\Core\\Methods\\",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "menu": {
+        "title": "Методы",
+        "route": "methods.index",
+        "order": 26
+    }
+}

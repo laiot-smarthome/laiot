@@ -211,6 +211,7 @@ Third-party (позже):
 - `scripts` — новая таблица `scripts`, CRUD/редактор без запуска циклов;
 - `classes` — новая таблица `classes`, CRUD;
 - `properties` — новая таблица `properties`, CRUD; значения/история — дальше;
+- `methods` — новая таблица `methods`, CRUD без запуска кода;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 8. Публичные helpers модуля
