@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Logging\RequestContext;
+use MajorDoMo\Support\MaintenanceMode;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -28,7 +29,8 @@ final readonly class Kernel
         private LoggerInterface $logger,
         private bool $debug = false,
         private RequestContext $context = new RequestContext(),
-        private ?ErrorRepository $errors = null
+        private ?ErrorRepository $errors = null,
+        private ?MaintenanceMode $maintenance = null
     ) {
     }
 
@@ -37,6 +39,15 @@ final readonly class Kernel
         $requestId = $this->requestId($request);
         $request->attributes->set('request_id', $requestId);
         $this->context->setRequestId($requestId);
+
+        if ($this->maintenance?->enabled() === true && !$this->allowedDuringMaintenance($request)) {
+            $response = ErrorResponse::make($request, 503, 'maintenance', 'Service Unavailable', $requestId);
+            SecurityHeaders::apply($response);
+            $response->headers->set('Retry-After', '60');
+            $response->headers->set('X-Request-Id', $requestId);
+
+            return $response;
+        }
 
         try {
             $response = $this->router->dispatch($request);
@@ -72,6 +83,11 @@ final readonly class Kernel
         $response->headers->set('X-Request-Id', $requestId);
 
         return $response;
+    }
+
+    private function allowedDuringMaintenance(Request $request): bool
+    {
+        return in_array($request->getPathInfo(), ['/login', '/health', '/api/v1/health', '/admin/maintenance'], true);
     }
 
     private function requestId(Request $request): string

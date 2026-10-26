@@ -68,6 +68,7 @@ public/index.php
 | `Queue` / `DatabaseQueue` | задания, резервирование, retry/dead-letter |
 | `JobRegistry` / `QueueWorker` | именованные обработчики и worker |
 | `HelperLoader` | автоподключение core/module helper-файлов |
+| `MaintenanceMode` | флаг `var/maintenance.flag`, 503 для админки |
 | `Clock` | CarbonImmutable, таймзона `APP_TIMEZONE` |
 | `LoggerFactory` | каналы `app`, `http`, `security`, request_id |
 | `Authorization` / `RoleRepository` | `can()`, роли и разрешения из БД |

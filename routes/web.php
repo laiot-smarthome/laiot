@@ -6,6 +6,7 @@ use Illuminate\Routing\Router;
 use MajorDoMo\Http\Controllers\DashboardController;
 use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\LoginController;
+use MajorDoMo\Http\Controllers\MaintenanceController;
 use MajorDoMo\Http\Controllers\ProfileController;
 use MajorDoMo\Http\Controllers\RolesController;
 use MajorDoMo\Http\Controllers\StatusController;
@@ -21,6 +22,15 @@ return static function (Router $router): void {
         $router->get('/admin', DashboardController::class)
             ->middleware(['auth'])
             ->name('admin.dashboard');
+        $router->get('/admin/maintenance', [MaintenanceController::class, 'show'])
+            ->middleware(['auth', 'can:settings.manage'])
+            ->name('admin.maintenance');
+        $router->post('/admin/maintenance/enable', [MaintenanceController::class, 'enable'])
+            ->middleware(['auth', 'can:settings.manage', 'csrf'])
+            ->name('admin.maintenance.enable');
+        $router->post('/admin/maintenance/disable', [MaintenanceController::class, 'disable'])
+            ->middleware(['auth', 'can:settings.manage', 'csrf'])
+            ->name('admin.maintenance.disable');
         $router->get('/admin/profile', [ProfileController::class, 'show'])
             ->middleware(['auth'])
             ->name('admin.profile');

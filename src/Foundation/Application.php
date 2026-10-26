@@ -53,6 +53,7 @@ use MajorDoMo\Queue\Queue;
 use MajorDoMo\Support\AppContext;
 use MajorDoMo\Support\Clock;
 use MajorDoMo\Support\HelperLoader;
+use MajorDoMo\Support\MaintenanceMode;
 use MajorDoMo\View\BladeComponents;
 use MajorDoMo\View\BladeView;
 use MajorDoMo\Yoyo\Counter;
@@ -159,6 +160,7 @@ final class Application
         $this->container->instance(ApiTokenRepository::class, new ApiTokenRepository($this->database));
         $this->container->instance(ActionLogRepository::class, new ActionLogRepository($this->database));
         $this->container->instance(ErrorRepository::class, new ErrorRepository($this->database));
+        $this->container->instance(MaintenanceMode::class, new MaintenanceMode($this->root));
         $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
         $users = new UserRepository($this->database);
@@ -202,7 +204,8 @@ final class Application
             $this->logger,
             (bool)($this->config['debug'] ?? false),
             $this->requestContext,
-            new ErrorRepository($this->database)
+            new ErrorRepository($this->database),
+            new MaintenanceMode($this->root)
         );
         $this->container->instance(Kernel::class, $this->kernel);
 
