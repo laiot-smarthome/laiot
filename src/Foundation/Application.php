@@ -43,6 +43,7 @@ use MajorDoMo\Http\Middleware\VerifyCsrfToken;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\NativeSession;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Locations\LocationRepository;
 use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Logging\RequestContext;
@@ -161,6 +162,7 @@ final class Application
         $this->container->instance(ActionLogRepository::class, new ActionLogRepository($this->database));
         $this->container->instance(ErrorRepository::class, new ErrorRepository($this->database));
         $this->container->instance(MaintenanceMode::class, new MaintenanceMode($this->root));
+        $this->container->instance(LocationRepository::class, new LocationRepository($this->database));
         $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
         $users = new UserRepository($this->database);

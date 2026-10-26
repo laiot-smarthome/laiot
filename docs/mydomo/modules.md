@@ -207,6 +207,7 @@ Third-party (позже):
   soft delete, пароли через `password_hash`;
 - `ui_kit` — живой справочник `x-md.*` без legacy-шаблонов;
 - `system_errors` — новая таблица `system_errors`, ошибки ядра с request_id;
+- `locations` — новая таблица `locations`, CRUD и приоритет;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 8. Публичные helpers модуля

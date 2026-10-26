@@ -1,0 +1,15 @@
+{
+    "id": "locations",
+    "type": "core",
+    "name": "Локации",
+    "version": "2.0.0",
+    "namespace": "MajorDoMo\\Modules\\Core\\Locations\\",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "menu": {
+        "title": "Локации",
+        "route": "locations.index",
+        "order": 40
+    }
+}
