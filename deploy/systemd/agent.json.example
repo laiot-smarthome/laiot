@@ -1,0 +1,9 @@
+{
+    "root": "/srv/mydomo",
+    "user": "mydomo",
+    "group": "mydomo",
+    "socket": "/run/mydomo/agent.sock",
+    "systemctl": "/usr/bin/systemctl",
+    "unit_dir": "/etc/systemd/system",
+    "allowed_uid": 1000
+}

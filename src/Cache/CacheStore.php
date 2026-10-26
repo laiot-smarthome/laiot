@@ -37,6 +37,14 @@ final class CacheStore
         return $this->repository->put($this->key($key), $value, $ttl);
     }
 
+    /**
+     * Атомарно создать ключ, если его нет: основа worker-lock.
+     */
+    public function add(string $key, mixed $value, DateInterval|int|null $ttl = null): bool
+    {
+        return $this->repository->add($this->key($key), $value, $ttl);
+    }
+
     public function has(string $key): bool
     {
         return $this->repository->has($this->key($key));

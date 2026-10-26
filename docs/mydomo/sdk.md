@@ -1,6 +1,6 @@
 ---
 title: MyDoMo — SDK модулей
-audience: developer, agent
+audience: agent, user
 category: core
 tags: mydomo, sdk, модули, module.json, lifecycle, миграции, module_db
 description: Контракт стороннего модуля MyDoMo: module.json, entrypoint, ModuleDb, миграции, install/enable/disable/remove и CLI.
@@ -95,6 +95,24 @@ final class Module extends \MajorDoMo\Modules\Module
 
 `ModuleContext` даёт `db()`, `bus()`, `container()`, `root()`, `id()`,
 `version()`. Прямой доступ к PDO/`$db` ядра запрещён.
+
+Фоновые задачи:
+
+```json
+"tasks": {
+  "poll": {
+    "method": "poll",
+    "interval": 60,
+    "timeout": 30
+  }
+}
+```
+
+`interval` — секунды (1..86400), `timeout` — секунды (1..3600), `enabled`
+по умолчанию `true`. Worker запускает один процесс на модуль:
+`php bin/mydomo worker <id>`. Метод задачи получает
+`MajorDoMo\Worker\BackgroundTaskContext` и делает один проход; циклы,
+паузы и рестарты — на стороне ядра. Подробно — [runtime.md](runtime.md).
 
 ## 4. Данные
 

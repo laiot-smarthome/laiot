@@ -34,6 +34,10 @@ MyDoMo. Пользовательские обёртки работают.
   колокольчик и drawer `/api/v1/panel/notifications`;
 - входящие webhook `/module/api`: секрет в URL, методы, сценарий/PHP и
   журнал последнего вызова; публичный вход `/api/v1/webhooks/{secret}`;
+- фоновый runtime: `worker <module>` (один процесс на модуль, задачи из
+  `module.json`, Redis-lock/heartbeat), отдельные `core-worker queue|timeouts`
+  и root-агент `mydomo-agent` для systemd start/stop/restart без доступа PHP
+  к `/etc`; Redis для runtime считается обязательным;
 - linked object — ядровой `LinkedObjectService`, API
   `/api/v1/panel/linked-object` и Alpine-компонент `x-md.linked-object`
   (поиск объекта, свойства/методы класса); старый модуль удалён;
@@ -90,9 +94,11 @@ MyDoMo. Пользовательские обёртки работают.
 7. [Тестирование](testing.md) — укрупнённые тесты, dev server, Docker.
 8. [Модульная система](modules.md) — core/third-party, `ModuleDb`, `ModuleBus`.
 9. [SDK модулей](sdk.md) — `module.json`, lifecycle, миграции, CLI.
-10. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
-11. [Docker-стенд](docker.md) — локальная отладка и проверки.
-12. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
+10. [Фоновый runtime](runtime.md) — worker, Redis-состояния, systemd-агент
+    и ручное обновление.
+11. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
+12. [Docker-стенд](docker.md) — локальная отладка и проверки.
+13. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
 
 ## Правило обновления
 

@@ -76,6 +76,9 @@ use MajorDoMo\Support\HelperLoader;
 use MajorDoMo\Support\MaintenanceMode;
 use MajorDoMo\View\BladeComponents;
 use MajorDoMo\View\BladeView;
+use MajorDoMo\Worker\BackgroundTaskState;
+use MajorDoMo\Worker\CoreWorker;
+use MajorDoMo\Worker\Worker;
 use MajorDoMo\Yoyo\Counter;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -264,6 +267,20 @@ final class Application
             ModuleInstaller::class,
             new ModuleInstaller($this->modules, (string)($this->config['version'] ?? '0.0.0'))
         );
+        $this->container->instance(BackgroundTaskState::class, new BackgroundTaskState($this->cache));
+        $this->container->instance(Worker::class, new Worker(
+            $this->modules,
+            $this->container->make(BackgroundTaskState::class),
+            $this->logger
+        ));
+        $this->container->instance(CoreWorker::class, new CoreWorker(
+            $this->container->make(\MajorDoMo\Queue\Queue::class),
+            $this->container->make(\MajorDoMo\Queue\JobRegistry::class),
+            $this->container->make(\MajorDoMo\Runtime\TimeoutRepository::class),
+            $this->container->make(\MajorDoMo\Runtime\CodeRunner::class),
+            $this->container->make(BackgroundTaskState::class),
+            $this->logger
+        ));
         $this->container->instance(PanelSearch::class, new PanelSearch($this->database, $this->modules));
         $this->container->instance(
             NotificationService::class,

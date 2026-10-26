@@ -1,0 +1,24 @@
+[Unit]
+Description=MyDoMo worker for module %i
+After=network.target mariadb.service mysql.service redis-server.service
+
+[Service]
+Type=simple
+User=@@USER@@
+Group=@@GROUP@@
+WorkingDirectory=@@ROOT@@/current
+ExecStart=/usr/bin/php @@ROOT@@/current/bin/mydomo worker %i
+Restart=always
+RestartSec=5
+TimeoutStopSec=25
+KillMode=control-group
+MemoryMax=256M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=@@ROOT@@/shared @@ROOT@@/current/var
+Environment=APP_ENV=production
+
+[Install]
+WantedBy=multi-user.target

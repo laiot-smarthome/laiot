@@ -100,6 +100,9 @@ order: 5
 - [x] SDK модулей: `ModuleManifest`, `ModuleRegistry`/`ModuleMigrations`,
   `ModuleInstaller`, `ModuleContext`/`Module`, install/enable/disable/remove,
   CLI `module:*`, пример `modules/example_sdk`; 3 теста.
+- [x] Фоновый runtime: `tasks` в манифесте, `worker <module>` (один процесс
+  на модуль, Redis-lock/state, fork/timeout), systemd-агент и шаблон
+  `mydomo-worker@.service`; 4 + 4 теста.
 - [x] Blade-компоненты `x-md.button/icon/badge/card/section-heading/alert/
   avatar/empty-state/kpi/progress/status/field/input/textarea/select/
   checkbox/switch/disclosure/drawer/modal/skeleton/activity-feed/hint` и
@@ -430,6 +433,7 @@ project/
 | 2026-10-26 | `modules/blockly_code`, `templates/blockly_code/*` | `x-md.code` (Alpine) в формах скриптов/методов; CodeMirror/alpha-редактор не переносим |
 | 2026-10-26 | `modules/linkedobject`, `templates/linkedobject/*`, `public/assets/modules/linkedobject/*` | `src/LinkedObject/LinkedObjectService`, `/api/v1/panel/linked-object`, `x-md.linked-object` на Alpine |
 | 2026-10-26 | старый `project_modules` и ad-hoc установка модулей | `module_registry`, `module_migrations`, `ModuleManifest`/`ModuleInstaller`, CLI `module:*`; пример `modules/example_sdk` |
+| 2026-10-26 | heartbeat/состояние циклов в MySQL | `Worker`/`BackgroundTaskState` в Redis (`worker.task.*`, `worker.lock.*`), systemd-шаблон и `mydomo-agent`; таблица `background_tasks` не создаётся |
 
 ## 4. Стек и Composer
 

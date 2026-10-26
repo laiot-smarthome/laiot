@@ -225,6 +225,11 @@ php bin/mydomo module:disable example_sdk
 php bin/mydomo module:enable example_sdk
 php bin/mydomo module:remove example_sdk
 php bin/mydomo module:validate
+php bin/mydomo worker <module> --once
+php bin/mydomo core-worker queue --once
+php bin/mydomo core-worker timeouts --once
+php bin/mydomo-agent serve
+php bin/mydomo-agent install
 php bin/mydomo cache:clear
 php bin/mydomo queue:stats --queue=default
 php bin/mydomo queue:work --once

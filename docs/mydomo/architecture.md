@@ -96,6 +96,8 @@ legacy API и возвращал 503 «install_required».
 | `LinkedObjectService` | поиск объектов и свойства/методы класса для `x-md.linked-object` |
 | `ModuleManifest` | валидация `module.json`, semver/requires/dependencies |
 | `ModuleRegistry` / `ModuleInstaller` | реестр сторонних модулей, миграции и lifecycle |
+| `Worker` / `BackgroundTaskState` | один процесс на модуль, задачи из манифеста, Redis-lock/heartbeat |
+| `SystemdController` / `mydomo-agent` | привилегированный start/stop/restart worker-юнитов |
 
 Запись значения свойства — не просто `UPDATE property_values`. Сервис
 `PropertyValueService` сохраняет значение, пишет историю (если включена),

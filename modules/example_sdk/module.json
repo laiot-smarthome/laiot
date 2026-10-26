@@ -18,6 +18,13 @@
         "title": "SDK Example",
         "order": 200
     },
+    "tasks": {
+        "tick": {
+            "method": "tick",
+            "interval": 60,
+            "timeout": 10
+        }
+    },
     "requires": {
         "mydomo": ">=2.0.0-dev",
         "php": ">=8.2"

@@ -1,0 +1,151 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use MajorDoMo\Systemd\ProcessResult;
+use MajorDoMo\Systemd\SymfonyProcessRunner;
+use MajorDoMo\Systemd\SystemdController;
+
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('CLI only');
+}
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$configFile = getenv('MYDOMO_AGENT_CONFIG') ?: '/etc/mydomo/agent.json';
+$config = [];
+if (is_file($configFile)) {
+    $decoded = json_decode((string)file_get_contents($configFile), true);
+    if (is_array($decoded)) {
+        $config = $decoded;
+    }
+}
+$root = (string)($config['root'] ?? dirname(__DIR__));
+$user = (string)($config['user'] ?? 'mydomo');
+$group = (string)($config['group'] ?? 'mydomo');
+$socketPath = (string)($config['socket'] ?? '/run/mydomo/agent.sock');
+$systemctl = (string)($config['systemctl'] ?? 'systemctl');
+$unitDir = (string)($config['unit_dir'] ?? '/etc/systemd/system');
+$allowedUid = isset($config['allowed_uid']) ? (int)$config['allowed_uid'] : null;
+
+$controller = new SystemdController(new SymfonyProcessRunner(), $root, $user, $group, $systemctl);
+$command = $argv[1] ?? 'serve';
+
+if ($command === 'install') {
+    echo $controller->installUnit($unitDir) . PHP_EOL;
+    exit(0);
+}
+if ($command !== 'serve') {
+    fwrite(STDERR, "Usage: mydomo-agent [serve|install]\n");
+    exit(1);
+}
+
+$directory = dirname($socketPath);
+if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+    fwrite(STDERR, "Cannot create socket directory: {$directory}\n");
+    exit(1);
+}
+if (file_exists($socketPath) && !unlink($socketPath)) {
+    fwrite(STDERR, "Cannot remove stale socket: {$socketPath}\n");
+    exit(1);
+}
+$server = stream_socket_server('unix://' . $socketPath, $errorCode, $errorMessage);
+if ($server === false) {
+    fwrite(STDERR, "Cannot listen: {$errorMessage}\n");
+    exit(1);
+}
+chmod($socketPath, 0660);
+$groupInfo = function_exists('posix_getgrnam') ? posix_getgrnam($group) : false;
+if (is_array($groupInfo)) {
+    @chgrp($socketPath, (int)$groupInfo['gid']);
+    @chgrp($directory, (int)$groupInfo['gid']);
+    @chmod($directory, 0770);
+}
+
+/**
+ * @param array<string, mixed> $payload
+ * @return array{ok:bool,data?:array<string,mixed>,error?:string}
+ */
+function agentHandle(array $payload, SystemdController $controller, string $unitDir): array
+{
+    $action = (string)($payload['action'] ?? '');
+    try {
+        if ($action === 'workers.sync') {
+            $modules = $payload['modules'] ?? [];
+            if (!is_array($modules)) {
+                throw new RuntimeException('workers.sync: modules должен быть массивом.');
+            }
+            $result = $controller->sync(array_values(array_map('strval', $modules)));
+
+            return ['ok' => true, 'data' => $result];
+        }
+        if ($action === 'cores.sync') {
+            $tasks = $payload['tasks'] ?? [];
+            if (!is_array($tasks)) {
+                throw new RuntimeException('cores.sync: tasks должен быть массивом.');
+            }
+            $result = $controller->syncCore(array_values(array_map('strval', $tasks)));
+
+            return ['ok' => true, 'data' => $result];
+        }
+        $module = (string)($payload['module'] ?? '');
+        $result = match ($action) {
+            'worker.start' => $controller->start($module),
+            'worker.stop' => $controller->stop($module),
+            'worker.restart' => $controller->restart($module),
+            'core.start' => $controller->coreStart($module),
+            'core.stop' => $controller->coreStop($module),
+            'core.restart' => $controller->coreRestart($module),
+            'worker.status', 'core.status', 'worker.install' => null,
+            default => throw new RuntimeException('Неизвестное действие.'),
+        };
+        if ($action === 'worker.status') {
+            return ['ok' => true, 'data' => $controller->status($module)];
+        }
+        if ($action === 'core.status') {
+            return ['ok' => true, 'data' => $controller->coreStatus($module)];
+        }
+        if ($action === 'worker.install') {
+            return ['ok' => true, 'data' => ['units' => $controller->installAllUnits($unitDir)]];
+        }
+        if ($result instanceof ProcessResult) {
+            return ['ok' => $result->successful(), 'data' => [
+                'exit_code' => $result->exitCode,
+                'stdout' => $result->stdout,
+                'stderr' => $result->stderr,
+            ]];
+        }
+
+        return ['ok' => true, 'data' => []];
+    } catch (Throwable $error) {
+        return ['ok' => false, 'error' => $error->getMessage()];
+    }
+}
+
+while (true) {
+    $connection = @stream_socket_accept($server, -1);
+    if ($connection === false) {
+        continue;
+    }
+    if ($allowedUid !== null && function_exists('posix_getpeereid')) {
+        $peer = posix_getpeereid($connection);
+        if (!is_array($peer) || (int)$peer[0] !== $allowedUid) {
+            fwrite($connection, json_encode(['ok' => false, 'error' => 'peer uid denied']) . "\n");
+            fclose($connection);
+            continue;
+        }
+    }
+    stream_set_timeout($connection, 10);
+    $line = fgets($connection, 65536);
+    $response = ['ok' => false, 'error' => 'empty request'];
+    if (is_string($line) && $line !== '') {
+        $payload = json_decode(trim($line), true);
+        $response = is_array($payload)
+            ? agentHandle($payload, $controller, $unitDir)
+            : ['ok' => false, 'error' => 'invalid json'];
+    }
+    fwrite($connection, json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
+    fclose($connection);
+}

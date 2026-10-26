@@ -119,12 +119,40 @@ final class ModuleSdkTest extends TestCase
         }
     }
 
+    public function testWorkerRunsModuleTaskOnce(): void
+    {
+        $database = $this->databaseFile();
+        try {
+            $app = $this->boot($database);
+            $app->container()->make(ModuleInstaller::class)->install('example_sdk');
+
+            $next = new Application(dirname(__DIR__, 2), [
+                'debug' => true,
+                'log' => 'php://stderr',
+                'session' => new ArraySession(),
+                'cache' => ['driver' => 'array'],
+                'database' => ['driver' => 'sqlite', 'database' => $database, 'prefix' => ''],
+            ]);
+            $next->boot();
+            $next->container()->make(\MajorDoMo\Worker\Worker::class)->run('example_sdk', true);
+
+            self::assertSame(1, $next->database()->connection()->table('module_example_sdk_notes')->count());
+            $state = $next->container()->make(\MajorDoMo\Worker\BackgroundTaskState::class);
+            $heartbeat = $state->get('example_sdk', 'tick');
+            self::assertNotNull($heartbeat);
+            self::assertSame('ok', (string)$heartbeat['status']);
+        } finally {
+            @unlink($database);
+        }
+    }
+
     private function boot(string $database): Application
     {
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
             'log' => 'php://stderr',
             'session' => new ArraySession(),
+            'cache' => ['driver' => 'array'],
             'database' => ['driver' => 'sqlite', 'database' => $database, 'prefix' => ''],
         ]);
         $app->boot();

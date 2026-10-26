@@ -156,6 +156,35 @@ final readonly class ModuleManifest
             }
         }
 
+        $tasks = $data['tasks'] ?? [];
+        if (!is_array($tasks)) {
+            throw new InvalidArgumentException('tasks модуля должен быть объектом.');
+        }
+        $normalizedTasks = [];
+        foreach ($tasks as $name => $task) {
+            if (!is_string($name) || !preg_match('/^[a-z][a-z0-9_]{1,63}$/D', $name) || !is_array($task)) {
+                throw new InvalidArgumentException('tasks: имя задачи и объект параметров.');
+            }
+            $method = $task['method'] ?? $name;
+            if (!is_string($method) || !preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/D', $method)) {
+                throw new InvalidArgumentException('tasks.' . $name . '.method: имя метода.');
+            }
+            $interval = $task['interval'] ?? 60;
+            $timeout = $task['timeout'] ?? 60;
+            if (!is_int($interval) || $interval < 1 || $interval > 86400) {
+                throw new InvalidArgumentException('tasks.' . $name . '.interval: 1..86400 секунд.');
+            }
+            if (!is_int($timeout) || $timeout < 1 || $timeout > 3600) {
+                throw new InvalidArgumentException('tasks.' . $name . '.timeout: 1..3600 секунд.');
+            }
+            $normalizedTasks[$name] = [
+                'method' => $method,
+                'interval' => $interval,
+                'timeout' => $timeout,
+                'enabled' => !array_key_exists('enabled', $task) || (bool)$task['enabled'],
+            ];
+        }
+
         $manifest = [
             'id' => $id,
             'type' => $type,
@@ -170,6 +199,7 @@ final readonly class ModuleManifest
             'requires' => $requires,
             'dependencies' => array_values(array_unique($dependencies)),
             'permissions' => self::stringList($data, 'permissions'),
+            'tasks' => $normalizedTasks,
         ] + $paths;
 
         return new self($manifest, $path, $type);
