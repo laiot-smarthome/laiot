@@ -31,5 +31,4 @@ require (defined('MJD_TEST_SOURCE_ROOT') ? MJD_TEST_SOURCE_ROOT : ROOT) . 'lib/s
 require (defined('MJD_TEST_SOURCE_ROOT') ? MJD_TEST_SOURCE_ROOT : ROOT) . 'lib/redis_helper.class.php';
 require (defined('MJD_TEST_SOURCE_ROOT') ? MJD_TEST_SOURCE_ROOT : ROOT) . 'lib/caching.class.php';
 require (defined('MJD_TEST_SOURCE_ROOT') ? MJD_TEST_SOURCE_ROOT : ROOT) . 'lib/objects.class.php';
-require (defined('MJD_TEST_SOURCE_ROOT') ? MJD_TEST_SOURCE_ROOT : ROOT) . 'lib/events.class.php';
 require (defined('MJD_TEST_SOURCE_ROOT') ? MJD_TEST_SOURCE_ROOT : ROOT) . 'modules/objects/objects.class.php';

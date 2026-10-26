@@ -46,15 +46,35 @@ final readonly class PropertyRepository
             ->whereNull('deleted_at')
             ->first();
 
-        return $row === null ? null : [
-            'id' => (int)$row->id,
-            'class_id' => (int)$row->class_id,
-            'title' => (string)$row->title,
-            'description' => (string)($row->description ?? ''),
-            'data_type' => (string)$row->data_type,
-            'keep_history' => (int)$row->keep_history === 1,
-            'on_change' => (string)$row->on_change,
-        ];
+        return $row === null ? null : $this->hydrate($row);
+    }
+
+    /**
+     * Свойство объекта: сначала в его классе, затем глобальное (`class_id = 0`).
+     *
+     * Поиск по одному названию без класса не используется: в разных классах
+     * могут быть одноимённые свойства, и запись `sg('Кухня.temperature')`
+     * обязана попасть в свойство класса «Кухни», а не в первое совпадение.
+     *
+     * @return array{id:int,class_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string}|null
+     */
+    public function resolveForClass(int $classId, string $title): ?array
+    {
+        $title = trim($title);
+        if ($title === '') {
+            return null;
+        }
+
+        $query = $this->database->connection()->table('properties')
+            ->where('title', $title)
+            ->whereNull('deleted_at');
+
+        $row = (clone $query)->where('class_id', max(0, $classId))->first();
+        if ($row === null && $classId > 0) {
+            $row = $query->where('class_id', 0)->first();
+        }
+
+        return $row === null ? null : $this->hydrate($row);
     }
 
     /**
@@ -132,6 +152,24 @@ final readonly class PropertyRepository
             ->where('id', $id)
             ->whereNull('deleted_at')
             ->update(['deleted_at' => $now, 'updated_at' => $now]);
+    }
+
+    /**
+     * @return array{id:int,class_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string}
+     */
+    private function hydrate(object $row): array
+    {
+        // `??` терпит БД, где миграция полей ещё не применена: чтение значения
+        // не должно падать из-за отсутствующей необязательной настройки.
+        return [
+            'id' => (int)$row->id,
+            'class_id' => (int)$row->class_id,
+            'title' => (string)$row->title,
+            'description' => (string)($row->description ?? ''),
+            'data_type' => (string)($row->data_type ?? 'string'),
+            'keep_history' => (int)($row->keep_history ?? 0) === 1,
+            'on_change' => (string)($row->on_change ?? ''),
+        ];
     }
 
     private function title(string $title): string

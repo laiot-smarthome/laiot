@@ -1,0 +1,15 @@
+{
+    "id": "events",
+    "type": "core",
+    "name": "События",
+    "version": "2.0.0",
+    "namespace": "MajorDoMo\\Modules\\Core\\Events\\",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "menu": {
+        "title": "События",
+        "route": "events.index",
+        "order": 29
+    }
+}

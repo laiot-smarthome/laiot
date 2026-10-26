@@ -225,7 +225,10 @@ final class Dispatcher
     private function event(string $name, array $params): array
     {
         if (strlen($name) > 255) throw new ApiException(422, 'validation_failed', 'Название события слишком длинное.');
-        return array('event_name' => $name, 'params' => $params, 'event_id' => registerEvent($name, $params), 'result' => true);
+        // Старый журнал events удалён вместе с модулем; в MyDoMo системные
+        // события живут в property_events, поэтому вызов не должен падать.
+        $eventId = function_exists('registerEvent') ? registerEvent($name, $params) : null;
+        return array('event_name' => $name, 'params' => $params, 'event_id' => $eventId, 'result' => true);
     }
 
     private function speech(string $action, array $params): array

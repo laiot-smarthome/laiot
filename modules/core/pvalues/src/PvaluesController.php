@@ -10,18 +10,24 @@ use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Properties\PropertyValueService;
 use MajorDoMo\Properties\ValueRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Значения свойств объектов: просмотр, правка, удаление.
+ *
+ * Правка идёт через `PropertyValueService`: значение, история, журнал
+ * `property_events` и OnChange-метод свойства срабатывают так же, как при
+ * записи из сценария.
  */
 final readonly class PvaluesController extends Controller
 {
     public function __construct(
         private Factory $view,
         private ValueRepository $values,
+        private PropertyValueService $propertyValues,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -41,7 +47,15 @@ final readonly class PvaluesController extends Controller
 
     public function update(string $id, Request $request): Response
     {
-        $this->values->updateValue((int)$id, (string)$request->request->get('value', ''));
+        $row = $this->values->find((int)$id);
+        if ($row !== null) {
+            $this->propertyValues->setValue(
+                $row['object_id'],
+                $row['property_id'],
+                (string)$request->request->get('value', ''),
+                'panel:pvalues'
+            );
+        }
 
         return new RedirectResponse('/module/pvalues');
     }

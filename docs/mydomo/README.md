@@ -15,8 +15,8 @@ legacy-коду. Если документ относится к новому я
 
 ## Статус
 
-**База ядра и веб-админка готовы.** Перенесено **15 core-модулей**;
-остались 14 старых модулей и alpha-shell parity. Пользовательские обёртки
+**База ядра и веб-админка готовы.** Перенесено **16 core-модулей**;
+остались 13 старых модулей и alpha-shell parity. Пользовательские обёртки
 работают.
 
 Уже работает в новом ядре:
@@ -40,15 +40,17 @@ legacy-коду. Если документ относится к новому я
 - вход, UI Kit, профиль, API-маршруты, реестр модулей;
 - пользовательские обёртки: `say`, `gg`, `sg`, `getObject`, `getHistory`,
   `callMethod`, `setTimeOut`, `clearTimeOut`;
+- цепочка события свойства: запись → история → `property_events` →
+  OnChange-метод, защита от циклов и журнал `/module/events`;
 - Carbon/Clock, `APP_TIMEZONE`, lowercase-схема + timestamps + soft deletes.
 
 Перенесённые модули: `shoutbox`, `jobs`, `actions_log`, `settings`, `users`,
 `ui_kit`, `system_errors`, `locations`, `scripts`, `classes`, `properties`,
-`methods`, `objects`, `pvalues`, `history`.
+`methods`, `objects`, `pvalues`, `history`, `events`.
 
 Ещё не закрыто:
 
-- 14 старых модулей: api, events, modes, pinghosts, mqtt, zigbee, xray,
+- 13 старых модулей: api, modes, pinghosts, mqtt, zigbee, xray,
   blockly_code, knowledge_base, ai_assistant, control_modules, linkedobject,
   market, saverestore;
 - полная alpha-shell parity (notifications/console/search);
@@ -61,12 +63,14 @@ legacy-коду. Если документ относится к новому я
 1. [Архитектура](architecture.md) — слои, boot, запрос, сервисы.
 2. [Функции и обёртки](functions.md) — публичные API, CLI, будущие
    пользовательские функции.
-3. [Правила для агентов](AGENTS.md) — как читать, менять и проверять.
-4. [Тестирование](testing.md) — укрупнённые тесты, dev server, Docker.
-5. [Модульная система](modules.md) — core/third-party, `ModuleDb`, `ModuleBus`.
-6. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
-7. [Docker-стенд](docker.md) — локальная отладка и проверки.
-8. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
+3. [Цепочка событий свойства](events.md) — запись, история, OnChange,
+   `property_events` и защита от циклов.
+4. [Правила для агентов](AGENTS.md) — как читать, менять и проверять.
+5. [Тестирование](testing.md) — укрупнённые тесты, dev server, Docker.
+6. [Модульная система](modules.md) — core/third-party, `ModuleDb`, `ModuleBus`.
+7. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
+8. [Docker-стенд](docker.md) — локальная отладка и проверки.
+9. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
 
 ## Правило обновления
 

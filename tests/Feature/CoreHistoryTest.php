@@ -38,6 +38,10 @@ final class CoreHistoryTest extends TestCase
                 $table->increments('id');
                 $table->integer('class_id');
                 $table->string('title');
+                $table->text('description')->nullable();
+                $table->string('data_type')->default('string');
+                $table->boolean('keep_history')->default(false);
+                $table->string('on_change')->default('');
                 $table->timestamps();
                 $table->softDeletes();
             },
@@ -61,7 +65,7 @@ final class CoreHistoryTest extends TestCase
             $app->database()->schema()->create($name, $definition);
         }
         $now = date('Y-m-d H:i:s');
-        $app->database()->connection()->table('objects')->insert(['title' => 'Кухня', 'created_at' => $now, 'updated_at' => $now]);
+        $app->database()->connection()->table('objects')->insert(['title' => 'Кухня', 'class_id' => 1, 'created_at' => $now, 'updated_at' => $now]);
         $app->database()->connection()->table('properties')->insert(['class_id' => 1, 'title' => 'temperature', 'created_at' => $now, 'updated_at' => $now]);
 
         $app->container()->make(ValueRepository::class)->set(1, 1, '23.5');

@@ -24,6 +24,7 @@ users
 objects
 property_values
 property_history
+property_events
 ```
 
 Никаких `ID`, `QUEUE`, `CREATED_AT`. Таблицы alpha (`users`, `objects`)
@@ -49,6 +50,13 @@ deleted_at   datetime null
 
 Пивот-таблицы (`user_roles`, `role_permissions`) тоже получают `id`,
 timestamps и `deleted_at`.
+
+`property_events` — журнал цепочки событий свойства. Строки создаёт только
+`PropertyValueService`: шаг «значение изменилось» и шаг «вызван
+OnChange-метод». Исключение из правила append-only — финализация статуса
+обработчика (`running` → `ok`/`error`/`missing`): строка создаётся до запуска
+пользовательского кода, чтобы вложенные записи получили родителя. Retention
+пока нет; журнал не удаляется автоматически. Устройство — [events.md](events.md).
 
 ## 3. Carbon и Clock
 

@@ -67,12 +67,49 @@ final readonly class ValueRepository
             ->all();
     }
 
-    public function updateValue(int $id, string $value): void
+    /**
+     * Низкоуровневая запись значения без истории и цепочки.
+     *
+     * Production-код пишет через `PropertyValueService`, чтобы сработали
+     * история, журнал и OnChange. Этот метод нужен импорту и тестам.
+     */
+    public function write(int $objectId, int $propertyId, string $value): void
     {
-        $this->database->connection()->table('property_values')
+        $now = date('Y-m-d H:i:s');
+        $this->database->connection()->table('property_values')->updateOrInsert(
+            ['object_id' => $objectId, 'property_id' => $propertyId],
+            ['value' => $value, 'updated_at' => $now, 'created_at' => $now, 'deleted_at' => null]
+        );
+    }
+
+    /**
+     * Запись значения с историей, но без OnChange-цепочки.
+     *
+     * Оставлено для импорта и точечных тестов; пользовательские сценарии и
+     * интерфейс должны идти через `PropertyValueService`.
+     */
+    public function set(int $objectId, int $propertyId, string $value): void
+    {
+        $this->write($objectId, $propertyId, $value);
+        $this->history?->record($objectId, $propertyId, $value);
+    }
+
+    /**
+     * @return array{id:int,object_id:int,property_id:int,value:string}|null
+     */
+    public function find(int $id): ?array
+    {
+        $row = $this->database->connection()->table('property_values')
             ->where('id', $id)
             ->whereNull('deleted_at')
-            ->update(['value' => $value, 'updated_at' => date('Y-m-d H:i:s')]);
+            ->first();
+
+        return $row === null ? null : [
+            'id' => (int)$row->id,
+            'object_id' => (int)$row->object_id,
+            'property_id' => (int)$row->property_id,
+            'value' => (string)($row->value ?? ''),
+        ];
     }
 
     public function delete(int $id): void
@@ -93,15 +130,5 @@ final readonly class ValueRepository
             ->value('value');
 
         return $value === null ? null : (string)$value;
-    }
-
-    public function set(int $objectId, int $propertyId, string $value): void
-    {
-        $now = date('Y-m-d H:i:s');
-        $this->database->connection()->table('property_values')->updateOrInsert(
-            ['object_id' => $objectId, 'property_id' => $propertyId],
-            ['value' => $value, 'updated_at' => $now, 'created_at' => $now, 'deleted_at' => null]
-        );
-        $this->history?->record($objectId, $propertyId, $value);
     }
 }

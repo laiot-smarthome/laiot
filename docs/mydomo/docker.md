@@ -61,9 +61,11 @@ docker compose exec -T app php bin/mydomo db:status
 ```
 
 При `MJD_DB_SEED=none` entrypoint сам применяет миграции MyDoMo и создаёт
-admin из `MJD_ADMIN_*`. `down -v` удаляет тестовые данные;
-production-данных MyDoMo ещё нет. Не используйте `legacy`/`clean` — это
-старые alpha-схемы.
+admin из `MJD_ADMIN_*`. Если база уже непустая, entrypoint применяет и
+legacy-миграции, и `php bin/mydomo db:migrate`: новая таблица (например,
+`property_events`) появляется после пересборки образа без сброса данных.
+`down -v` удаляет тестовые данные; production-данных MyDoMo ещё нет.
+Не используйте `legacy`/`clean` — это старые alpha-схемы.
 
 ## 5. Ограничения
 

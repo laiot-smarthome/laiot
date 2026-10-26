@@ -215,6 +215,9 @@ Third-party (позже):
 - `objects` — новые `objects`/`property_values`, объект + значения свойств;
 - `pvalues` — просмотр/правка/удаление значений свойств;
 - `history` — `property_history`, история значений и `getHistory()`;
+- `events` — журнал `property_events`: шаги «значение изменилось» и «вызван
+  OnChange-метод», фильтры и статусы; старый `modules/events` и его шаблоны
+  удалены;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 8. Публичные helpers модуля

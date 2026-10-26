@@ -13,7 +13,6 @@ require_once dirname(__DIR__, 2) . '/objects.class.php';
 require_once dirname(__DIR__, 2) . '/common.class.php';
 require_once dirname(__DIR__, 2) . '/caching.class.php';
 require_once dirname(__DIR__, 2) . '/redis_helper.class.php';
-require_once dirname(__DIR__, 2) . '/events.class.php';
 require_once dirname(__DIR__, 2) . '/hooks.inc.php';
 require_once dirname(__DIR__, 2) . '/messages.class.php';
 require_once dirname(__DIR__, 2) . '/context.inc.php';

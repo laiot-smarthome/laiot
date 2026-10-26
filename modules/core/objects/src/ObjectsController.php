@@ -15,6 +15,7 @@ use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Locations\LocationRepository;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
+use MajorDoMo\Properties\PropertyValueService;
 use MajorDoMo\Properties\ValueRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,6 +34,7 @@ final readonly class ObjectsController extends Controller
         private LocationRepository $locations,
         private PropertyRepository $properties,
         private ValueRepository $values,
+        private PropertyValueService $propertyValues,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -114,7 +116,7 @@ final readonly class ObjectsController extends Controller
         if (is_array($values)) {
             foreach ($values as $propertyId => $value) {
                 if (is_numeric($propertyId) && is_scalar($value)) {
-                    $this->values->set((int)$id, (int)$propertyId, (string)$value);
+                    $this->propertyValues->setValue((int)$id, (int)$propertyId, (string)$value, 'panel:objects');
                 }
             }
         }

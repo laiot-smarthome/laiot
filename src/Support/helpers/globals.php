@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 
-use MajorDoMo\History\HistoryRepository;
 use MajorDoMo\Methods\MethodRunner;
 use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Properties\PropertyRepository;
-use MajorDoMo\Properties\ValueRepository;
+use MajorDoMo\Properties\PropertyValueService;
 use MajorDoMo\Runtime\TimeoutRepository;
 use MajorDoMo\Support\AppContext;
 
@@ -23,6 +21,8 @@ if (!function_exists('getObject')) {
 if (!function_exists('gg')) {
     /**
      * `gg('Object.Property')` — значение свойства объекта.
+     *
+     * Свойство ищется в классе объекта, затем среди глобальных (`class_id = 0`).
      */
     function gg(string $name): ?string
     {
@@ -35,26 +35,25 @@ if (!function_exists('gg')) {
             return null;
         }
 
-        $object = $app->container()->make(ObjectRepository::class)->findByTitle($objectName);
-        $property = $app->container()->make(PropertyRepository::class)->findByTitle($propertyName);
-        if ($object === null || $property === null) {
-            return null;
-        }
-
-        return $app->container()->make(ValueRepository::class)->get($object['id'], $property['id']);
+        return $app->container()->make(PropertyValueService::class)->get($objectName, $propertyName);
     }
 }
 
 if (!function_exists('sg')) {
     /**
-     * `sg('Object.Property', $value)` — записать значение свойства объекта.
+     * `sg('Object.Property', $value, $noLinked, $source)` — записать значение.
      *
-     * @param mixed $value
+     * Значение сохраняется, пишется история (если свойство её хранит), а затем
+     * синхронно вызывается OnChange-метод свойства. `$noLinked` оставлен для
+     * совместимости сигнатуры alpha: в MyDoMo подписок `LINKED_MODULES` нет.
+     *
+     * @param mixed $value Скаляр, null или массив (массив сохраняется как JSON).
+     * @param int|array<string, int> $noLinked Не используется; сохранён для alpha-совместимости.
      */
-    function sg(string $name, $value): bool
+    function sg(string $name, $value, $noLinked = 0, string $source = 'sg'): bool
     {
         $app = AppContext::get();
-        if ($app === null || !is_scalar($value)) {
+        if ($app === null) {
             return false;
         }
         [$objectName, $propertyName] = split_object_property($name);
@@ -62,15 +61,8 @@ if (!function_exists('sg')) {
             return false;
         }
 
-        $object = $app->container()->make(ObjectRepository::class)->findByTitle($objectName);
-        $property = $app->container()->make(PropertyRepository::class)->findByTitle($propertyName);
-        if ($object === null || $property === null) {
-            return false;
-        }
-
-        $app->container()->make(ValueRepository::class)->set($object['id'], $property['id'], (string)$value);
-
-        return true;
+        return $app->container()->make(PropertyValueService::class)
+            ->set($objectName, $propertyName, $value, $source);
     }
 }
 
@@ -121,13 +113,12 @@ if (!function_exists('getHistory')) {
             return [];
         }
         [$objectName, $propertyName] = split_object_property($name);
-        $object = $app->container()->make(ObjectRepository::class)->findByTitle($objectName);
-        $property = $app->container()->make(PropertyRepository::class)->findByTitle($propertyName);
-        if ($object === null || $property === null) {
+        if ($objectName === '' || $propertyName === '') {
             return [];
         }
 
-        return $app->container()->make(HistoryRepository::class)->forValue($object['id'], $property['id'], $limit);
+        return $app->container()->make(PropertyValueService::class)
+            ->history($objectName, $propertyName, $limit);
     }
 }
 

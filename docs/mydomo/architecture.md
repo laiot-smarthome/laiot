@@ -78,6 +78,15 @@ public/index.php
 | `ModuleManager` | core-модули, `modules/core` |
 | `ModuleDb` | таблицы модуля `module_<id>_*`, без raw SQL |
 | `ModuleBus` | retained events с TTL |
+| `PropertyValueService` | единый путь записи значения: история, журнал, OnChange |
+| `PropertyEventRepository` | журнал `property_events` |
+| `PropertyEventChain` | контекст цепочки и предел вложенности |
+
+Запись значения свойства — не просто `UPDATE property_values`. Сервис
+`PropertyValueService` сохраняет значение, пишет историю (если включена),
+добавляет шаг в `property_events` и синхронно вызывает OnChange-метод свойства.
+Повтор свойства в цепочке останавливает обработчик, но не откатывает значение.
+Подробно — [events.md](events.md).
 
 ## 5. Модули
 
@@ -108,6 +117,8 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 - `resources/views/pages/profile.blade.php` — профиль, `/admin/profile`;
 - `resources/views/pages/api.blade.php` — список API-маршрутов, `/admin/api`;
 - `resources/views/pages/modules.blade.php` — реестр модулей, `/admin/modules`;
+- `modules/core/events/views/index.blade.php` — журнал цепочки событий,
+  `/module/events`;
 - `resources/views/pages/shoutbox.blade.php` — промежуточная страница.
 
 Новый layout/CSS не создаём. Alpha-shell и `MDJUI` остаются эталоном, пока

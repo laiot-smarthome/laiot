@@ -326,8 +326,6 @@ try {
     check($network->clientIp('127.0.0.1','192.168.1.1','127.0.0.1/32') === '192.168.1.1', 'explicit trusted proxy works');
     $record = array('ID'=>"1' OR '1'='1",'VALUE'=>'injected'); SQLUpdate('settings',$record);
     check((int)SQLSelectOne("SELECT COUNT(*) AS C FROM settings WHERE VALUE='injected'")['C'] === 0, 'SQLUpdate quotes its condition value');
-    $eventName="sensor' OR '1'='1"; $event=array('EVENT_NAME'=>$eventName,'DETAILS'=>'literal','ADDED'=>date('Y-m-d H:i:s')); SQLInsert('events',$event);
-    check(registeredEventDetails($eventName) === 'literal', 'event lookup escapes literal event name');
 
     $fixture = sys_get_temp_dir() . '/mjd-worker-' . bin2hex(random_bytes(6)) . '/';
     mkdir($fixture . 'lib',0777,true); mkdir($fixture . 'scripts',0777,true);

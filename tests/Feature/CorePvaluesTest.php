@@ -37,6 +37,10 @@ final class CorePvaluesTest extends TestCase
                 $table->increments('id');
                 $table->integer('class_id');
                 $table->string('title');
+                $table->text('description')->nullable();
+                $table->string('data_type')->default('string');
+                $table->boolean('keep_history')->default(false);
+                $table->string('on_change')->default('');
                 $table->timestamps();
                 $table->softDeletes();
             },

@@ -126,10 +126,13 @@ Core-gate:
    (notifications/console) ещё нет.
 9. [x] API-слой и health: v1 health/about/modules/me + токены.
 10. [x] Тесты, docs, Docker-инструкция.
+11. [x] Цепочка события свойства: единая запись, история, `property_events`,
+    OnChange-метод и защита от циклов; модуль `events` перенесён.
 
-Остаток после 20 раундов: `gg`/`sg`/`setTimeOut`/`callMethod`/`getObject`/
-`getHistory` (нужны объекты/свойства), полная alpha-shell parity и остальные
-core-модули. Это не блокер для уже перенесённых `shoutbox` и `jobs`.
+Остаток после 20 раундов: полная alpha-shell parity (notifications/console),
+остальные core-модули, install/update, API v2 и live Redis. Обёртки
+`gg`/`sg`/`getObject`/`getHistory`/`callMethod`/`setTimeOut`/`clearTimeOut`
+уже работают, поэтому отдельным блокером больше не считаются.
 
 После gate: один модуль = новый контроллер, `modules/core/<id>`, `ModuleDb`,
 Blade-страница в alpha-shell, удаление старого кода, тесты, ручная проверка.
@@ -401,6 +404,9 @@ project/
 | 2026-10-26 | `modules/objects`, `templates/objects/*` | `modules/core/objects` + `property_values` |
 | 2026-10-26 | `modules/pvalues`, `templates/pvalues/*` | `modules/core/pvalues` на `property_values` |
 | 2026-10-26 | `modules/history`, `templates/history/*` | `modules/core/history` на `property_history` |
+| 2026-10-26 | `modules/events`, `templates/events/*` | `modules/core/events` на `property_events` и `PropertyValueService` |
+| 2026-10-26 | `lib/core/Helpers/Events.php`, `lib/events.class.php`, `public/assets/modules/events/*` | журнал `property_events`; legacy `registerEvent()` убран, `Api\Dispatcher` не падает без него |
+| 2026-10-26 | `.env.bak.20261022-202814` | `.env.example` + `Config`; резервные копии `.env` не храним в git |
 
 ## 4. Стек и Composer
 
@@ -854,6 +860,17 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `callMethod`: поиск объекта/класса/метода и выполнение без eval; 1 тест.
 - [x] `setTimeOut`/`clearTimeOut`: `runtime_timeouts`, явный `timeout:run`;
   1 тест.
+- [x] Цепочка события свойства: `PropertyValueService` — единая запись,
+  история по `keep_history`, журнал `property_events`, OnChange-метод,
+  защита от циклов; `sg`, `/module/pvalues` и форма объекта идут одним путём;
+  8 тестов, документация — [events.md](../mydomo/events.md).
+- [x] `events`: `modules/core/events` — журнал цепочки в alpha-layout,
+  фильтры по типу/статусу; старый `modules/events` и `templates/events`
+  удалены.
+- [x] `x-md.select` рендерит `<option>` из слота — фильтры и формы модулей
+  больше не показывают пустой список; проверено в `CoreEventsTest`.
+- [x] Docker-стенд применяет `bin/mydomo db:migrate` и к непустой базе:
+  новая миграция не теряется после пересборки образа.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
   остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.

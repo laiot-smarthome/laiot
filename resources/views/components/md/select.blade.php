@@ -52,6 +52,8 @@
         @if (!$multiple && $placeholder !== null)
             <option value="">{{ $placeholder }}</option>
         @endif
+        {{-- Формы модулей передают готовые <option> слотом; UI Kit — массивом. --}}
+        {{ $slot }}
         @foreach ($options as $value => $option)
             @php
                 $optionValue = is_array($option) ? (string)($option['value'] ?? $value) : (string)$value;

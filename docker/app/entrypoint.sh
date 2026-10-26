@@ -272,6 +272,14 @@ if [ "${MJD_RUN_MIGRATIONS:-1}" = "1" ]; then
             log "Статус: docker compose exec app php majordomo migrations:status"
         fi
 
+        # База стенда переживает пересборку образа, поэтому новые миграции
+        # MyDoMo нужно применять и к непустой базе. Иначе после обновления кода
+        # стенд остаётся на старой схеме (например, без property_events).
+        log "Применяю миграции MyDoMo"
+        if ! run_as_www "$PHP_BIN bin/mydomo db:migrate"; then
+            log "ПРЕДУПРЕЖДЕНИЕ: миграции MyDoMo завершились ошибкой; проверьте docker compose logs app"
+        fi
+
         log "Настраиваю администратора, MQTT и базовые параметры"
         if ! run_as_www "$PHP_BIN docker/init/configure.php"; then
             log "ПРЕДУПРЕЖДЕНИЕ: configure.php не завершился; проверьте БД и .env"

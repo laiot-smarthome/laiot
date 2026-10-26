@@ -35,6 +35,7 @@ use MajorDoMo\Cache\CacheStore;
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Database\SettingsRepository;
+use MajorDoMo\Events\PropertyEventRepository;
 use MajorDoMo\History\HistoryRepository;
 use MajorDoMo\Http\Kernel;
 use MajorDoMo\Http\Middleware\AuthenticateAdmin;
@@ -55,6 +56,7 @@ use MajorDoMo\Methods\MethodRunner;
 use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
+use MajorDoMo\Properties\PropertyValueService;
 use MajorDoMo\Properties\ValueRepository;
 use MajorDoMo\Queue\DatabaseQueue;
 use MajorDoMo\Queue\JobRegistry;
@@ -177,16 +179,35 @@ final class Application
         $this->container->instance(LocationRepository::class, new LocationRepository($this->database));
         $this->container->instance(ScriptRepository::class, new ScriptRepository($this->database));
         $this->container->instance(ClassRepository::class, new ClassRepository($this->database));
-        $this->container->instance(PropertyRepository::class, new PropertyRepository($this->database));
-        $this->container->instance(MethodRepository::class, new MethodRepository($this->database));
+        $properties = new PropertyRepository($this->database);
+        $this->container->instance(PropertyRepository::class, $properties);
+        $methods = new MethodRepository($this->database);
+        $this->container->instance(MethodRepository::class, $methods);
         $objectRepository = new ObjectRepository($this->database);
         $this->container->instance(ObjectRepository::class, $objectRepository);
-        $this->container->instance(MethodRunner::class, new MethodRunner($objectRepository, new MethodRepository($this->database)));
+        $methodRunner = new MethodRunner($objectRepository, $methods);
+        $this->container->instance(MethodRunner::class, $methodRunner);
         $this->container->instance(TimeoutRepository::class, new TimeoutRepository($this->database));
         $this->container->instance(CodeRunner::class, new CodeRunner());
         $history = new HistoryRepository($this->database);
         $this->container->instance(HistoryRepository::class, $history);
-        $this->container->instance(ValueRepository::class, new ValueRepository($this->database, $history));
+        $values = new ValueRepository($this->database, $history);
+        $this->container->instance(ValueRepository::class, $values);
+        $propertyEvents = new PropertyEventRepository($this->database, $this->clock);
+        $this->container->instance(PropertyEventRepository::class, $propertyEvents);
+        // Singleton: цепочка хранит текущую глубину и родителя события, пока
+        // OnChange-метод выполняет вложенные записи через sg().
+        $this->container->instance(PropertyValueService::class, new PropertyValueService(
+            $this->database,
+            $objectRepository,
+            $properties,
+            $values,
+            $history,
+            $methods,
+            $methodRunner,
+            $propertyEvents,
+            $this->logger
+        ));
         $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
         $users = new UserRepository($this->database);
