@@ -819,6 +819,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   доступны; 1 тест.
 - [x] `/admin/api`: живой список маршрутов Router; 1 тест.
 - [x] `/admin/modules`: реестр core-модулей; 1 тест.
+- [x] Аудит: login success/failed/logout и user create/update/delete пишутся
+  в `action_log`; 1 тест.
 - [x] `shoutbox`: полный вертикальный срез (ModuleDb, Blade, alpha-layout).
 - [x] `jobs`: очередь на `Queue`, pending/failed, retry/forget.
 - [x] `actions_log`: журнал через `ActionLogRepository`, фильтр/удаление.
