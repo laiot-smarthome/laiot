@@ -35,12 +35,11 @@ use MajorDoMo\Http\Middleware\RequestIdMiddleware;
 use MajorDoMo\Http\Middleware\VerifyCsrfToken;
 use MajorDoMo\Http\Session\NativeSession;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Logging\LoggerFactory;
+use MajorDoMo\Logging\RequestContext;
 use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\View\BladeView;
 use MajorDoMo\Yoyo\Counter;
-use Monolog\Handler\StreamHandler;
-use Monolog\Level;
-use Monolog\Logger;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -57,6 +56,8 @@ final class Application
     private Router $router;
     private Kernel $kernel;
     private LoggerInterface $logger;
+    private LoggerFactory $loggerFactory;
+    private RequestContext $requestContext;
     private DatabaseManager $database;
     private CacheStore $cache;
     private SessionStore $session;
@@ -88,7 +89,14 @@ final class Application
         $this->container->instance(Container::class, $this->container);
         $this->container->instance(self::class, $this);
 
-        $this->logger = $this->createLogger();
+        $this->requestContext = new RequestContext();
+        $this->container->instance(RequestContext::class, $this->requestContext);
+        $this->loggerFactory = new LoggerFactory([
+            'path' => $this->config['log'] ?? 'php://stderr',
+            'debug' => (bool)($this->config['debug'] ?? false),
+        ], $this->requestContext);
+        $this->container->instance(LoggerFactory::class, $this->loggerFactory);
+        $this->logger = $this->loggerFactory->channel('app');
         $this->container->instance(LoggerInterface::class, $this->logger);
 
         $this->database = new DatabaseManager((array)($this->config['database'] ?? []));
@@ -136,7 +144,12 @@ final class Application
         $this->modules = new ModuleManager($this->root, $this->database, $this->container);
         $this->container->instance(ModuleManager::class, $this->modules);
 
-        $this->kernel = new Kernel($this->router, $this->logger, (bool)($this->config['debug'] ?? false));
+        $this->kernel = new Kernel(
+            $this->router,
+            $this->logger,
+            (bool)($this->config['debug'] ?? false),
+            $this->requestContext
+        );
         $this->container->instance(Kernel::class, $this->kernel);
 
         $routes = require $this->root . '/routes/web.php';
@@ -230,23 +243,6 @@ final class Application
     public function config(string $key, mixed $default = null): mixed
     {
         return Arr::get($this->config, $key, $default);
-    }
-
-    private function createLogger(): LoggerInterface
-    {
-        $path = (string)($this->config['log'] ?? 'php://stderr');
-        if (!str_contains($path, '://')) {
-            $directory = dirname($path);
-            if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
-                throw new LogicException('Не удалось создать каталог логов: ' . $directory);
-            }
-        }
-
-        $level = (bool)($this->config['debug'] ?? false) ? Level::Debug : Level::Info;
-        $logger = new Logger('mydomo');
-        $logger->pushHandler(new StreamHandler($path, $level));
-
-        return $logger;
     }
 
     private function createViewFactory(Dispatcher $events): Factory

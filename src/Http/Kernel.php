@@ -6,6 +6,7 @@ namespace MajorDoMo\Http;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
+use MajorDoMo\Logging\RequestContext;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -24,7 +25,8 @@ final readonly class Kernel
     public function __construct(
         private Router $router,
         private LoggerInterface $logger,
-        private bool $debug = false
+        private bool $debug = false,
+        private RequestContext $context = new RequestContext()
     ) {
     }
 
@@ -32,6 +34,7 @@ final readonly class Kernel
     {
         $requestId = $this->requestId($request);
         $request->attributes->set('request_id', $requestId);
+        $this->context->setRequestId($requestId);
 
         try {
             $response = $this->router->dispatch($request);

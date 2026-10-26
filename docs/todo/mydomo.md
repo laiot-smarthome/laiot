@@ -54,6 +54,8 @@ order: 5
   4 теста.
 - [x] `CacheStore` + фабрика: array/file/database, TTL, `remember`, `has`,
   `forget`, типы; 4 теста.
+- [x] Логи: `LoggerFactory` с каналами `app`/`http`/`security` и
+  `request_id` в `extra`; тест.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
@@ -742,11 +744,13 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 
 ### 6.9. Логи, ошибки, безопасность
 
-- [ ] Monolog: каналы `app`, `http`, `api`, `db`, `queue`, `module`,
-  `security`; ротация и уровень из `.env`.
+- [x] Monolog `LoggerFactory`: каналы `app`, `http`, `security`; уровень из
+  debug-флага.
+- [ ] Остальные каналы (`api`, `db`, `queue`, `module`), ротация и уровень
+  из `.env`.
 - [ ] Сохранить `DebMes` как фасад; новые логи — только через PSR-3.
 - [ ] Единый error handler: HTML/JSON, error id, без stack trace в production.
-- [ ] `RequestId`/`TraceId` во всех логах и ответах.
+- [x] `RequestId` в HTTP-ответе и в `extra` каждой записи Monolog.
 - [x] Пароли: `Passwords`/`password_hash`, перехеширование при входе.
 - [x] Сессии: `HttpOnly`, `Secure`, `SameSite=Strict`, regenerate при входе.
 - [x] CSRF для небезопасных методов; никаких GET-мутаций.
