@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ $csrf }}">
     <title>{{ $title }} — MyDoMo</title>
     <link rel="stylesheet" href="/assets/admin/admin.css">
     <script>
@@ -38,6 +39,12 @@
                 <a class="md-topbar-action" href="/panel/xray.html" aria-label="X-Ray">
                     <i class="ti ti-activity" aria-hidden="true"></i><span>X-Ray</span>
                 </a>
+                <button type="button" class="md-topbar-action md-notifications-bell" data-md-notifications-open
+                        aria-label="Уведомления" title="Уведомления">
+                    <i class="ti ti-bell" aria-hidden="true"></i><span>Уведомления</span>
+                    <span class="md-badge md-badge--danger md-notifications-bell__count"
+                          data-md-notifications-count hidden aria-hidden="true">0</span>
+                </button>
                 <div class="md-topbar-theme" role="group" aria-label="Тема оформления">
                     <input class="btn-check" type="radio" name="topbarTheme" id="topbarThemeLight" value="light" data-md-theme-choice="light">
                     <label for="topbarThemeLight" title="Светлая тема"><i class="ti ti-sun" aria-hidden="true"></i><span class="visually-hidden">Светлая тема</span></label>
@@ -106,6 +113,39 @@
         </main>
     </div>
 </div>
+
+<div class="md-admin-drawer-backdrop" data-md-drawer-close hidden></div>
+
+<div id="mdNotificationsContent" hidden>
+    <div class="md-notifications-toolbar">
+        <p class="text-body-secondary mb-0" data-md-notifications-status role="status">Загружаем уведомления…</p>
+        <button type="button" class="md-btn md-btn--secondary md-btn--sm" data-md-notifications-refresh>
+            <i class="ti ti-refresh" aria-hidden="true"></i><span class="md-btn__label">Обновить</span>
+        </button>
+    </div>
+    <div class="md-notifications-list" data-md-notifications-list></div>
+    <div class="md-notifications-toolbar" data-md-notifications-pages hidden>
+        <button type="button" class="md-btn md-btn--secondary md-btn--sm" data-md-notifications-page="-1">Назад</button>
+        <span class="text-body-secondary small" data-md-notifications-range></span>
+        <button type="button" class="md-btn md-btn--secondary md-btn--sm" data-md-notifications-page="1">Далее</button>
+    </div>
+</div>
+
+<aside class="md-admin-drawer md-drawer" id="mdAdminDrawerHost" aria-labelledby="mdAdminDrawerTitle"
+       aria-hidden="true" tabindex="-1" hidden>
+    <div class="md-admin-drawer__header md-drawer__header">
+        <div>
+            <div class="md-admin-drawer__eyebrow md-drawer__eyebrow" id="mdAdminDrawerEyebrow" hidden></div>
+            <h2 class="md-drawer__title" id="mdAdminDrawerTitle"></h2>
+            <div class="md-admin-drawer__subtitle md-drawer__subtitle" id="mdAdminDrawerSubtitle" hidden></div>
+        </div>
+        <button type="button" class="md-icon-btn md-admin-drawer__close" data-md-drawer-close aria-label="Закрыть">
+            <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+    </div>
+    <div class="md-admin-drawer__body md-drawer__body" id="mdAdminDrawerBody"></div>
+    <div class="md-admin-drawer__footer md-drawer__footer" id="mdAdminDrawerFooter" hidden></div>
+</aside>
 
 <div class="md-admin-search-backdrop" data-md-search-close></div>
 <aside class="md-admin-search-drawer" id="mdmGlobalSearchDrawer" aria-labelledby="mdmGlobalSearchTitle" aria-hidden="true">

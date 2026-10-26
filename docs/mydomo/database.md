@@ -25,6 +25,7 @@ objects
 property_values
 property_history
 property_events
+notifications
 ```
 
 Никаких `ID`, `QUEUE`, `CREATED_AT`. Таблицы alpha (`users`, `objects`)
@@ -57,6 +58,12 @@ OnChange-метод». Исключение из правила append-only — 
 обработчика (`running` → `ok`/`error`/`missing`): строка создаётся до запуска
 пользовательского кода, чтобы вложенные записи получили родителя. Retention
 пока нет; журнал не удаляется автоматически. Устройство — [events.md](events.md).
+
+`notifications` — уведомления модулей для админки. Вместо булева `is_read`
+используется `read_at`: время прочтения полезно для истории, а непрочитанные
+выбираются по `read_at is null`. Повторы отсекаются по `notification_key`
+(или тексту и типу), у модуля не больше 10 непрочитанных. Подробно —
+[notifications.md](notifications.md).
 
 ## 3. Carbon и Clock
 

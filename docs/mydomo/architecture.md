@@ -89,6 +89,7 @@ legacy API и возвращал 503 «install_required».
 | `PropertyEventRepository` | журнал `property_events` |
 | `PropertyEventChain` | контекст цепочки и предел вложенности |
 | `PanelSearch` | поиск по core-сущностям для шапки админки |
+| `NotificationService` | уведомления модулей/сценариев, прочтение и summary |
 
 Запись значения свойства — не просто `UPDATE property_values`. Сервис
 `PropertyValueService` сохраняет значение, пишет историю (если включена),
@@ -119,6 +120,9 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
   (topbar/sidebar/меню, поиск в шапке и полный drawer результатов);
 - `src/Http/Controllers/PanelSearchController.php` — `/api/v1/panel/search`
   в конверте `{ok,data}` для `window.MDJAdminApi`;
+- `src/Http/Controllers/NotificationsController.php` — `/api/v1/panel/notifications`
+  и `dismiss`; колокольчик и drawer строятся из `layouts.alpha` и JS
+  `60/61_module_notifications`, `20_drawer`;
 - `resources/views/login.blade.php` — alpha-вход (`md-auth`, логотип, `x-md`);
 - `resources/views/pages/dashboard.blade.php` — веб-админка `/admin`;
 - `resources/views/pages/status.blade.php` — первая страница нового kernel

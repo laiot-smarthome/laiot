@@ -122,15 +122,15 @@ Core-gate:
    ещё нет.
 6. [x] Логи: каналы, request_id, уровни.
 7. [x] Auth/роли/права: таблицы, `can:`, `/roles`, API-токены.
-8. [~] Alpha-layout: `layouts.alpha` + `PanelRenderer` + меню; поиск в шапке
-   и полный drawer готовы (`/api/v1/panel/search`); notifications/console
-   ещё нет.
+8. [~] Alpha-layout: `layouts.alpha` + `PanelRenderer` + меню; поиск в шапке,
+   drawer и центр уведомлений готовы (`/api/v1/panel/search`,
+   `/api/v1/panel/notifications`); console ещё нет.
 9. [x] API-слой и health: v1 health/about/modules/me + токены.
 10. [x] Тесты, docs, Docker-инструкция.
 11. [x] Цепочка события свойства: единая запись, история, `property_events`,
     OnChange-метод и защита от циклов; модуль `events` перенесён.
 
-Остаток после 20 раундов: полная alpha-shell parity (notifications/console),
+Остаток после 20 раундов: полная alpha-shell parity (console),
 остальные core-модули, install/update, API v2 и live Redis. Обёртки
 `gg`/`sg`/`getObject`/`getHistory`/`callMethod`/`setTimeOut`/`clearTimeOut`
 уже работают, поэтому отдельным блокером больше не считаются.
@@ -836,6 +836,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `/admin/api`: живой список маршрутов Router; 1 тест.
 - [x] Поиск в шапке и полный drawer: `PanelSearch` +
   `/api/v1/panel/search`, разделы по core-сущностям; 6 тестов.
+- [x] Центр уведомлений: колокольчик, общий drawer, явное прочтение,
+  `notify()` для сценариев; 7 тестов.
 - [x] `/admin/modules`: реестр core-модулей; 1 тест.
 - [x] Аудит: login success/failed/logout и user create/update/delete пишутся
   в `action_log`; 1 тест.
@@ -882,6 +884,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] Alpha-shell поиск: `PanelSearch` + `/api/v1/panel/search` + drawer
   `#mdmGlobalSearchDrawer` в `layouts.alpha`; объекты, классы, свойства,
   методы, скрипты, пользователи, локации, core-модули; 6 тестов.
+- [x] Центр уведомлений: `notifications`, `NotificationService`, `notify()`,
+  API `GET/POST /api/v1/panel/notifications*` с CSRF, колокольчик и общий
+  drawer `#mdAdminDrawerHost`; 7 тестов, документация — notifications.md.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
   остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.

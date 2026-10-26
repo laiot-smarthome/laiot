@@ -54,6 +54,7 @@ use MajorDoMo\Logging\RequestContext;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Methods\MethodRunner;
 use MajorDoMo\Modules\ModuleManager;
+use MajorDoMo\Notifications\NotificationService;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
 use MajorDoMo\Properties\PropertyValueService;
@@ -247,6 +248,10 @@ final class Application
         $this->modules = new ModuleManager($this->root, $this->database, $this->container, $this->helperLoader);
         $this->container->instance(ModuleManager::class, $this->modules);
         $this->container->instance(PanelSearch::class, new PanelSearch($this->database, $this->modules));
+        $this->container->instance(
+            NotificationService::class,
+            new NotificationService($this->database, $this->modules, $this->clock)
+        );
 
         $this->kernel = new Kernel(
             $this->router,

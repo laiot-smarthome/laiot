@@ -76,6 +76,13 @@
         };
         if (method !== 'GET' && method !== 'HEAD') {
             headers['Content-Type'] = 'application/json';
+            // POST в новый kernel проходит через VerifyCsrfToken: токен лежит
+            // в meta, а не в query, чтобы он не попадал в журналы URL.
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            var csrf = meta ? meta.getAttribute('content') : '';
+            if (csrf) {
+                headers['X-CSRF-Token'] = csrf;
+            }
         }
         if (options.headers) {
             Object.keys(options.headers).forEach(function (name) {

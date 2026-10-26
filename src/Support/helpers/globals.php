@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use MajorDoMo\Methods\MethodRunner;
+use MajorDoMo\Notifications\NotificationService;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyValueService;
 use MajorDoMo\Runtime\TimeoutRepository;
@@ -63,6 +64,25 @@ if (!function_exists('sg')) {
 
         return $app->container()->make(PropertyValueService::class)
             ->set($objectName, $propertyName, $value, $source);
+    }
+}
+
+if (!function_exists('notify')) {
+    /**
+     * `notify()` — системное уведомление в колокольчике админки.
+     *
+     * @param array{key?:string,title?:string,details?:string,url?:string,label?:string} $options
+     * @return array{status:bool,id?:int,error?:string}
+     */
+    function notify(string $message, string $type = 'info', array $options = []): array
+    {
+        $app = AppContext::get();
+        if ($app === null) {
+            return ['status' => false, 'error' => 'Приложение не загружено.'];
+        }
+
+        return $app->container()->make(NotificationService::class)
+            ->send('system', $message, $type, $options);
     }
 }
 

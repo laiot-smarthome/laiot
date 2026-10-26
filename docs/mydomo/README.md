@@ -30,6 +30,8 @@ legacy-коду. Если документ относится к новому я
   старый `api.php`;
 - поиск в шапке админки и полный drawer `/api/v1/panel/search`
   (объекты, классы, свойства, методы, скрипты, пользователи, локации, модули);
+- центр уведомлений: `notifications`, `NotificationService`, `notify()`,
+  колокольчик и drawer `/api/v1/panel/notifications`;
 - единые 404/405/500, `request_id`, security headers, maintenance mode;
 - `ModuleManager`, `ModuleDb` (MySQL/SQLite), `ModuleBus` (retained events);
 - автозагрузка core/module helpers; модуль публикует функции через
@@ -56,7 +58,7 @@ legacy-коду. Если документ относится к новому я
 - 13 старых модулей: api, modes, pinghosts, mqtt, zigbee, xray,
   blockly_code, knowledge_base, ai_assistant, control_modules, linkedobject,
   market, saverestore;
-- полная alpha-shell parity (notifications/console; поиск уже работает);
+- полная alpha-shell parity (console; поиск и уведомления уже работают);
 - установка/обновление, полный API v2;
 - live Redis-проверка;
 - автоматический запуск timeout/queue — только явные команды, циклы не трогаем.
@@ -68,12 +70,14 @@ legacy-коду. Если документ относится к новому я
    пользовательские функции.
 3. [Цепочка событий свойства](events.md) — запись, история, OnChange,
    `property_events` и защита от циклов.
-4. [Правила для агентов](AGENTS.md) — как читать, менять и проверять.
-5. [Тестирование](testing.md) — укрупнённые тесты, dev server, Docker.
-6. [Модульная система](modules.md) — core/third-party, `ModuleDb`, `ModuleBus`.
-7. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
-8. [Docker-стенд](docker.md) — локальная отладка и проверки.
-9. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
+4. [Центр уведомлений](notifications.md) — `notifications`, `notify()`, API,
+   колокольчик и правила прочтения.
+5. [Правила для агентов](AGENTS.md) — как читать, менять и проверять.
+6. [Тестирование](testing.md) — укрупнённые тесты, dev server, Docker.
+7. [Модульная система](modules.md) — core/third-party, `ModuleDb`, `ModuleBus`.
+8. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
+9. [Docker-стенд](docker.md) — локальная отладка и проверки.
+10. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
 
 ## Правило обновления
 

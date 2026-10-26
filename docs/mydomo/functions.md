@@ -136,6 +136,8 @@ GET /api/v1/about    — версия, PHP, число core-модулей
 GET /api/v1/modules  — список core-модулей
 GET /api/v1/me       — Bearer/X-API-Key, user_id + roles/permissions
 GET /api/v1/panel/search?q=<текст>&limit=<1..50> — поиск для админки
+GET /api/v1/panel/notifications?module=&offset= — непрочитанные и summary
+POST /api/v1/panel/notifications/dismiss        — прочитать (нужен CSRF)
 ```
 
 `/api/v1/*` обслуживает новое ядро (`public/index.php`); legacy `/api/*`
@@ -168,6 +170,11 @@ core-модули. Запрос короче 3 символов возвраща
 выводятся в шапке (`MDJAdminApi.search`) и в полном drawer
 `#mdmGlobalSearchDrawer` из `layouts.alpha`.
 
+Уведомления: `GET /api/v1/panel/notifications` отдаёт `total`, `counts`,
+`levels`, `severity` и `items` (до 50); `POST .../dismiss` принимает `{id}` или
+`{module}` и требует `X-CSRF-Token`. Устройство, типы, лимиты и `notify()`
+описаны в [notifications.md](notifications.md).
+
 Токены: `api_tokens`, в БД только SHA-256. Выпуск:
 
 ```bash
@@ -178,7 +185,7 @@ php bin/mydomo api:token 1 "monitoring"
 `X-API-Key: <token>`.
 
 `/admin` (auth) — обзор веб-админки на Blade-компонентах и alpha-layout;
-в шапке работает поиск (`Ctrl K`) с полным drawer результатов.
+в шапке работают поиск (`Ctrl K`), колокольчик уведомлений и полный drawer.
 `/module/users` — пользователи; роли назначаются в форме пользователя.
 `/admin/tokens` (auth + `can:users.manage`) — выпуск/отзыв API-токенов.
 `/admin/modules` (auth) — реестр core-модулей: версии, таблицы, helpers.
@@ -296,6 +303,14 @@ sg('Кухня.temperature', 23.5, 0, 'zigbee');
 `setTimeOut($title, $code, $seconds)` создаёт запись в `runtime_timeouts`;
 `clearTimeOut($title)` снимает её. Выполнение — только явно:
 `php bin/mydomo timeout:run` (без автоматических циклов).
+
+`notify($message, $type = 'info', $options = [])` оставляет системное
+уведомление в колокольчике админки (модуль `system`). Возвращает
+`['status' => bool, 'id' => int]` или `['status' => false, 'error' => '...']`.
+Типы — `info`, `success`, `warning`, `danger`; в `$options` можно передать
+`key`, `title`, `details`, `url` (только `/...`), `label`. Повтор с тем же
+`key` среди непрочитанных не создаёт дубль. Подробно —
+[notifications.md](notifications.md).
 
 `/module/events` — журнал цепочки: тип шага, объект и свойство, старое и новое
 значение, обработчик, статус (`changed`, `ok`, `error`, `missing`,

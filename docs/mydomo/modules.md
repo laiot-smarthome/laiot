@@ -264,6 +264,20 @@ function kinetic_change_connection(string $connection): bool
 Пример из MyDoMo: `shoutbox_latest()` → `ShoutboxService::latest()`. Такой
 helper можно звать из сценариев/методов, не зная, как устроена таблица.
 
+Уведомление администратору модуль отправляет через `NotificationService`:
+
+```php
+app()->container()->make(\MajorDoMo\Notifications\NotificationService::class)
+    ->send('mqtt', 'Нет связи с брокером', 'warning', [
+        'key' => 'mqtt:broker',
+        'url' => '/module/mqtt',
+        'label' => 'Открыть MQTT',
+    ]);
+```
+
+Уведомление адресовано администратору и не заменяет запись в журнал модуля;
+подробности, лимиты и правила прочтения — [notifications.md](notifications.md).
+
 ## 9. Что запрещено
 
 - Удалять/отключать core-модуль через менеджер.
