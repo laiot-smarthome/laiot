@@ -19,12 +19,12 @@ interface SessionStore
     public function forget(string $key): void;
 
     /**
-     * @return array{id:int,username:string,name:string}|null
+     * @return array{id:int,username:string,name:string,is_admin?:bool,stamp?:string}|null
      */
     public function user(): ?array;
 
     /**
-     * @param array{id:int,username:string,name:string} $user
+     * @param array{id:int,username:string,name:string,is_admin?:bool,stamp?:string} $user
      */
     public function login(array $user): void;
 

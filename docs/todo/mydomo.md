@@ -76,6 +76,7 @@ order: 5
   тестах не поднимался.
 - [x] Typed jobs: `Job` + `Queue::pushJob()`; 2 теста.
 - [x] API v1: `health`, `about`; JSON + request_id; 2 теста.
+- [x] AuthZ: `Authorization`, middleware `can:`, admin/user/guest; 3 теста.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
@@ -821,7 +822,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [ ] Валидация загрузок, путей, JSON, размеров тела; запрет `..` и null-byte.
 - [ ] `composer audit` в CI; `roave/security-advisories` — только отдельным
   nightly с актуальным патчем PHP, если понадобится.
-- [ ] Политика прав: роли/разрешения, проверка на сервере, а не в UI.
+- [x] `Authorization::can()` + middleware `can:`; admin/user/guest,
+  permissions на сервере.
+- [ ] Таблица ролей/разрешений и назначение ролей пользователям.
 
 ### 6.10. Конфигурация, установка, обновление
 

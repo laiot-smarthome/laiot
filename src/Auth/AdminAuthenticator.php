@@ -39,6 +39,7 @@ final readonly class AdminAuthenticator
             'username' => (string)$user['username'],
             'name' => (string)$user['name'],
             'stamp' => (string)$user['stamp'],
+            'is_admin' => true,
         ];
     }
 }

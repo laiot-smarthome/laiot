@@ -24,6 +24,7 @@ use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
 use LogicException;
 use MajorDoMo\Auth\AdminAuthenticator;
+use MajorDoMo\Auth\Authorization;
 use MajorDoMo\Cache\CacheFactory;
 use MajorDoMo\Cache\CacheStore;
 use MajorDoMo\Core\Users\UserAccounts;
@@ -31,6 +32,7 @@ use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Database\SettingsRepository;
 use MajorDoMo\Http\Kernel;
 use MajorDoMo\Http\Middleware\AuthenticateAdmin;
+use MajorDoMo\Http\Middleware\Authorize;
 use MajorDoMo\Http\Middleware\RequestIdMiddleware;
 use MajorDoMo\Http\Middleware\VerifyCsrfToken;
 use MajorDoMo\Http\Session\NativeSession;
@@ -119,6 +121,7 @@ final class Application
             ? $session
             : new NativeSession('mydomo', '/');
         $this->container->instance(SessionStore::class, $this->session);
+        $this->container->instance(Authorization::class, new Authorization($this->session));
 
         $this->container->bind(
             UserAccounts::class,
@@ -147,6 +150,7 @@ final class Application
         $this->router->aliasMiddleware('request-id', RequestIdMiddleware::class);
         $this->router->aliasMiddleware('auth', AuthenticateAdmin::class);
         $this->router->aliasMiddleware('csrf', VerifyCsrfToken::class);
+        $this->router->aliasMiddleware('can', Authorize::class);
         $this->container->instance(Router::class, $this->router);
 
         $this->modules = new ModuleManager($this->root, $this->database, $this->container);
