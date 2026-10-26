@@ -20,6 +20,7 @@ namespace MajorDoMo\Core;
  *   required  doctor warns when the key is missing
  *
  * Изменения:
+ * 2026-10-26 — APP_DEBUG нового ядра выключен по умолчанию.
  * 2026-10-23 — необязательный секретный ключ шифрования ИИ-помощника.
  */
 final class ConfigSchema
@@ -65,6 +66,7 @@ final class ConfigSchema
             'PROJECT_TITLE' => array('type' => 'string', 'default' => 'MajorDoMo'),
             'DEBUG_MODE' => array('type' => 'boolean', 'optional' => true),
             'APP_ENV' => array('type' => 'string', 'optional' => true),
+            'APP_DEBUG' => array('type' => 'boolean', 'default' => false, 'constant' => false),
             'AI_SECRET_KEY' => array('type' => 'string', 'optional' => true, 'constant' => false, 'secret' => true),
             'TIMEZONE' => array('type' => 'string', 'optional' => true, 'constant' => false),
             'UPDATES_REPOSITORY_NAME' => array('type' => 'string', 'optional' => true),
@@ -75,6 +77,13 @@ final class ConfigSchema
             'PROJECT_URL' => array('type' => 'string', 'computed' => true, 'optional' => true),
             'PROJECT_COMMIT_URL' => array('type' => 'string', 'computed' => true, 'optional' => true),
             'ADITIONAL_GIT_URLS' => array('type' => 'json', 'default' => array(), 'constant' => false),
+
+            // Cache / Redis -------------------------------------------------
+            'CACHE_DRIVER' => array('type' => 'string', 'default' => 'file'),
+            'REDIS_HOST' => array('type' => 'string', 'default' => '127.0.0.1'),
+            'REDIS_PORT' => array('type' => 'integer', 'default' => 6379),
+            'REDIS_DB' => array('type' => 'integer', 'default' => 0),
+            'REDIS_PASSWORD' => array('type' => 'string', 'optional' => true, 'constant' => false, 'secret' => true),
 
             // Deployment -----------------------------------------------------
             'DEPLOY_COMPOSER' => array('type' => 'string', 'default' => 'composer', 'constant' => false),
