@@ -20,6 +20,19 @@ order: 5
 [роутингу](routing.md) остаются источником идей, но их пункты «сохранить
 старый модульный API» к MyDoMo не применяются.
 
+## 0. Текущий прогресс
+
+- [x] Ветка `MyDoMo` создана от `alpha` (`0bc4c355`), `alpha` не тронута.
+- [x] Мастер-план и границы ветки зафиксированы в документации.
+- [x] Composer-стек разрешён dry-run на PHP 8.2; `roave/security-advisories`
+  исключён из основного набора.
+- [x] Spike 0 на ветке `mydomo-foundation`: контейнер, Illuminate Routing,
+  Blade, Eloquent на SQLite, Monolog, middleware, 404/405/500, PHPUnit.
+- [x] `composer check`, PHPStan, PHP-CS-Fixer, Rector dry-run и ручные HTTP-
+  проверки проходят локально.
+- [x] Добавлен CI-workflow; первый зелёный прогон на GitHub ещё нужен.
+- [ ] Этап 1: перенос конфигурации, БД и базового kernel из spike в `src/`.
+
 ## 1. Решение и границы
 
 ### 1.1. Что это значит
@@ -296,6 +309,32 @@ Predis 2.4.1; 38 пакетов). Dev-набор без `roave/security-advisori
 Вместо него — `composer audit` в CI и обновление PHP-патча по регламенту.
 Если нужен дополнительный барьер, вынести `roave` в отдельный nightly-job
 с актуальным патчем PHP, но не в общую матрицу сборки.
+
+### 4.6. Spike 0 (выполнен локально)
+
+В ветке `mydomo-foundation` собран вертикальный срез:
+
+- `src/Foundation/Application.php` — контейнер, конфиг, Monolog, Blade,
+  Illuminate Router, kernel;
+- `src/Http/Kernel.php` — 404/405/500, `X-Request-Id`, без stack trace;
+- `src/Http/Controllers/SpikeController.php` — DI + Blade;
+- `src/Http/Middleware/RequestIdMiddleware.php` — проверка pipeline;
+- `src/Database/SpikeNote.php` — Eloquent на SQLite;
+- `config/app.php`, `routes/web.php`, `resources/views/spike.blade.php`,
+  `bootstrap/app.php`, временный `public/spike.php`;
+- `tests/Feature/SpikeTest.php` и `EloquentSpikeTest.php` — 7 тестов;
+- `phpunit.xml`, `phpstan.neon`, `rector.php`, `.php-cs-fixer.dist.php`,
+  `.github/workflows/ci.yml`.
+
+Локальные результаты: `composer check` — 105 файлов lint, PHPStan без ошибок,
+PHP-CS-Fixer 0 замечаний, Rector dry-run чистый, PHPUnit 7/7, ручные
+`/spike`, `/health`, 404 и 405 отвечают корректно. Старые
+`config_smoke`/`routing_smoke`/`php majordomo about` после установки пакетов
+тоже проходят.
+
+Это ещё не этап 1: конфиг остаётся массивом, БД не подключена к MariaDB,
+auth/сессии/модулей нет. Следующий шаг — перенести решения среза в
+`Application`/`Kernel` этапа 1 и подключить `Config`/PDO.
 
 ## 5. Этапы
 

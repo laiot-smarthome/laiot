@@ -4,11 +4,37 @@
     "type": "project",
     "license": "MIT",
     "require": {
-        "php": ">=8.1",
+        "php": ">=8.2",
+        "illuminate/cache": "^12.0",
+        "illuminate/collections": "^12.0",
+        "illuminate/container": "^12.0",
+        "illuminate/database": "^12.0",
+        "illuminate/http": "^12.0",
+        "illuminate/redis": "^12.0",
+        "illuminate/routing": "^12.0",
+        "illuminate/view": "^12.0",
         "majordomo/phpmqtt": "^1.0",
+        "monolog/monolog": "^3.9",
         "neuron-core/neuron-ai": "~4.1.13",
         "phpmailer/phpmailer": "^7.0",
+        "predis/predis": "^2.4",
+        "symfony/http-client": "^7.4",
+        "symfony/process": "^7.4",
+        "symfony/rate-limiter": "^7.4",
         "workerman/workerman": "^5.1"
+    },
+    "require-dev": {
+        "ergebnis/composer-normalize": "^2.54",
+        "fakerphp/faker": "^1.24",
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "mockery/mockery": "^1.6",
+        "php-parallel-lint/php-parallel-lint": "^1.4",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^11.5",
+        "rector/rector": "^2.7",
+        "symfony/var-dumper": "^7.4"
     },
     "repositories": [
         {
@@ -24,14 +50,34 @@
     ],
     "autoload": {
         "psr-4": {
+            "MajorDoMo\\": "src/",
             "MajorDoMo\\Core\\": "lib/core/",
             "MajorDoMo\\Modules\\AiAssistant\\": "modules/ai_assistant/src/"
         }
     },
+    "scripts": {
+        "test": "phpunit",
+        "test:smoke": "php tests/routing_smoke.php && php tests/config_smoke.php",
+        "lint": "parallel-lint --exclude vendor --exclude node_modules src tests",
+        "analyse": "phpstan analyse --memory-limit=1G",
+        "cs:check": "php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "php-cs-fixer fix",
+        "rector:dry": "rector process --dry-run",
+        "rector:fix": "rector process",
+        "check": [
+            "@lint",
+            "@cs:check",
+            "@analyse",
+            "@test"
+        ]
+    },
     "config": {
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true
+        },
         "optimize-autoloader": true,
         "platform": {
-            "php": "8.1.0"
+            "php": "8.2.0"
         },
         "sort-packages": true
     }
