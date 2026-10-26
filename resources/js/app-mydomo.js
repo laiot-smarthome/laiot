@@ -14,6 +14,7 @@ import {initSidebar} from './mydomo/sidebar.js';
 import {initDrawer} from './mydomo/drawer.js';
 import {initSearch} from './mydomo/search.js';
 import {initNotifications} from './mydomo/notifications.js';
+import './mydomo/linked-object.js';
 
 window.Alpine = Alpine;
 

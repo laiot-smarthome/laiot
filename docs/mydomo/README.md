@@ -34,6 +34,10 @@ MyDoMo. Пользовательские обёртки работают.
   колокольчик и drawer `/api/v1/panel/notifications`;
 - входящие webhook `/module/api`: секрет в URL, методы, сценарий/PHP и
   журнал последнего вызова; публичный вход `/api/v1/webhooks/{secret}`;
+- linked object — ядровой `LinkedObjectService`, API
+  `/api/v1/panel/linked-object` и Alpine-компонент `x-md.linked-object`
+  (поиск объекта, свойства/методы класса); старый модуль остаётся только
+  зависимостью alpha-Zigbee;
 - база знаний `/module/knowledge_base`: `docs/**`, front matter, поиск,
   безопасный Markdown и оглавление;
 - единые 404/405/500, `request_id`, security headers, maintenance mode;

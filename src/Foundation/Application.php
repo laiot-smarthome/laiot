@@ -48,6 +48,7 @@ use MajorDoMo\Http\Middleware\VerifyCsrfToken;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\NativeSession;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\LinkedObject\LinkedObjectService;
 use MajorDoMo\Locations\LocationRepository;
 use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Logging\LoggerFactory;
@@ -185,12 +186,17 @@ final class Application
         $scripts = new ScriptRepository($this->database);
         $this->container->instance(ScriptRepository::class, $scripts);
         $this->container->instance(ClassRepository::class, new ClassRepository($this->database));
+        $classRepository = $this->container->make(ClassRepository::class);
         $properties = new PropertyRepository($this->database);
         $this->container->instance(PropertyRepository::class, $properties);
         $methods = new MethodRepository($this->database);
         $this->container->instance(MethodRepository::class, $methods);
         $objectRepository = new ObjectRepository($this->database);
         $this->container->instance(ObjectRepository::class, $objectRepository);
+        $this->container->instance(
+            LinkedObjectService::class,
+            new LinkedObjectService($objectRepository, $properties, $methods, $classRepository)
+        );
         $methodRunner = new MethodRunner($objectRepository, $methods);
         $this->container->instance(MethodRunner::class, $methodRunner);
         $this->container->instance(TimeoutRepository::class, new TimeoutRepository($this->database));

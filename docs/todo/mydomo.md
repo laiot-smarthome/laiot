@@ -90,6 +90,9 @@ order: 5
   удалён; 4 теста, документация.
 - [x] `blockly_code` заменён `x-md.code` (Alpine, нумерация строк) в формах
   скриптов/методов; старый модуль и шаблон удалены.
+- [x] linked object вынесен в ядро: `LinkedObjectService`,
+  `/api/v1/panel/linked-object`, `x-md.linked-object` на Alpine; 3 теста.
+  Старый `modules/linkedobject` пока остаётся зависимостью alpha-Zigbee.
 - [x] Blade-компоненты `x-md.button/icon/badge/card/section-heading/alert/
   avatar/empty-state/kpi/progress/status/field/input/textarea/select/
   checkbox/switch/disclosure/drawer/modal/skeleton/activity-feed/hint` и
@@ -418,6 +421,7 @@ project/
 | 2026-10-26 | `resources/js/app.js`, `bootstrap.js`, `modules/admin_panel/*`, `vite*.config.js`, `public/assets/admin/admin.js|admin.css|charts|codeeditor|codehighlight` | `resources/js/mydomo/*`, `vite.mydomo.config.js`, `mydomo.js`/`mydomo.css` без jQuery и alpha-модулей |
 | 2026-10-26 | `modules/api`, `templates/api/*`, `public/assets/modules/api/*` | `modules/core/api` на `module_api_webhooks`; legacy `public/api.php` и `lib/core/Api/*` оставлены только как вход alpha |
 | 2026-10-26 | `modules/blockly_code`, `templates/blockly_code/*` | `x-md.code` (Alpine) в формах скриптов/методов; CodeMirror/alpha-редактор не переносим |
+| 2026-10-26 | UI старого `modules/linkedobject` не используется новым кодом | `src/LinkedObject/LinkedObjectService`, `/api/v1/panel/linked-object`, `x-md.linked-object`; старый модуль остаётся только для alpha-Zigbee |
 
 ## 4. Стек и Composer
 

@@ -93,6 +93,7 @@ legacy API и возвращал 503 «install_required».
 | `ScriptRunner` | запуск сценария по ID/названию с `$params` (без eval) |
 | `KnowledgeBase` | индекс `docs/**`, категории, поиск и страницы базы знаний |
 | `MarkdownRenderer` | безопасный GFM-рендер, ссылки и оглавление |
+| `LinkedObjectService` | поиск объектов и свойства/методы класса для `x-md.linked-object` |
 
 Запись значения свойства — не просто `UPDATE property_values`. Сервис
 `PropertyValueService` сохраняет значение, пишет историю (если включена),
@@ -125,6 +126,9 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 - `resources/views/components/md/code.blade.php` — редактор кода на Alpine
   с нумерацией строк (`x-md.code`), без CodeMirror; используется в формах
   скриптов и методов;
+- `resources/views/components/md/linked-object.blade.php` + `mydomo/linked-object.js`
+  — ядровой поиск объекта и контекст свойств/методов, без старого
+  `modules/linkedobject`;
 - `public/assets/admin/mydomo.js` и `mydomo.css` — единственный бандл нового
   ядра: Bootstrap CSS, Alpine и собственные vanilla-модули (тема, меню,
   поиск, уведомления, drawer). jQuery, `admin.js` и alpha-плагины в MyDoMo не

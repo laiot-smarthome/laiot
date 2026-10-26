@@ -55,6 +55,25 @@ final readonly class MethodRepository
     }
 
     /**
+     * @return list<array{id:int,class_id:int,title:string,description:string}>
+     */
+    public function forClass(int $classId): array
+    {
+        return $this->database->connection()->table('methods')
+            ->where('class_id', $classId)
+            ->whereNull('deleted_at')
+            ->orderBy('title')
+            ->get()
+            ->map(static fn (object $row): array => [
+                'id' => (int)$row->id,
+                'class_id' => (int)$row->class_id,
+                'title' => (string)$row->title,
+                'description' => (string)($row->description ?? ''),
+            ])
+            ->all();
+    }
+
+    /**
      * @return array{id:int,class_id:int,title:string,description:string,code:string}|null
      */
     public function findForClass(int $classId, string $title): ?array

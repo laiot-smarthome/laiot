@@ -32,6 +32,7 @@ final class BladeComponents
         'icon',
         'input',
         'kpi',
+        'linked-object',
         'modal',
         'progress',
         'section-heading',

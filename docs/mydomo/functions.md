@@ -194,6 +194,9 @@ php bin/mydomo api:token 1 "monitoring"
 последний статус. Публичный вызов — `GET|POST|PUT|PATCH|DELETE
 /api/v1/webhooks/{secret}`; секрет 48 hex, хранится только SHA-256, при
 создании/ротации показывается один раз. Ошибки: 404/405 (`Allow`)/403/500.
+`/api/v1/panel/linked-object` (auth) — `?q=` поиск объектов, `?object=`
+свойства/методы класса для `x-md.linked-object`; старый
+`modules/linkedobject` не используется новым кодом.
 `/module/events` — журнал цепочки событий свойства (`property_events`).
 `/module/actions_log` — аудит: вход/выход и изменения пользователей пишутся
 в `action_log`.
