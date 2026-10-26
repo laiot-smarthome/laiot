@@ -38,6 +38,7 @@ use MajorDoMo\Http\Middleware\AuthenticateApiToken;
 use MajorDoMo\Http\Middleware\Authorize;
 use MajorDoMo\Http\Middleware\RequestIdMiddleware;
 use MajorDoMo\Http\Middleware\VerifyCsrfToken;
+use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\NativeSession;
 use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Logging\LoggerFactory;
@@ -157,6 +158,10 @@ final class Application
             fn (): AdminAuthenticator => new AdminAuthenticator(
                 fn (): UserAccounts => $this->container->make(UserAccounts::class)
             )
+        );
+        $this->container->singleton(
+            PanelRenderer::class,
+            fn (): PanelRenderer => new PanelRenderer($this->container->make(Factory::class), $this->session)
         );
 
         $events = new Dispatcher($this->container);

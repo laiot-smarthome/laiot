@@ -7,7 +7,8 @@ namespace MajorDoMo\Http\Controllers;
 use Illuminate\Contracts\View\Factory;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Controller;
-use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Http\PanelPage;
+use MajorDoMo\Http\PanelRenderer;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -22,7 +23,7 @@ final readonly class StatusController extends Controller
     public function __construct(
         private Factory $view,
         private Application $app,
-        private SessionStore $session
+        private PanelRenderer $panel
     ) {
     }
 
@@ -45,19 +46,6 @@ final readonly class StatusController extends Controller
             'modules' => count($this->app->modules()->all()),
         ])->render();
 
-        return $this->html($this->view->make('layouts.alpha', [
-            'title' => 'Статус системы',
-            'content' => $content,
-            'active' => 'status',
-            'csrf' => $this->session->csrfToken(),
-            'user' => $this->session->user(),
-            'menu' => [[
-                'label' => 'Система',
-                'items' => [
-                    ['id' => 'status', 'label' => 'Статус', 'href' => '/status', 'icon' => 'ti-activity'],
-                    ['id' => 'shoutbox', 'label' => 'Shoutbox', 'href' => '/module/shoutbox', 'icon' => 'ti-message'],
-                ],
-            ]],
-        ])->render());
+        return $this->panel->render(new PanelPage('Статус системы', $content, 'status'));
     }
 }
