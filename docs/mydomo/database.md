@@ -68,7 +68,9 @@ $clock->timezone();   // Europe/Moscow
 - журнал — таблица `migrations` (`id`, `migration`, `batch`,
   `created_at`, `updated_at`, `deleted_at`);
 - применённые миграции не выполняются повторно;
-- для новой таблицы сразу задаются timestamps и soft deletes.
+- для новой таблицы сразу задаются timestamps и soft deletes;
+- **pre-release:** имена уже созданных тестовых таблиц менялись, поэтому
+  локальную dev-БД нужно пересоздать; production-данных MyDoMo ещё нет.
 
 Пример:
 
