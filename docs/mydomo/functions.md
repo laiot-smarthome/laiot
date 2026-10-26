@@ -150,6 +150,8 @@ php bin/mydomo api:token 1 "monitoring"
 `/admin/tokens` (auth + `can:users.manage`) — выпуск/отзыв API-токенов.
 `/admin/modules` (auth) — реестр core-модулей: версии, таблицы, helpers.
 `/admin/api` (auth) — живой список API-маршрутов.
+`/module/actions_log` — аудит: вход/выход и изменения пользователей пишутся
+в `action_log`.
 `/admin/profile` (auth) — имя и смена пароля текущего пользователя.
 `/admin/maintenance` (auth + `can:settings.manage`) — режим обслуживания;
 `/health` и `/login` остаются доступны.

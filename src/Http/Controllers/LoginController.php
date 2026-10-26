@@ -6,6 +6,7 @@ namespace MajorDoMo\Http\Controllers;
 
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
+use MajorDoMo\Audit\ActionLogger;
 use MajorDoMo\Auth\AdminAuthenticator;
 use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\Session\SessionStore;
@@ -23,7 +24,8 @@ final readonly class LoginController extends Controller
     public function __construct(
         private Factory $view,
         private SessionStore $session,
-        private AdminAuthenticator $authenticator
+        private AdminAuthenticator $authenticator,
+        private ActionLogger $audit
     ) {
     }
 
@@ -43,16 +45,23 @@ final readonly class LoginController extends Controller
         $user = $this->authenticator->attempt($username, $password);
 
         if ($user === null) {
+            $this->audit->log('login.failed', 'Неудачный вход: ' . $username, $username, 'web', (string)$request->getClientIp());
+
             return $this->render('Неверный логин или пароль.', 422, $username);
         }
 
         $this->session->login($user);
+        $this->audit->log('login.success', 'Вход: ' . $username, $username, 'web', (string)$request->getClientIp());
 
         return new RedirectResponse('/admin');
     }
 
     public function logout(): Response
     {
+        $user = $this->session->user();
+        if ($user !== null) {
+            $this->audit->log('logout', 'Выход: ' . $user['username'], (string)$user['username']);
+        }
         $this->session->logout();
 
         return new RedirectResponse('/login');

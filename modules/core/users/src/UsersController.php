@@ -7,6 +7,7 @@ namespace MajorDoMo\Modules\Core\Users;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
+use MajorDoMo\Audit\ActionLogger;
 use MajorDoMo\Auth\UserRepository;
 use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
@@ -24,7 +25,8 @@ final readonly class UsersController extends Controller
         private Factory $view,
         private UserRepository $users,
         private SessionStore $session,
-        private PanelRenderer $panel
+        private PanelRenderer $panel,
+        private ActionLogger $audit
     ) {
     }
 
@@ -53,7 +55,9 @@ final readonly class UsersController extends Controller
         $isAdmin = (string)$request->request->get('is_admin', '') === '1';
 
         try {
-            $this->users->create($username, $name, $password, $isAdmin);
+            $id = $this->users->create($username, $name, $password, $isAdmin);
+            $this->audit->log('user.create', 'Создан пользователь: ' . $username, (string)($this->session->user()['username'] ?? ''));
+            return new RedirectResponse('/module/users/' . $id . '/edit');
         } catch (InvalidArgumentException $error) {
             return $this->form(null, $error->getMessage(), [
                 'username' => $username,
@@ -61,8 +65,6 @@ final readonly class UsersController extends Controller
                 'is_admin' => $isAdmin,
             ], 422);
         }
-
-        return new RedirectResponse('/module/users');
     }
 
     public function edit(string $id): Response
@@ -88,6 +90,7 @@ final readonly class UsersController extends Controller
 
         try {
             $this->users->update((int)$id, $username, $name, $password, $isAdmin);
+            $this->audit->log('user.update', 'Изменён пользователь: ' . $username, (string)($this->session->user()['username'] ?? ''));
         } catch (InvalidArgumentException $error) {
             return $this->form($user, $error->getMessage(), [
                 'username' => $username,
@@ -102,6 +105,7 @@ final readonly class UsersController extends Controller
     public function delete(string $id): Response
     {
         $this->users->delete((int)$id);
+        $this->audit->log('user.delete', 'Удалён пользователь #' . $id, (string)($this->session->user()['username'] ?? ''));
 
         return new RedirectResponse('/module/users');
     }

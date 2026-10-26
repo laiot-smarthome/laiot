@@ -23,6 +23,7 @@ use Illuminate\View\Engines\EngineResolver;
 use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
 use LogicException;
+use MajorDoMo\Audit\ActionLogger;
 use MajorDoMo\Audit\ActionLogRepository;
 use MajorDoMo\Auth\AdminAuthenticator;
 use MajorDoMo\Auth\ApiTokenRepository;
@@ -160,6 +161,7 @@ final class Application
         $this->container->instance(RoleRepository::class, $roles);
         $this->container->instance(ApiTokenRepository::class, new ApiTokenRepository($this->database));
         $this->container->instance(ActionLogRepository::class, new ActionLogRepository($this->database));
+        $this->container->instance(ActionLogger::class, new ActionLogger($this->database));
         $this->container->instance(ErrorRepository::class, new ErrorRepository($this->database));
         $this->container->instance(MaintenanceMode::class, new MaintenanceMode($this->root));
         $this->container->instance(LocationRepository::class, new LocationRepository($this->database));
