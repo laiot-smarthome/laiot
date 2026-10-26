@@ -61,7 +61,7 @@ final class ModuleManager
 
     private function discover(): void
     {
-        $modulesRoot = realpath($this->root . '/modules');
+        $modulesRoot = realpath($this->root . '/modules/core');
         if ($modulesRoot === false) {
             return;
         }

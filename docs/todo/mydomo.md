@@ -43,14 +43,16 @@ order: 5
 - [x] `/yoyo` закрыт auth + CSRF; Yoyo-страница передаёт токен в htmx.
 - [x] Docker-образ пересобран после Stage 2: `/`, `/health`, `/login`,
   вход `admin/majordomo` и `/yoyo-demo` проверены.
-- [x] ModuleManager + эталонный модуль `modules/welcome`: манифест, routes,
-  Blade-namespace, auth и тест без правки ядра.
-- [x] Docker: после входа `admin/majordomo` страница `/module/welcome`
-  открывается (200).
-- **Пауза:** модульная система отложена — будет проектироваться отдельно.
-  `ModuleManager`/`modules/welcome` остаются прототипом, новые модули не
-  трогаем.
-- [ ] Этап 2: панель и полноценный глобальный middleware-стек.
+- [x] ModuleManager проверен на прототипе; `modules/welcome` удалён, каталог
+  `modules/core/` зарезервирован под core-модули.
+- [x] Модульная система утверждена: два типа `core`/`third-party`,
+  core-модули в `modules/core`, нельзя удалять/отключать; спецификация —
+  [modules.md](../agents/modules.md).
+- [x] `ModuleDb`: MySQL/SQLite, префикс `module_<id>_`, allowlist таблиц,
+  запрет raw/join; 4 теста.
+- [ ] Core-модули: retained `ModuleBus`, layout/Yoyo, первый порт
+  (`ui_kit`/`shoutbox`).
+- [ ] Ядро параллельно: кэш, очереди/события, логирование, CLI и панель.
 
 ### 0.1. Как ведём дорожную карту
 
@@ -314,6 +316,7 @@ project/
 | 2026-10-26 | `public/spike.php`, `SpikeController`, `SpikeNote`, `spike.blade.php`, `SpikeTest`, `EloquentSpikeTest` | `public/index.php`, `YoyoDemoController`, `DatabaseTest`, `YoyoTest` |
 | 2026-10-26 | старый `public/index.php` (`SiteApplication`) и `lib/core/SiteApplication.php` | новый `public/index.php` (kernel) |
 | 2026-10-26 | `SettingController` и маршрут `/db/setting/{name}` | `SettingsRepository` + `DatabaseTest` |
+| 2026-10-26 | прототип `modules/welcome` | `modules/core` + первый реальный core-модуль (следующий шаг) |
 
 ## 4. Стек и Composer
 
@@ -670,36 +673,23 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 
 ### 6.6. Модульный SDK
 
-> **Пауза (2026-10-26):** для модулей планируется отдельная система.
-> `ModuleManager`, `modules/welcome` и этот раздел — только прототип.
-> Новые модули не портируем и SDK не расширяем до проектирования отдельной
-> системы; остальное ядро можно продолжать.
+> **Утверждено 2026-10-26:** [modules.md](../agents/modules.md). Сейчас
+> работаем только с `core`-модулями; `third-party` — отдельный будущий этап.
 
-- [x] Базовый `module.json`: id, name, version, namespace, src, routes, views.
-- [ ] Расширить манифест: requires, provider, migrations, assets, menu,
-  permissions, settings, docs, ai.
-- [x] Валидация id/namespace/путей и запрет выхода за каталог модуля.
-- [x] `ModuleManager`: discover и register; `modules/welcome` — эталон.
-- [ ] `ModuleManager`: install, enable, disable, upgrade, remove.
-- [ ] `ModuleServiceProvider`: register, boot, routes, migrations, menu.
-- [x] Маршруты модуля получают prefix `/module/<id>`, auth и request-id.
-- [x] Blade-namespace модуля (`welcome::index`) регистрируется динамически.
-- [x] Тест `ModuleTest`: манифест, страница, параметр, auth.
-- [ ] Реестр модулей в БД (`modules`), миграция из `project_modules`.
-- [ ] Маршруты модуля загружаются только для включённого модуля; кэш
-  инвалидируется при lifecycle.
-- [ ] Настройки модуля — схема + `module_settings`; без прямых записей в
-  `settings`.
-- [ ] Меню и права — из манифеста; проверка прав на сервере.
-- [ ] Ассеты: сборка core Vite или публикация в `public/assets/modules/<id>/`.
-- [ ] Документация модуля — `modules/<id>/docs/`, интеграция с базой знаний.
-- [ ] Тесты модуля — `modules/<id>/tests/`, запуск в CI.
-- [ ] CLI: `module:list`, `module:enable`, `module:disable`, `module:migrate`,
-  `module:remove`, `module:make`.
-- [ ] `module:check` — сканер старых вызовов (`module.class.php`, `view_mode`,
-  `pd`, `$this->action`) для портирования сторонних модулей.
-- [ ] Политика зависимостей: сначала только core vendor; позже — собственный
-  `composer.json` модуля; изоляция — отдельный этап.
+- [x] Два типа: `core` и `third-party`; core нельзя удалить/отключить.
+- [x] Спецификация структуры, манифеста, прав, БД и lifecycle.
+- [x] `ModuleManager`: discover/register; переведён на `modules/core`.
+- [x] `modules/welcome` удалён; `modules/core` — единственный core-root.
+- [x] `ModuleDb`: MySQL/SQLite, префикс `module_<id>_`, allowlist, без raw SQL;
+  тесты CRUD, чужой таблицы, отсутствия raw/join и SQLite-файла.
+- [ ] `ModuleBus`: retained events + TTL, namespaced topics.
+- [ ] `PanelPage`/общий layout + Yoyo-компоненты модулей.
+- [ ] Миграции core-модулей при обновлении ядра.
+- [ ] `module:list` показывает `type=core`, `removable=false`, `enabled=true`.
+- [ ] `module:remove`/`module:disable` запрещены для core.
+- [ ] Первый порт: `ui_kit`, затем `shoutbox`; старый код удаляем.
+- [ ] `module:check` — сканер старых вызовов для будущих third-party.
+- [ ] Third-party lifecycle (install/update/remove) — позже, не сейчас.
 
 ### 6.7. Шаблоны и UI
 

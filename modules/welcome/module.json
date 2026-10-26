@@ -1,9 +1,0 @@
-{
-    "id": "welcome",
-    "name": "Welcome",
-    "version": "1.0.0",
-    "namespace": "MajorDoMo\\Modules\\Welcome\\",
-    "src": "src",
-    "routes": "routes.php",
-    "views": "views"
-}
