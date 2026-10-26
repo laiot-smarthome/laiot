@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CoreLocationsTest extends TestCase
 {
     public function testLocationCanBeCreatedEditedAndDeleted(): void
@@ -18,6 +21,7 @@ final class CoreLocationsTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -31,10 +35,12 @@ final class CoreLocationsTest extends TestCase
             $table->softDeletes();
         });
 
-        $page = $app->handle(Request::create('/module/locations', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $page = $app->handle(Request::create('/locations', 'GET'));
         self::assertSame(200, $page->getStatusCode());
 
-        $create = $app->handle(Request::create('/module/locations/create', 'POST', [
+        $create = $app->handle(Request::create('/locations/create', 'POST', [
             '_token' => $session->csrfToken(),
             'title' => 'Гостиная',
             'priority' => '10',
@@ -43,7 +49,7 @@ final class CoreLocationsTest extends TestCase
         $row = $app->database()->connection()->table('locations')->first();
         self::assertNotNull($row);
 
-        $edit = $app->handle(Request::create('/module/locations/' . $row->id . '/edit', 'POST', [
+        $edit = $app->handle(Request::create('/locations/' . $row->id . '/edit', 'POST', [
             '_token' => $session->csrfToken(),
             'title' => 'Зал',
             'priority' => '20',
@@ -51,7 +57,7 @@ final class CoreLocationsTest extends TestCase
         self::assertSame(302, $edit->getStatusCode());
         self::assertSame('Зал', $app->database()->connection()->table('locations')->where('id', $row->id)->value('title'));
 
-        $delete = $app->handle(Request::create('/module/locations/' . $row->id . '/delete', 'POST', [
+        $delete = $app->handle(Request::create('/locations/' . $row->id . '/delete', 'POST', [
             '_token' => $session->csrfToken(),
         ]));
         self::assertSame(302, $delete->getStatusCode());

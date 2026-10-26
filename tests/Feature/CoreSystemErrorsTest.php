@@ -11,6 +11,9 @@ use MajorDoMo\Http\Session\ArraySession;
 use MajorDoMo\Logging\ErrorRepository;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CoreSystemErrorsTest extends TestCase
 {
     public function testErrorsAreListedAndSoftDeleted(): void
@@ -19,6 +22,7 @@ final class CoreSystemErrorsTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -35,11 +39,13 @@ final class CoreSystemErrorsTest extends TestCase
         });
         $app->container()->make(ErrorRepository::class)->record('error', 'Тестовая ошибка', [], 'req-test');
 
-        $page = $app->handle(Request::create('/module/system_errors', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $page = $app->handle(Request::create('/errors', 'GET'));
         self::assertSame(200, $page->getStatusCode());
         self::assertStringContainsString('Тестовая ошибка', (string)$page->getContent());
 
-        $delete = $app->handle(Request::create('/module/system_errors/1/delete', 'POST', [
+        $delete = $app->handle(Request::create('/errors/1/delete', 'POST', [
             '_token' => $session->csrfToken(),
         ]));
         self::assertSame(302, $delete->getStatusCode());

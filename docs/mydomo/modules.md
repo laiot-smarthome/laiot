@@ -1,313 +1,105 @@
 ---
-title: Модульная система MyDoMo — core-модули
+title: Ядро и модули MyDoMo
 audience: user, agent
 category: core
-tags: модули, core, ModuleManager, ModuleDb, SQLite, события, Yoyo, архитектура
-description: Утверждённая модель core-модулей MyDoMo — структура, права, БД, события, layout и порядок портирования.
+tags: mydomo, модули, core, sdk, ModuleDb, ModuleBus, CoreSections
+description: Разделение ядровых разделов и модулей MyDoMo, SDK, ModuleDb и порядок переноса.
 order: 6
 ---
 
-# Модульная система MyDoMo — core-модули
+# Ядро и модули
 
-Статус: **утверждено 2026-10-26**. Это не черновик и не «фантазии»:
-документ задаёт контракт core-модулей. Third-party модули появятся позже
-отдельным этапом.
+## 1. Две категории
 
-## 1. Два типа модулей
+| Категория | Где живёт | Lifecycle | Примеры |
+| --- | --- | --- | --- |
+| Ядровой раздел | `src/Http/Controllers/Core`, `resources/views/pages`, `routes/web.php` | часть ядра | объекты, классы, скрипты, события, очередь, API, база знаний |
+| Модуль | `modules/core/<id>` или `modules/<id>` | SDK install/enable/disable | MQTT, Zigbee, сторонние |
 
-| Тип | Где живёт | Удаление | Отключение | Исполнение |
-| --- | --- | --- | --- | --- |
-| `core` | `modules/core/<id>/` | нельзя | нельзя | in-process |
-| `third-party` | `modules/<id>/` | можно | можно | отдельный этап |
+Ядровые разделы **не являются модулями**: у них нет `module.json`,
+`ModuleDb`, `ModuleBus` и lifecycle. Они не появляются в `module:list` и
+`/admin/modules`. Меню строится `src/Panel/CoreSections.php`.
 
-Всё, что сейчас лежит в `modules/`, считается **core-поставкой**. Это
-историческое наследие: модули ядра когда-то были обычными модулями
-MajorDoMo, но в MyDoMo они не являются устанавливаемыми пакетами.
+Модулями остаются только MQTT, Zigbee и сторонние SDK-модули.
 
-Core-модуль нельзя удалить или отключить. Если функциональность нужно
-остановить, останавливается её цикл/фоновая работа; сам модуль и его код
-остаются в системе.
+## 2. Ядровые разделы
 
-Third-party модули в этой итерации не разрабатываются. Для них заранее
-резервируется отдельный каталог и отдельный lifecycle.
+URL без `/module`:
 
-## 2. Структура пакета
+| Раздел | URL |
+| --- | --- |
+| объекты | `/objects` |
+| классы | `/classes` |
+| свойства | `/properties` |
+| методы | `/methods` |
+| значения | `/values` |
+| история | `/history` |
+| локации | `/locations` |
+| скрипты | `/scripts` |
+| события | `/events` |
+| очередь | `/jobs` |
+| база знаний | `/knowledge-base` |
+| пользователи | `/users` |
+| настройки | `/settings` |
+| журнал | `/journal` |
+| ошибки | `/errors` |
+| API/webhooks | `/api` |
+| оповещения | `/notifications` |
+| UI Kit | `/ui-kit` |
+
+Контроллеры — `MajorDoMo\Http\Controllers\Core`, views — `pages.<id>.*`.
+Доступ к данным идёт через ядровые репозитории/сервисы, а не `ModuleDb`.
+
+## 3. Модули
 
 ```text
-modules/core/<id>/
-├── module.json
-├── src/
-├── views/
-├── routes.php
-├── migrations/
-├── assets/                 # исходники, если нужны
-└── data/                   # только для SQLite/локального состояния
+modules/core/mqtt/       # type=core, всегда включён
+modules/core/zigbee/     # type=core, всегда включён
+modules/<id>/            # сторонний, install/disable/remove
 ```
 
-`module.json` core-модуля:
+Структура модуля и `module.json` описаны в [sdk.md](sdk.md). Модуль получает:
 
-```json
-{
-  "id": "shoutbox",
-  "type": "core",
-  "name": "Shoutbox",
-  "version": "2.0.0",
-  "namespace": "MajorDoMo\\Modules\\Core\\Shoutbox\\",
-  "src": "src",
-  "routes": "routes.php",
-  "views": "views",
-  "storage": {
-    "driver": "mysql",
-    "tables": ["messages"]
-  },
-  "menu": {
-    "title": "Shoutbox",
-    "icon": "message",
-    "route": "shoutbox.index",
-    "order": 80
-  }
-}
-```
+- префикс маршрутов `/module/<id>`;
+- `ModuleDb` только для своих таблиц `module_<id>_*`;
+- `ModuleBus` для retained-событий;
+- запись в `module_registry` (сторонние);
+- меню в группе «Модули».
 
-Обязательные поля: `id`, `type`, `name`, `version`, `namespace`, `routes`,
-`views`. `storage` обязателен, если модуль работает с данными.
+Core-модули (MQTT/Zigbee) нельзя disable/remove; они обновляются вместе с
+ядром.
 
-`src/Modules/` — код менеджера, контрактов и SDK, а не пакеты модулей.
+## 4. Данные
 
-## 3. БД: только своя область
-
-Новые установки не обязаны сохранять старые имена таблиц. MyDoMo
-проектируется с нуля; старую базу можно будет перенести отдельным парсером
-в новые таблицы.
-
-Правило: физическая таблица модуля — `module_<id>_<logical>`.
-Например, `module_shoutbox_messages`, `module_mqtt_topics`.
-
-Модуль получает `ModuleDb`, а не `$db`, `mysqli`, `PDO` или произвольный SQL:
-
-```php
-$db = $module->db();
-
-$db->table('messages')->where('MEMBER_ID', $id)->get();
-$db->table('messages')->insert(['MESSAGE' => $text]);
-```
-
-`ModuleDb`:
-
-- проверяет logical-имя по allowlist из `storage.tables`;
-- подставляет префикс `module_<id>_`;
-- запрещает `table('users')`, `table('objects')`, чужие префиксы и `..`;
-- не даёт `raw()`, `query()`, `exec()`, `selectRaw()`, `whereRaw()` и
-  произвольные JOIN;
-- DDL/DROP — только через миграции модуля и только для своих таблиц;
-- поддерживает два драйвера:
-  - `mysql` — общая MariaDB, но только свои таблицы;
-  - `sqlite` — отдельный файл `data/module.sqlite` для статических/локальных
-    данных.
-
-SQLite — полноценный вариант, а не «временная заглушка». Модуль сам выбирает
-драйвер в манифесте.
-
-Прямой SQL в коде модуля и пользовательских сценариях запрещён. `CodeGuard`
-ловит `SQLSelect*`, `$db`, `mysqli_*`, `PDO`, SQL-строки и не даёт сохранить
-или выполнить такой код. Это ограничение API-уровня, а не OS-изоляция:
-злонамеренный PHP всё ещё может пытаться обойти его, поэтому код-ревью и
-запрет опасных функций остаются обязательными.
-
-## 4. Обмен публичными данными
-
-Модули не читают таблицы друг друга. Для публичной информации используется
-`ModuleBus` — события с TTL и сохранением последнего значения:
-
-```php
-$module->bus()->publish('router.42.online', ['online' => true], ttl: 300);
-
-$last = $module->bus()->latest('keenetic.router.42.online');
-$module->bus()->subscribe('keenetic.router.*', $callback);
-```
-
-- topic namespaced: `module.<id>.*`;
-- писать можно только в свой namespace;
-- `latest()` возвращает последнее событие, пока не истёк TTL;
-- `subscribe()` сейчас доставляет события в текущем процессе; фоновая
-  доставка через очередь — следующий шаг;
-- хранение сейчас — таблица `module_shared_events` в MySQL/SQLite; Redis-адаптер
-  добавим позже, контракт `publish/latest` от него не зависит;
-- core-модули доверенные, но контракт topic/namespace единый.
-
-Это закрывает сценарий «Keenetic сообщает, что роутер включён, другие модули
-читают», не открывая чужие таблицы.
+- ядровые таблицы — lowercase без префикса (`objects`, `property_events`,
+  `api_webhooks`, `shared_events` и т.д.);
+- таблицы модулей — `module_<id>_<table>`, доступ только через `ModuleDb`;
+- `module_registry`/`module_migrations` — SDK-реестр;
+- `shared_events` — ядровая шина `ModuleBus`.
 
 ## 5. Frontend
 
-Core-модуль не приносит собственный layout и не создаёт новый дизайн
-админки. Используется только новая Blade-оболочка с alpha-визуалом:
+- ядровой layout `resources/views/layouts/alpha.blade.php`;
+- ядровые views `resources/views/pages/<id>`;
+- модульные views — namespace `<id>::`;
+- `x-md.*` компоненты общие; модуль не создаёт свой layout.
 
-- `resources/views/layouts/alpha.blade.php` + компоненты `x-md.*`;
-- `resources/css/ui-system.css` (токены и `md-*`) и `mydomo.css`;
-- страница UI Kit `/module/ui_kit` — компоненты добавляем и перерабатываем
-  там, а не в отдельном layout;
-- `lib/ui/MDJUI.php`, `templates/ui/`, `templates/panel*` и alpha-бандл
-  `admin.js` в MyDoMo не используются.
+## 6. Порядок переноса
 
-Модуль отдаёт только Blade-содержимое страницы, которое вставляется в
-alpha-оболочку. jQuery и alpha-плагины в модулях и представлениях запрещены;
-интерактивность — Alpine, Yoyo или небольшой page-only vanilla-модуль;
-CSS/JS страницы — в `public/assets/modules/<id>/`.
+1. Ядровые разделы уже перенесены из `modules/core` в ядро.
+2. Следующие шаги:
+   - MQTT и Zigbee как core-модули SDK;
+   - оставшийся старый backend `modes`, `pinghosts`, `xray`,
+     `control_modules`, `market`, `saverestore`, `ai_assistant` — в ядровые
+     сервисы/разделы;
+   - удаление старых `modules/<id>` после переноса.
+3. Циклы переводятся на `worker`/`core-worker`; старые `cycle_*` не трогаются
+   до готовности systemd-слоя.
 
-Никакого отдельного origin, iframe или PHP-FPM pool для core-модулей нет.
-Yoyo — основной способ дать модулю интерактивность внутри существующей
-админки.
+## 7. Текущее состояние
 
-## 6. Lifecycle
-
-Core:
-
-- discover из `modules/core/*/module.json`;
-- миграции выполняются при обновлении ядра;
-- `module:list` показывает `type=core`, `removable=false`, `enabled=true`;
-- `module:remove`/`module:disable` для core запрещены на уровне менеджера;
-- код и данные обновляются только вместе с ядром.
-
-Third-party:
-
-- discover из `modules/*/module.json`; установка `module:install`;
-- состояние в `module_registry`, только `enabled=1` попадает в runtime;
-- свои `storage.tables` с префиксом `module_<id>_`, миграции из
-  `migrations/`, `ModuleDb`/`ModuleBus`;
-- `module:disable` снимает routes/меню/helpers; `module:remove` убирает
-  запись реестра, файлы и таблицы остаются;
-- install/update marketplace — отдельный этап, см. [sdk.md](sdk.md).
-
-## 7. Порядок портирования core-модулей
-
-1. `ui_kit` — проверка alpha-компонентов и Yoyo без нового дизайна.
-2. `shoutbox` — первая БД-таблица, форма, CSRF в alpha-оболочке.
-3. `modes` — настройки и доменная логика.
-4. `locations`, `pinghosts`, `actions_log`, `history`, `pvalues`.
-5. `system_errors`, `jobs`, `linkedobject`, `knowledge_base`.
-6. `api`, `xray`, `market`, `saverestore`.
-7. `mqtt`, `zigbee`, `ai_assistant`, `blockly_code`.
-8. `classes`, `objects`, `properties`, `methods`, `scripts`, `events`,
-   `users`, `settings`, `control_modules`, `panel`.
-
-Порядок можно менять, но `panel`/`objects` идут последними: они зависят
-от всех остальных контрактов.
-
-## 8. Текущее состояние
-
-- `ModuleManager` сканирует `modules/core` и `modules/*` с `module.json`;
-- сторонние подключаются только после `module:install` и `enabled=1`;
-- `module_registry`/`module_migrations` — состояние и миграции;
-- `modules/welcome` удалён;
-- `ModuleDb`/`ModuleBus` готовы;
-- `shoutbox` перенесён полностью: `modules/core/shoutbox`, `ModuleDb`, Blade,
-  alpha-layout; старый код удалён;
-- `jobs` перенесён на core-очередь: pending/reserved/failed, retry/forget;
-  старый scheduler-модуль удалён;
-- `actions_log` перенесён на новую `action_log`: фильтр/поиск/soft delete;
-- `settings` перенесён на новую lowercase-таблицу `settings`;
-- `users` перенесён на новую таблицу `users`: список/создание/редактирование/
-  soft delete, пароли через `password_hash`;
-- `ui_kit` — живой справочник `x-md.*` без legacy-шаблонов;
-- `system_errors` — новая таблица `system_errors`, ошибки ядра с request_id;
-- `locations` — новая таблица `locations`, CRUD и приоритет;
-- `scripts` — новая таблица `scripts`, CRUD/редактор без запуска циклов;
-- `classes` — новая таблица `classes`, CRUD;
-- `properties` — новая таблица `properties`, CRUD; значения/история — дальше;
-- `methods` — новая таблица `methods`, CRUD без запуска кода;
-- `objects` — новые `objects`/`property_values`, объект + значения свойств;
-- `pvalues` — просмотр/правка/удаление значений свойств;
-- `history` — `property_history`, история значений и `getHistory()`;
-- `events` — журнал `property_events`: шаги «значение изменилось» и «вызван
-  OnChange-метод», фильтры и статусы; старый `modules/events` и его шаблоны
-  удалены;
-- `api` — входящие webhook `module_api_webhooks`: секрет в URL (SHA-256),
-  методы, сценарий/PHP, последний статус; публичный вход
-  `/api/v1/webhooks/{secret}`. Старый `modules/api`, шаблоны и page-ассеты
-  удалены; legacy `public/api.php` остаётся только входом alpha;
-- `blockly_code` не переносится: редактор кода заменён Blade/Alpine
-  компонентом `x-md.code` (нумерация строк, `x-model`, без CodeMirror и
-  jQuery). Старые `modules/blockly_code` и шаблон удалены;
-- linked object вынесен в ядро: `LinkedObjectService`,
-  `/api/v1/panel/linked-object` и `x-md.linked-object` (Alpine). Старый
-  `modules/linkedobject`, шаблоны и page-ассеты удалены;
-- `knowledge_base` — `docs/**` в alpha-layout: категории, поиск, безопасный
-  Markdown и оглавление; без собственной таблицы. Старый модуль, шаблоны и
-  page-ассеты удалены; `lib/knowledge_base.php`/`lib/markdown.php` остаются
-  только для `ai_assistant` и alpha-тестов;
-- остальные модули — после закрытия оставшегося core-gate.
-
-## 8. Публичные helpers модуля
-
-Модуль может опубликовать функции для пользовательского кода. Это не
-доступ к чужим таблицам, а **фасад над сервисом модуля**:
-
-```php
-// modules/core/kinetic/helpers.php
-function kinetic_change_connection(string $connection): bool
-{
-    return app()
-        ->modules()
-        ->service('kinetic', KineticService::class)
-        ->changeConnection($connection);
-}
-```
-
-`module.json`:
-
-```json
-"helpers": "helpers.php"
-```
-
-или несколько файлов:
-
-```json
-"helpers": ["helpers.php", "helpers_extra.php"]
-```
-
-`ModuleManager` подключает их автоматически при обнаружении модуля. Если
-`helpers` не указан, ищется `helpers.php` в корне модуля.
-
-Правила:
-
-- имя функции начинается с id модуля (`kinetic_...`, `shoutbox_...`), чтобы
-  не было коллизий;
-- helper — тонкий фасад; данные читает/пишет сервис модуля;
-- helper не ходит в чужие таблицы и не содержит SQL;
-- сервис обязан принадлежать namespace модуля — `ModuleManager::service()`
-  это проверяет;
-- helpers подключаются только в новом ядре; alpha-хелперы не затрагиваются.
-
-Пример из MyDoMo: `shoutbox_latest()` → `ShoutboxService::latest()`. Такой
-helper можно звать из сценариев/методов, не зная, как устроена таблица.
-
-Уведомление администратору модуль отправляет через `NotificationService`:
-
-```php
-app()->container()->make(\MajorDoMo\Notifications\NotificationService::class)
-    ->send('mqtt', 'Нет связи с брокером', 'warning', [
-        'key' => 'mqtt:broker',
-        'url' => '/module/mqtt',
-        'label' => 'Открыть MQTT',
-    ]);
-```
-
-Уведомление адресовано администратору и не заменяет запись в журнал модуля;
-подробности, лимиты и правила прочтения — [notifications.md](notifications.md).
-
-## 9. Что запрещено
-
-- Удалять/отключать core-модуль через менеджер.
-- Обращаться из модуля к чужим таблицам, `$db`, `.env`, `lib/` и файлам ядра.
-- Добавлять raw SQL, `eval`, shell и произвольные пути в модульный код.
-- Делать core-модуль отдельным origin/контейнером ради «изоляции»: для core
-  достаточно API-границ и код-ревью.
-- Оставлять старый код модуля после порта: удаляем в том же коммите.
-
-## Связанные документы
-
-- [Мастер-план MyDoMo](../todo/mydomo.md)
-- [Правила для агентов](AGENTS.md)
-- [Архитектура](architecture.md)
-- [Дизайн-система](../agents/DESIGN_SYSTEM.md)
+- `CoreSections` — источник меню ядра;
+- `modules/core` пуст, готов для MQTT/Zigbee;
+- `modules/example_sdk` — пример SDK, не установлен по умолчанию;
+- старые `modules/<id>` без `module.json` не подключаются;
+- `/admin/modules` показывает только SDK-модули.

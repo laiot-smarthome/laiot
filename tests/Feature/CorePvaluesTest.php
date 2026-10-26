@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CorePvaluesTest extends TestCase
 {
     public function testValueCanBeEditedAndDeleted(): void
@@ -18,6 +21,7 @@ final class CorePvaluesTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -56,24 +60,26 @@ final class CorePvaluesTest extends TestCase
             $app->database()->schema()->create($name, $definition);
         }
         $now = date('Y-m-d H:i:s');
-        $app->database()->connection()->table('objects')->insert(['title' => 'Кухня', 'created_at' => $now, 'updated_at' => $now]);
+        $app->database()->connection()->table('objects')->insert(['title' => 'Кухня', 'class_id' => 1, 'created_at' => $now, 'updated_at' => $now]);
         $app->database()->connection()->table('properties')->insert(['class_id' => 1, 'title' => 'temperature', 'created_at' => $now, 'updated_at' => $now]);
         $app->database()->connection()->table('property_values')->insert([
             'object_id' => 1, 'property_id' => 1, 'value' => '20', 'created_at' => $now, 'updated_at' => $now,
         ]);
 
-        $page = $app->handle(Request::create('/module/pvalues', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $page = $app->handle(Request::create('/values', 'GET'));
         self::assertSame(200, $page->getStatusCode());
         self::assertStringContainsString('temperature', (string)$page->getContent());
 
-        $update = $app->handle(Request::create('/module/pvalues/1', 'POST', [
+        $update = $app->handle(Request::create('/values/1', 'POST', [
             '_token' => $session->csrfToken(),
             'value' => '23.5',
         ]));
         self::assertSame(302, $update->getStatusCode());
         self::assertSame('23.5', $app->database()->connection()->table('property_values')->value('value'));
 
-        $delete = $app->handle(Request::create('/module/pvalues/1/delete', 'POST', [
+        $delete = $app->handle(Request::create('/values/1/delete', 'POST', [
             '_token' => $session->csrfToken(),
         ]));
         self::assertSame(302, $delete->getStatusCode());

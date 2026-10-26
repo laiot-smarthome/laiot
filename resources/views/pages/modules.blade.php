@@ -3,10 +3,13 @@
         <div>
             <div class="md-ui-hero__eyebrow"><x-md.icon name="puzzle" /> core · modules</div>
             <h1 class="md-ui-hero__title">Модули</h1>
-            <p class="md-ui-hero__lede">Core-модули из `modules/core`, без legacy-реестра.</p>
+            <p class="md-ui-hero__lede">MQTT, Zigbee и сторонние модули MyDoMo SDK. Ядровые разделы — не модули.</p>
         </div>
     </section>
 
+    @if ($modules === [])
+        <x-md.empty-state title="Модулей нет" text="Установите сторонний модуль через module:install или добавьте core-модуль MQTT/Zigbee." icon="puzzle" />
+    @else
     <div class="md-ui-card-grid">
         @foreach ($modules as $id => $module)
             <x-md.card :title="$module['name'] ?? $id" :subtitle="'v' . ($module['version'] ?? '0.0.0')">
@@ -25,4 +28,5 @@
             </x-md.card>
         @endforeach
     </div>
+    @endif
 </div>

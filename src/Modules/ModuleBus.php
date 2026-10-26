@@ -48,7 +48,7 @@ final class ModuleBus
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
 
         $this->ensureTable();
-        $this->database->connection()->table('module_shared_events')->updateOrInsert(
+        $this->database->connection()->table('shared_events')->updateOrInsert(
             ['topic' => $fullTopic],
             [
                 'module_id' => $this->moduleId,
@@ -70,7 +70,7 @@ final class ModuleBus
     {
         $fullTopic = $this->fullTopic($topic);
         $this->ensureTable();
-        $row = $this->database->connection()->table('module_shared_events')
+        $row = $this->database->connection()->table('shared_events')
             ->where('topic', $fullTopic)
             ->whereNull('deleted_at')
             ->where('expires_at', '>', date('Y-m-d H:i:s', ($this->clock)()))
@@ -153,10 +153,10 @@ final class ModuleBus
     private function ensureTable(): void
     {
         $schema = $this->database->connection()->getSchemaBuilder();
-        if ($schema->hasTable('module_shared_events')) {
+        if ($schema->hasTable('shared_events')) {
             return;
         }
-        $schema->create('module_shared_events', static function (Blueprint $table): void {
+        $schema->create('shared_events', static function (Blueprint $table): void {
             $table->increments('id');
             $table->string('topic', 191)->unique();
             $table->string('module_id', 64);

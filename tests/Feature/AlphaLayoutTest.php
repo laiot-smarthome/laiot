@@ -12,14 +12,14 @@ final class AlphaLayoutTest extends TestCase
     public function testLayoutUsesAlphaShellClasses(): void
     {
         $html = (new BladeRenderer(dirname(__DIR__, 2)))->render('layouts.alpha', [
-            'title' => 'Shoutbox',
+            'title' => 'Оповещения',
             'content' => '<div class="page-content">content</div>',
             'csrf' => 'token',
             'user' => ['id' => 1, 'username' => 'admin', 'name' => 'Админ', 'is_admin' => true],
-            'active' => 'shoutbox',
+            'active' => 'notifications',
             'menu' => [
                 ['label' => 'Система', 'items' => [
-                    ['id' => 'shoutbox', 'label' => 'Shoutbox', 'href' => '/module/shoutbox', 'icon' => 'ti-message'],
+                    ['id' => 'notifications', 'label' => 'Оповещения', 'href' => '/notifications', 'icon' => 'ti-message'],
                 ]],
             ],
         ]);
@@ -28,7 +28,7 @@ final class AlphaLayoutTest extends TestCase
         self::assertStringContainsString('md-admin-topbar', $html);
         self::assertStringContainsString('md-admin-sidebar', $html);
         self::assertStringContainsString('md-admin-main', $html);
-        self::assertStringContainsString('Shoutbox', $html);
+        self::assertStringContainsString('Оповещения', $html);
         self::assertStringContainsString('page-content', $html);
         self::assertStringContainsString('assets/admin/mydomo.css', $html);
         self::assertStringContainsString('assets/admin/mydomo.js', $html);

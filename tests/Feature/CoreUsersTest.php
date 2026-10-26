@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CoreUsersTest extends TestCase
 {
     public function testUserCanBeCreatedEditedAndSoftDeleted(): void
@@ -18,6 +21,7 @@ final class CoreUsersTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -48,10 +52,12 @@ final class CoreUsersTest extends TestCase
         });
         $app->database()->connection()->table('roles')->insert(['id' => 1, 'name' => 'user', 'title' => 'Пользователь']);
 
-        $page = $app->handle(Request::create('/module/users', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $page = $app->handle(Request::create('/users', 'GET'));
         self::assertSame(200, $page->getStatusCode());
 
-        $create = $app->handle(Request::create('/module/users/create', 'POST', [
+        $create = $app->handle(Request::create('/users/create', 'POST', [
             '_token' => $session->csrfToken(),
             'username' => 'operator',
             'name' => 'Оператор',
@@ -64,7 +70,7 @@ final class CoreUsersTest extends TestCase
         self::assertNotNull($row);
         self::assertSame(1, $app->database()->connection()->table('user_roles')->where('user_id', $row->id)->count());
 
-        $edit = $app->handle(Request::create('/module/users/' . $row->id . '/edit', 'POST', [
+        $edit = $app->handle(Request::create('/users/' . $row->id . '/edit', 'POST', [
             '_token' => $session->csrfToken(),
             'username' => 'operator',
             'name' => 'Оператор 2',
@@ -74,7 +80,7 @@ final class CoreUsersTest extends TestCase
         self::assertSame(302, $edit->getStatusCode());
         self::assertSame('Оператор 2', $app->database()->connection()->table('users')->where('id', $row->id)->value('name'));
 
-        $delete = $app->handle(Request::create('/module/users/' . $row->id . '/delete', 'POST', [
+        $delete = $app->handle(Request::create('/users/' . $row->id . '/delete', 'POST', [
             '_token' => $session->csrfToken(),
         ]));
         self::assertSame(302, $delete->getStatusCode());

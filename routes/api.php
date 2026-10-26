@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Routing\Router;
+use MajorDoMo\Api\Webhooks\WebhookEndpoint;
 use MajorDoMo\Http\Controllers\AboutController;
 use MajorDoMo\Http\Controllers\ApiMeController;
 use MajorDoMo\Http\Controllers\HealthController;
@@ -10,7 +11,6 @@ use MajorDoMo\Http\Controllers\LinkedObjectController;
 use MajorDoMo\Http\Controllers\ModulesController;
 use MajorDoMo\Http\Controllers\NotificationsController;
 use MajorDoMo\Http\Controllers\PanelSearchController;
-use MajorDoMo\Modules\Core\Api\WebhookEndpoint;
 
 return static function (Router $router): void {
     $router->middleware(['request-id'])->prefix('/api/v1')->group(static function (Router $router): void {

@@ -23,6 +23,8 @@ use Illuminate\View\Engines\EngineResolver;
 use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
 use LogicException;
+use MajorDoMo\Api\Webhooks\WebhookRepository;
+use MajorDoMo\Api\Webhooks\WebhookService;
 use MajorDoMo\Audit\ActionLogger;
 use MajorDoMo\Audit\ActionLogRepository;
 use MajorDoMo\Auth\AdminAuthenticator;
@@ -206,7 +208,14 @@ final class Application
         $this->container->instance(TimeoutRepository::class, new TimeoutRepository($this->database));
         $codeRunner = new CodeRunner();
         $this->container->instance(CodeRunner::class, $codeRunner);
-        $this->container->instance(ScriptRunner::class, new ScriptRunner($scripts, $codeRunner));
+        $scriptRunner = new ScriptRunner($scripts, $codeRunner);
+        $this->container->instance(ScriptRunner::class, $scriptRunner);
+        $webhookRepository = new WebhookRepository($this->database);
+        $this->container->instance(WebhookRepository::class, $webhookRepository);
+        $this->container->instance(
+            WebhookService::class,
+            new WebhookService($webhookRepository, $scripts, $scriptRunner, $codeRunner)
+        );
         $history = new HistoryRepository($this->database);
         $this->container->instance(HistoryRepository::class, $history);
         $values = new ValueRepository($this->database, $history);

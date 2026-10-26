@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CoreObjectsTest extends TestCase
 {
     public function testObjectAndPropertyValueCanBeSaved(): void
@@ -18,6 +21,7 @@ final class CoreObjectsTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -82,10 +86,12 @@ final class CoreObjectsTest extends TestCase
             'class_id' => 1, 'title' => 'temperature', 'data_type' => 'float', 'created_at' => $now, 'updated_at' => $now,
         ]);
 
-        $page = $app->handle(Request::create('/module/objects', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $page = $app->handle(Request::create('/objects', 'GET'));
         self::assertSame(200, $page->getStatusCode());
 
-        $create = $app->handle(Request::create('/module/objects/create', 'POST', [
+        $create = $app->handle(Request::create('/objects/create', 'POST', [
             '_token' => $session->csrfToken(),
             'title' => 'Кухня',
             'class_id' => 1,
@@ -95,7 +101,7 @@ final class CoreObjectsTest extends TestCase
         $object = $app->database()->connection()->table('objects')->first();
         self::assertNotNull($object);
 
-        $save = $app->handle(Request::create('/module/objects/' . $object->id . '/edit', 'POST', [
+        $save = $app->handle(Request::create('/objects/' . $object->id . '/edit', 'POST', [
             '_token' => $session->csrfToken(),
             'title' => 'Кухня',
             'class_id' => 1,

@@ -6,12 +6,11 @@ namespace MajorDoMo\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
+use MajorDoMo\Api\Webhooks\WebhookException;
+use MajorDoMo\Api\Webhooks\WebhookRepository;
+use MajorDoMo\Api\Webhooks\WebhookService;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Modules\Core\Api\WebhookException;
-use MajorDoMo\Modules\Core\Api\WebhookRepository;
-use MajorDoMo\Modules\Core\Api\WebhookService;
-use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Runtime\CodeRunner;
 use MajorDoMo\Scripts\ScriptRepository;
 use MajorDoMo\Scripts\ScriptRunner;
@@ -19,6 +18,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Входящие webhook: секрет, методы, сценарий/PHP, HTTP-вход и админка.
+ *
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  */
 final class ApiWebhooksTest extends TestCase
 {
@@ -118,7 +119,7 @@ final class ApiWebhooksTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
         self::assertTrue((bool)(json_decode((string)$response->getContent(), true)['ok'] ?? false));
 
-        $page = $app->handle(Request::create('/module/api', 'GET'));
+        $page = $app->handle(Request::create('/api', 'GET'));
         self::assertSame(200, $page->getStatusCode());
         $html = (string)$page->getContent();
         self::assertStringContainsString('Входящие webhook', $html);
@@ -130,10 +131,10 @@ final class ApiWebhooksTest extends TestCase
         [$app, $service] = $this->boot(true);
         $session = $this->session;
 
-        $denied = $app->handle(Request::create('/module/api', 'POST', ['name' => 'Без токена', 'handler_type' => 'code', 'code' => 'return 1;']));
+        $denied = $app->handle(Request::create('/api', 'POST', ['name' => 'Без токена', 'handler_type' => 'code', 'code' => 'return 1;']));
         self::assertSame(403, $denied->getStatusCode());
 
-        $response = $app->handle(Request::create('/module/api', 'POST', [
+        $response = $app->handle(Request::create('/api', 'POST', [
             '_token' => $session->csrfToken(),
             'name' => 'Из админки',
             'handler_type' => 'code',
@@ -160,6 +161,7 @@ final class ApiWebhooksTest extends TestCase
         }
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $this->session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -167,7 +169,7 @@ final class ApiWebhooksTest extends TestCase
         $app->boot();
 
         $schema = $app->database()->schema();
-        $schema->create('module_api_webhooks', static function (Blueprint $table): void {
+        $schema->create('api_webhooks', static function (Blueprint $table): void {
             $table->increments('id');
             $table->string('name', 190);
             $table->string('secret_hash', 64)->unique();
@@ -193,15 +195,14 @@ final class ApiWebhooksTest extends TestCase
             $table->softDeletes();
         });
 
-        $modules = $app->container()->make(ModuleManager::class);
-        $db = $modules->db('api');
-        self::assertNotNull($db);
         $service = new WebhookService(
-            new WebhookRepository($db),
+            new WebhookRepository($app->database()),
             $app->container()->make(ScriptRepository::class),
             $app->container()->make(ScriptRunner::class),
             new CodeRunner()
         );
+
+        SessionFixture::authenticate($app);
 
         return [$app, $service];
     }

@@ -14,6 +14,8 @@ use PHPUnit\Framework\TestCase;
  * Цепочка события свойства: запись → история → строка журнала → OnChange-метод.
  *
  * Проверяется на SQLite в памяти, без циклов, очередей и внешних сервисов.
+ *
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  */
 final class CoreEventsTest extends TestCase
 {
@@ -39,7 +41,7 @@ final class CoreEventsTest extends TestCase
         self::assertSame((int)$events[0]['id'], (int)$events[1]['parent_id']);
         self::assertSame(1, $events[1]['depth']);
 
-        $page = $app->handle(Request::create('/module/events', 'GET'));
+        $page = $app->handle(Request::create('/events', 'GET'));
         self::assertSame(200, $page->getStatusCode());
         $html = (string)$page->getContent();
         self::assertStringContainsString('Кухня', $html);
@@ -81,7 +83,7 @@ final class CoreEventsTest extends TestCase
         self::assertNotNull($stopped);
         self::assertStringContainsString('уже встречалось', (string)$stopped->message);
 
-        $page = $app->handle(Request::create('/module/events', 'GET', ['status' => 'stopped']));
+        $page = $app->handle(Request::create('/events', 'GET', ['status' => 'stopped']));
         self::assertSame(200, $page->getStatusCode());
         self::assertStringContainsString('Цикл остановлен', (string)$page->getContent());
     }
@@ -149,7 +151,7 @@ final class CoreEventsTest extends TestCase
         self::assertTrue(sg('Кухня.temperature', '20'));
         $value = $app->database()->connection()->table('property_values')->first();
 
-        $response = $app->handle(Request::create('/module/pvalues/' . $value->id, 'POST', [
+        $response = $app->handle(Request::create('/values/' . $value->id, 'POST', [
             '_token' => $session->csrfToken(),
             'value' => '21',
         ]));
@@ -184,6 +186,8 @@ final class CoreEventsTest extends TestCase
             $app->database()->schema()->create($name, $definition);
         }
         $this->seed($app);
+
+        SessionFixture::authenticate($app);
 
         return [$app, $session];
     }

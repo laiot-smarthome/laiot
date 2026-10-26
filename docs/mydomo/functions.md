@@ -35,6 +35,10 @@ $app->modules();
 `Application::handle(Request $request): Response` — HTTP-граница для тестов
 и CLI-сценариев. В вебе её вызывает `public/index.php`.
 
+`APP_DEBUG` — булева настройка из `.env`/окружения через `Config`.
+По умолчанию `false`: HTTP-ошибки скрывают подробности исключений;
+явное `APP_DEBUG=true` включает текст ошибки без stack trace.
+
 ## 3. Кэш
 
 ```php
@@ -71,6 +75,10 @@ $queue->pending('default'); // ожидают worker
 $queue->retry($id);
 $queue->forget($id);
 ```
+
+Если воркер упал, задание снова доступно после `queue.reservation_timeout`.
+При повторном резервировании проверяются тот же срок, отсутствие удаления
+и `failed_at`; просроченное задание не блокирует следующие задания очереди.
 
 `Job` — типизированное задание:
 
@@ -124,6 +132,13 @@ $auth->isAdmin();
 
 Middleware: `->middleware('can:panel.view')`.
 
+`UserRepository::sessionUser(int $id): ?array` возвращает данные активного
+администратора (`id`, `username`, `name`, `is_admin`, `stamp`) либо `null`.
+`stamp` — SHA-256 хеша пароля, без самого хеша. Метод используется `auth`
+для проверки сессии и профилем для её обновления после смены пароля.
+Отсутствующий, неверный или нестроковый `stamp` прекращает сессию;
+удаление пользователя и снятие `is_admin` также закрывают доступ.
+
 Роли: `roles`, `permissions`, `role_permissions`, `user_roles`; миграция
 создаёт `admin`/`user` и переносит администраторов. Если БД/миграции ещё
 недоступны, используется сессионный `is_admin`.
@@ -156,7 +171,7 @@ POST /api/v1/panel/notifications/dismiss        — прочитать (нуже
     "counts": {"Классы": 1, "Свойства": 1, "Методы": 1},
     "sections": {
       "Классы": [
-        {"type": "class", "title": "Датчик", "url": "/module/classes/1/edit", "description": "", "meta": ["Класс"], "action": ""}
+        {"type": "class", "title": "Датчик", "url": "/classes/1/edit", "description": "", "meta": ["Класс"], "action": ""}
       ]
     },
     "message": ""
@@ -186,18 +201,18 @@ php bin/mydomo api:token 1 "monitoring"
 
 `/admin` (auth) — обзор веб-админки на Blade-компонентах и alpha-layout;
 в шапке работают поиск (`Ctrl K`), колокольчик уведомлений и полный drawer.
-`/module/users` — пользователи; роли назначаются в форме пользователя.
+`/users` — пользователи; роли назначаются в форме пользователя.
 `/admin/tokens` (auth + `can:users.manage`) — выпуск/отзыв API-токенов.
 `/admin/modules` (auth) — реестр core-модулей: версии, таблицы, helpers.
 `/admin/api` (auth) — живой список API-маршрутов.
-`/module/api` (auth) — входящие webhook: секрет, методы, сценарий/PHP,
+`/api` (auth) — входящие webhook: секрет, методы, сценарий/PHP,
 последний статус. Публичный вызов — `GET|POST|PUT|PATCH|DELETE
 /api/v1/webhooks/{secret}`; секрет 48 hex, хранится только SHA-256, при
 создании/ротации показывается один раз. Ошибки: 404/405 (`Allow`)/403/500.
 `/api/v1/panel/linked-object` (auth) — `?q=` поиск объектов, `?object=`
 свойства/методы класса для `x-md.linked-object`; старый модуль удалён.
-`/module/events` — журнал цепочки событий свойства (`property_events`).
-`/module/actions_log` — аудит: вход/выход и изменения пользователей пишутся
+`/events` — журнал цепочки событий свойства (`property_events`).
+`/journal` — аудит: вход/выход и изменения пользователей пишутся
 в `action_log`.
 `/admin/profile` (auth) — имя и смена пароля текущего пользователя.
 `/admin/maintenance` (auth + `can:settings.manage`) — режим обслуживания;
@@ -278,7 +293,7 @@ function kinetic_change_connection(string $connection): bool
 say('Дверь открыта', 0, 0, 'script');
 ```
 
-- пишет в `module_shoutbox_messages` (core-модуль Shoutbox);
+- пишет системное уведомление через `NotificationService` (центр оповещений);
 - сообщение обрезается до 255 символов;
 - `level` пока игнорируется;
 - при отсутствии таблицы/БД пишет warning в лог, не роняет сценарий.
@@ -308,7 +323,7 @@ sg('Кухня.temperature', 23.5, 0, 'zigbee');
 (`properties.on_change`). Если значение не изменилось, история и
 `property.changed` не создаются, но обработчик всё равно вызывается.
 Повтор свойства в цепочке останавливает обработчик, значение при этом
-сохраняется. Подробно — [events.md](events.md); журнал — `/module/events`.
+сохраняется. Подробно — [events.md](events.md); журнал — `/events`.
 
 `getHistory('Кухня.temperature', 50)` возвращает последние значения из
 `property_history`. Пишутся только реальные изменения и только у свойств с
@@ -352,7 +367,7 @@ $result = runScript('Утренний сценарий', ['x' => 2]);
 `key` среди непрочитанных не создаёт дубль. Подробно —
 [notifications.md](notifications.md).
 
-`/module/events` — журнал цепочки: тип шага, объект и свойство, старое и новое
+`/events` — журнал цепочки: тип шага, объект и свойство, старое и новое
 значение, обработчик, статус (`changed`, `ok`, `error`, `missing`,
 `stopped`), глубина и цепочка. Фильтры — по типу и статусу, поиск — по
 объекту, свойству, обработчику и значению.

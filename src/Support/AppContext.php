@@ -45,19 +45,8 @@ final class AppContext
         $message = mb_substr($message, 0, 255);
 
         try {
-            $connection = self::$app->database()->connection();
-            if (!$connection->getSchemaBuilder()->hasTable('module_shoutbox_messages')) {
-                return;
-            }
-            $now = self::$app->clock()->nowString();
-            $connection->table('module_shoutbox_messages')->insert([
-                'member_id' => max(0, $memberId),
-                'message' => $message,
-                'source' => mb_substr($source, 0, 64),
-                'created_at' => $now,
-                'updated_at' => $now,
-                'deleted_at' => null,
-            ]);
+            self::$app->container()->make(\MajorDoMo\Notifications\NotificationService::class)
+                ->send($source, $message, 'info');
         } catch (Throwable $error) {
             self::$app->logger()->warning('say() не записал сообщение', [
                 'error' => $error->getMessage(),

@@ -9,7 +9,7 @@ order: 10
 
 # База знаний
 
-Раздел `/module/knowledge_base` читает те же Markdown-файлы, что и агенты:
+Раздел `/knowledge-base` читает те же Markdown-файлы, что и агенты:
 `docs/**/*.md`. Отдельной таблицы в БД нет — источник истины остаётся в
 файлах, а индекс строится на запрос.
 
@@ -49,7 +49,7 @@ order: 10
 - `html_input=strip` — сырой HTML из документа не исполняется;
 - `allow_unsafe_links=false` — `javascript:` и подобные схемы отбрасываются;
 - относительные ссылки на другие `.md` переписываются в
-  `/module/knowledge_base/<id>`;
+  `/knowledge-base/<id>`;
 - картинки и прочие относительные файлы — в `/docs/...`;
 - заголовки `h2`/`h3` получают id, по ним строится оглавление статьи.
 
@@ -62,10 +62,10 @@ order: 10
 | --- | --- |
 | Сервис индекса и поиска | `src/Docs/KnowledgeBase.php` |
 | Markdown и ссылки | `src/Docs/MarkdownRenderer.php` |
-| Модуль | `modules/core/knowledge_base/` (контроллер, routes, Blade) |
+| Ядровой раздел | `src/Http/Controllers/Core/KnowledgeBaseController.php` + `resources/views/pages/knowledge_base/` |
 
-Модуль не использует `ModuleDb`: собственных таблиц у него нет. Старые
-`modules/knowledge_base`, `templates/knowledge_base` и page-ассеты удалены.
+Собственных таблиц нет; старые `modules/knowledge_base`,
+`templates/knowledge_base` и page-ассеты удалены.
 `lib/knowledge_base.php` и `lib/markdown.php` пока остаются только для ещё не
 перенесённого `ai_assistant` и alpha-тестов; новый код их не использует.
 

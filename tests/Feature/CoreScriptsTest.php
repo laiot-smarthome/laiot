@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CoreScriptsTest extends TestCase
 {
     public function testScriptCanBeCreatedEditedAndDeleted(): void
@@ -18,6 +21,7 @@ final class CoreScriptsTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -40,14 +44,16 @@ final class CoreScriptsTest extends TestCase
             $table->softDeletes();
         });
 
-        $page = $app->handle(Request::create('/module/scripts', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $page = $app->handle(Request::create('/scripts', 'GET'));
         self::assertSame(200, $page->getStatusCode());
 
-        $form = $app->handle(Request::create('/module/scripts/create', 'GET'));
+        $form = $app->handle(Request::create('/scripts/create', 'GET'));
         self::assertSame(200, $form->getStatusCode());
         self::assertStringContainsString('md-code-editor', (string)$form->getContent());
 
-        $create = $app->handle(Request::create('/module/scripts/create', 'POST', [
+        $create = $app->handle(Request::create('/scripts/create', 'POST', [
             '_token' => $session->csrfToken(),
             'title' => 'Тестовый скрипт',
             'code' => '<?php echo 1;',
@@ -58,7 +64,7 @@ final class CoreScriptsTest extends TestCase
         $row = $app->database()->connection()->table('scripts')->first();
         self::assertNotNull($row);
 
-        $edit = $app->handle(Request::create('/module/scripts/' . $row->id . '/edit', 'POST', [
+        $edit = $app->handle(Request::create('/scripts/' . $row->id . '/edit', 'POST', [
             '_token' => $session->csrfToken(),
             'title' => 'Новый скрипт',
             'code' => '<?php echo 2;',
@@ -68,7 +74,7 @@ final class CoreScriptsTest extends TestCase
         self::assertSame(302, $edit->getStatusCode());
         self::assertSame('Новый скрипт', $app->database()->connection()->table('scripts')->where('id', $row->id)->value('title'));
 
-        $delete = $app->handle(Request::create('/module/scripts/' . $row->id . '/delete', 'POST', [
+        $delete = $app->handle(Request::create('/scripts/' . $row->id . '/delete', 'POST', [
             '_token' => $session->csrfToken(),
         ]));
         self::assertSame(302, $delete->getStatusCode());

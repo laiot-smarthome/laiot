@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CoreMethodsTest extends TestCase
 {
     public function testMethodCanBeCreatedAndDeleted(): void
@@ -18,6 +21,7 @@ final class CoreMethodsTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -44,10 +48,12 @@ final class CoreMethodsTest extends TestCase
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $page = $app->handle(Request::create('/module/methods', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $page = $app->handle(Request::create('/methods', 'GET'));
         self::assertSame(200, $page->getStatusCode());
 
-        $create = $app->handle(Request::create('/module/methods/create', 'POST', [
+        $create = $app->handle(Request::create('/methods/create', 'POST', [
             '_token' => $session->csrfToken(),
             'class_id' => 1,
             'title' => 'update',
@@ -57,7 +63,7 @@ final class CoreMethodsTest extends TestCase
         self::assertSame('update', $app->database()->connection()->table('methods')->value('title'));
 
         $row = $app->database()->connection()->table('methods')->first();
-        $delete = $app->handle(Request::create('/module/methods/' . $row->id . '/delete', 'POST', [
+        $delete = $app->handle(Request::create('/methods/' . $row->id . '/delete', 'POST', [
             '_token' => $session->csrfToken(),
         ]));
         self::assertSame(302, $delete->getStatusCode());

@@ -120,6 +120,10 @@ function devServerRoute($projectRoot)
         return devSetScript($publicRoot . DIRECTORY_SEPARATOR . 'index.php', '/index.php');
     }
 
+    if ($path === '/api') {
+        return devSetScript($publicRoot . DIRECTORY_SEPARATOR . 'index.php', '/index.php');
+    }
+
     if (strpos($path, '/api/') === 0) {
         return devSetScript($publicRoot . DIRECTORY_SEPARATOR . 'api.php', '/api.php');
     }

@@ -92,7 +92,7 @@ final class ConsoleCommandsTest extends TestCase
         $tester->execute([]);
 
         self::assertSame(0, $tester->getStatusCode());
-        self::assertStringContainsString('Shoutbox', $tester->getDisplay());
+        self::assertStringContainsString('SDK Example', $tester->getDisplay());
     }
 
     public function testQueueStatsShowsEmptyQueue(): void

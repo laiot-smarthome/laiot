@@ -12,6 +12,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * База знаний: индекс docs, front matter, Markdown, ссылки и страницы модуля.
+ *
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  */
 final class KnowledgeBaseTest extends TestCase
 {
@@ -114,7 +116,7 @@ MD);
         self::assertStringContainsString('<table>', $document['html']);
         self::assertStringNotContainsString('<script>', $document['html']);
         self::assertStringNotContainsString('javascript:', $document['html']);
-        self::assertStringContainsString('/module/knowledge_base/user/commands', $document['html']);
+        self::assertStringContainsString('/knowledge-base/user/commands', $document['html']);
         self::assertStringContainsString('/docs/img/scheme.png', $document['html']);
         self::assertNotSame([], $document['toc']);
         self::assertSame('Раздел', $document['toc'][0]['title']);
@@ -136,18 +138,18 @@ MD);
     {
         [$app] = $this->boot();
 
-        $index = $app->handle(Request::create('/module/knowledge_base', 'GET'));
+        $index = $app->handle(Request::create('/knowledge-base', 'GET'));
         self::assertSame(200, $index->getStatusCode());
         self::assertStringContainsString('База знаний', (string)$index->getContent());
 
-        $page = $app->handle(Request::create('/module/knowledge_base/mydomo/functions', 'GET'));
+        $page = $app->handle(Request::create('/knowledge-base/mydomo/functions', 'GET'));
         self::assertSame(200, $page->getStatusCode());
         $html = (string)$page->getContent();
         self::assertStringContainsString('MyDoMo — функции, обёртки и CLI', $html);
         self::assertStringContainsString('md-prose', $html);
-        self::assertStringContainsString('/module/events', $html);
+        self::assertStringContainsString('/events', $html);
 
-        $missing = $app->handle(Request::create('/module/knowledge_base/nope', 'GET'));
+        $missing = $app->handle(Request::create('/knowledge-base/nope', 'GET'));
         self::assertSame(404, $missing->getStatusCode());
         self::assertStringContainsString('Материал не найден', (string)$missing->getContent());
     }
@@ -167,6 +169,8 @@ MD);
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
         ]);
         $app->boot();
+
+        SessionFixture::authenticate($app);
 
         return [$app, $session];
     }

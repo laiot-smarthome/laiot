@@ -24,8 +24,13 @@ order: 5
 
 - [x] Аудит записи значений (2026-10-26): `setValue()` отклоняет свойство
   чужого класса; обновление/восстановление сохраняет `created_at`.
-  Проверено 19 тестов / 131 assertion на SQLite; детали и отложенный
-  HTTP/auth-аудит — [core-audit.md](../mydomo/core-audit.md).
+  Проверено 19 тестов / 131 assertion на SQLite; детали —
+  [core-audit.md](../mydomo/core-audit.md).
+- [x] Завершены отложенные исправления HTTP/auth и очереди (2026-10-26):
+  обязательный `stamp`, отзыв сессий, смена пароля из профиля, сброс лимита,
+  выключение обслуживания, безопасный debug, повторная резервация задания.
+  Адресный набор: 36 тестов / 158 assertions без PHP-warning; общий прогон
+  требует повторения после параллельного переноса core-страниц и API.
 - [x] Ветка `MyDoMo` создана от `alpha` (`0bc4c355`), `alpha` не тронута.
 - [x] Мастер-план и границы ветки зафиксированы в документации.
 - [x] Composer-стек разрешён dry-run на PHP 8.2; `roave/security-advisories`
@@ -103,6 +108,11 @@ order: 5
 - [x] Фоновый runtime: `tasks` в манифесте, `worker <module>` (один процесс
   на модуль, Redis-lock/state, fork/timeout), systemd-агент и шаблон
   `mydomo-worker@.service`; 4 + 4 теста.
+- [x] Ядровые разделы вынесены из `modules/core`: `CoreSections`, core
+  controllers/views, URL без `/module`; `modules/core` пуст.
+- [x] API/webhooks и Shoutbox/оповещения перенесены в ядро; старые
+  `modules/core/api` и `modules/core/shoutbox` удалены; таблицы
+  `api_webhooks` и `shared_events` — ядровые.
 - [x] Blade-компоненты `x-md.button/icon/badge/card/section-heading/alert/
   avatar/empty-state/kpi/progress/status/field/input/textarea/select/
   checkbox/switch/disclosure/drawer/modal/skeleton/activity-feed/hint` и

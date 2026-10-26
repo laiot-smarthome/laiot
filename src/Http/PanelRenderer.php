@@ -7,6 +7,7 @@ namespace MajorDoMo\Http;
 use Illuminate\Contracts\View\Factory;
 use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Modules\ModuleManager;
+use MajorDoMo\Panel\CoreSections;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -43,19 +44,12 @@ final readonly class PanelRenderer
      */
     private function defaultMenu(string $active): array
     {
-        $items = [
-            ['id' => 'dashboard', 'label' => 'Обзор', 'href' => '/admin', 'icon' => 'ti-layout-dashboard'],
-            ['id' => 'status', 'label' => 'Статус', 'href' => '/status', 'icon' => 'ti-activity'],
-            ['id' => 'roles', 'label' => 'Роли', 'href' => '/roles', 'icon' => 'ti-shield'],
-            ['id' => 'modules', 'label' => 'Модули', 'href' => '/admin/modules', 'icon' => 'ti-puzzle'],
-            ['id' => 'tokens', 'label' => 'API-токены', 'href' => '/admin/tokens', 'icon' => 'ti-key'],
-            ['id' => 'profile', 'label' => 'Профиль', 'href' => '/admin/profile', 'icon' => 'ti-user-circle'],
-            ['id' => 'maintenance', 'label' => 'Обслуживание', 'href' => '/admin/maintenance', 'icon' => 'ti-tool'],
-        ];
-        foreach ($this->modules->menuItems() as $item) {
-            $items[] = $item;
+        $menu = CoreSections::menu();
+        $modules = $this->modules->menuItems();
+        if ($modules !== []) {
+            $menu[] = ['label' => 'Модули', 'items' => $modules];
         }
 
-        return [['label' => 'Система', 'items' => $items]];
+        return $menu;
     }
 }

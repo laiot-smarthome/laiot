@@ -6,6 +6,7 @@ namespace MajorDoMo\Notifications;
 
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Modules\ModuleManager;
+use MajorDoMo\Panel\CoreSections;
 use MajorDoMo\Support\Clock;
 use Throwable;
 
@@ -294,14 +295,15 @@ final readonly class NotificationService
     {
         $module = (string)$row->module;
         $known = $this->modules->get($module);
+        $section = CoreSections::find($module);
 
         return [
             'id' => (int)$row->id,
             'module' => $module,
             'module_title' => $module === 'system'
                 ? 'Система'
-                : (string)($known['name'] ?? $module),
-            'module_url' => $known !== null ? '/module/' . $module : '/admin',
+                : (string)($section['label'] ?? $known['name'] ?? $module),
+            'module_url' => $section['href'] ?? ($known !== null ? '/module/' . $module : '/admin'),
             'message' => (string)$row->message,
             'type' => $this->type((string)$row->type),
             'added' => (string)$row->created_at,

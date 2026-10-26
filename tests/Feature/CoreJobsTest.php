@@ -10,6 +10,9 @@ use MajorDoMo\Http\Session\ArraySession;
 use MajorDoMo\Queue\Queue;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CoreJobsTest extends TestCase
 {
     public function testQueuePageShowsPendingJob(): void
@@ -18,6 +21,7 @@ final class CoreJobsTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -25,7 +29,9 @@ final class CoreJobsTest extends TestCase
         $app->boot();
         $app->container()->make(Queue::class)->push('default', 'demo.job', ['x' => 1]);
 
-        $response = $app->handle(Request::create('/module/jobs', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $response = $app->handle(Request::create('/jobs', 'GET'));
 
         self::assertSame(200, $response->getStatusCode());
         self::assertStringContainsString('Очередь заданий', (string)$response->getContent());

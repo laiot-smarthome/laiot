@@ -9,6 +9,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CoreUiKitTest extends TestCase
 {
     public function testUiKitPageRendersComponents(): void
@@ -17,13 +20,16 @@ final class CoreUiKitTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
         ]);
         $app->boot();
 
-        $response = $app->handle(Request::create('/module/ui_kit', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $response = $app->handle(Request::create('/ui-kit', 'GET'));
         $html = (string)$response->getContent();
 
         self::assertSame(200, $response->getStatusCode());

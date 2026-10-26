@@ -11,6 +11,9 @@ use MajorDoMo\Http\Session\ArraySession;
 use MajorDoMo\Properties\ValueRepository;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CoreHistoryTest extends TestCase
 {
     public function testValueChangeIsRecordedAndListed(): void
@@ -19,6 +22,7 @@ final class CoreHistoryTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -70,7 +74,9 @@ final class CoreHistoryTest extends TestCase
 
         $app->container()->make(ValueRepository::class)->set(1, 1, '23.5');
 
-        $page = $app->handle(Request::create('/module/history', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $page = $app->handle(Request::create('/history', 'GET'));
         self::assertSame(200, $page->getStatusCode());
         self::assertStringContainsString('23.5', (string)$page->getContent());
         self::assertSame('23.5', getHistory('Кухня.temperature')[0]['value'] ?? null);

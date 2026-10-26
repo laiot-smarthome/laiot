@@ -21,7 +21,7 @@ order: 9
 | `type` | `info`, `success`, `warning`, `danger` |
 | `message` | короткий текст, 1–255 символов |
 | `title`, `details` | необязательные заголовок и подробности |
-| `url`, `label` | внутренняя ссылка (`/module/...`) и текст кнопки |
+| `url`, `label` | внутренняя ссылка (`/...`) и текст кнопки |
 | `notification_key` | ключ дедупликации для повторяющихся событий |
 | `read_at` | время явного прочтения; `null` — непрочитанное |
 
@@ -40,7 +40,7 @@ $result = $service->send('events', 'Цикл остановлен', 'warning', [
     'key' => 'chain:Кухня.temperature',
     'title' => 'Цепочка события',
     'details' => 'Повтор свойства в цепочке',
-    'url' => '/module/events',
+    'url' => '/events',
     'label' => 'Открыть журнал',
 ]);
 // ['status' => true, 'id' => 12]
@@ -71,7 +71,8 @@ $service->dismiss(null, 'events');   // прочитать все непрочи
 ```
 
 `items` — до 50 записей, сначала `danger`/`warning`, затем свежие. Поле
-`module_url` ведёт в `/module/<id>` для core-модуля и в `/admin` для `system`.
+`module_url` ведёт в ядровой раздел (`CoreSections`) или `/module/<id>` для
+модуля; для `system` — `/admin`.
 
 ## 3. Обёртка `notify()`
 
@@ -80,7 +81,7 @@ $service->dismiss(null, 'events');   // прочитать все непрочи
 ```php
 notify('Датчик на кухне не отвечает', 'warning', [
     'key' => 'sensor:kitchen',
-    'url' => '/module/system_errors',
+    'url' => '/errors',
 ]);
 ```
 

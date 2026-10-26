@@ -138,7 +138,7 @@ final class MarkdownRenderer
         if ($isLink && preg_match('~\.md$~i', $path)) {
             $id = (string)preg_replace('~\.md$~i', '', $target);
             if (isset($documentIds[$id])) {
-                return '/module/knowledge_base/' . $this->encodePath($id) . $suffix;
+                return '/knowledge-base/' . $this->encodePath($id) . $suffix;
             }
         }
 

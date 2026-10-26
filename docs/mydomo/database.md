@@ -15,9 +15,10 @@ order: 7
 
 ```text
 queue_jobs
-module_shared_events
+shared_events
 module_registry
 module_migrations
+api_webhooks
 api_tokens
 user_roles
 settings
@@ -67,7 +68,7 @@ OnChange-метод». Исключение из правила append-only — 
 (или тексту и типу), у модуля не больше 10 непрочитанных. Подробно —
 [notifications.md](notifications.md).
 
-`module_shared_events` — retained-события `ModuleBus`; `module_registry` и
+`shared_events` — retained-события `ModuleBus`; `module_registry` и
 `module_migrations` — SDK сторонних модулей (install/enabled/version и
 применённые миграции). Core-модули в реестре не нуждаются.
 

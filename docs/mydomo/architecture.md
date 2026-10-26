@@ -17,9 +17,9 @@ public/index.php
       └─ Foundation\Application   boot, контейнер, конфиг, сервисы
           └─ Http\Kernel          request_id, ошибки, security headers
               └─ Illuminate Router
-                  ├─ routes/web.php
-                  ├─ routes/api.php
-                  └─ modules/core/*/routes.php
+                  ├─ routes/web.php       ядровые разделы
+                  ├─ routes/api.php       API v1
+                  └─ modules/core/*/routes.php  MQTT/Zigbee
 ```
 
 `src/Foundation/Application.php` — единственная сборка зависимостей.
@@ -35,12 +35,13 @@ public/index.php
 3. создаёт Monolog-каналы (`LoggerFactory`, `RequestContext`);
 4. создаёт `DatabaseManager`, `CacheStore`, `DatabaseQueue`, `JobRegistry`;
 5. создаёт сессию (`NativeSession`/`ArraySession`) и `Authorization`;
-6. создаёт Blade/Yoyo, `PanelRenderer` нет — alpha-shell остаётся снаружи;
+6. создаёт Blade/Yoyo и `PanelRenderer` для Blade-оболочки с визуалом alpha;
 7. создаёт Router, алиасы middleware, Kernel;
 8. грузит `routes/web.php`, `routes/api.php`, затем `ModuleManager`.
 
-`boot()` не открывает соединение с БД и не создаёт таблицы: health и тесты
-без БД должны работать.
+`boot()` не создаёт таблицы. При настроенной БД модульный SDK читает реестр
+сторонних модулей; без конфигурации БД этот шаг пропускается, поэтому health
+и публичные маршруты работают без подключения.
 
 ## 3. Запрос
 
@@ -56,6 +57,17 @@ public/index.php
 
 Маршруты веб-слоя используют middleware `request-id`, `auth`, `csrf`;
 для прав — `can:<permission>`, для входа — `throttle.login`.
+
+`auth` сверяет пользователя с БД: запись должна существовать, не быть
+удалённой и сохранять `is_admin = 1`. Обязательный строковый `stamp`
+сопоставляется с SHA-256 текущего хеша пароля. Старые сессии отзываются
+после удаления, снятия прав или смены пароля; смена пароля из профиля
+обновляет отпечаток текущей сессии. Пропуска для сессий без `stamp` нет.
+
+Debug выключен по умолчанию; веб-вход включает подробности исключений
+только при типизированном `APP_DEBUG=true`. В режиме обслуживания остаются
+доступными вход, выход, health и управление обслуживанием. Маршруты
+управления сохраняют проверки `auth`, `can:settings.manage` и CSRF.
 
 Внешний маршрут API один: `/api/v1/*` отдаётся фронт-контроллером
 `public/index.php` (kernel). Legacy `/api/*` и `/api.php/*` остаются на
@@ -105,17 +117,20 @@ legacy API и возвращал 503 «install_required».
 Повтор свойства в цепочке останавливает обработчик, но не откатывает значение.
 Подробно — [events.md](events.md).
 
-## 5. Модули
+## 5. Ядро и модули
 
-Core-модули лежат в `modules/core/<id>/` и не удаляются/не отключаются.
-Маршруты получают префикс `/module/<id>`, auth и `request-id`; на время
-запроса контейнер получает `ModuleDb`/`ModuleBus` этого модуля.
+Ядровые разделы не являются модулями: у них нет `module.json`, `ModuleDb` и
+lifecycle. Контроллеры — `src/Http/Controllers/Core`, представления —
+`resources/views/pages/<id>`, маршруты — `routes/web.php`, меню —
+`src/Panel/CoreSections.php`. Сюда входят объекты, классы, свойства, методы,
+история, скрипты, события, локации, пользователи, настройки, журнал, ошибки,
+очередь, API/webhooks, база знаний и оповещения.
 
-`modules/<id>/` — сторонние модули SDK. Они находятся по `module.json`,
-устанавливаются `module:install`, хранят состояние в `module_registry` и
-подключаются только при `enabled=1`. Старые модули без `module.json`
-игнорируются; после переноса удаляются, без редиректов и runtime-совместимости.
-Lifecycle и формат манифеста — [sdk.md](sdk.md).
+Модулями остаются `mqtt`, `zigbee` и сторонние SDK-модули. Core-модули
+лежат в `modules/core/<id>/`, сторонние — в `modules/<id>/`; маршруты
+получают префикс `/module/<id>`, auth и `request-id`, на время запроса
+контейнер получает их `ModuleDb`/`ModuleBus`. Lifecycle и формат манифеста —
+[sdk.md](sdk.md). Старые alpha-модули без `module.json` игнорируются.
 
 ## 6. UI
 
@@ -123,7 +138,7 @@ Lifecycle и формат манифеста — [sdk.md](sdk.md).
 
 - `resources/views/components/md/*` — Blade-компоненты с alpha-классами;
 - `resources/views/ui-kit/blade.blade.php` — каталог компонентов, встроен в
-  `/module/ui_kit`;
+  `/ui-kit`;
 - `src/View/BladeRenderer.php` — временный мост для alpha-shell;
 - `Http\PanelRenderer` + `PanelPage` — единая сборка страницы в alpha-layout;
   меню строится из `ModuleManager::menuItems()`;
@@ -156,14 +171,16 @@ Lifecycle и формат манифеста — [sdk.md](sdk.md).
 - `resources/views/pages/profile.blade.php` — профиль, `/admin/profile`;
 - `resources/views/pages/api.blade.php` — список API-маршрутов, `/admin/api`;
 - `resources/views/pages/modules.blade.php` — реестр модулей, `/admin/modules`;
-- `modules/core/events/views/index.blade.php` — журнал цепочки событий,
-  `/module/events`;
-- `modules/core/api/` — входящие webhook `/module/api` и публичный
+- `resources/views/pages/events/index.blade.php` — журнал цепочки событий,
+  `/events`;
+- `src/Api/Webhooks/` — входящие webhook `/api` и публичный
   `/api/v1/webhooks/{secret}`; секрет хранится SHA-256, обработчики — сценарий
   или PHP через `ScriptRunner`/`CodeRunner`;
-- `modules/core/knowledge_base/` — база знаний `docs/**` в alpha-layout,
-  `/module/knowledge_base`; Markdown рендерится `src/Docs/MarkdownRenderer.php`;
-- `resources/views/pages/shoutbox.blade.php` — промежуточная страница.
+- `resources/views/pages/knowledge_base/` — база знаний `docs/**` в
+  alpha-layout, `/knowledge-base`; Markdown рендерится
+  `src/Docs/MarkdownRenderer.php`;
+- `resources/views/pages/notifications/index.blade.php` — оповещения,
+  `/notifications`.
 
 Визуал берём из alpha, реализацию — нет: `layouts.alpha`, `mydomo.css` и
 `mydomo.js` полностью новые. Alpha-разметка, `MDJUI`, `admin.js` и старая

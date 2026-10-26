@@ -13,6 +13,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Центр уведомлений: сервис, дедупликация/лимит, API, CSRF и разметка колокольчика.
+ *
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  */
 final class NotificationsTest extends TestCase
 {
@@ -25,7 +27,7 @@ final class NotificationsTest extends TestCase
             'key' => 'chain:1',
             'title' => 'Цепочка события',
             'details' => 'Кухня.temperature',
-            'url' => '/module/events',
+            'url' => '/events',
             'label' => 'Открыть журнал',
         ]);
         self::assertTrue($sent['status']);
@@ -40,11 +42,11 @@ final class NotificationsTest extends TestCase
         $item = $listing['items'][0];
         self::assertSame('events', $item['module']);
         self::assertSame('События', $item['module_title']);
-        self::assertSame('/module/events', $item['module_url']);
+        self::assertSame('/events', $item['module_url']);
         self::assertSame('Цикл остановлен', $item['message']);
         self::assertSame('warning', $item['type']);
         self::assertSame('Цепочка события', $item['title']);
-        self::assertSame('/module/events', $item['url']);
+        self::assertSame('/events', $item['url']);
         self::assertSame('Открыть журнал', $item['label']);
     }
 
@@ -85,7 +87,7 @@ final class NotificationsTest extends TestCase
         $bad = $service->send('events', 'Плохая ссылка', 'info', ['url' => 'https://example.com']);
         self::assertFalse($bad['status']);
         self::assertSame('', NotificationService::internalUrl('//evil'));
-        self::assertSame('/module/events', NotificationService::internalUrl('/module/events'));
+        self::assertSame('/events', NotificationService::internalUrl('/events'));
     }
 
     public function testDismissByIdAndModule(): void
@@ -201,6 +203,8 @@ final class NotificationsTest extends TestCase
             $table->timestamps();
             $table->softDeletes();
         });
+
+        SessionFixture::authenticate($app);
 
         return $app;
     }

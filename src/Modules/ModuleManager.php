@@ -19,6 +19,9 @@ use Throwable;
  * Core-модули лежат в `modules/core/<id>` и всегда включены. Сторонние —
  * в `modules/<id>` и подключаются только после `module:install` и при
  * enabled=1 в `module_registry`. Все манифесты валидируются ModuleManifest.
+ *
+ * Изменения:
+ * 2026-10-26 — загрузка без конфигурации БД не обращается к реестру в БД.
  */
 final class ModuleManager
 {
@@ -256,12 +259,14 @@ final class ModuleManager
         ];
 
         $registry = [];
-        try {
-            foreach ($this->registry->all() as $row) {
-                $registry[(string)$row['module_id']] = $row;
+        if ($this->database->isConfigured()) {
+            try {
+                foreach ($this->registry->all() as $row) {
+                    $registry[(string)$row['module_id']] = $row;
+                }
+            } catch (Throwable $error) {
+                error_log('MyDoMo module registry is not available: ' . $error->getMessage());
             }
-        } catch (Throwable $error) {
-            error_log('MyDoMo module registry is not available: ' . $error->getMessage());
         }
 
         foreach ($roots as $root) {

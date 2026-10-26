@@ -13,6 +13,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Ядровой linked-object: поиск, контекст класса, API и Alpine-компонент.
+ *
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  */
 final class LinkedObjectTest extends TestCase
 {
@@ -62,7 +64,7 @@ final class LinkedObjectTest extends TestCase
     public function testComponentIsRegisteredInUiKit(): void
     {
         $app = $this->boot(true);
-        $page = $app->handle(Request::create('/module/ui_kit', 'GET'));
+        $page = $app->handle(Request::create('/ui-kit', 'GET'));
         self::assertSame(200, $page->getStatusCode());
         $html = (string)$page->getContent();
         self::assertStringContainsString('md-linked-object', $html);
@@ -77,6 +79,7 @@ final class LinkedObjectTest extends TestCase
         }
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -133,6 +136,8 @@ final class LinkedObjectTest extends TestCase
             'class_id' => 1, 'title' => 'onAlarm', 'description' => '', 'code' => 'return 1;',
             'created_at' => '2026-10-26 12:00:00', 'updated_at' => '2026-10-26 12:00:00',
         ]);
+
+        SessionFixture::authenticate($app);
 
         return $app;
     }

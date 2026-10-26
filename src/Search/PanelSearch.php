@@ -7,6 +7,7 @@ namespace MajorDoMo\Search;
 use Illuminate\Database\Query\Builder;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Modules\ModuleManager;
+use MajorDoMo\Panel\CoreSections;
 
 /**
  * Поиск по сущностям нового ядра для шапки админки.
@@ -68,6 +69,7 @@ final readonly class PanelSearch
         $this->addSection($sections, $counts, 'Скрипты', $this->scripts($tokens, $normalized, $limit), $limit);
         $this->addSection($sections, $counts, 'Пользователи', $this->users($tokens, $normalized, $limit), $limit);
         $this->addSection($sections, $counts, 'Локации', $this->locations($tokens, $normalized, $limit), $limit);
+        $this->addSection($sections, $counts, 'Разделы', $this->coreSections($tokens, $normalized, $limit), $limit);
         $this->addSection($sections, $counts, 'Модули', $this->modules($tokens, $normalized, $limit), $limit);
 
         $total = 0;
@@ -104,7 +106,7 @@ final readonly class PanelSearch
             return [
                 'type' => 'object',
                 'title' => $title,
-                'url' => '/module/objects/' . (int)$row->id . '/edit',
+                'url' => '/objects/' . (int)$row->id . '/edit',
                 'description' => (string)($row->description ?? ''),
                 'meta' => [(string)($row->class_title ?? '')],
                 'action' => '',
@@ -127,7 +129,7 @@ final readonly class PanelSearch
         return $this->collect($rows, $tokens, $query, static fn (object $row): array => [
             'type' => 'class',
             'title' => (string)$row->title,
-            'url' => '/module/classes/' . (int)$row->id . '/edit',
+            'url' => '/classes/' . (int)$row->id . '/edit',
             'description' => '',
             'meta' => ['Класс'],
             'action' => '',
@@ -151,7 +153,7 @@ final readonly class PanelSearch
             return [
                 'type' => 'property',
                 'title' => (string)$row->title,
-                'url' => '/module/properties/' . (int)$row->id . '/edit',
+                'url' => '/properties/' . (int)$row->id . '/edit',
                 'description' => (string)($row->description ?? ''),
                 'meta' => [(string)($row->class_title ?? '')],
                 'action' => '',
@@ -175,7 +177,7 @@ final readonly class PanelSearch
         return $this->collect($rows, $tokens, $query, static fn (object $row): array => [
             'type' => 'method',
             'title' => (string)$row->title,
-            'url' => '/module/methods/' . (int)$row->id . '/edit',
+            'url' => '/methods/' . (int)$row->id . '/edit',
             'description' => (string)($row->description ?? ''),
             'meta' => [(string)($row->class_title ?? '')],
             'action' => '',
@@ -197,7 +199,7 @@ final readonly class PanelSearch
         return $this->collect($rows, $tokens, $query, static fn (object $row): array => [
             'type' => 'script',
             'title' => (string)$row->title,
-            'url' => '/module/scripts/' . (int)$row->id . '/edit',
+            'url' => '/scripts/' . (int)$row->id . '/edit',
             'description' => (string)($row->description ?? ''),
             'meta' => ['Скрипт'],
             'action' => '',
@@ -223,7 +225,7 @@ final readonly class PanelSearch
             return [
                 'type' => 'user',
                 'title' => $name !== '' ? $name : $username,
-                'url' => '/module/users/' . (int)$row->id . '/edit',
+                'url' => '/users/' . (int)$row->id . '/edit',
                 'description' => $name !== '' ? $username : '',
                 'meta' => [(int)($row->is_admin ?? 0) === 1 ? 'Администратор' : 'Пользователь'],
                 'action' => '',
@@ -246,11 +248,39 @@ final readonly class PanelSearch
         return $this->collect($rows, $tokens, $query, static fn (object $row): array => [
             'type' => 'location',
             'title' => (string)$row->title,
-            'url' => '/module/locations/' . (int)$row->id . '/edit',
+            'url' => '/locations/' . (int)$row->id . '/edit',
             'description' => '',
             'meta' => ['Локация'],
             'action' => '',
         ]);
+    }
+
+    /**
+     * @param list<string> $tokens
+     * @return list<array{type:string,title:string,url:string,description:string,meta:list<string>,action:string,_score:int}>
+     */
+    private function coreSections(array $tokens, string $query, int $limit): array
+    {
+        $items = [];
+        foreach (CoreSections::all() as $section) {
+            $haystack = mb_strtolower($section['label'] . ' ' . $section['id']);
+            foreach ($tokens as $token) {
+                if (!str_contains($haystack, $token)) {
+                    continue 2;
+                }
+            }
+            $items[] = [
+                'type' => 'section',
+                'title' => $section['label'],
+                'url' => $section['href'],
+                'description' => $section['group'],
+                'meta' => ['ядро'],
+                'action' => '',
+                '_score' => $this->score($section['label'], $section['id'], [], $query, $tokens) + 20,
+            ];
+        }
+
+        return array_slice($items, 0, $this->preLimit($limit));
     }
 
     /**

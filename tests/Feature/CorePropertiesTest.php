@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CorePropertiesTest extends TestCase
 {
     public function testPropertyCanBeCreatedAndDeleted(): void
@@ -18,6 +21,7 @@ final class CorePropertiesTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -46,10 +50,12 @@ final class CorePropertiesTest extends TestCase
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $page = $app->handle(Request::create('/module/properties', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $page = $app->handle(Request::create('/properties', 'GET'));
         self::assertSame(200, $page->getStatusCode());
 
-        $create = $app->handle(Request::create('/module/properties/create', 'POST', [
+        $create = $app->handle(Request::create('/properties/create', 'POST', [
             '_token' => $session->csrfToken(),
             'class_id' => 1,
             'title' => 'temperature',
@@ -59,7 +65,7 @@ final class CorePropertiesTest extends TestCase
         self::assertSame('temperature', $app->database()->connection()->table('properties')->value('title'));
 
         $row = $app->database()->connection()->table('properties')->first();
-        $delete = $app->handle(Request::create('/module/properties/' . $row->id . '/delete', 'POST', [
+        $delete = $app->handle(Request::create('/properties/' . $row->id . '/delete', 'POST', [
             '_token' => $session->csrfToken(),
         ]));
         self::assertSame(302, $delete->getStatusCode());

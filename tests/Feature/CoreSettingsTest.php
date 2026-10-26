@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CoreSettingsTest extends TestCase
 {
     public function testSettingsCanBeListedAndSaved(): void
@@ -18,6 +21,7 @@ final class CoreSettingsTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -41,11 +45,13 @@ final class CoreSettingsTest extends TestCase
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $page = $app->handle(Request::create('/module/settings', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $page = $app->handle(Request::create('/settings', 'GET'));
         self::assertSame(200, $page->getStatusCode());
         self::assertStringContainsString('SITE_TITLE', (string)$page->getContent());
 
-        $save = $app->handle(Request::create('/module/settings/1', 'POST', [
+        $save = $app->handle(Request::create('/settings/1', 'POST', [
             '_token' => $session->csrfToken(),
             'value' => 'New title',
         ]));

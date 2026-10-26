@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class CoreClassesTest extends TestCase
 {
     public function testClassCanBeCreatedEditedAndDeleted(): void
@@ -18,6 +21,7 @@ final class CoreClassesTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -30,10 +34,12 @@ final class CoreClassesTest extends TestCase
             $table->softDeletes();
         });
 
-        $page = $app->handle(Request::create('/module/classes', 'GET'));
+        SessionFixture::authenticate($app);
+
+        $page = $app->handle(Request::create('/classes', 'GET'));
         self::assertSame(200, $page->getStatusCode());
 
-        $create = $app->handle(Request::create('/module/classes/create', 'POST', [
+        $create = $app->handle(Request::create('/classes/create', 'POST', [
             '_token' => $session->csrfToken(),
             'title' => 'Датчик',
         ]));
@@ -41,14 +47,14 @@ final class CoreClassesTest extends TestCase
         $row = $app->database()->connection()->table('classes')->first();
         self::assertNotNull($row);
 
-        $edit = $app->handle(Request::create('/module/classes/' . $row->id . '/edit', 'POST', [
+        $edit = $app->handle(Request::create('/classes/' . $row->id . '/edit', 'POST', [
             '_token' => $session->csrfToken(),
             'title' => 'Датчик температуры',
         ]));
         self::assertSame(302, $edit->getStatusCode());
         self::assertSame('Датчик температуры', $app->database()->connection()->table('classes')->where('id', $row->id)->value('title'));
 
-        $delete = $app->handle(Request::create('/module/classes/' . $row->id . '/delete', 'POST', [
+        $delete = $app->handle(Request::create('/classes/' . $row->id . '/delete', 'POST', [
             '_token' => $session->csrfToken(),
         ]));
         self::assertSame(302, $delete->getStatusCode());

@@ -13,6 +13,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Поиск по новому ядру: сервис, API `/api/v1/panel/search` и drawer в alpha-layout.
+ *
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  */
 final class PanelSearchTest extends TestCase
 {
@@ -28,7 +30,7 @@ final class PanelSearchTest extends TestCase
         self::assertArrayHasKey('Свойства', $byClass['sections']);
         self::assertArrayHasKey('Методы', $byClass['sections']);
         self::assertSame(
-            '/module/classes/1/edit',
+            '/classes/1/edit',
             $byClass['sections']['Классы'][0]['url']
         );
         // Регистр не должен зависеть от collation: SQLite и MariaDB отвечают
@@ -40,9 +42,9 @@ final class PanelSearchTest extends TestCase
         self::assertArrayHasKey('Локации', $byObject['sections']);
         self::assertSame('object', $byObject['sections']['Объекты'][0]['type']);
 
-        $modules = $search->search('События');
-        self::assertArrayHasKey('Модули', $modules['sections']);
-        self::assertSame('/module/events', $modules['sections']['Модули'][0]['url']);
+        $sections = $search->search('События');
+        self::assertArrayHasKey('Разделы', $sections['sections']);
+        self::assertSame('/events', $sections['sections']['Разделы'][0]['url']);
     }
 
     public function testSearchMatchesEveryToken(): void
@@ -153,6 +155,8 @@ final class PanelSearchTest extends TestCase
             $app->database()->schema()->create($name, $definition);
         }
         $this->seed($app);
+
+        SessionFixture::authenticate($app);
 
         return [$app, $session];
     }
