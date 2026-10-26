@@ -201,6 +201,8 @@ Third-party (позже):
   alpha-layout; старый код удалён;
 - `jobs` перенесён на core-очередь: pending/reserved/failed, retry/forget;
   старый scheduler-модуль удалён;
+- `actions_log` перенесён: фильтр/поиск/удаление через
+  `ActionLogRepository`, legacy-таблица alpha остаётся;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 8. Публичные helpers модуля

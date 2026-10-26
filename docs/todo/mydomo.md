@@ -388,6 +388,7 @@ project/
 | 2026-10-26 | `templates/shoutbox/*`, `modules/shoutbox/*` | `modules/core/shoutbox` на `ModuleDb` + alpha-layout |
 | 2026-10-26 | промежуточная `pages/shoutbox.blade.php` | `modules/core/shoutbox/views/index.blade.php` |
 | 2026-10-26 | `modules/jobs`, `templates/jobs/*` | `modules/core/jobs` на core `Queue` |
+| 2026-10-26 | `modules/actions_log`, `templates/actions_log/*` | `modules/core/actions_log` через `ActionLogRepository` |
 
 ## 4. Стек и Composer
 
@@ -807,8 +808,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] Веб-админка `/admin`: обзор, KPI, карточки модулей, быстрые действия;
   вход ведёт на `/admin`.
 - [x] `shoutbox`: полный вертикальный срез (ModuleDb, Blade, alpha-layout).
-- [x] `jobs`: очередь на `Queue`, pending/failed, retry/forget; старый модуль
-  удалён.
+- [x] `jobs`: очередь на `Queue`, pending/failed, retry/forget.
+- [x] `actions_log`: журнал через `ActionLogRepository`, фильтр/удаление;
+  старый модуль удалён.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
   остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.

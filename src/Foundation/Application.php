@@ -23,6 +23,7 @@ use Illuminate\View\Engines\EngineResolver;
 use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
 use LogicException;
+use MajorDoMo\Audit\ActionLogRepository;
 use MajorDoMo\Auth\AdminAuthenticator;
 use MajorDoMo\Auth\ApiTokenRepository;
 use MajorDoMo\Auth\Authorization;
@@ -155,6 +156,7 @@ final class Application
         $roles = new RoleRepository($this->database);
         $this->container->instance(RoleRepository::class, $roles);
         $this->container->instance(ApiTokenRepository::class, new ApiTokenRepository($this->database));
+        $this->container->instance(ActionLogRepository::class, new ActionLogRepository($this->database));
         $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
         $this->container->bind(
