@@ -48,12 +48,12 @@ final class HttpKernelTest extends TestCase
         self::assertSame('SAMEORIGIN', $response->headers->get('X-Frame-Options'));
     }
 
-    public function testRootRedirectsToYoyoWhenLoggedIn(): void
+    public function testRootRedirectsToAdminWhenLoggedIn(): void
     {
         $response = $this->app->handle(Request::create('/', 'GET'));
 
         self::assertSame(302, $response->getStatusCode());
-        self::assertSame('/yoyo-demo', $response->headers->get('Location'));
+        self::assertSame('/admin', $response->headers->get('Location'));
     }
 
     public function testNotFound(): void

@@ -24,6 +24,7 @@ final class LoginTest extends TestCase
             'view_cache' => sys_get_temp_dir() . '/mydomo-views-' . bin2hex(random_bytes(4)),
             'log' => 'php://stderr',
             'session' => $this->session,
+            'cache' => ['driver' => 'array'],
             'database' => [
                 'driver' => 'sqlite',
                 'database' => ':memory:',
@@ -66,7 +67,7 @@ final class LoginTest extends TestCase
         ]));
 
         self::assertSame(302, $response->getStatusCode());
-        self::assertSame('/yoyo-demo', $response->headers->get('Location'));
+        self::assertSame('/admin', $response->headers->get('Location'));
         self::assertSame('admin', $this->session->user()['username'] ?? null);
     }
 

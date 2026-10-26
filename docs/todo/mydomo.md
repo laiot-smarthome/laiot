@@ -804,6 +804,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] Первая страница на `layouts.alpha`: `/status` (БД, кэш, версия, модули).
 - [x] `PanelRenderer`/`PanelPage` — единая сборка страниц в alpha-layout;
   меню автоматически из core-модулей.
+- [x] Веб-админка `/admin`: обзор, KPI, карточки модулей, быстрые действия;
+  вход ведёт на `/admin`.
 - [x] `shoutbox`: полный вертикальный срез (ModuleDb, Blade, alpha-layout).
 - [x] `jobs`: очередь на `Queue`, pending/failed, retry/forget; старый модуль
   удалён.

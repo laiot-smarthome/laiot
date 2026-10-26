@@ -44,6 +44,7 @@ final readonly class PanelRenderer
     private function defaultMenu(string $active): array
     {
         $items = [
+            ['id' => 'dashboard', 'label' => 'Обзор', 'href' => '/admin', 'icon' => 'ti-layout-dashboard'],
             ['id' => 'status', 'label' => 'Статус', 'href' => '/status', 'icon' => 'ti-activity'],
             ['id' => 'roles', 'label' => 'Роли', 'href' => '/roles', 'icon' => 'ti-shield'],
         ];

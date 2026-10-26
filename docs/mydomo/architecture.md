@@ -96,6 +96,7 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
   меню строится из `ModuleManager::menuItems()`;
 - `resources/views/layouts/alpha.blade.php` — перенос alpha-shell на Blade
   (topbar/sidebar/меню);
+- `resources/views/pages/dashboard.blade.php` — веб-админка `/admin`;
 - `resources/views/pages/status.blade.php` — первая страница нового kernel
   на `layouts.alpha`, `/status`;
 - `resources/views/pages/roles.blade.php` — роли/права, `/roles`;

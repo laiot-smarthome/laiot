@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Routing\Router;
+use MajorDoMo\Http\Controllers\DashboardController;
 use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\LoginController;
 use MajorDoMo\Http\Controllers\RolesController;
@@ -15,6 +16,9 @@ return static function (Router $router): void {
         // Корень ведёт в новый вход; старый shell остаётся на /panel/.
         $router->get('/', [LoginController::class, 'show'])->name('home');
         $router->get('/health', [HealthController::class, '__invoke'])->name('health');
+        $router->get('/admin', DashboardController::class)
+            ->middleware(['auth'])
+            ->name('admin.dashboard');
         $router->get('/status', StatusController::class)
             ->middleware(['auth'])
             ->name('status');

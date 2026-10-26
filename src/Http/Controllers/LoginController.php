@@ -30,7 +30,7 @@ final readonly class LoginController extends Controller
     public function show(): Response
     {
         if ($this->session->user() !== null) {
-            return new RedirectResponse('/yoyo-demo');
+            return new RedirectResponse('/admin');
         }
 
         return $this->render(null, 200);
@@ -48,7 +48,7 @@ final readonly class LoginController extends Controller
 
         $this->session->login($user);
 
-        return new RedirectResponse('/yoyo-demo');
+        return new RedirectResponse('/admin');
     }
 
     public function logout(): Response

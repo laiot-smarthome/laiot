@@ -146,6 +146,7 @@ php bin/mydomo api:token 1 "monitoring"
 Токен показывается один раз. `Authorization: Bearer <token>` или
 `X-API-Key: <token>`.
 
+`/admin` (auth) — обзор веб-админки на Blade-компонентах и alpha-layout.
 Страница `/status` (auth) показывает версию, PHP, БД/кэш и число модулей
 в alpha-layout. `/roles` (auth + `can:users.manage`) — роли и permissions.
 
