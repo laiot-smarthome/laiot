@@ -209,7 +209,8 @@ Third-party (позже):
 - `system_errors` — новая таблица `system_errors`, ошибки ядра с request_id;
 - `locations` — новая таблица `locations`, CRUD и приоритет;
 - `scripts` — новая таблица `scripts`, CRUD/редактор без запуска циклов;
-- `classes` — новая таблица `classes`, CRUD; свойства/методы — следующий слой;
+- `classes` — новая таблица `classes`, CRUD;
+- `properties` — новая таблица `properties`, CRUD; значения/история — дальше;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 8. Публичные helpers модуля

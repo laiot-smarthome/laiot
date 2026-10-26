@@ -396,6 +396,7 @@ project/
 | 2026-10-26 | `modules/locations`, `templates/locations/*` | `modules/core/locations` на новой `locations` |
 | 2026-10-26 | `modules/scripts`, `templates/scripts/*` | `modules/core/scripts` на новой `scripts` |
 | 2026-10-26 | `modules/classes`, `templates/classes/*` | `modules/core/classes` на новой `classes` |
+| 2026-10-26 | `modules/properties`, `templates/properties/*` | `modules/core/properties` на новой `properties` |
 
 ## 4. Стек и Composer
 
@@ -838,6 +839,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `scripts`: новая таблица, CRUD/редактор без запуска циклов; старый
   модуль удалён.
 - [x] `classes`: новая таблица, CRUD; старый модуль удалён.
+- [x] `properties`: новая таблица, CRUD; старый модуль удалён.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
   остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.
