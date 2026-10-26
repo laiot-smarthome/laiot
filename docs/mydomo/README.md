@@ -15,41 +15,46 @@ legacy-коду. Если документ относится к новому я
 
 ## Статус
 
-**Core-gate закрыт по базовым слоям**, но не по всей alpha-совместимости:
-два модуля уже перенесены, пользовательские обёртки — частично.
+**База ядра и веб-админка готовы.** Перенесено **15 core-модулей**;
+остались 14 старых модулей и alpha-shell parity. Пользовательские обёртки
+работают.
 
 Уже работает в новом ядре:
 
 - `public/index.php` → `Application` → `Kernel` → Illuminate Router;
 - сессия `mydomo`, вход/выход, CSRF, rate limit входа;
 - `Authorization`/`can:`, таблицы `roles`/`permissions`/`user_roles`,
-  страница `/roles`;
+  `/roles`, назначение ролей в users;
 - API-токены (`api_tokens`, Bearer/X-API-Key, `/api/v1/me` с правами,
-  управление в `/admin/tokens`);
-- единые 404/405/500, `request_id`, security headers;
+  `/admin/tokens`);
+- единые 404/405/500, `request_id`, security headers, maintenance mode;
 - `ModuleManager`, `ModuleDb` (MySQL/SQLite), `ModuleBus` (retained events);
+- автозагрузка core/module helpers; модуль публикует функции через
+  `helpers.php` и сервис модуля;
 - кэш `array`/`file`/`database`/`redis`;
 - очередь `DatabaseQueue`, worker, failed/retry/pending, typed jobs;
-- CLI `bin/mydomo`: `about`, `doctor`, `health`, `route:list`, `queue:*`,
-  `db:*`, `module:list`, `api:token`;
-- `/health` проверяет БД и кэш, `/status` — версия/БД/кэш/модули;
+- CLI: `about`, `doctor`, `health`, `route:list`, `queue:*`, `db:*`,
+  `module:list`, `api:token`, `maintenance`, `timeout:run`;
+- `/health` (БД+кэш), `/status`, `/admin` (Blade-админка);
 - `PanelRenderer` + `layouts.alpha`, меню из core-модулей;
-- веб-админка `/admin` и вход на Blade-компонентах;
-- пользовательская `say()` пишет в Shoutbox;
-- core/module helpers подключаются автоматически; модуль публикует функции
-  через `helpers.php` и сервис модуля (`shoutbox_latest()`);
-- модули `shoutbox` и `jobs` перенесены полностью, старый код удалён;
-- Blade-компоненты `x-md.*` с alpha-разметкой;
+- вход, UI Kit, профиль, API-маршруты, реестр модулей;
+- пользовательские обёртки: `say`, `gg`, `sg`, `getObject`, `getHistory`,
+  `callMethod`, `setTimeOut`, `clearTimeOut`;
 - Carbon/Clock, `APP_TIMEZONE`, lowercase-схема + timestamps + soft deletes.
+
+Перенесённые модули: `shoutbox`, `jobs`, `actions_log`, `settings`, `users`,
+`ui_kit`, `system_errors`, `locations`, `scripts`, `classes`, `properties`,
+`methods`, `objects`, `pvalues`, `history`.
 
 Ещё не закрыто:
 
-- пользовательские `gg`, `sg`, `setTimeOut`, `callMethod`, `getObject`,
-  `getHistory` — нужны объекты/свойства/методы как core-сервисы;
-- полная alpha-shell (notifications/console/search parity);
+- 14 старых модулей: api, events, modes, pinghosts, mqtt, zigbee, xray,
+  blockly_code, knowledge_base, ai_assistant, control_modules, linkedobject,
+  market, saverestore;
+- полная alpha-shell parity (notifications/console/search);
 - установка/обновление, полный API v2;
-- остальные core-модули;
-- live Redis-проверка.
+- live Redis-проверка;
+- автоматический запуск timeout/queue — только явные команды, циклы не трогаем.
 
 ## Что читать
 
