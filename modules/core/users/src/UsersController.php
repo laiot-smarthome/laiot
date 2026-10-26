@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 use MajorDoMo\Audit\ActionLogger;
+use MajorDoMo\Auth\RoleRepository;
 use MajorDoMo\Auth\UserRepository;
 use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
@@ -24,6 +25,7 @@ final readonly class UsersController extends Controller
     public function __construct(
         private Factory $view,
         private UserRepository $users,
+        private RoleRepository $roles,
         private SessionStore $session,
         private PanelRenderer $panel,
         private ActionLogger $audit
@@ -56,6 +58,7 @@ final readonly class UsersController extends Controller
 
         try {
             $id = $this->users->create($username, $name, $password, $isAdmin);
+            $this->roles->syncUserRoles($id, $this->roleIds($request));
             $this->audit->log('user.create', 'Создан пользователь: ' . $username, (string)($this->session->user()['username'] ?? ''));
             return new RedirectResponse('/module/users/' . $id . '/edit');
         } catch (InvalidArgumentException $error) {
@@ -90,6 +93,7 @@ final readonly class UsersController extends Controller
 
         try {
             $this->users->update((int)$id, $username, $name, $password, $isAdmin);
+            $this->roles->syncUserRoles((int)$id, $this->roleIds($request));
             $this->audit->log('user.update', 'Изменён пользователь: ' . $username, (string)($this->session->user()['username'] ?? ''));
         } catch (InvalidArgumentException $error) {
             return $this->form($user, $error->getMessage(), [
@@ -111,6 +115,19 @@ final readonly class UsersController extends Controller
     }
 
     /**
+     * @return list<int>
+     */
+    private function roleIds(Request $request): array
+    {
+        $ids = $request->request->all('role_ids');
+        if (!is_array($ids)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0));
+    }
+
+    /**
      * @param array{id:int,username:string,name:string,is_admin:bool}|null $user
      * @param array{username:string,name:string,is_admin:bool}|null $draft
      */
@@ -119,6 +136,8 @@ final readonly class UsersController extends Controller
         $content = $this->view->make('users::form', [
             'user' => $user,
             'draft' => $draft,
+            'roles' => $this->roles->allRoles(),
+            'selectedRoles' => $user !== null ? $this->roles->roleIdsForUser($user['id']) : [],
             'error' => $error,
             'csrf' => $this->session->csrfToken(),
         ])->render();

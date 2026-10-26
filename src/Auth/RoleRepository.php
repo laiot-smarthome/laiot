@@ -34,6 +34,20 @@ final readonly class RoleRepository
     }
 
     /**
+     * @return list<int>
+     */
+    public function roleIdsForUser(int $userId): array
+    {
+        return $this->database->connection()->table('user_roles')
+            ->where('user_id', $userId)
+            ->whereNull('deleted_at')
+            ->pluck('role_id')
+            ->map(static fn (mixed $id): int => (int)$id)
+            ->values()
+            ->all();
+    }
+
+    /**
      * @return list<string>
      */
     public function rolesForUser(int $userId): array

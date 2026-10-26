@@ -147,6 +147,7 @@ php bin/mydomo api:token 1 "monitoring"
 `X-API-Key: <token>`.
 
 `/admin` (auth) — обзор веб-админки на Blade-компонентах и alpha-layout.
+`/module/users` — пользователи; роли назначаются в форме пользователя.
 `/admin/tokens` (auth + `can:users.manage`) — выпуск/отзыв API-токенов.
 `/admin/modules` (auth) — реестр core-модулей: версии, таблицы, helpers.
 `/admin/api` (auth) — живой список API-маршрутов.

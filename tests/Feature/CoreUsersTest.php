@@ -33,6 +33,20 @@ final class CoreUsersTest extends TestCase
             $table->timestamps();
             $table->softDeletes();
         });
+        $app->database()->schema()->create('roles', static function (Blueprint $table): void {
+            $table->increments('id');
+            $table->string('name');
+            $table->string('title');
+            $table->dateTime('deleted_at')->nullable();
+        });
+        $app->database()->schema()->create('user_roles', static function (Blueprint $table): void {
+            $table->increments('id');
+            $table->integer('user_id');
+            $table->integer('role_id');
+            $table->timestamps();
+            $table->softDeletes();
+        });
+        $app->database()->connection()->table('roles')->insert(['id' => 1, 'name' => 'user', 'title' => 'Пользователь']);
 
         $page = $app->handle(Request::create('/module/users', 'GET'));
         self::assertSame(200, $page->getStatusCode());
@@ -43,10 +57,12 @@ final class CoreUsersTest extends TestCase
             'name' => 'Оператор',
             'password' => 'secret123',
             'is_admin' => '1',
+            'role_ids' => [1],
         ]));
         self::assertSame(302, $create->getStatusCode());
         $row = $app->database()->connection()->table('users')->where('username', 'operator')->first();
         self::assertNotNull($row);
+        self::assertSame(1, $app->database()->connection()->table('user_roles')->where('user_id', $row->id)->count());
 
         $edit = $app->handle(Request::create('/module/users/' . $row->id . '/edit', 'POST', [
             '_token' => $session->csrfToken(),

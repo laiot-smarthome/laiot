@@ -21,6 +21,14 @@
             <x-md.input name="name" label="Имя" :value="$value('name')" required />
             <x-md.input name="password" type="password" label="Пароль" :required="$user === null" hint="{{ $user === null ? 'Минимум 8 символов' : 'Оставьте пустым, чтобы не менять' }}" />
             <x-md.checkbox name="is_admin" value="1" label="Администратор" :checked="$isAdmin" />
+            @if ($roles !== [])
+                <fieldset class="md-field">
+                    <legend class="md-field__label">Роли</legend>
+                    @foreach ($roles as $role)
+                        <x-md.checkbox :name="'role_ids[]'" :value="(string)$role['id']" :label="$role['title']" :checked="in_array($role['id'], $selectedRoles, true)" />
+                    @endforeach
+                </fieldset>
+            @endif
             <div class="md-ui-actions">
                 <x-md.button type="submit" icon="check">Сохранить</x-md.button>
                 <x-md.button href="/module/users" variant="ghost">Отмена</x-md.button>
