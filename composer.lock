@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3c9c7dfab1c099999e27a58a04e9d03c",
+    "content-hash": "42ec84cb6b55eb14193e504e92b7dd05",
     "packages": [
         {
             "name": "brick/math",
@@ -139,6 +139,68 @@
                 }
             ],
             "time": "2026-09-06T14:11:38+00:00"
+        },
+        {
+            "name": "clickfwd/yoyo",
+            "version": "0.15.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/clickfwd/yoyo.git",
+                "reference": "c1c0e23fbca1636c1e9af1a78a9edf4d4f5d70de"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/clickfwd/yoyo/zipball/c1c0e23fbca1636c1e9af1a78a9edf4d4f5d70de",
+                "reference": "c1c0e23fbca1636c1e9af1a78a9edf4d4f5d70de",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.0",
+                "psr/container": "^1.1.1|^2.0.1"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.39",
+                "illuminate/container": "^8.0||^9.0||^10.0||^11.0||^12.0",
+                "jenssegers/blade": "^2.0",
+                "pestphp/pest": "^4.0",
+                "pestphp/pest-plugin-browser": "^4.0",
+                "phpunit/phpunit": "^12.0",
+                "spatie/ray": "^1.20",
+                "symfony/var-dumper": "^5.2|^6.0|^7.0",
+                "twig/twig": "^3.4"
+            },
+            "suggest": {
+                "illuminate/container": "Required for advanced dependency injection or Blade integration"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/yoyo/helpers.php"
+                ],
+                "psr-4": {
+                    "Clickfwd\\Yoyo\\": "src/yoyo"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Clickfwd"
+                }
+            ],
+            "description": "Framework to build dynamic interfaces with seamless communication between frontend and backend.",
+            "homepage": "https://github.com/Clickfwd/yoyo",
+            "keywords": [
+                "framework",
+                "yoyo"
+            ],
+            "support": {
+                "issues": "https://github.com/Clickfwd/yoyo/issues",
+                "source": "https://github.com/Clickfwd/yoyo"
+            },
+            "time": "2026-08-11T02:41:45+00:00"
         },
         {
             "name": "doctrine/inflector",

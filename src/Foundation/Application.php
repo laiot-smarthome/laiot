@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Foundation;
 
+use Clickfwd\Yoyo\Blade\YoyoBladeCompilerEngine;
+use Clickfwd\Yoyo\Blade\YoyoBladeDirectives;
+use Clickfwd\Yoyo\ViewProviders\BladeViewProvider;
+use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Events\Dispatcher;
@@ -13,8 +17,8 @@ use Illuminate\Routing\CallableDispatcher;
 use Illuminate\Routing\Contracts\CallableDispatcher as CallableDispatcherContract;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Fluent;
 use Illuminate\View\Compilers\BladeCompiler;
-use Illuminate\View\Engines\CompilerEngine;
 use Illuminate\View\Engines\EngineResolver;
 use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
@@ -23,6 +27,8 @@ use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Database\SettingsRepository;
 use MajorDoMo\Http\Kernel;
 use MajorDoMo\Http\Middleware\RequestIdMiddleware;
+use MajorDoMo\View\BladeView;
+use MajorDoMo\Yoyo\Counter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Monolog\Logger;
@@ -43,6 +49,7 @@ final class Application
     private Kernel $kernel;
     private LoggerInterface $logger;
     private DatabaseManager $database;
+    private Yoyo $yoyo;
 
     /** @var array<string, mixed> */
     private array $config;
@@ -65,9 +72,9 @@ final class Application
         }
 
         $this->container = new Container();
+        Container::setInstance($this->container);
         $this->container->instance(Container::class, $this->container);
         $this->container->instance(self::class, $this);
-        $this->container->instance('config', $this->config);
 
         $this->logger = $this->createLogger();
         $this->container->instance(LoggerInterface::class, $this->logger);
@@ -150,6 +157,13 @@ final class Application
         return $this->database;
     }
 
+    public function yoyo(): Yoyo
+    {
+        $this->ensureBooted();
+
+        return $this->yoyo;
+    }
+
     public function config(string $key, mixed $default = null): mixed
     {
         return Arr::get($this->config, $key, $default);
@@ -180,13 +194,45 @@ final class Application
             throw new LogicException('Не удалось создать каталог шаблонов: ' . $cache);
         }
 
+        $views = (string)($this->config['views'] ?? $this->root . '/resources/views');
         $resolver = new EngineResolver();
         $compiler = new BladeCompiler($files, $cache);
-        $resolver->register('blade', static fn (): CompilerEngine => new CompilerEngine($compiler, $files));
+        $resolver->register(
+            'blade',
+            static fn (): YoyoBladeCompilerEngine => new YoyoBladeCompilerEngine($compiler, $files)
+        );
+        new YoyoBladeDirectives($compiler);
 
-        $finder = new FileViewFinder($files, [(string)($this->config['views'] ?? $this->root . '/resources/views')]);
+        $finder = new FileViewFinder($files, [$views, $views . '/yoyo']);
+        $factory = new Factory($resolver, $finder, $events);
+        $bladeView = new BladeView($factory, $this->container);
 
-        return new Factory($resolver, $finder, $events);
+        // Yoyo и Blade-компоненты ищут эти сервисы через контейнер.
+        $this->container->instance('blade.compiler', $compiler);
+        $this->container->instance('view.engine.resolver', $resolver);
+        $this->container->instance('view', $bladeView);
+        $this->container->instance(BladeView::class, $bladeView);
+        $this->container->instance('config', new Fluent([
+            'view' => [
+                'compiled' => $cache,
+                'paths' => [$views],
+            ],
+        ]));
+
+        $this->yoyo = new Yoyo();
+        $this->yoyo->configure([
+            'url' => '/yoyo',
+            'scriptsPath' => '/assets/vendor/yoyo',
+            'namespace' => 'MajorDoMo\\Yoyo\\',
+            'htmx' => '/assets/vendor/htmx/htmx.min.js',
+        ]);
+        $this->yoyo->registerViewProvider(
+            static fn (): BladeViewProvider => new BladeViewProvider($bladeView)
+        );
+        Yoyo::registerComponent('counter', Counter::class);
+        $this->container->instance(Yoyo::class, $this->yoyo);
+
+        return $factory;
     }
 
     private function ensureBooted(): void

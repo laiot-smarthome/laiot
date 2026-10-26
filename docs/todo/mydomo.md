@@ -35,7 +35,10 @@ order: 5
   репозиторий, базовые `Controller`/`Repository` и трейт ответов.
 - [x] MariaDB-проверка на одноразовом контейнере: схема, insert, select,
   drop прошли.
-- [ ] Этап 2: auth, сессии, полноценный HTTP-middleware и Yoyo/Blade UI.
+- [x] Yoyo 0.15.1 + Blade подключён через собственный адаптер; компонент
+  рендерится, POST `/yoyo` обновляет HTML; htmx/yoyo.js лежат локально.
+- [x] Новый `public/index.php` заменил старый вход; spike-файлы удалены.
+- [ ] Этап 2: auth, сессии, CSRF для `/yoyo`, полноценный middleware и панель.
 
 ## 1. Решение и границы
 
@@ -259,6 +262,33 @@ project/
 - Контроллеры и сервисы по возможности `readonly`; изменяемое состояние —
   только у моделей, сессий и долгоживущих воркеров.
 
+### 3.6. Удаление старого кода
+
+Старый код не храним «на всякий случай»: он есть в `alpha` и в истории Git.
+После каждого переписанного участка удаляем его в том же коммите, чтобы
+репозиторий показывал реальный прогресс.
+
+Правила:
+
+- Сначала проверяем ссылки (`grep` по классам, маршрутам, шаблонам), затем
+  удаляем файл, маршрут, шаблон, тест и запись в документации.
+- Не оставляем каталоги `legacy/`, `old/`, `backup/`, `*.bak`, закомментированные
+  блоки и «временные» копии. Для истории есть `alpha`.
+- Удаляем и старые тесты, которые проверяют только удалённый код; заменяем
+  их тестами нового поведения.
+- Совместимые обёртки пользовательского кода (`gg`, `sg`, `setTimeOut` и т. п.)
+  — исключение: они остаются, пока владелец сам не перепишет свои методы.
+- Если удаление ломает базовый модуль, модуль сначала переводится на новый
+  сервис, затем старый файл удаляется. Нельзя держать два пути «навсегда».
+- Каждое удаление фиксируется в журнале ниже: дата, что удалено, чем заменено.
+
+Журнал удалений:
+
+| Дата | Удалено | Замена |
+| --- | --- | --- |
+| 2026-10-26 | `public/spike.php`, `SpikeController`, `SpikeNote`, `spike.blade.php`, `SpikeTest`, `EloquentSpikeTest` | `public/index.php`, `YoyoDemoController`, `DatabaseTest`, `YoyoTest` |
+| 2026-10-26 | старый `public/index.php` (`SiteApplication`) | новый `public/index.php` (kernel) |
+
 ## 4. Стек и Composer
 
 ### 4.1. PHP
@@ -307,7 +337,7 @@ Laravel-роутинг, Eloquent, коллекции, кэш, Blade и конт�
 | `illuminate/cache` | `^12.0` | Кэш с TTL и store-абстракцией | Берём |
 | `illuminate/redis` | `^12.0` | Redis-store | Берём |
 | `illuminate/view` | `^12.0` | Blade | Берём |
-| `clickfwd/yoyo` | `^0.15.1` | Livewire-подобные компоненты + htmx | Оценить как UI-слой |
+| `clickfwd/yoyo` | `^0.15.1` | Livewire-подобные компоненты + htmx | Берём как UI-слой |
 | `illuminate/filesystem` | `^12.0` | Blade и файлы | Транзитивно |
 | `illuminate/events` | `^12.0` | События view/container | Транзитивно |
 | `predis/predis` | `^2.4` | Redis без ext-redis | Берём как fallback |
@@ -414,31 +444,37 @@ Predis 2.4.1; 38 пакетов). Dev-набор без `roave/security-advisori
 - `src/Database/Setting.php`, `SettingsRepository.php`, `Repository.php` —
   Eloquent-модель и репозиторий настроек;
 - `src/Http/Controllers/HealthController.php`,
-  `SettingController.php`, `SpikeController.php`;
+  `SettingController.php`, `YoyoDemoController.php`, `YoyoController.php`;
+- `src/View/BladeView.php` — адаптер Blade Factory для Yoyo;
+- `src/Yoyo/Counter.php` — тестовый компонент;
 - `src/Http/Middleware/RequestIdMiddleware.php` — проверка pipeline;
 - `bootstrap/app.php` — `Config::boot()` + параметры MySQL для `DatabaseManager`;
-- `config/app.php`, `routes/web.php`, `resources/views/spike.blade.php`,
-  временный `public/spike.php`;
-- `tests/Feature/SpikeTest.php`, `EloquentSpikeTest.php`,
-  `DatabaseTest.php` — 11 тестов;
+- `config/app.php`, `routes/web.php`, `resources/views/yoyo-demo.blade.php`,
+  `resources/views/yoyo/counter.blade.php`;
+- `public/index.php` — новый front controller; старый заменён, `spike.php`
+  удалён;
+- `tests/Feature/HttpKernelTest.php`, `DatabaseTest.php`, `YoyoTest.php` —
+  12 тестов;
 - `tests/Integration/MariaDbConnectionTest.php` — реальная MariaDB-проверка;
 - `phpunit.xml`, `phpstan.neon`, `rector.php`, `.php-cs-fixer.dist.php`,
   `.github/workflows/ci.yml`.
 
-Локальные результаты: `composer check` — 115 файлов lint, PHPStan без ошибок,
-PHP-CS-Fixer 0 замечаний, Rector dry-run чистый, PHPUnit 11/11, MariaDB
-integration 1/1 на одноразовом контейнере, ручные `/spike`, `/health`, 404,
-405 и `/db/setting/...` отвечают корректно. Старые
+Локальные результаты: `composer check` — 117 файлов lint, PHPStan без ошибок,
+PHP-CS-Fixer 0 замечаний, Rector dry-run чистый, PHPUnit 12/12, MariaDB
+integration 1/1 на одноразовом контейнере, ручные `/health`, `/`,
+`/db/setting/...`, `/yoyo-demo` и POST `/yoyo` отвечают корректно. Старые
 `config_smoke`/`routing_smoke`/`php majordomo about` тоже проходят.
 
 Границы этапа: auth, сессии, полноценный middleware, кэш и модули ещё не
-перенесены; `public/spike.php` временный. Следующий этап — auth/сессии,
-глобальный middleware и Yoyo/Blade UI-слой.
+перенесены; Yoyo-update пока без CSRF/сессии. Следующий этап — auth/сессии,
+глобальный middleware и перенос панели.
 
 ### 4.7. Yoyo: что это и как встраивать
 
-**Важно:** `clickfwd/yoyo` ещё не подключён. Сейчас в ветке стоит
-Illuminate Routing + Blade; Yoyo — следующий spike, а не текущая зависимость.
+**Статус:** `clickfwd/yoyo` 0.15.1 подключён и проверен в spike. Официальная
+связка `jenssegers/blade` не подошла: она поддерживает Illuminate 9–11, а у
+нас 12. Поэтому сделан собственный адаптер `src/View/BladeView.php` +
+`YoyoBladeCompilerEngine`/`YoyoBladeDirectives`/`BladeViewProvider`.
 
 Yoyo — не HTTP-роутер и не замена контроллерам. Это Livewire-подобный
 full-stack-слой для серверных компонентов и htmx: страницу по-прежнему
@@ -451,29 +487,29 @@ endpoint. Поэтому архитектура такая:
 - `POST /yoyo` (или `/panel/yoyo`) обслуживает обновления компонентов;
 - модули регистрируют свои namespace/компоненты через манифест.
 
-Почему нужен отдельный spike:
+Что уже сделано:
 
-- официальная связка Yoyo с Blade через `jenssegers/blade` 2.x поддерживает
-  Illuminate 9–11, а у нас Illuminate 12. Нужен собственный адаптер:
-  `view.engine.resolver`, `blade.compiler`, `view`, `config` и
-  `YoyoBladeCompilerEngine` + `BladeViewProvider`;
-- `yoyo.js` и htmx нельзя грузить с CDN: кладём в `resources/js/vendor/` или
-  `public/assets/vendor/yoyo/`, собираем Vite, фиксируем версию и лицензию;
-- update-endpoint обязан требовать сеанс администратора и CSRF; публичные
-  свойства компонента уходят в браузер, поэтому секреты в них запрещены;
-- компоненты модулей получают namespace `MajorDoMo\Modules\<Name>\Yoyo\`;
-  ядро не должно знать конкретные модули.
+- `BladeView` отдаёт Yoyo контейнер, finder и engine resolver;
+- `YoyoBladeCompilerEngine` и `YoyoBladeDirectives` зарегистрированы вручную,
+  без `jenssegers/blade`;
+- `yoyo.js` 0.15.1 и `htmx.min.js` 1.9.4 лежат локально в
+  `public/assets/vendor/`, CDN не используется;
+- `@yoyo('counter')` рендерится на первичной загрузке, POST `/yoyo`
+  возвращает обновлённый HTML;
+- компонент `MajorDoMo\Yoyo\Counter` зарегистрирован в контейнере.
 
-Spike считается успешным, если:
+Осталось:
 
-- [ ] Blade-страница рендерит Yoyo-компонент на первичной загрузке;
-- [ ] `POST /yoyo` возвращает обновлённый HTML и принимает CSRF/сессию;
-- [ ] компонент модуля регистрируется без правки ядра;
-- [ ] htmx/yoyo.js отдаются локально, без CDN;
-- [ ] CSP/безопасность и тесты не хуже текущего Blade-слоя.
+- [ ] закрыть `/yoyo` сеансом администратора и CSRF;
+- [ ] проверить компонент модуля через namespace
+  `MajorDoMo\Modules\<Name>\Yoyo\`;
+- [ ] решить, заменяет ли Yoyo `partLoad` полностью или только новые страницы;
+- [ ] CSP, лимиты запросов и защита публичных свойств компонентов;
+- [ ] тест на обновление компонента в браузере (htmx), а не только PHPUnit.
 
-Если адаптер окажется слишком хрупким, оставляем Blade + HTMX/Alpine без
-Yoyo. Решение фиксируем после spike, а не заранее.
+Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры и права — в ядре. Если
+адаптер окажется слишком хрупким, оставляем Blade + HTMX/Alpine без Yoyo;
+решение фиксируем после первых реальных страниц.
 
 ## 5. Этапы
 

@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use MajorDoMo\Foundation\Application;
 use PHPUnit\Framework\TestCase;
 
-final class SpikeTest extends TestCase
+final class HttpKernelTest extends TestCase
 {
     private Application $app;
 
@@ -24,11 +24,11 @@ final class SpikeTest extends TestCase
 
     public function testBladeAndContainerWork(): void
     {
-        $response = $this->app->handle(Request::create('/spike', 'GET'));
+        $response = $this->app->handle(Request::create('/yoyo-demo', 'GET'));
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('MyDoMo spike', (string)$response->getContent());
-        self::assertStringContainsString('Blade работает.', (string)$response->getContent());
+        self::assertStringContainsString('Yoyo + Blade', (string)$response->getContent());
+        self::assertStringContainsString('increment', (string)$response->getContent());
         self::assertSame('yes', $response->headers->get('X-Spike-Middleware'));
         self::assertNotEmpty($response->headers->get('X-Request-Id'));
     }
@@ -42,12 +42,12 @@ final class SpikeTest extends TestCase
         self::assertStringContainsString('"database":"not_configured"', (string)$response->getContent());
     }
 
-    public function testRouteParameter(): void
+    public function testRootRedirectsToPanel(): void
     {
-        $response = $this->app->handle(Request::create('/spike/42', 'GET'));
+        $response = $this->app->handle(Request::create('/', 'GET'));
 
-        self::assertSame(200, $response->getStatusCode());
-        self::assertSame('Spike item 42', (string)$response->getContent());
+        self::assertSame(302, $response->getStatusCode());
+        self::assertSame('/panel/', $response->headers->get('Location'));
     }
 
     public function testNotFound(): void
@@ -61,7 +61,7 @@ final class SpikeTest extends TestCase
 
     public function testMethodNotAllowed(): void
     {
-        $response = $this->app->handle(Request::create('/spike/post-only', 'GET'));
+        $response = $this->app->handle(Request::create('/yoyo', 'GET'));
 
         self::assertSame(405, $response->getStatusCode());
         self::assertStringContainsString('POST', (string)$response->headers->get('Allow'));
@@ -69,9 +69,9 @@ final class SpikeTest extends TestCase
 
     public function testNamedRouteIsRegistered(): void
     {
-        $route = $this->app->router()->getRoutes()->getByName('spike');
+        $route = $this->app->router()->getRoutes()->getByName('health');
 
         self::assertNotNull($route);
-        self::assertSame('spike', $route->uri());
+        self::assertSame('health', $route->uri());
     }
 }
