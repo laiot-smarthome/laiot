@@ -218,6 +218,10 @@ Third-party (позже):
 - `events` — журнал `property_events`: шаги «значение изменилось» и «вызван
   OnChange-метод», фильтры и статусы; старый `modules/events` и его шаблоны
   удалены;
+- `knowledge_base` — `docs/**` в alpha-layout: категории, поиск, безопасный
+  Markdown и оглавление; без собственной таблицы. Старый модуль, шаблоны и
+  page-ассеты удалены; `lib/knowledge_base.php`/`lib/markdown.php` остаются
+  только для `ai_assistant` и alpha-тестов;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 8. Публичные helpers модуля

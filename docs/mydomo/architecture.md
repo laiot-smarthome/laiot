@@ -91,6 +91,8 @@ legacy API и возвращал 503 «install_required».
 | `PanelSearch` | поиск по core-сущностям для шапки админки |
 | `NotificationService` | уведомления модулей/сценариев, прочтение и summary |
 | `ScriptRunner` | запуск сценария по ID/названию с `$params` (без eval) |
+| `KnowledgeBase` | индекс `docs/**`, категории, поиск и страницы базы знаний |
+| `MarkdownRenderer` | безопасный GFM-рендер, ссылки и оглавление |
 
 Запись значения свойства — не просто `UPDATE property_values`. Сервис
 `PropertyValueService` сохраняет значение, пишет историю (если включена),
@@ -134,6 +136,8 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 - `resources/views/pages/modules.blade.php` — реестр модулей, `/admin/modules`;
 - `modules/core/events/views/index.blade.php` — журнал цепочки событий,
   `/module/events`;
+- `modules/core/knowledge_base/` — база знаний `docs/**` в alpha-layout,
+  `/module/knowledge_base`; Markdown рендерится `src/Docs/MarkdownRenderer.php`;
 - `resources/views/pages/shoutbox.blade.php` — промежуточная страница.
 
 Новый layout/CSS не создаём. Alpha-shell и `MDJUI` остаются эталоном, пока

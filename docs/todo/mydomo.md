@@ -407,6 +407,7 @@ project/
 | 2026-10-26 | `modules/history`, `templates/history/*` | `modules/core/history` на `property_history` |
 | 2026-10-26 | `modules/events`, `templates/events/*` | `modules/core/events` на `property_events` и `PropertyValueService` |
 | 2026-10-26 | `lib/core/Helpers/Events.php`, `lib/events.class.php`, `public/assets/modules/events/*` | журнал `property_events`; legacy `registerEvent()` убран, `Api\Dispatcher` не падает без него |
+| 2026-10-26 | `modules/knowledge_base`, `templates/knowledge_base/*`, `public/assets/modules/knowledge_base/*` | `modules/core/knowledge_base` на `KnowledgeBase` + `league/commonmark`; `lib/knowledge_base.php` и `lib/markdown.php` оставлены только для `ai_assistant`/alpha-тестов |
 | 2026-10-26 | `.env.bak.20261022-202814` | `.env.example` + `Config`; резервные копии `.env` не храним в git |
 
 ## 4. Стек и Composer
@@ -468,7 +469,7 @@ Laravel-роутинг, Eloquent, коллекции, кэш, Blade и конт�
 | `symfony/console` | `^7.4` | CLI `bin/mydomo` | Берём |
 | `symfony/uid` | `^7.4` | ID/trace при необходимости | Оценить |
 | `zircote/swagger-php` | `^5.0` | OpenAPI из атрибутов | Оценить |
-| `league/commonmark` | `^2.7` | Markdown базы знаний | Оценить |
+| `league/commonmark` | `^2.10` | Markdown базы знаний | Взят, 2.10.4 |
 | `dragonmantank/cron-expression` | `^3.4` | Cron-расписания, если появятся | Оценить |
 | `illuminate/console` | `^12.0` | CLI на Symfony Console | Не берём: достаточно `symfony/console` |
 | `illuminate/validation` | `^12.0` | Валидация API и форм | Позже |
@@ -838,6 +839,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   `/api/v1/panel/search`, разделы по core-сущностям; 6 тестов.
 - [x] Центр уведомлений: колокольчик, общий drawer, явное прочтение,
   `notify()` для сценариев; 7 тестов.
+- [x] `knowledge_base`: страница `docs/**` с поиском, категориями, безопасным
+  Markdown и оглавлением; 4 теста.
 - [x] `/admin/modules`: реестр core-модулей; 1 тест.
 - [x] Аудит: login success/failed/logout и user create/update/delete пишутся
   в `action_log`; 1 тест.
@@ -868,6 +871,10 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] Функции сценариев: `getGlobal`/`setGlobal`, `cm`/`runMethod`/
   `callMethodSafe`, `runScript`/`callScript`/`runScriptSafe`/`rs`;
   `ScriptRunner` по ID или названию, без eval; 5 тестов.
+- [x] `knowledge_base`: `modules/core/knowledge_base` на `KnowledgeBase` +
+  `league/commonmark`; front matter, категории, поиск, безопасный Markdown,
+  ссылки и оглавление; старый модуль, шаблоны и page-ассеты удалены;
+  4 теста, документация — knowledge_base.md.
 - [x] `setTimeOut`/`clearTimeOut`: `runtime_timeouts`, явный `timeout:run`;
   1 тест.
 - [x] Цепочка события свойства: `PropertyValueService` — единая запись,

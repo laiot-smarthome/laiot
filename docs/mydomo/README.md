@@ -15,8 +15,8 @@ legacy-коду. Если документ относится к новому я
 
 ## Статус
 
-**База ядра и веб-админка готовы.** Перенесено **16 core-модулей**;
-остались 13 старых модулей и alpha-shell parity. Пользовательские обёртки
+**База ядра и веб-админка готовы.** Перенесено **17 core-модулей**;
+остались 12 старых модулей и alpha-shell parity. Пользовательские обёртки
 работают.
 
 Уже работает в новом ядре:
@@ -32,6 +32,8 @@ legacy-коду. Если документ относится к новому я
   (объекты, классы, свойства, методы, скрипты, пользователи, локации, модули);
 - центр уведомлений: `notifications`, `NotificationService`, `notify()`,
   колокольчик и drawer `/api/v1/panel/notifications`;
+- база знаний `/module/knowledge_base`: `docs/**`, front matter, поиск,
+  безопасный Markdown и оглавление;
 - единые 404/405/500, `request_id`, security headers, maintenance mode;
 - `ModuleManager`, `ModuleDb` (MySQL/SQLite), `ModuleBus` (retained events);
 - автозагрузка core/module helpers; модуль публикует функции через
@@ -53,13 +55,13 @@ legacy-коду. Если документ относится к новому я
 
 Перенесённые модули: `shoutbox`, `jobs`, `actions_log`, `settings`, `users`,
 `ui_kit`, `system_errors`, `locations`, `scripts`, `classes`, `properties`,
-`methods`, `objects`, `pvalues`, `history`, `events`.
+`methods`, `objects`, `pvalues`, `history`, `events`, `knowledge_base`.
 
 Ещё не закрыто:
 
-- 13 старых модулей: api, modes, pinghosts, mqtt, zigbee, xray,
-  blockly_code, knowledge_base, ai_assistant, control_modules, linkedobject,
-  market, saverestore;
+- 12 старых модулей: api, modes, pinghosts, mqtt, zigbee, xray,
+  blockly_code, ai_assistant, control_modules, linkedobject, market,
+  saverestore;
 - полная alpha-shell parity (console; поиск и уведомления уже работают);
 - установка/обновление, полный API v2;
 - live Redis-проверка;
@@ -74,12 +76,14 @@ legacy-коду. Если документ относится к новому я
    `property_events` и защита от циклов.
 4. [Центр уведомлений](notifications.md) — `notifications`, `notify()`, API,
    колокольчик и правила прочтения.
-5. [Правила для агентов](AGENTS.md) — как читать, менять и проверять.
-6. [Тестирование](testing.md) — укрупнённые тесты, dev server, Docker.
-7. [Модульная система](modules.md) — core/third-party, `ModuleDb`, `ModuleBus`.
-8. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
-9. [Docker-стенд](docker.md) — локальная отладка и проверки.
-10. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
+5. [База знаний](knowledge_base.md) — `docs/**` в админке, front matter и
+   безопасный Markdown.
+6. [Правила для агентов](AGENTS.md) — как читать, менять и проверять.
+7. [Тестирование](testing.md) — укрупнённые тесты, dev server, Docker.
+8. [Модульная система](modules.md) — core/third-party, `ModuleDb`, `ModuleBus`.
+9. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
+10. [Docker-стенд](docker.md) — локальная отладка и проверки.
+11. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
 
 ## Правило обновления
 

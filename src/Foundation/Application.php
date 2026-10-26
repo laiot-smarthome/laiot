@@ -35,6 +35,7 @@ use MajorDoMo\Cache\CacheStore;
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Database\SettingsRepository;
+use MajorDoMo\Docs\KnowledgeBase;
 use MajorDoMo\Events\PropertyEventRepository;
 use MajorDoMo\History\HistoryRepository;
 use MajorDoMo\Http\Kernel;
@@ -125,6 +126,7 @@ final class Application
         Container::setInstance($this->container);
         $this->container->instance(Container::class, $this->container);
         $this->container->instance(self::class, $this);
+        $this->container->instance(KnowledgeBase::class, new KnowledgeBase($this->root . '/docs'));
         AppContext::set($this);
 
         foreach (['var', 'var/cache', 'var/log'] as $directory) {

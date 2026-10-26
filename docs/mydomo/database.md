@@ -65,6 +65,10 @@ OnChange-метод». Исключение из правила append-only — 
 (или тексту и типу), у модуля не больше 10 непрочитанных. Подробно —
 [notifications.md](notifications.md).
 
+`knowledge_base` собственных таблиц не создаёт: источник — файлы
+`docs/**/*.md`, индекс строится на запрос. Подробно —
+[knowledge_base.md](knowledge_base.md).
+
 ## 3. Carbon и Clock
 
 Время — только через `MajorDoMo\Support\Clock`:
