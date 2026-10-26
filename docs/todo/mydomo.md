@@ -811,6 +811,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] Веб-админка `/admin`: обзор, KPI, карточки модулей, быстрые действия;
   вход ведёт на `/admin`.
 - [x] Вход на Blade: `md-auth`, логотип, `x-md.input/button/card/hint`.
+- [x] `/admin/tokens`: выпуск и отзыв API-токенов в админке; 1 тест.
 - [x] `shoutbox`: полный вертикальный срез (ModuleDb, Blade, alpha-layout).
 - [x] `jobs`: очередь на `Queue`, pending/failed, retry/forget.
 - [x] `actions_log`: журнал через `ActionLogRepository`, фильтр/удаление.
