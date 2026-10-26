@@ -32,6 +32,7 @@ use MajorDoMo\Auth\RoleRepository;
 use MajorDoMo\Auth\UserRepository;
 use MajorDoMo\Cache\CacheFactory;
 use MajorDoMo\Cache\CacheStore;
+use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Database\SettingsRepository;
 use MajorDoMo\Http\Kernel;
@@ -167,6 +168,7 @@ final class Application
         $this->container->instance(MaintenanceMode::class, new MaintenanceMode($this->root));
         $this->container->instance(LocationRepository::class, new LocationRepository($this->database));
         $this->container->instance(ScriptRepository::class, new ScriptRepository($this->database));
+        $this->container->instance(ClassRepository::class, new ClassRepository($this->database));
         $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
         $users = new UserRepository($this->database);
