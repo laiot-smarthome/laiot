@@ -5,15 +5,21 @@ declare(strict_types=1);
 namespace MajorDoMo\Objects;
 
 use InvalidArgumentException;
+use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
 
 /**
  * Объекты MyDoMo.
+ *
+ * 2026-10-27 — выборка по классу учитывает подклассы: объект подкласса
+ * остаётся экземпляром родительского класса, как в alpha.
  */
 final readonly class ObjectRepository
 {
-    public function __construct(private DatabaseManager $database)
-    {
+    public function __construct(
+        private DatabaseManager $database,
+        private ClassRepository $classes
+    ) {
     }
 
     /**
@@ -48,6 +54,48 @@ final readonly class ObjectRepository
                 'updated_at' => (string)($row->updated_at ?? ''),
             ])
             ->all();
+    }
+
+    /**
+     * Объекты класса; с `$withDescendants` — вместе с объектами подклассов.
+     *
+     * @return list<array{id:int,title:string,class_id:int,class_title:string,location_id:int,description:string,updated_at:string}>
+     */
+    public function forClass(int $classId, bool $withDescendants = false): array
+    {
+        if ($classId <= 0) {
+            return [];
+        }
+        $classIds = $withDescendants ? $this->classes->descendantIds($classId) : [$classId];
+        if ($classIds === []) {
+            return [];
+        }
+
+        $rows = $this->database->connection()->table('objects as o')
+            ->leftJoin('classes as c', 'c.id', '=', 'o.class_id')
+            ->whereIn('o.class_id', $classIds)
+            ->whereNull('o.deleted_at')
+            ->orderBy('c.title')
+            ->orderBy('o.title')
+            ->get([
+                'o.id',
+                'o.title',
+                'o.class_id',
+                'o.location_id',
+                'o.description',
+                'o.updated_at',
+                'c.title as class_title',
+            ]);
+
+        return $rows->map(static fn (object $row): array => [
+            'id' => (int)$row->id,
+            'title' => (string)$row->title,
+            'class_id' => (int)$row->class_id,
+            'class_title' => (string)($row->class_title ?? ''),
+            'location_id' => (int)$row->location_id,
+            'description' => (string)($row->description ?? ''),
+            'updated_at' => (string)($row->updated_at ?? ''),
+        ])->all();
     }
 
     /**
@@ -130,6 +178,7 @@ final readonly class ObjectRepository
 
     public function create(string $title, int $classId, int $locationId, string $description): int
     {
+        $this->assertClass($classId);
         $now = date('Y-m-d H:i:s');
 
         return (int)$this->database->connection()->table('objects')->insertGetId([
@@ -145,6 +194,7 @@ final readonly class ObjectRepository
 
     public function update(int $id, string $title, int $classId, int $locationId, string $description): void
     {
+        $this->assertClass($classId);
         $this->database->connection()->table('objects')
             ->where('id', $id)
             ->whereNull('deleted_at')
@@ -164,6 +214,13 @@ final readonly class ObjectRepository
             ->where('id', $id)
             ->whereNull('deleted_at')
             ->update(['deleted_at' => $now, 'updated_at' => $now]);
+    }
+
+    private function assertClass(int $classId): void
+    {
+        if ($classId > 0 && $this->classes->find($classId) === null) {
+            throw new InvalidArgumentException('Класс объекта не найден.');
+        }
     }
 
     private function findRow(int $id): ?object

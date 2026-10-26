@@ -33,6 +33,14 @@ final class PanelSearchTest extends TestCase
             '/classes/1/edit',
             $byClass['sections']['Классы'][0]['url']
         );
+        self::assertSame(
+            '/classes/1/edit?tab=properties',
+            $byClass['sections']['Свойства'][0]['url']
+        );
+        self::assertSame(
+            '/classes/1/edit?tab=methods',
+            $byClass['sections']['Методы'][0]['url']
+        );
         // Регистр не должен зависеть от collation: SQLite и MariaDB отвечают
         // одинаково на запрос в нижнем регистре.
         self::assertGreaterThan(0, $search->search('датчик')['total']);
@@ -170,6 +178,7 @@ final class PanelSearchTest extends TestCase
             'classes' => static function (Blueprint $table): void {
                 $table->increments('id');
                 $table->string('title');
+                $table->integer('parent_id')->default(0);
                 $table->timestamps();
                 $table->softDeletes();
             },
@@ -185,6 +194,7 @@ final class PanelSearchTest extends TestCase
             'properties' => static function (Blueprint $table): void {
                 $table->increments('id');
                 $table->integer('class_id')->default(0);
+                $table->integer('object_id')->default(0);
                 $table->string('title');
                 $table->text('description')->nullable();
                 $table->timestamps();
@@ -193,6 +203,7 @@ final class PanelSearchTest extends TestCase
             'methods' => static function (Blueprint $table): void {
                 $table->increments('id');
                 $table->integer('class_id')->default(0);
+                $table->integer('object_id')->default(0);
                 $table->string('title');
                 $table->text('description')->nullable();
                 $table->timestamps();

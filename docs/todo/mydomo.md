@@ -44,6 +44,15 @@ order: 5
 
 ## 0. Текущий прогресс
 
+- [x] Модель дома сведена в единый раздел «Классы» (2026-10-27): объекты,
+  свойства, методы, значения и история больше не отдельные пункты меню.
+  Класс получил `parent_id` и неограниченную глубину подклассов; свойства и
+  методы наследуются по цепочке, объектные члены (`object_id`) перекрывают
+  классовые. Значения по-прежнему хранятся только у объекта. Проверено
+  `ClassHierarchyTest`, обновлёнными `AdminSectionsTest`, `CoreEventsTest`,
+  `PropertyValueIntegrityTest` и полным `composer check`; документы —
+  [admin-ui.md](../mydomo/admin-ui.md), [core-sections.md](../mydomo/core-sections.md),
+  [database.md](../mydomo/database.md), [events.md](../mydomo/events.md).
 - [x] Сборка Application разделена на шесть сервис-провайдеров (2026-10-27):
   register всех зависимостей → boot подсистем; список config/providers.php,
   ленивые singleton, общий kernel-контекст и расширение своими провайдерами.

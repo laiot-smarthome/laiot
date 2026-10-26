@@ -25,12 +25,14 @@ final class WrappersTest extends TestCase
             'classes' => static function (Blueprint $table): void {
                 $table->increments('id');
                 $table->string('title');
+                $table->integer('parent_id')->default(0);
                 $table->timestamps();
                 $table->softDeletes();
             },
             'properties' => static function (Blueprint $table): void {
                 $table->increments('id');
                 $table->integer('class_id');
+                $table->integer('object_id')->default(0);
                 $table->string('title');
                 $table->text('description')->nullable();
                 $table->string('data_type')->default('string');
@@ -67,6 +69,7 @@ final class WrappersTest extends TestCase
             'methods' => static function (Blueprint $table): void {
                 $table->increments('id');
                 $table->integer('class_id');
+                $table->integer('object_id')->default(0);
                 $table->string('title');
                 $table->text('description')->nullable();
                 $table->text('code')->nullable();

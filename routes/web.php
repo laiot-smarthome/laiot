@@ -8,7 +8,6 @@ use MajorDoMo\Http\Controllers\ApiDocsController;
 use MajorDoMo\Http\Controllers\Core\ActionsLogController;
 use MajorDoMo\Http\Controllers\Core\ClassesController;
 use MajorDoMo\Http\Controllers\Core\EventsController;
-use MajorDoMo\Http\Controllers\Core\HistoryController;
 use MajorDoMo\Http\Controllers\Core\JobsController;
 use MajorDoMo\Http\Controllers\Core\KnowledgeBaseController;
 use MajorDoMo\Http\Controllers\Core\LocationsController;
@@ -16,7 +15,6 @@ use MajorDoMo\Http\Controllers\Core\MethodsController;
 use MajorDoMo\Http\Controllers\Core\NotificationsPageController;
 use MajorDoMo\Http\Controllers\Core\ObjectsController;
 use MajorDoMo\Http\Controllers\Core\PropertiesController;
-use MajorDoMo\Http\Controllers\Core\PvaluesController;
 use MajorDoMo\Http\Controllers\Core\ScriptsController;
 use MajorDoMo\Http\Controllers\Core\SettingsController;
 use MajorDoMo\Http\Controllers\Core\SystemErrorsController;
@@ -96,11 +94,14 @@ return static function (Router $router): void {
 
         $router->middleware('auth')->group(function (Router $router): void {
             // Ядровые разделы: не модули, без ModuleDb/lifecycle.
+            // Старый каталог объектов больше не отдельный раздел: объекты
+            // открываются из класса. URL оставлен только как точка входа.
             $router->get('/objects', [ObjectsController::class, 'index'])->name('objects.index');
             $router->get('/objects/create', [ObjectsController::class, 'create'])->name('objects.create');
             $router->post('/objects/create', [ObjectsController::class, 'store'])->middleware('csrf')->name('objects.store');
             $router->get('/objects/{id}/edit', [ObjectsController::class, 'edit'])->whereNumber('id')->name('objects.edit');
             $router->post('/objects/{id}/edit', [ObjectsController::class, 'update'])->whereNumber('id')->middleware('csrf')->name('objects.update');
+            $router->post('/objects/{id}/values', [ObjectsController::class, 'updateValues'])->whereNumber('id')->middleware('csrf')->name('objects.values');
             $router->post('/objects/{id}/delete', [ObjectsController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('objects.delete');
 
             $router->get('/classes', [ClassesController::class, 'index'])->name('classes.index');
@@ -110,26 +111,19 @@ return static function (Router $router): void {
             $router->post('/classes/{id}/edit', [ClassesController::class, 'update'])->whereNumber('id')->middleware('csrf')->name('classes.update');
             $router->post('/classes/{id}/delete', [ClassesController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('classes.delete');
 
-            $router->get('/properties', [PropertiesController::class, 'index'])->name('properties.index');
+            // Свойства и методы — контекстные формы класса/объекта, без
+            // собственных каталогов и пунктов меню.
             $router->get('/properties/create', [PropertiesController::class, 'create'])->name('properties.create');
             $router->post('/properties/create', [PropertiesController::class, 'store'])->middleware('csrf')->name('properties.store');
             $router->get('/properties/{id}/edit', [PropertiesController::class, 'edit'])->whereNumber('id')->name('properties.edit');
             $router->post('/properties/{id}/edit', [PropertiesController::class, 'update'])->whereNumber('id')->middleware('csrf')->name('properties.update');
             $router->post('/properties/{id}/delete', [PropertiesController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('properties.delete');
 
-            $router->get('/methods', [MethodsController::class, 'index'])->name('methods.index');
             $router->get('/methods/create', [MethodsController::class, 'create'])->name('methods.create');
             $router->post('/methods/create', [MethodsController::class, 'store'])->middleware('csrf')->name('methods.store');
             $router->get('/methods/{id}/edit', [MethodsController::class, 'edit'])->whereNumber('id')->name('methods.edit');
             $router->post('/methods/{id}/edit', [MethodsController::class, 'update'])->whereNumber('id')->middleware('csrf')->name('methods.update');
             $router->post('/methods/{id}/delete', [MethodsController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('methods.delete');
-
-            $router->get('/values', [PvaluesController::class, 'index'])->name('pvalues.index');
-            $router->post('/values/{id}', [PvaluesController::class, 'update'])->whereNumber('id')->middleware('csrf')->name('pvalues.update');
-            $router->post('/values/{id}/delete', [PvaluesController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('pvalues.delete');
-
-            $router->get('/history', [HistoryController::class, 'index'])->name('history.index');
-            $router->post('/history/{id}/delete', [HistoryController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('history.delete');
 
             $router->get('/locations', [LocationsController::class, 'index'])->name('locations.index');
             $router->get('/locations/create', [LocationsController::class, 'create'])->name('locations.create');

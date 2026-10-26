@@ -30,6 +30,7 @@ final class CoreClassesTest extends TestCase
         $app->database()->schema()->create('classes', static function (Blueprint $table): void {
             $table->increments('id');
             $table->string('title')->unique();
+            $table->integer('parent_id')->default(0);
             $table->timestamps();
             $table->softDeletes();
         });

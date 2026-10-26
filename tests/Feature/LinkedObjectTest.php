@@ -89,6 +89,7 @@ final class LinkedObjectTest extends TestCase
         $schema->create('classes', static function (Blueprint $table): void {
             $table->increments('id');
             $table->string('title', 191);
+            $table->integer('parent_id')->default(0);
             $table->timestamps();
             $table->softDeletes();
         });
@@ -104,6 +105,7 @@ final class LinkedObjectTest extends TestCase
         $schema->create('properties', static function (Blueprint $table): void {
             $table->increments('id');
             $table->integer('class_id')->default(0);
+            $table->integer('object_id')->default(0);
             $table->string('title', 191);
             $table->text('description')->nullable();
             $table->string('data_type', 32)->default('string');
@@ -115,6 +117,7 @@ final class LinkedObjectTest extends TestCase
         $schema->create('methods', static function (Blueprint $table): void {
             $table->increments('id');
             $table->integer('class_id')->default(0);
+            $table->integer('object_id')->default(0);
             $table->string('title', 191);
             $table->text('description')->nullable();
             $table->text('code')->nullable();

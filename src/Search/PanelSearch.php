@@ -144,18 +144,37 @@ final readonly class PanelSearch
     {
         $rows = $this->likeQuery('properties as p', ['p.title', 'p.description'], $tokens)
             ->leftJoin('classes as c', 'c.id', '=', 'p.class_id')
+            ->leftJoin('objects as o', 'o.id', '=', 'p.object_id')
             ->whereNull('p.deleted_at')
             ->orderBy('p.title')
             ->limit($this->preLimit($limit))
-            ->get(['p.id', 'p.title', 'p.description', 'c.title as class_title']);
+            ->get([
+                'p.id',
+                'p.class_id',
+                'p.object_id',
+                'p.title',
+                'p.description',
+                'c.title as class_title',
+                'o.title as object_title',
+            ]);
 
         return $this->collect($rows, $tokens, $query, static function (object $row): array {
+            $objectId = (int)($row->object_id ?? 0);
+            $classId = (int)($row->class_id ?? 0);
+            $url = $objectId > 0
+                ? '/objects/' . $objectId . '/edit?tab=properties'
+                : ($classId > 0 ? '/classes/' . $classId . '/edit?tab=properties' : '/classes');
+            $meta = [(string)($row->class_title ?? '')];
+            if ($objectId > 0) {
+                $meta[] = 'объект: ' . (string)($row->object_title ?? '');
+            }
+
             return [
                 'type' => 'property',
                 'title' => (string)$row->title,
-                'url' => '/properties/' . (int)$row->id . '/edit',
+                'url' => $url,
                 'description' => (string)($row->description ?? ''),
-                'meta' => [(string)($row->class_title ?? '')],
+                'meta' => $meta,
                 'action' => '',
             ];
         });
@@ -169,19 +188,40 @@ final readonly class PanelSearch
     {
         $rows = $this->likeQuery('methods as m', ['m.title', 'm.description'], $tokens)
             ->leftJoin('classes as c', 'c.id', '=', 'm.class_id')
+            ->leftJoin('objects as o', 'o.id', '=', 'm.object_id')
             ->whereNull('m.deleted_at')
             ->orderBy('m.title')
             ->limit($this->preLimit($limit))
-            ->get(['m.id', 'm.title', 'm.description', 'c.title as class_title']);
+            ->get([
+                'm.id',
+                'm.class_id',
+                'm.object_id',
+                'm.title',
+                'm.description',
+                'c.title as class_title',
+                'o.title as object_title',
+            ]);
 
-        return $this->collect($rows, $tokens, $query, static fn (object $row): array => [
-            'type' => 'method',
-            'title' => (string)$row->title,
-            'url' => '/methods/' . (int)$row->id . '/edit',
-            'description' => (string)($row->description ?? ''),
-            'meta' => [(string)($row->class_title ?? '')],
-            'action' => '',
-        ]);
+        return $this->collect($rows, $tokens, $query, static function (object $row): array {
+            $objectId = (int)($row->object_id ?? 0);
+            $classId = (int)($row->class_id ?? 0);
+            $url = $objectId > 0
+                ? '/objects/' . $objectId . '/edit?tab=methods'
+                : ($classId > 0 ? '/classes/' . $classId . '/edit?tab=methods' : '/classes');
+            $meta = [(string)($row->class_title ?? '')];
+            if ($objectId > 0) {
+                $meta[] = 'объект: ' . (string)($row->object_title ?? '');
+            }
+
+            return [
+                'type' => 'method',
+                'title' => (string)$row->title,
+                'url' => $url,
+                'description' => (string)($row->description ?? ''),
+                'meta' => $meta,
+                'action' => '',
+            ];
+        });
     }
 
     /**

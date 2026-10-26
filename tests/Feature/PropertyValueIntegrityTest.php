@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Tests\Feature;
 
+use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Events\PropertyEventRepository;
 use MajorDoMo\History\HistoryRepository;
@@ -20,13 +21,16 @@ use Psr\Log\NullLogger;
 /**
  * Целостность записи значений независимо от HTTP и модульного SDK.
  *
- * 2026-10-26 — чужой класс не изменяется, время создания значения сохраняется.
+ * 2026-10-27 — проверяются наследование класса и объектное свойство:
+ * значение пишется только в свойство, которое реально действует у объекта.
  */
 final class PropertyValueIntegrityTest extends TestCase
 {
     private DatabaseManager $database;
     private PropertyValueService $service;
     private ValueRepository $values;
+    private PropertyRepository $properties;
+    private ClassRepository $classes;
 
     protected function setUp(): void
     {
@@ -34,23 +38,27 @@ final class PropertyValueIntegrityTest extends TestCase
             'driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '',
         ]);
         foreach ([
+            '2026_10_26_000013_create_classes.php',
             '2026_10_26_000014_create_properties.php',
+            '2026_10_26_000015_create_methods.php',
             '2026_10_26_000016_create_objects_and_values.php',
             '2026_10_26_000017_create_property_history.php',
             '2026_10_26_000019_create_property_events.php',
+            '2026_10_27_000001_add_class_hierarchy_and_object_members.php',
         ] as $name) {
             $migration = require dirname(__DIR__, 2) . '/database/migrations/' . $name;
             $migration($this->database->connection());
         }
-        $objects = new ObjectRepository($this->database);
-        $properties = new PropertyRepository($this->database);
+        $this->classes = new ClassRepository($this->database);
+        $objects = new ObjectRepository($this->database, $this->classes);
+        $this->properties = new PropertyRepository($this->database, $this->classes);
         $history = new HistoryRepository($this->database);
-        $methods = new MethodRepository($this->database);
+        $methods = new MethodRepository($this->database, $this->classes);
         $this->values = new ValueRepository($this->database);
         $this->service = new PropertyValueService(
             $this->database,
             $objects,
-            $properties,
+            $this->properties,
             $this->values,
             $history,
             $methods,
@@ -58,10 +66,12 @@ final class PropertyValueIntegrityTest extends TestCase
             new PropertyEventRepository($this->database, new Clock()),
             new NullLogger()
         );
+
+        $this->classes->create('Датчик');
+        $this->classes->create('Свет');
         $objects->create('Датчик', 1, 0, '');
-        $properties->create(1, 'temperature', '', 'string', true, '');
-        $properties->create(2, 'temperature', '', 'string', true, '');
-        $properties->create(0, 'global', '', 'string', false, '');
+        $this->properties->create(1, 'temperature', '', 'string', true, '');
+        $this->properties->create(2, 'temperature', '', 'string', true, '');
     }
 
     public function testWritingByIdRejectsPropertyOfAnotherClassWithoutSideEffects(): void
@@ -72,8 +82,34 @@ final class PropertyValueIntegrityTest extends TestCase
         }
         self::assertTrue($this->service->setValue(1, 1, 'local'));
         self::assertSame('local', $this->service->get('Датчик', 'temperature'));
-        self::assertTrue($this->service->setValue(1, 3, 'global'));
-        self::assertSame('global', $this->service->get('Датчик', 'global'));
+    }
+
+    public function testInheritedAndObjectPropertiesAreWritable(): void
+    {
+        $childId = $this->classes->create('Умный датчик', 1);
+        $this->database->connection()->table('objects')->insert([
+            'title' => 'Гостиная',
+            'class_id' => $childId,
+            'location_id' => 0,
+            'description' => '',
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $objectId = (int)$this->database->connection()->table('objects')->where('title', 'Гостиная')->value('id');
+
+        // Наследуемое свойство родительского класса доступно объекту подкласса.
+        self::assertTrue($this->service->setValue($objectId, 1, 'inherited'));
+        self::assertSame('inherited', $this->service->get('Гостиная', 'temperature'));
+
+        // Объектное свойство перекрывает классовое только у этого объекта.
+        $objectPropertyId = $this->properties->create($childId, 'temperature', '', 'float', false, '', $objectId);
+        self::assertTrue($this->service->setValue($objectId, $objectPropertyId, 'object'));
+        self::assertSame('object', $this->service->get('Гостиная', 'temperature'));
+        self::assertSame('object', $this->values->get($objectId, $objectPropertyId));
+
+        $resolved = $this->properties->resolveForObject($objectId, 'temperature');
+        self::assertNotNull($resolved);
+        self::assertSame($objectPropertyId, $resolved['id']);
     }
 
     public function testUpdatingOrRestoringValuePreservesItsCreationTime(): void

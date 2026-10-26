@@ -13,6 +13,8 @@ namespace MajorDoMo\Panel;
  * 2026-10-26 — разделы сгруппированы по задачам, а не по типу кода: в
  * «Системе» остались только обслуживание установки, профиль и UI Kit вынесены
  * из основного меню (профиль живёт в подвале боковой панели).
+ * 2026-10-27 — объекты, свойства, методы, значения и история убраны из меню:
+ * единственный вход в модель дома — «Классы», остальное живёт в его карточке.
  */
 final class CoreSections
 {
@@ -25,12 +27,9 @@ final class CoreSections
             ['id' => 'dashboard', 'label' => 'Обзор', 'href' => '/admin', 'icon' => 'ti-layout-dashboard', 'group' => 'Обзор'],
             ['id' => 'status', 'label' => 'Состояние', 'href' => '/status', 'icon' => 'ti-activity', 'group' => 'Обзор'],
 
-            ['id' => 'objects', 'label' => 'Объекты', 'href' => '/objects', 'icon' => 'ti-box', 'group' => 'Дом'],
+            // Классы — единственный вход в модель дома. Объекты, свойства,
+            // методы, значения и история живут внутри карточки класса/объекта.
             ['id' => 'classes', 'label' => 'Классы', 'href' => '/classes', 'icon' => 'ti-hierarchy', 'group' => 'Дом'],
-            ['id' => 'properties', 'label' => 'Свойства', 'href' => '/properties', 'icon' => 'ti-adjustments', 'group' => 'Дом'],
-            ['id' => 'methods', 'label' => 'Методы', 'href' => '/methods', 'icon' => 'ti-code', 'group' => 'Дом'],
-            ['id' => 'pvalues', 'label' => 'Значения', 'href' => '/values', 'icon' => 'ti-list', 'group' => 'Дом'],
-            ['id' => 'history', 'label' => 'История', 'href' => '/history', 'icon' => 'ti-history', 'group' => 'Дом'],
             ['id' => 'locations', 'label' => 'Локации', 'href' => '/locations', 'icon' => 'ti-map-pin', 'group' => 'Дом'],
 
             ['id' => 'scripts', 'label' => 'Скрипты', 'href' => '/scripts', 'icon' => 'ti-file-code', 'group' => 'Автоматизация'],

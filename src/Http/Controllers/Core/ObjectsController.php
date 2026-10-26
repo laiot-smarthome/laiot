@@ -24,14 +24,14 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Объекты: каталог, карточка объекта, значения свойств, история и журнал.
+ * Карточка объекта внутри раздела «Классы».
  *
- * Карточка повторяет рабочий сценарий alpha-модуля objects, но собрана на
- * новом ядре: вкладки — ссылки с `?tab=`, значения пишутся только через
- * `PropertyValueService`, поэтому история и OnChange срабатывают одинаково.
+ * Объект — единственное место, где существуют значения свойств и их история.
+ * Класс задаёт свойства/методы, объект получает значения; объектные свойства
+ * и методы действуют только у этого объекта.
  *
- * 2026-10-26 — добавлены фильтры каталога и вкладки карточки, ссылки переведены
- * с legacy `/module/objects` на чистый `/objects`.
+ * 2026-10-27 — убран отдельный каталог объектов, значения редактируются во
+ * вкладке «Свойства», добавлены объектные свойства/методы и наследование.
  */
 final readonly class ObjectsController extends Controller
 {
@@ -53,30 +53,12 @@ final readonly class ObjectsController extends Controller
     ) {
     }
 
-    public function index(Request $request): Response
+    /**
+     * Отдельного каталога объектов больше нет: вход в модель дома — класс.
+     */
+    public function index(): Response
     {
-        $search = trim((string)$request->query->get('q', ''));
-        $classId = max(0, (int)$request->query->get('class_id', 0));
-        $locationId = max(0, (int)$request->query->get('location_id', 0));
-
-        $classes = $this->classes->all();
-        $locations = $this->locations->all();
-        $objects = $this->objects->all($search, $classId, $locationId);
-
-        $content = $this->view->make('pages.objects.index', [
-            'objects' => $objects,
-            'classes' => $classes,
-            'locations' => $locations,
-            'classNames' => $this->names($classes),
-            'locationNames' => $this->names($locations),
-            'search' => $search,
-            'classId' => $classId,
-            'locationId' => $locationId,
-            'total' => $this->objects->countsByClass(),
-            'csrf' => $this->session->csrfToken(),
-        ])->render();
-
-        return $this->panel->render(new PanelPage('Объекты', $content, 'objects'));
+        return new RedirectResponse('/classes');
     }
 
     public function create(Request $request): Response
@@ -108,7 +90,7 @@ final readonly class ObjectsController extends Controller
             return $this->form(null, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse('/objects/' . $id . '/edit');
+        return new RedirectResponse('/objects/' . $id . '/edit?tab=properties');
     }
 
     public function edit(string $id, Request $request): Response
@@ -127,7 +109,7 @@ final readonly class ObjectsController extends Controller
     {
         $object = $this->objects->find((int)$id);
         if ($object === null) {
-            return new RedirectResponse('/objects');
+            return new RedirectResponse('/classes');
         }
 
         try {
@@ -142,6 +124,20 @@ final readonly class ObjectsController extends Controller
             return $this->form($object, $error->getMessage(), $request->request->all(), 422);
         }
 
+        return new RedirectResponse('/objects/' . $id . '/edit');
+    }
+
+    /**
+     * Значения пишутся только через PropertyValueService: история, журнал и
+     * OnChange срабатывают одинаково с панелью, сценарием и API.
+     */
+    public function updateValues(string $id, Request $request): Response
+    {
+        $object = $this->objects->find((int)$id);
+        if ($object === null) {
+            return new RedirectResponse('/classes');
+        }
+
         $values = $request->request->all('values');
         foreach ($values as $propertyId => $value) {
             if (is_numeric($propertyId) && is_scalar($value)) {
@@ -149,14 +145,23 @@ final readonly class ObjectsController extends Controller
             }
         }
 
-        return new RedirectResponse('/objects/' . $id . '/edit');
+        return new RedirectResponse('/objects/' . $id . '/edit?tab=properties');
     }
 
     public function delete(string $id): Response
     {
+        $object = $this->objects->find((int)$id);
+        if ($object === null) {
+            return new RedirectResponse('/classes');
+        }
+
         $this->objects->delete((int)$id);
 
-        return new RedirectResponse('/objects');
+        return new RedirectResponse(
+            (int)$object['class_id'] > 0
+                ? '/classes/' . (int)$object['class_id'] . '/edit?tab=objects'
+                : '/classes'
+        );
     }
 
     /**
@@ -166,19 +171,29 @@ final readonly class ObjectsController extends Controller
     private function form(?array $object, ?string $error = null, ?array $draft = null, int $status = 200, string $tab = 'details'): Response
     {
         $classId = (int)($draft['class_id'] ?? $object['class_id'] ?? 0);
-        $properties = $classId > 0 ? $this->properties->forClass($classId) : [];
-        $values = $object !== null ? $this->values->forObject($object['id']) : [];
+        $class = $classId > 0 ? $this->classes->find($classId) : null;
         $objectId = (int)($object['id'] ?? 0);
+        $properties = $object !== null ? $this->properties->forObject($objectId) : [];
+        $classMethods = $object !== null ? $this->methods->forObject($objectId) : [];
+        $values = $object !== null ? $this->values->forObject($objectId) : [];
+        $lineage = $class !== null ? $this->classes->lineage($classId) : [];
+        $path = implode(' → ', array_map(
+            static fn (array $row): string => (string)$row['title'],
+            array_reverse($lineage)
+        ));
 
         $content = $this->view->make('pages.objects.form', [
             'object' => $object,
             'draft' => $draft,
-            'tab' => $object === null ? 'details' : $tab,
+            'tab' => $object === null ? 'details' : (in_array($tab, self::TABS, true) ? $tab : 'details'),
             'classes' => $this->classes->all(),
+            'class' => $class,
+            'classPath' => $path,
             'locations' => $this->locations->all(),
             'properties' => $properties,
             'values' => $values,
-            'classMethods' => $classId > 0 ? $this->methods->forClass($classId) : [],
+            'classMethods' => $classMethods,
+            'objectPropertyCount' => count(array_filter($properties, static fn (array $row): bool => $row['origin'] === 'object')),
             'history' => $tab === 'history' && $objectId > 0 ? $this->history->forObject($objectId) : [],
             'journal' => $tab === 'journal' && $objectId > 0 ? $this->events->forObject($objectId) : [],
             'error' => $error,
@@ -187,27 +202,13 @@ final readonly class ObjectsController extends Controller
 
         $title = $object === null ? 'Новый объект' : (string)$object['title'];
 
-        return $this->panel->render(new PanelPage($object === null ? 'Новый объект' : 'Объект: ' . $title, $content, 'objects'), $status);
+        return $this->panel->render(new PanelPage($object === null ? 'Новый объект' : 'Объект: ' . $title, $content, 'classes'), $status);
     }
 
     private function notFound(): Response
     {
         $content = $this->view->make('pages.objects.missing', [])->render();
 
-        return $this->panel->render(new PanelPage('Объект не найден', $content, 'objects'), 404);
-    }
-
-    /**
-     * @param list<array{id:int,title:string}> $rows
-     * @return array<int,string>
-     */
-    private function names(array $rows): array
-    {
-        $names = [];
-        foreach ($rows as $row) {
-            $names[$row['id']] = $row['title'];
-        }
-
-        return $names;
+        return $this->panel->render(new PanelPage('Объект не найден', $content, 'classes'), 404);
     }
 }

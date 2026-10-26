@@ -57,7 +57,7 @@
                                 <div><a href="/locations/{{ $location['id'] }}/edit"><strong>{{ $location['title'] }}</strong></a></div>
                             </div>
                         </td>
-                        <td><a href="/objects?location_id={{ $location['id'] }}">{{ $objectCounts[$location['id']] ?? 0 }}</a></td>
+                        <td><span class="md-tree-table__count">{{ $objectCounts[$location['id']] ?? 0 }}</span></td>
                         <td><x-md.badge tone="neutral">{{ $location['priority'] }}</x-md.badge></td>
                         <td>
                             <div class="md-table__actions">

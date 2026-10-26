@@ -12,14 +12,19 @@ use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Свойства классов: каталог с поиском и фильтром по классу.
+ * Свойства класса или объекта внутри раздела «Классы».
  *
- * 2026-10-26 — добавлены поиск, фильтр, типы данных и OnChange в списке.
+ * Отдельного каталога свойств нет: форма открывается из карточки класса или
+ * объекта, а после сохранения возвращает туда же. Значения у класса не
+ * редактируются — только у конкретного объекта.
+ *
+ * 2026-10-27 — страница стала контекстной формой класса/объекта.
  */
 final readonly class PropertiesController extends Controller
 {
@@ -27,117 +32,148 @@ final readonly class PropertiesController extends Controller
         private Factory $view,
         private PropertyRepository $properties,
         private ClassRepository $classes,
+        private ObjectRepository $objects,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
     }
 
-    public function index(Request $request): Response
-    {
-        $search = trim((string)$request->query->get('q', ''));
-        $classId = max(0, (int)$request->query->get('class_id', 0));
-        $classes = $this->classes->all();
-
-        $names = [0 => 'Глобальные'];
-        foreach ($classes as $class) {
-            $names[$class['id']] = $class['title'];
-        }
-
-        $content = $this->view->make('pages.properties.index', [
-            'properties' => $this->properties->all($search, $classId),
-            'classes' => $classes,
-            'classNames' => $names,
-            'search' => $search,
-            'classId' => $classId,
-            'csrf' => $this->session->csrfToken(),
-        ])->render();
-
-        return $this->panel->render(new PanelPage('Свойства', $content, 'properties'));
-    }
-
     public function create(Request $request): Response
     {
-        // Класс можно передать ссылкой из карточки класса: селект уже заполнен.
         $classId = max(0, (int)$request->query->get('class_id', 0));
+        $objectId = max(0, (int)$request->query->get('object_id', 0));
+        $object = $objectId > 0 ? $this->objects->find($objectId) : null;
+        if ($object !== null) {
+            $classId = (int)$object['class_id'];
+        }
 
-        return $this->form(null, null, $classId > 0 ? ['class_id' => $classId] : null);
+        return $this->form(null, null, [
+            'class_id' => $classId,
+            'object_id' => (int)($object['id'] ?? $objectId),
+        ]);
     }
 
     public function store(Request $request): Response
     {
+        $classId = max(0, (int)$request->request->get('class_id', 0));
+        $objectId = max(0, (int)$request->request->get('object_id', 0));
+
         try {
-            $id = $this->properties->create(
-                (int)$request->request->get('class_id', 0),
+            $this->properties->create(
+                $classId,
                 (string)$request->request->get('title', ''),
                 (string)$request->request->get('description', ''),
                 (string)$request->request->get('data_type', 'string'),
                 (string)$request->request->get('keep_history', '') === '1',
-                (string)$request->request->get('on_change', '')
+                (string)$request->request->get('on_change', ''),
+                $objectId
             );
         } catch (InvalidArgumentException $error) {
             return $this->form(null, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse('/properties/' . $id . '/edit');
+        return new RedirectResponse($this->returnUrl($classId, $objectId));
     }
 
     public function edit(string $id): Response
     {
         $property = $this->properties->find((int)$id);
+        if ($property === null) {
+            return $this->notFound();
+        }
 
-        return $property === null
-            ? $this->panel->render(new PanelPage('Свойство не найдено', '<p class="md-alert md-alert--danger">Свойство не найдено.</p>', 'properties'), 404)
-            : $this->form($property);
+        return $this->form($property);
     }
 
     public function update(string $id, Request $request): Response
     {
         $property = $this->properties->find((int)$id);
         if ($property === null) {
-            return new RedirectResponse('/properties');
+            return new RedirectResponse('/classes');
         }
+
+        $classId = max(0, (int)$request->request->get('class_id', $property['class_id']));
+        $objectId = max(0, (int)$request->request->get('object_id', $property['object_id']));
 
         try {
             $this->properties->update(
                 (int)$id,
-                (int)$request->request->get('class_id', 0),
+                $classId,
                 (string)$request->request->get('title', ''),
                 (string)$request->request->get('description', ''),
                 (string)$request->request->get('data_type', 'string'),
                 (string)$request->request->get('keep_history', '') === '1',
-                (string)$request->request->get('on_change', '')
+                (string)$request->request->get('on_change', ''),
+                $objectId
             );
         } catch (InvalidArgumentException $error) {
             return $this->form($property, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse('/properties');
+        return new RedirectResponse($this->returnUrl($classId, $objectId));
     }
 
     public function delete(string $id): Response
     {
+        $property = $this->properties->find((int)$id);
+        if ($property === null) {
+            return new RedirectResponse('/classes');
+        }
+
         $this->properties->delete((int)$id);
 
-        return new RedirectResponse('/properties');
+        return new RedirectResponse($this->returnUrl((int)$property['class_id'], (int)$property['object_id']));
     }
 
     /**
-     * @param array{id:int,class_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string}|null $property
+     * @param array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string}|null $property
      * @param array<string, mixed>|null $draft
      */
     private function form(?array $property, ?string $error = null, ?array $draft = null, int $status = 200): Response
     {
+        $classId = (int)($draft['class_id'] ?? $property['class_id'] ?? 0);
+        $objectId = (int)($draft['object_id'] ?? $property['object_id'] ?? 0);
+        $object = $objectId > 0 ? $this->objects->find($objectId) : null;
+        if ($object !== null) {
+            $classId = (int)$object['class_id'];
+        }
+        $class = $classId > 0 ? $this->classes->find($classId) : null;
+
         $content = $this->view->make('pages.properties.form', [
             'property' => $property,
             'draft' => $draft,
             'classes' => $this->classes->all(),
+            'class' => $class,
+            'object' => $object,
+            'classId' => $classId,
+            'objectId' => $objectId,
+            'returnUrl' => $this->returnUrl($classId, $objectId),
             'error' => $error,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
         return $this->panel->render(
-            new PanelPage($property === null ? 'Новое свойство' : 'Свойство: ' . (string)$property['title'], $content, 'properties'),
+            new PanelPage($property === null ? 'Новое свойство' : 'Свойство: ' . (string)$property['title'], $content, 'classes'),
             $status
         );
+    }
+
+    private function notFound(): Response
+    {
+        $content = $this->view->make('pages.objects.missing', [])->render();
+
+        return $this->panel->render(new PanelPage('Свойство не найдено', $content, 'classes'), 404);
+    }
+
+    private function returnUrl(int $classId, int $objectId): string
+    {
+        if ($objectId > 0) {
+            return '/objects/' . $objectId . '/edit?tab=properties';
+        }
+        if ($classId > 0) {
+            return '/classes/' . $classId . '/edit?tab=properties';
+        }
+
+        return '/classes';
     }
 }

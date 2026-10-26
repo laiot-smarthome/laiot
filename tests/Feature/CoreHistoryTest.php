@@ -12,11 +12,14 @@ use MajorDoMo\Properties\ValueRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
- * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ * История значений живёт в карточке объекта, а не отдельным разделом.
+ *
+ * 2026-10-27 — страница /history заменена вкладкой объекта; проверяется
+ * запись истории и её отображение у конкретного объекта.
  */
 final class CoreHistoryTest extends TestCase
 {
-    public function testValueChangeIsRecordedAndListed(): void
+    public function testValueChangeIsRecordedAndListedOnObjectCard(): void
     {
         $session = new ArraySession();
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
@@ -29,6 +32,13 @@ final class CoreHistoryTest extends TestCase
         ]);
         $app->boot();
         foreach ([
+            'classes' => static function (Blueprint $table): void {
+                $table->increments('id');
+                $table->string('title');
+                $table->integer('parent_id')->default(0);
+                $table->timestamps();
+                $table->softDeletes();
+            },
             'objects' => static function (Blueprint $table): void {
                 $table->increments('id');
                 $table->string('title');
@@ -41,6 +51,7 @@ final class CoreHistoryTest extends TestCase
             'properties' => static function (Blueprint $table): void {
                 $table->increments('id');
                 $table->integer('class_id');
+                $table->integer('object_id')->default(0);
                 $table->string('title');
                 $table->text('description')->nullable();
                 $table->string('data_type')->default('string');
@@ -65,10 +76,30 @@ final class CoreHistoryTest extends TestCase
                 $table->timestamps();
                 $table->softDeletes();
             },
+            'methods' => static function (Blueprint $table): void {
+                $table->increments('id');
+                $table->integer('class_id')->default(0);
+                $table->integer('object_id')->default(0);
+                $table->string('title');
+                $table->text('description')->nullable();
+                $table->text('code')->nullable();
+                $table->timestamps();
+                $table->softDeletes();
+            },
+            'locations' => static function (Blueprint $table): void {
+                $table->increments('id');
+                $table->string('title');
+                $table->integer('priority')->default(0);
+                $table->timestamps();
+                $table->softDeletes();
+            },
         ] as $name => $definition) {
             $app->database()->schema()->create($name, $definition);
         }
         $now = date('Y-m-d H:i:s');
+        $app->database()->connection()->table('classes')->insert([
+            'id' => 1, 'title' => 'Датчик', 'parent_id' => 0, 'created_at' => $now, 'updated_at' => $now,
+        ]);
         $app->database()->connection()->table('objects')->insert(['title' => 'Кухня', 'class_id' => 1, 'created_at' => $now, 'updated_at' => $now]);
         $app->database()->connection()->table('properties')->insert(['class_id' => 1, 'title' => 'temperature', 'created_at' => $now, 'updated_at' => $now]);
 
@@ -76,7 +107,7 @@ final class CoreHistoryTest extends TestCase
 
         SessionFixture::authenticate($app);
 
-        $page = $app->handle(Request::create('/history', 'GET'));
+        $page = $app->handle(Request::create('/objects/1/edit', 'GET', ['tab' => 'history']));
         self::assertSame(200, $page->getStatusCode());
         self::assertStringContainsString('23.5', (string)$page->getContent());
         self::assertSame('23.5', getHistory('Кухня.temperature')[0]['value'] ?? null);

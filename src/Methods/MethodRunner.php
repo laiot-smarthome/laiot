@@ -12,6 +12,8 @@ use MajorDoMo\Objects\ObjectRepository;
  *
  * Код методов — доверенный пользовательский PHP (как в alpha). Он выполняется
  * через временный файл, без eval; файл удаляется в finally.
+ *
+ * 2026-10-27 — метод ищется у объекта, затем в классе и по цепочке наследования.
  */
 final readonly class MethodRunner
 {
@@ -30,7 +32,7 @@ final readonly class MethodRunner
         if ($object === null) {
             throw new InvalidArgumentException('Объект не найден: ' . $objectTitle);
         }
-        $method = $this->methods->findForClass($object['class_id'], trim($methodTitle));
+        $method = $this->methods->findForObject((int)$object['id'], (int)$object['class_id'], trim($methodTitle));
         if ($method === null) {
             throw new InvalidArgumentException('Метод не найден: ' . $methodTitle);
         }

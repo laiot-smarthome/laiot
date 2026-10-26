@@ -277,13 +277,9 @@
                 </header>
                 <div class="md-dash-card__body">
                     <div class="md-dash-shortcuts">
-                        <a class="md-dash-shortcut" href="/objects">
-                            <span class="md-dash-shortcut__icon"><i class="ti ti-box" aria-hidden="true"></i></span>
-                            <span class="md-dash-shortcut__text">Объекты</span>
-                        </a>
                         <a class="md-dash-shortcut" href="/classes">
                             <span class="md-dash-shortcut__icon"><i class="ti ti-hierarchy" aria-hidden="true"></i></span>
-                            <span class="md-dash-shortcut__text">Классы</span>
+                            <span class="md-dash-shortcut__text">Классы и объекты</span>
                         </a>
                         <a class="md-dash-shortcut" href="/scripts">
                             <span class="md-dash-shortcut__icon"><i class="ti ti-file-code" aria-hidden="true"></i></span>

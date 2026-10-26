@@ -1,11 +1,11 @@
 <div class="md-ui-page md-ui-page--stack">
-    <x-md.page-hero eyebrow="Объект" icon="box" title="Объект не найден"
-                    lede="Возможно, запись удалена или ссылка устарела.">
+    <x-md.page-hero eyebrow="Классы" icon="hierarchy" title="Запись не найдена"
+                    lede="Возможно, объект, класс, свойство или метод удалён, либо ссылка устарела.">
         <x-slot:actions>
-            <x-md.button href="/objects" variant="secondary" icon="arrow-left">К объектам</x-md.button>
+            <x-md.button href="/classes" variant="secondary" icon="arrow-left">К классам</x-md.button>
         </x-slot:actions>
     </x-md.page-hero>
 
     <x-md.empty-state icon="search" title="Записи нет"
-                      text="Объект мог быть удалён. Вернитесь в каталог и выберите другой." />
+                      text="Вернитесь к классам и выберите нужный класс или объект." />
 </div>

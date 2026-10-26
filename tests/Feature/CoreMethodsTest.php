@@ -30,12 +30,14 @@ final class CoreMethodsTest extends TestCase
         $app->database()->schema()->create('classes', static function (Blueprint $table): void {
             $table->increments('id');
             $table->string('title');
+            $table->integer('parent_id')->default(0);
             $table->timestamps();
             $table->softDeletes();
         });
         $app->database()->schema()->create('methods', static function (Blueprint $table): void {
             $table->increments('id');
             $table->integer('class_id')->default(0);
+            $table->integer('object_id')->default(0);
             $table->string('title');
             $table->text('description')->nullable();
             $table->text('code')->nullable();
@@ -49,9 +51,6 @@ final class CoreMethodsTest extends TestCase
         ]);
 
         SessionFixture::authenticate($app);
-
-        $page = $app->handle(Request::create('/methods', 'GET'));
-        self::assertSame(200, $page->getStatusCode());
 
         $create = $app->handle(Request::create('/methods/create', 'POST', [
             '_token' => $session->csrfToken(),

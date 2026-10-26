@@ -4,10 +4,7 @@
     $classId = (int)($draft['class_id'] ?? $object['class_id'] ?? 0);
     $locationId = (int)($draft['location_id'] ?? $object['location_id'] ?? 0);
     $objectId = (int)($object['id'] ?? 0);
-    $classNames = [];
-    foreach ($classes as $class) {
-        $classNames[$class['id']] = $class['title'];
-    }
+    $className = (string)($class['title'] ?? '');
     $locationNames = [];
     foreach ($locations as $location) {
         $locationNames[$location['id']] = $location['title'];
@@ -17,7 +14,7 @@
         : substr($value, 8, 2) . '.' . substr($value, 5, 2) . ' · ' . substr($value, 11, 5);
     $tabs = $isNew ? [] : [
         ['id' => 'details', 'label' => 'Основное', 'icon' => 'info-circle', 'href' => '/objects/' . $objectId . '/edit'],
-        ['id' => 'properties', 'label' => 'Свойства', 'icon' => 'adjustments', 'count' => count($properties), 'href' => '/objects/' . $objectId . '/edit?tab=properties'],
+        ['id' => 'properties', 'label' => 'Свойства и значения', 'icon' => 'adjustments', 'count' => count($properties), 'href' => '/objects/' . $objectId . '/edit?tab=properties'],
         ['id' => 'methods', 'label' => 'Методы', 'icon' => 'code', 'count' => count($classMethods), 'href' => '/objects/' . $objectId . '/edit?tab=methods'],
         ['id' => 'history', 'label' => 'История', 'icon' => 'history', 'href' => '/objects/' . $objectId . '/edit?tab=history'],
         ['id' => 'journal', 'label' => 'Журнал', 'icon' => 'bolt', 'href' => '/objects/' . $objectId . '/edit?tab=journal'],
@@ -31,25 +28,28 @@
         'missing' => 'Метод не найден',
         'skipped' => 'Пропущено',
     ];
+    $backUrl = $classId > 0 ? '/classes/' . $classId . '/edit?tab=objects' : '/classes';
 @endphp
 
 <div class="md-ui-page md-ui-page--stack">
     <x-md.page-hero
-        :eyebrow="$isNew ? 'Новый объект' : 'Карточка объекта'"
+        :eyebrow="$isNew ? 'Новый объект' : ($classPath !== '' ? $classPath : 'Объект без класса')"
         icon="box"
         :title="$isNew ? 'Новый объект' : $object['title']"
-        :lede="$isNew ? 'Задайте название, класс и расположение — свойства появятся после сохранения.' : ($object['description'] !== '' ? $object['description'] : 'Описание не задано.')"
+        :lede="$isNew
+            ? 'Объект — конкретное устройство или помещение. Класс задаёт свойства, значения хранятся у объекта.'
+            : ($object['description'] !== '' ? $object['description'] : 'Описание не задано.')"
         :meta="$isNew ? [] : [
-            ['icon' => 'hierarchy', 'label' => 'Класс', 'value' => $classNames[$classId] ?? 'не задан'],
+            ['icon' => 'hierarchy', 'label' => 'Класс', 'value' => $className !== '' ? $className : 'не задан'],
             ['icon' => 'map-pin', 'label' => 'Локация', 'value' => $locationNames[$locationId] ?? '—'],
             ['icon' => 'adjustments', 'label' => 'Свойств', 'value' => count($properties)],
             ['icon' => 'code', 'label' => 'Методов', 'value' => count($classMethods)],
         ]">
         <x-slot:actions>
-            <x-md.button href="/objects" variant="secondary" icon="arrow-left">К списку</x-md.button>
+            <x-md.button :href="$backUrl" variant="secondary" icon="arrow-left">К классу</x-md.button>
             @if (!$isNew)
                 <form method="post" action="/objects/{{ $objectId }}/delete" class="md-inline-form"
-                      data-md-confirm="Удалить объект «{{ $object['title'] }}»?">
+                      data-md-confirm="Удалить объект «{{ $object['title'] }}»? Записи истории останутся в БД.">
                     <input type="hidden" name="_token" value="{{ $csrf }}">
                     <x-md.button type="submit" variant="danger" icon="trash">Удалить</x-md.button>
                 </form>
@@ -76,14 +76,14 @@
                                     hint="Уникальное имя объекта, например «Кухня»." />
                         <x-md.select name="class_id" label="Класс" :selected="$classId">
                             <option value="0">Без класса</option>
-                            @foreach ($classes as $class)
-                                <option value="{{ $class['id'] }}" @selected($classId === $class['id'])>{{ $class['title'] }}</option>
+                            @foreach ($classes as $row)
+                                <option value="{{ $row['id'] }}" @selected($classId === (int)$row['id'])>{{ $row['title'] }}</option>
                             @endforeach
                         </x-md.select>
                         <x-md.select name="location_id" label="Расположение" :selected="$locationId">
                             <option value="0">Не указано</option>
                             @foreach ($locations as $location)
-                                <option value="{{ $location['id'] }}" @selected($locationId === $location['id'])>{{ $location['title'] }}</option>
+                                <option value="{{ $location['id'] }}" @selected($locationId === (int)$location['id'])>{{ $location['title'] }}</option>
                             @endforeach
                         </x-md.select>
                     </div>
@@ -92,28 +92,58 @@
                                    hint="Назначение объекта: что он делает и где стоит." />
 
                     @if ($isNew)
-                        <x-md.hint tone="info" title="Свойства появятся после сохранения"
-                                   text="Сначала сохраните объект с классом — затем откройте вкладку «Свойства» и задайте значения." />
+                        <x-md.hint tone="info" title="Значения появятся после сохранения"
+                                   text="Сохраните объект — затем задайте значения свойств на вкладке «Свойства и значения»." />
+                    @else
+                        <x-md.hint tone="info" title="Значения свойств"
+                                   text="Значения и история живут у объекта. Откройте вкладку «Свойства и значения», чтобы записать их." />
                     @endif
                 </div>
             </x-md.card>
 
-            @if (!$isNew && $properties !== [])
-                <x-md.card title="Значения свойств" :subtitle="'Свойства класса «' . ($classNames[$classId] ?? '—') . '»'">
-                    <x-md.table label="Значения свойств">
+            <div class="md-ui-form-actions">
+                <x-md.button type="submit" icon="check">{{ $isNew ? 'Создать объект' : 'Сохранить' }}</x-md.button>
+                <x-md.button :href="$backUrl" variant="ghost">Отмена</x-md.button>
+            </div>
+        </form>
+    @elseif ($tab === 'properties')
+        <x-md.card title="Свойства и значения"
+                   :subtitle="'Всего: ' . count($properties) . ($objectPropertyCount > 0 ? ' · объектных: ' . $objectPropertyCount : '')">
+            <div class="md-ui-actions">
+                <x-md.button href="/properties/create?object_id={{ $objectId }}" icon="plus" size="sm">Добавить объектное свойство</x-md.button>
+                @if ($classId > 0)
+                    <x-md.button href="/classes/{{ $classId }}/edit?tab=properties" variant="secondary" icon="hierarchy" size="sm">Свойства класса</x-md.button>
+                @endif
+            </div>
+
+            @if ($properties === [])
+                <x-md.empty-state icon="adjustments" title="Свойств нет"
+                                  text="У класса нет свойств, и объектных пока нет. Добавьте объектное свойство или настройте класс." />
+            @else
+                <form method="post" action="/objects/{{ $objectId }}/values" class="md-ui-form">
+                    <input type="hidden" name="_token" value="{{ $csrf }}">
+                    <x-md.table label="Свойства и значения">
                         <x-slot:head>
                             <th scope="col">Свойство</th>
+                            <th scope="col">Источник</th>
                             <th scope="col">Тип</th>
                             <th scope="col">Значение</th>
+                            <th scope="col" class="text-end"><span class="visually-hidden">Действия</span></th>
                         </x-slot:head>
                         <x-slot:body>
                             @foreach ($properties as $property)
                                 <tr>
+                                    <td><strong>{{ $property['title'] }}</strong></td>
                                     <td>
-                                        <div class="md-table__name">
-                                            <span class="md-table__icon"><i class="ti ti-adjustments" aria-hidden="true"></i></span>
-                                            <div><strong>{{ $property['title'] }}</strong></div>
-                                        </div>
+                                        @if ($property['origin'] === 'object')
+                                            <x-md.badge tone="warning">объектное</x-md.badge>
+                                        @elseif ($property['origin'] === 'own')
+                                            <x-md.badge tone="primary">класс</x-md.badge>
+                                        @else
+                                            <a href="/classes/{{ $property['owner_class_id'] }}/edit?tab=properties">
+                                                <x-md.badge tone="info">от {{ $property['owner_class_title'] }}</x-md.badge>
+                                            </a>
+                                        @endif
                                     </td>
                                     <td><x-md.badge tone="outline">{{ $property['data_type'] }}</x-md.badge></td>
                                     <td>
@@ -122,112 +152,79 @@
                                                value="{{ $values[$property['id']] ?? '' }}"
                                                aria-label="Значение свойства {{ $property['title'] }}">
                                     </td>
+                                    <td>
+                                        <div class="md-table__actions">
+                                            @yoyo('property-history', [
+                                                'objectId' => $objectId,
+                                                'propertyId' => $property['id'],
+                                                'title' => $object['title'] . '.' . $property['title'],
+                                            ])
+                                            @if ($property['origin'] === 'inherited')
+                                                <x-md.icon-button href="/classes/{{ $property['owner_class_id'] }}/edit?tab=properties" icon="arrow-up-right" label="Открыть в родительском классе" size="sm" />
+                                            @else
+                                                <x-md.icon-button href="/properties/{{ $property['id'] }}/edit" icon="pencil" label="Настроить свойство" size="sm" />
+                                            @endif
+                                        </div>
+                                    </td>
                                 </tr>
                             @endforeach
                         </x-slot:body>
                     </x-md.table>
+                    <div class="md-ui-form-actions">
+                        <x-md.button type="submit" icon="check">Сохранить значения</x-md.button>
+                    </div>
                     <p class="md-ui-muted">Запись идёт через общий сервис: значение, история, журнал и OnChange срабатывают одинаково с панелью и сценарием.</p>
-                </x-md.card>
+                </form>
             @endif
-
-            <div class="md-ui-form-actions">
-                <x-md.button type="submit" icon="check">{{ $isNew ? 'Создать объект' : 'Сохранить' }}</x-md.button>
-                <x-md.button href="/objects" variant="ghost">Отмена</x-md.button>
-            </div>
-        </form>
-    @elseif ($tab === 'properties')
-        <x-md.card title="Свойства класса" :subtitle="'Всего: ' . count($properties)">
+        </x-md.card>
+    @elseif ($tab === 'methods')
+        <x-md.card title="Методы объекта" :subtitle="'Всего: ' . count($classMethods)">
             <div class="md-ui-actions">
-                <x-md.button href="/properties/create?class_id={{ $classId }}" icon="plus" size="sm">Добавить свойство</x-md.button>
-                <x-md.button href="/objects/{{ $objectId }}/edit" variant="secondary" size="sm" icon="forms">Изменить значения</x-md.button>
+                <x-md.button href="/methods/create?object_id={{ $objectId }}" icon="plus" size="sm">Добавить объектный метод</x-md.button>
+                @if ($classId > 0)
+                    <x-md.button href="/classes/{{ $classId }}/edit?tab=methods" variant="secondary" icon="hierarchy" size="sm">Методы класса</x-md.button>
+                @endif
             </div>
-            @if ($properties === [])
-                <x-md.empty-state icon="adjustments" title="У класса нет свойств"
-                                  text="Свойства задаются на уровне класса — откройте раздел «Свойства» и добавьте их." />
+            @if ($classMethods === [])
+                <x-md.empty-state icon="code" title="Методов нет"
+                                  text="Методы задаются у класса и наследуются объектами. Объектный метод действует только у этого объекта." />
             @else
-                <x-md.table label="Свойства класса">
+                <x-md.table label="Методы объекта">
                     <x-slot:head>
-                        <th scope="col">Свойство</th>
-                        <th scope="col">Тип</th>
-                        <th scope="col">История</th>
-                        <th scope="col">OnChange</th>
-                        <th scope="col">Значение</th>
+                        <th scope="col">Метод</th>
+                        <th scope="col">Описание</th>
+                        <th scope="col">Источник</th>
                         <th scope="col" class="text-end"><span class="visually-hidden">Действия</span></th>
                     </x-slot:head>
                     <x-slot:body>
-                        @foreach ($properties as $property)
+                        @foreach ($classMethods as $method)
                             <tr>
-                                <td><strong>{{ $property['title'] }}</strong></td>
-                                <td><x-md.badge tone="outline">{{ $property['data_type'] }}</x-md.badge></td>
+                                <td><strong>{{ $method['title'] }}</strong></td>
+                                <td>{{ $method['description'] !== '' ? $method['description'] : '—' }}</td>
                                 <td>
-                                    @if (!empty($property['keep_history']))
-                                        <x-md.badge tone="success">ведётся</x-md.badge>
+                                    @if ($method['origin'] === 'object')
+                                        <x-md.badge tone="warning">объектный</x-md.badge>
+                                    @elseif ($method['origin'] === 'own')
+                                        <x-md.badge tone="primary">класс</x-md.badge>
                                     @else
-                                        <span class="md-table__muted">нет</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @if (($property['on_change'] ?? '') !== '')
-                                        <code class="md-table__code">{{ $property['on_change'] }}</code>
-                                    @else
-                                        <span class="md-table__muted">—</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @if (($values[$property['id']] ?? '') !== '')
-                                        <span class="md-table__value" title="{{ $values[$property['id']] }}">{{ $values[$property['id']] }}</span>
-                                    @else
-                                        <span class="md-table__muted">не задано</span>
+                                        <a href="/classes/{{ $method['owner_class_id'] }}/edit?tab=methods">
+                                            <x-md.badge tone="info">от {{ $method['owner_class_title'] }}</x-md.badge>
+                                        </a>
                                     @endif
                                 </td>
                                 <td>
                                     <div class="md-table__actions">
-                                        @yoyo('property-history', [
-                                            'objectId' => $objectId,
-                                            'propertyId' => $property['id'],
-                                            'title' => $object['title'] . '.' . $property['title'],
-                                        ])
-                                        <x-md.icon-button href="/properties/{{ $property['id'] }}/edit" icon="pencil" label="Свойство класса" size="sm" />
-                                        <x-md.icon-button href="/objects/{{ $objectId }}/edit" icon="forms" label="Изменить значение" size="sm" />
+                                        @if ($method['origin'] === 'object' || $method['origin'] === 'own')
+                                            <x-md.icon-button href="/methods/{{ $method['id'] }}/edit" icon="pencil" label="Открыть метод" size="sm" />
+                                        @else
+                                            <x-md.icon-button href="/classes/{{ $method['owner_class_id'] }}/edit?tab=methods" icon="arrow-up-right" label="Открыть в родительском классе" size="sm" />
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
                         @endforeach
                     </x-slot:body>
                 </x-md.table>
-            @endif
-        </x-md.card>
-    @elseif ($tab === 'methods')
-        <x-md.card title="Методы класса" :subtitle="'Всего: ' . count($classMethods)">
-            @if ($classMethods === [])
-                <x-md.empty-state icon="code" title="Методов нет"
-                                  text="Методы класса задаются в разделе «Методы» и наследуются объектами этого класса." />
-            @else
-                <x-md.table label="Методы класса">
-                    <x-slot:head>
-                        <th scope="col">Метод</th>
-                        <th scope="col">Описание</th>
-                        <th scope="col" class="text-end"><span class="visually-hidden">Действия</span></th>
-                    </x-slot:head>
-                    <x-slot:body>
-                        @foreach ($classMethods as $method)
-                            <tr>
-                                <td>
-                                    <div class="md-table__name">
-                                        <span class="md-table__icon"><i class="ti ti-code" aria-hidden="true"></i></span>
-                                        <div><strong>{{ $method['title'] }}</strong></div>
-                                    </div>
-                                </td>
-                                <td>{{ $method['description'] !== '' ? $method['description'] : '—' }}</td>
-                                <td>
-                                    <div class="md-table__actions">
-                                        <x-md.icon-button href="/methods/{{ $method['id'] }}/edit" icon="pencil" label="Открыть метод" size="sm" />
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </x-slot:body>
-                </x-md-table>
             @endif
         </x-md.card>
     @elseif ($tab === 'history')

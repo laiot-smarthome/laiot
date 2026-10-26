@@ -14,6 +14,8 @@ use MajorDoMo\Properties\PropertyRepository;
  *
  * Новый Alpine-компонент `x-md.linked-object` не использует старый
  * `modules/linkedobject` и его JS.
+ *
+ * 2026-10-27 — контекст объекта включает объектные и унаследованные члены.
  */
 final readonly class LinkedObjectService
 {
@@ -70,11 +72,11 @@ final readonly class LinkedObjectService
         }
         $class = $object['class_id'] > 0 ? $this->classes->find((int)$object['class_id']) : null;
         $properties = [];
-        foreach ($this->properties->forClass((int)$object['class_id']) as $property) {
+        foreach ($this->properties->forObject((int)$object['id']) as $property) {
             $properties[] = ['title' => (string)$property['title'], 'data_type' => (string)$property['data_type']];
         }
         $methods = [];
-        foreach ($this->methods->forClass((int)$object['class_id']) as $method) {
+        foreach ($this->methods->forObject((int)$object['id']) as $method) {
             $methods[] = ['title' => (string)$method['title'], 'description' => $method['description']];
         }
 

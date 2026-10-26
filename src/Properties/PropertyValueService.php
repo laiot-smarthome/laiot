@@ -22,6 +22,8 @@ use Throwable;
  * фоновые циклы и очередь для этого не нужны. Ошибка пользовательского кода
  * не откатывает значение — она попадает в журнал `property_events` и в лог.
  *
+ * 2026-10-27 — поиск свойства идёт по объектным переопределениям и цепочке
+ *              наследования классов; чужое/перекрытое свойство не пишется.
  * 2026-10-26 — запись по ID проверяет принадлежность свойства классу объекта.
  * 2026-10-26 — сервис создан для нового ядра MyDoMo: единая запись вместо
  *              `ValueRepository::updateValue()` и `sg()` в обход истории.
@@ -60,7 +62,7 @@ final class PropertyValueService
             return null;
         }
 
-        $property = $this->properties->resolveForClass((int)$object['class_id'], $propertyTitle);
+        $property = $this->properties->resolveForObject((int)$object['id'], $propertyTitle);
         if ($property === null) {
             return null;
         }
@@ -112,7 +114,7 @@ final class PropertyValueService
         $object = $this->objects->find($objectId);
         $property = $this->properties->find($propertyId);
         if ($object === null || $property === null
-            || ($property['class_id'] !== 0 && $property['class_id'] !== $object['class_id'])) {
+            || !$this->properties->isApplicableToObject($property, $object)) {
             return false;
         }
 
@@ -275,7 +277,7 @@ final class PropertyValueService
         $this->chain->push($token);
 
         try {
-            if ($this->methods->findForClass((int)$object['class_id'], $handler) === null) {
+            if ($this->methods->findForObject((int)$object['id'], (int)$object['class_id'], $handler) === null) {
                 $this->events->finish($handlerEventId, 'missing', 'Метод не найден: ' . $handler);
                 $this->logger->warning('OnChange-метод свойства не найден', [
                     'object' => $objectTitle,

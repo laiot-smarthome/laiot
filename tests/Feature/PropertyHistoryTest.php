@@ -40,6 +40,10 @@ final class PropertyHistoryTest extends TestCase
 
         $db = $this->app->database()->connection();
         $now = date('Y-m-d H:i:s');
+        $db->table('classes')->insert([
+            'id' => 1, 'title' => 'Датчик', 'parent_id' => 0,
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
         $db->table('objects')->insert([
             'id' => 1, 'title' => 'Кухня', 'class_id' => 1, 'location_id' => 0,
             'description' => '', 'created_at' => $now, 'updated_at' => $now,
@@ -96,9 +100,9 @@ final class PropertyHistoryTest extends TestCase
         self::assertNull($service->for(99, 1));
     }
 
-    public function testValuesPageRendersYoyoHistoryComponent(): void
+    public function testObjectPropertiesRenderYoyoHistoryComponent(): void
     {
-        $response = $this->app->handle(Request::create('/values', 'GET'));
+        $response = $this->app->handle(Request::create('/objects/1/edit', 'GET', ['tab' => 'properties']));
 
         self::assertSame(200, $response->getStatusCode());
         $html = (string)$response->getContent();

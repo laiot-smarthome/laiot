@@ -43,7 +43,9 @@ uppercase-поля не читаются через runtime-адаптер. От
 Справочник актуальных имён — миграции `database/migrations`.
 При переносе ядровых разделов миграция 000024 переименовывает прежнюю
 `module_api_webhooks`, 000025 удаляет таблицу Shoutbox, 000026
-переименовывает `module_shared_events` в `shared_events`.
+переименовывает `module_shared_events` в `shared_events`, а
+`2026_10_27_000001` добавляет `classes.parent_id`,
+`properties.object_id` и `methods.object_id`.
 Это разовые преобразования pre-release-схемы, не чтение двух схем в runtime.
 
 ## Колонки и soft delete
@@ -65,10 +67,18 @@ uppercase-поля не читаются через runtime-адаптер. От
 но сама не добавляет SoftDeletes. У неё guarded=[], поэтому серверная
 валидация и явные поля записи остаются обязательными.
 
-`property_values` хранит одну пару object_id/property_id. Низкоуровневый
-ValueRepository.write восстанавливает её при новой записи, сохраняя
-created_at. Рабочая запись идёт через PropertyValueService с проверками,
-историей и OnChange: [events.md](events.md).
+`classes.parent_id` задаёт подкласс; `0` — корневой класс. Наследование не
+ограничено глубиной, а репозиторий отклоняет цикл. `properties.object_id` и
+`methods.object_id` равны `0` для классового члена и id объекта для
+объектного переопределения. Классовый член наследуют подклассы; ближайший
+класс в цепочке выигрывает при совпадении названия.
+
+`property_values` хранит одну пару object_id/property_id. Значения есть
+только у объекта: класс без объектов не имеет значений, даже если его
+свойства уже созданы. Низкоуровневый ValueRepository.write восстанавливает
+пару при новой записи, сохраняя created_at. Рабочая запись идёт через
+PropertyValueService с проверками, историей и OnChange:
+[events.md](events.md).
 
 ## Миграции ядра
 

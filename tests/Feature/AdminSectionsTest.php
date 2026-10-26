@@ -42,15 +42,17 @@ final class AdminSectionsTest extends TestCase
         $now = date('Y-m-d H:i:s');
 
         $connection->table('classes')->insert([
-            ['id' => 1, 'title' => 'Датчик', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 2, 'title' => 'Свет', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 1, 'title' => 'Датчик', 'parent_id' => 0, 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 2, 'title' => 'Свет', 'parent_id' => 0, 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 3, 'title' => 'Умный датчик', 'parent_id' => 1, 'created_at' => $now, 'updated_at' => $now],
         ]);
         $connection->table('locations')->insert([
             ['id' => 1, 'title' => 'Кухня', 'priority' => 10, 'created_at' => $now, 'updated_at' => $now],
         ]);
         $connection->table('properties')->insert([
-            ['id' => 1, 'class_id' => 1, 'title' => 'temperature', 'data_type' => 'float', 'keep_history' => 1, 'on_change' => '', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 2, 'class_id' => 2, 'title' => 'state', 'data_type' => 'bool', 'keep_history' => 1, 'on_change' => '', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 1, 'class_id' => 1, 'object_id' => 0, 'title' => 'temperature', 'data_type' => 'float', 'keep_history' => 1, 'on_change' => '', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 2, 'class_id' => 2, 'object_id' => 0, 'title' => 'state', 'data_type' => 'bool', 'keep_history' => 1, 'on_change' => '', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 3, 'class_id' => 1, 'object_id' => 3, 'title' => 'battery', 'data_type' => 'int', 'keep_history' => 0, 'on_change' => '', 'created_at' => $now, 'updated_at' => $now],
         ]);
         $connection->table('methods')->insert([
             ['id' => 1, 'class_id' => 1, 'title' => 'refresh', 'description' => 'Обновить', 'code' => '', 'created_at' => $now, 'updated_at' => $now],
@@ -58,8 +60,12 @@ final class AdminSectionsTest extends TestCase
         $connection->table('objects')->insert([
             ['id' => 1, 'title' => 'Кухня', 'class_id' => 1, 'location_id' => 1, 'description' => 'Датчик на кухне', 'created_at' => $now, 'updated_at' => $now],
             ['id' => 2, 'title' => 'Спальня', 'class_id' => 2, 'location_id' => 1, 'description' => 'Свет в спальне', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 3, 'title' => 'Гостиная', 'class_id' => 3, 'location_id' => 1, 'description' => 'Датчик в гостиной', 'created_at' => $now, 'updated_at' => $now],
         ]);
-        $app->container()->make(PropertyValueService::class)->setValue(1, 1, '23.5', 'panel:test');
+        $values = $app->container()->make(PropertyValueService::class);
+        $values->setValue(1, 1, '23.5', 'panel:test');
+        $values->setValue(3, 1, '19', 'panel:test');
+        $values->setValue(3, 3, '80', 'panel:test');
 
         return $app;
     }
@@ -77,26 +83,23 @@ final class AdminSectionsTest extends TestCase
         self::assertStringContainsString('Очередь заданий', $html);
     }
 
-    public function testObjectsListSupportsSearchAndClassFilter(): void
+    public function testObjectsLiveInsideClassTreeInsteadOfSeparateCatalog(): void
     {
         $app = $this->boot();
 
-        $all = $app->handle(Request::create('/objects', 'GET'));
-        self::assertSame(200, $all->getStatusCode());
-        $html = (string)$all->getContent();
+        $redirect = $app->handle(Request::create('/objects', 'GET'));
+        self::assertSame(302, $redirect->getStatusCode());
+        self::assertSame('/classes', $redirect->headers->get('Location'));
+
+        $page = $app->handle(Request::create('/classes', 'GET'));
+        self::assertSame(200, $page->getStatusCode());
+        $html = (string)$page->getContent();
         self::assertStringContainsString('Кухня', $html);
         self::assertStringContainsString('Спальня', $html);
+        self::assertStringContainsString('Гостиная', $html);
+        self::assertStringContainsString('Умный датчик', $html);
+        self::assertStringContainsString('data-parent-id="1"', $html);
         self::assertStringContainsString('href="/objects/1/edit"', $html);
-
-        $search = $app->handle(Request::create('/objects', 'GET', ['q' => 'Спальня']));
-        $searchHtml = (string)$search->getContent();
-        self::assertStringContainsString('Спальня', $searchHtml);
-        self::assertStringNotContainsString('Датчик на кухне', $searchHtml);
-
-        $filter = $app->handle(Request::create('/objects', 'GET', ['class_id' => '2']));
-        $filterHtml = (string)$filter->getContent();
-        self::assertStringContainsString('Спальня', $filterHtml);
-        self::assertStringNotContainsString('Датчик на кухне', $filterHtml);
     }
 
     public function testObjectCardTabsShowClassDataAndHistory(): void
@@ -106,7 +109,7 @@ final class AdminSectionsTest extends TestCase
         $properties = $app->handle(Request::create('/objects/1/edit', 'GET', ['tab' => 'properties']));
         self::assertSame(200, $properties->getStatusCode());
         $propertiesHtml = (string)$properties->getContent();
-        self::assertStringContainsString('Свойства класса', $propertiesHtml);
+        self::assertStringContainsString('Свойства и значения', $propertiesHtml);
         self::assertStringContainsString('temperature', $propertiesHtml);
         self::assertStringContainsString('23.5', $propertiesHtml);
 
@@ -117,6 +120,33 @@ final class AdminSectionsTest extends TestCase
         $journal = $app->handle(Request::create('/objects/1/edit', 'GET', ['tab' => 'journal']));
         self::assertSame(200, $journal->getStatusCode());
         self::assertStringContainsString('Журнал событий', (string)$journal->getContent());
+    }
+
+    public function testSubclassInheritsPropertiesAndMethodsWithoutClassValues(): void
+    {
+        $app = $this->boot();
+
+        $properties = $app->handle(Request::create('/classes/3/edit', 'GET', ['tab' => 'properties']));
+        self::assertSame(200, $properties->getStatusCode());
+        $propertiesHtml = (string)$properties->getContent();
+        self::assertStringContainsString('temperature', $propertiesHtml);
+        self::assertStringContainsString('от Датчик', $propertiesHtml);
+        // Значение принадлежит объекту, а не классу: формы значения в карточке
+        // класса быть не должно.
+        self::assertStringNotContainsString('name="values[', $propertiesHtml);
+
+        $methods = $app->handle(Request::create('/classes/3/edit', 'GET', ['tab' => 'methods']));
+        $methodsHtml = (string)$methods->getContent();
+        self::assertStringContainsString('refresh', $methodsHtml);
+        self::assertStringContainsString('от Датчик', $methodsHtml);
+
+        $object = $app->handle(Request::create('/objects/3/edit', 'GET', ['tab' => 'properties']));
+        $objectHtml = (string)$object->getContent();
+        self::assertStringContainsString('temperature', $objectHtml);
+        self::assertStringContainsString('battery', $objectHtml);
+        self::assertStringContainsString('объектное', $objectHtml);
+        self::assertStringContainsString('19', $objectHtml);
+        self::assertStringContainsString('80', $objectHtml);
     }
 
     public function testClassesPageShowsTreeWithObjects(): void
@@ -131,10 +161,27 @@ final class AdminSectionsTest extends TestCase
         self::assertStringContainsString('href="/objects/1/edit"', $html);
     }
 
+    public function testClassesTableHasOneBodyAndNoNestedTree(): void
+    {
+        $app = $this->boot();
+        $html = (string)$app->handle(Request::create('/classes', 'GET'))->getContent();
+
+        $dom = new \DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="utf-8"?>' . $html);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        // x-md.table сам оборачивает слот body в tbody; вложенный tbody
+        // ломает дерево и раскрытие подклассов в браузере.
+        self::assertSame(1, $dom->getElementsByTagName('tbody')->length);
+        self::assertGreaterThan(1, $dom->getElementsByTagName('tr')->length);
+    }
+
     public function testDestructiveActionsUseSharedConfirmDialog(): void
     {
         $app = $this->boot();
-        $response = $app->handle(Request::create('/objects', 'GET'));
+        $response = $app->handle(Request::create('/classes', 'GET'));
 
         $html = (string)$response->getContent();
         self::assertStringContainsString('mdConfirmDialog', $html);
@@ -153,10 +200,10 @@ final class AdminSectionsTest extends TestCase
         self::assertStringNotContainsString('mydomo-codeeditor.js', $html);
     }
 
-    public function testHistoryDrawerIsYoyoComponentOnValuesPage(): void
+    public function testHistoryDrawerIsYoyoComponentOnObjectProperties(): void
     {
         $app = $this->boot();
-        $response = $app->handle(Request::create('/values', 'GET'));
+        $response = $app->handle(Request::create('/objects/1/edit', 'GET', ['tab' => 'properties']));
 
         $html = (string)$response->getContent();
         self::assertStringContainsString('yoyo:name="property-history"', $html);
@@ -168,9 +215,12 @@ final class AdminSectionsTest extends TestCase
     {
         $app = $this->boot();
 
-        foreach (['/admin', '/objects', '/classes', '/properties', '/methods', '/locations', '/scripts',
-                     '/events', '/jobs', '/users', '/settings', '/journal', '/errors', '/api',
-                     '/admin/modules', '/values', '/history', '/status', '/notifications'] as $url) {
+        foreach (['/admin', '/classes', '/classes/1/edit', '/classes/1/edit?tab=properties',
+                     '/classes/1/edit?tab=methods', '/classes/1/edit?tab=objects',
+                     '/objects/1/edit', '/objects/1/edit?tab=properties',
+                     '/properties/1/edit', '/methods/1/edit',
+                     '/locations', '/scripts', '/events', '/jobs', '/users', '/settings', '/journal',
+                     '/errors', '/api', '/admin/modules', '/status', '/notifications'] as $url) {
             $response = $app->handle(Request::create($url, 'GET'));
             self::assertSame(200, $response->getStatusCode(), 'Страница ' . $url . ' должна открываться.');
             self::assertStringNotContainsString('"/module/', (string)$response->getContent(), 'Ссылка на legacy /module/ в ' . $url);

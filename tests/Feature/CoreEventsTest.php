@@ -145,22 +145,21 @@ final class CoreEventsTest extends TestCase
             ->count());
     }
 
-    public function testPvaluesPageWritesThroughChain(): void
+    public function testObjectPropertiesWriteThroughChain(): void
     {
         [$app, $session] = $this->boot();
 
         self::assertTrue(sg('Кухня.temperature', '20'));
-        $value = $app->database()->connection()->table('property_values')->first();
 
-        $response = $app->handle(Request::create('/values/' . $value->id, 'POST', [
+        $response = $app->handle(Request::create('/objects/1/values', 'POST', [
             '_token' => $session->csrfToken(),
-            'value' => '21',
+            'values' => [1 => '21'],
         ]));
         self::assertSame(302, $response->getStatusCode());
         self::assertSame('21', gg('Кухня.temperature'));
         self::assertSame(2, $this->rowCount($app, 'property_history'));
 
-        $event = $this->firstRowWhere($app, 'property_events', 'source', 'panel:pvalues');
+        $event = $this->firstRowWhere($app, 'property_events', 'source', 'panel:objects');
         self::assertNotNull($event);
         self::assertSame('property.changed', $event->type);
         self::assertSame('21', $event->new_value);
@@ -233,6 +232,7 @@ final class CoreEventsTest extends TestCase
             'classes' => static function (Blueprint $table): void {
                 $table->increments('id');
                 $table->string('title');
+                $table->integer('parent_id')->default(0);
                 $table->timestamps();
                 $table->softDeletes();
             },
@@ -248,6 +248,7 @@ final class CoreEventsTest extends TestCase
             'properties' => static function (Blueprint $table): void {
                 $table->increments('id');
                 $table->integer('class_id');
+                $table->integer('object_id')->default(0);
                 $table->string('title');
                 $table->text('description')->nullable();
                 $table->string('data_type')->default('string');
@@ -275,6 +276,7 @@ final class CoreEventsTest extends TestCase
             'methods' => static function (Blueprint $table): void {
                 $table->increments('id');
                 $table->integer('class_id');
+                $table->integer('object_id')->default(0);
                 $table->string('title');
                 $table->text('description')->nullable();
                 $table->text('code')->nullable();
@@ -318,12 +320,12 @@ final class CoreEventsTest extends TestCase
             ['id' => 3, 'title' => 'Глобальный', 'class_id' => 0, 'location_id' => 0, 'created_at' => $now, 'updated_at' => $now],
         ]);
         $connection->table('properties')->insert([
-            ['id' => 1, 'class_id' => 1, 'title' => 'temperature', 'data_type' => 'float', 'keep_history' => 1, 'on_change' => 'onTemperature', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 2, 'class_id' => 1, 'title' => 'alarm', 'data_type' => 'bool', 'keep_history' => 0, 'on_change' => 'onAlarm', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 3, 'class_id' => 1, 'title' => 'broken', 'data_type' => 'string', 'keep_history' => 0, 'on_change' => 'onBroken', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 4, 'class_id' => 1, 'title' => 'ghost', 'data_type' => 'string', 'keep_history' => 0, 'on_change' => 'missingMethod', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 5, 'class_id' => 2, 'title' => 'temperature', 'data_type' => 'float', 'keep_history' => 0, 'on_change' => '', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 6, 'class_id' => 0, 'title' => 'global', 'data_type' => 'string', 'keep_history' => 0, 'on_change' => '', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 1, 'class_id' => 1, 'object_id' => 0, 'title' => 'temperature', 'data_type' => 'float', 'keep_history' => 1, 'on_change' => 'onTemperature', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 2, 'class_id' => 1, 'object_id' => 0, 'title' => 'alarm', 'data_type' => 'bool', 'keep_history' => 0, 'on_change' => 'onAlarm', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 3, 'class_id' => 1, 'object_id' => 0, 'title' => 'broken', 'data_type' => 'string', 'keep_history' => 0, 'on_change' => 'onBroken', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 4, 'class_id' => 1, 'object_id' => 0, 'title' => 'ghost', 'data_type' => 'string', 'keep_history' => 0, 'on_change' => 'missingMethod', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 5, 'class_id' => 2, 'object_id' => 0, 'title' => 'temperature', 'data_type' => 'float', 'keep_history' => 0, 'on_change' => '', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 6, 'class_id' => 0, 'object_id' => 3, 'title' => 'global', 'data_type' => 'string', 'keep_history' => 0, 'on_change' => '', 'created_at' => $now, 'updated_at' => $now],
         ]);
         $connection->table('methods')->insert([
             ['id' => 1, 'class_id' => 1, 'title' => 'onTemperature', 'description' => '', 'code' => 'if (($params["NEW_VALUE"] ?? "") === "hot") { sg("Кухня.alarm", "1"); } return true;', 'created_at' => $now, 'updated_at' => $now],
