@@ -25,11 +25,11 @@
             <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
                 <x-md.badge tone="success">готово</x-md.badge>
                 <x-md.badge tone="info">Blade</x-md.badge>
-                <x-md.badge tone="warning">Yoyo позже</x-md.badge>
+                <x-md.badge tone="warning">Yoyo</x-md.badge>
             </div>
             <p style="margin:.75rem 0 0;">
-                Следующий шаг — интерактивные компоненты на Yoyo, но только после
-                переноса статической разметки.
+                Yoyo-компоненты подключаются отдельной секцией на странице
+                `/module/ui_kit`; здесь — статическая Blade-разметка.
             </p>
         </x-md.card>
     </div>

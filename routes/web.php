@@ -72,6 +72,12 @@ return static function (Router $router): void {
 
         $router->middleware('auth')->group(function (Router $router): void {
             $router->get('/yoyo-demo', [YoyoDemoController::class, '__invoke'])->name('yoyo.demo');
+            // Yoyo/htmx обновляет компонент GET-запросом. Маршрут только для
+            // auth-сессии; изменяющие Yoyo-компоненты должны сами проверять
+            // право/идемпотентность, POST-вариант оставлен с CSRF.
+            $router->get('/yoyo', [YoyoController::class, '__invoke'])
+                ->middleware('auth')
+                ->name('yoyo.render');
             $router->post('/yoyo', [YoyoController::class, '__invoke'])
                 ->middleware('csrf')
                 ->name('yoyo.update');

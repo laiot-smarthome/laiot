@@ -24,9 +24,15 @@ final class CoreUiKitTest extends TestCase
         $app->boot();
 
         $response = $app->handle(Request::create('/module/ui_kit', 'GET'));
+        $html = (string)$response->getContent();
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('UI Kit', (string)$response->getContent());
-        self::assertStringContainsString('md-kpi', (string)$response->getContent());
+        self::assertStringContainsString('UI Kit', $html);
+        self::assertStringContainsString('md-kpi', $html);
+        self::assertStringContainsString('hx-get="increment"', $html);
+        self::assertStringContainsString('yoyo:name="counter"', $html);
+        self::assertStringContainsString('/assets/vendor/yoyo/yoyo.js', $html);
+        self::assertStringContainsString('blade-demo-modal', $html);
+        self::assertStringContainsString('$store.mdModal', $html);
     }
 }

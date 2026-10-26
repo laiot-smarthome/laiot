@@ -859,8 +859,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   модуль и шаблоны удалены.
 - [x] `ui_kit`: новый справочник `x-md.*`; старые шаблоны удалены.
 - [x] UI Kit: `modal`/`drawer`/alerts на Alpine (`$store.mdModal`/
-  `$store.mdDrawer`), каталог встроен в `/module/ui_kit`; Bootstrap JS и
-  jQuery не используются; 4 теста.
+  `$store.mdDrawer`), Yoyo-счётчик и `@yoyo_scripts` на `/module/ui_kit`;
+  Bootstrap JS и jQuery не используются; 4 теста.
+- [ ] Yoyo-обёртки для остальных интерактивных блоков UI Kit.
 - [x] `system_errors`: новая таблица, запись из Kernel, фильтр/soft delete.
 - [x] `locations`: новая таблица, CRUD и приоритет; старый модуль удалён.
 - [x] `scripts`: новая таблица, CRUD/редактор без запуска циклов; старый

@@ -128,6 +128,8 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
   подключаются и не собираются;
 - интерактивные `x-md.*` — на Alpine: `$store.mdModal`/`$store.mdDrawer`,
   `@click`/`:class`/`:style`, без Bootstrap JS и `data-bs-*`;
+- Yoyo: `/yoyo-demo` и счётчик в UI Kit; `GET /yoyo` закрыт auth, POST — CSRF;
+  Yoyo только для UI-состояния, не для бизнес-операций;
 - `src/Http/Controllers/PanelSearchController.php` — `/api/v1/panel/search`
   в конверте `{ok,data}` для `resources/js/mydomo/api.js`;
 - `src/Http/Controllers/NotificationsController.php` — `/api/v1/panel/notifications`

@@ -62,5 +62,17 @@
         ['title' => 'Событие', 'text' => 'Alpha activity feed.', 'time' => '12:00', 'tone' => 'primary'],
     ]" />
 
+    <x-md.card title="Yoyo: серверный счётчик" subtitle="Blade + Yoyo, состояние на сервере">
+        <div class="md-ui-demo__canvas">@yoyo('counter')</div>
+    </x-md.card>
+
     @include('ui-kit.blade')
+
+    @yoyo_scripts
+    <script>
+        document.body.addEventListener('htmx:configRequest', function (event) {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            event.detail.headers['X-CSRF-Token'] = meta ? meta.content : '';
+        });
+    </script>
 </div>

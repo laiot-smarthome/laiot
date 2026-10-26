@@ -11,8 +11,9 @@ use MajorDoMo\Http\Controller;
 /**
  * Endpoint обновлений Yoyo-компонентов.
  *
- * Пока без auth/CSRF: это spike. На этапе 2 маршрут закрывается сеансом
- * администратора и CSRF, как и остальные изменяющие запросы.
+ * Yoyo/htmx ходит GET-запросом; маршрут закрыт auth-сессией. POST-вариант с
+ * CSRF оставлен для изменяющей семантики. Yoyo — только UI-состояние, не
+ * бизнес-операции.
  */
 final readonly class YoyoController extends Controller
 {

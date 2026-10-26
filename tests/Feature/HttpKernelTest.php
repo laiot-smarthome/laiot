@@ -67,7 +67,7 @@ final class HttpKernelTest extends TestCase
 
     public function testMethodNotAllowed(): void
     {
-        $response = $this->app->handle(Request::create('/yoyo', 'GET'));
+        $response = $this->app->handle(Request::create('/logout', 'GET'));
 
         self::assertSame(405, $response->getStatusCode());
         self::assertStringContainsString('POST', (string)$response->headers->get('Allow'));
