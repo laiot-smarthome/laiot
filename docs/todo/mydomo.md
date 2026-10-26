@@ -399,6 +399,7 @@ project/
 | 2026-10-26 | `modules/properties`, `templates/properties/*` | `modules/core/properties` на новой `properties` |
 | 2026-10-26 | `modules/methods`, `templates/methods/*` | `modules/core/methods` на новой `methods` |
 | 2026-10-26 | `modules/objects`, `templates/objects/*` | `modules/core/objects` + `property_values` |
+| 2026-10-26 | `modules/pvalues`, `templates/pvalues/*` | `modules/core/pvalues` на `property_values` |
 
 ## 4. Стек и Composer
 
@@ -846,6 +847,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `objects`: `objects` + `property_values`, значения свойств; старый
   модуль удалён.
 - [x] `gg`/`sg`/`getObject` для существующих объектов/свойств; 1 тест.
+- [x] `pvalues`: значения свойств, правка/удаление; старый модуль удалён.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
   остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.

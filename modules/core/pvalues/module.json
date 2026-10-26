@@ -1,0 +1,15 @@
+{
+    "id": "pvalues",
+    "type": "core",
+    "name": "Значения свойств",
+    "version": "2.0.0",
+    "namespace": "MajorDoMo\\Modules\\Core\\Pvalues\\",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "menu": {
+        "title": "Значения",
+        "route": "pvalues.index",
+        "order": 27
+    }
+}

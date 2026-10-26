@@ -47,7 +47,7 @@ final class ConsoleCommandsTest extends TestCase
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('MyDoMo', $tester->getDisplay());
         self::assertStringContainsString('PHP:', $tester->getDisplay());
-        self::assertStringContainsString('Core modules: 13', $tester->getDisplay());
+        self::assertStringContainsString('Core modules: 14', $tester->getDisplay());
     }
 
     public function testDoctorCommandReportsEnvironment(): void
