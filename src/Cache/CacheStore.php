@@ -17,9 +17,13 @@ use InvalidArgumentException;
  */
 final class CacheStore
 {
+    /**
+     * @param (Closure(): bool)|null $clear
+     */
     public function __construct(
         private readonly Repository $repository,
-        private readonly string $prefix = 'mydomo.'
+        private readonly string $prefix = 'mydomo.',
+        private readonly ?Closure $clear = null
     ) {
     }
 
@@ -45,6 +49,10 @@ final class CacheStore
 
     public function clear(): bool
     {
+        if ($this->clear instanceof Closure) {
+            return ($this->clear)();
+        }
+
         return $this->repository->clear();
     }
 

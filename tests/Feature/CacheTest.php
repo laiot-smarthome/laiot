@@ -83,6 +83,16 @@ final class CacheTest extends TestCase
         self::assertNull($cache->get('db-key'));
     }
 
+    public function testRedisStoreCanBeConstructedLazily(): void
+    {
+        $cache = CacheFactory::create([
+            'driver' => 'redis',
+            'redis' => ['host' => '127.0.0.1', 'port' => 6379, 'database' => 0],
+        ], new DatabaseManager([]));
+
+        self::assertInstanceOf(\MajorDoMo\Cache\CacheStore::class, $cache);
+    }
+
     public function testInvalidKeyIsRejected(): void
     {
         $cache = CacheFactory::create(['driver' => 'array'], new DatabaseManager([]));

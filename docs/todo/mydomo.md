@@ -52,8 +52,8 @@ order: 5
   запрет raw/join; 4 теста.
 - [x] `ModuleBus`: retained events с TTL, namespace и wildcard-подписки;
   4 теста.
-- [x] `CacheStore` + фабрика: array/file/database, TTL, `remember`, `has`,
-  `forget`, типы; 4 теста.
+- [x] `CacheStore` + фабрика: array/file/database/redis, TTL, `remember`,
+  `has`, `forget`, типы; Redis `clear` через SCAN; 5 тестов.
 - [x] Логи: `LoggerFactory` с каналами `app`/`http`/`security` и
   `request_id` в `extra`; тест.
 - [x] Новый CLI `bin/mydomo` на Symfony Console: `about`, `health`,
@@ -703,9 +703,10 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] TTL, `remember`, `rememberForever`, `has`, `forget`, `pull`,
   increment/decrement; массивы, `false`, `0`, `null`.
 - [ ] Namespace с `install_hash`: сейчас `mydomo.<key>`.
-- [ ] Redis store и `clearPrefix` через SCAN, без FLUSHDB.
+- [x] Redis store через Predis/Illuminate Redis и `clear()` через SCAN по
+  префиксу, без FLUSHDB (live Redis в тестах не поднимался).
 - [ ] Запрет кэширования в незавершённой транзакции; инвалидация после commit.
-- [ ] Не использовать `FLUSHDB`/`FLUSHALL`; только SCAN по префиксу.
+- [x] Не использовать `FLUSHDB`/`FLUSHALL`; только SCAN по префиксу.
 - [ ] Redis опционален; без него — database/file store с теми же гарантиями.
 - [ ] `predis/predis` — fallback, если ext-redis нет; предпочитать phpredis.
 - [x] CLI: `cache:clear`.

@@ -15,6 +15,12 @@ $app = new Application($root, [
         'driver' => Config::string('CACHE_DRIVER', 'file'),
         'path' => $root . '/var/cache/data',
         'prefix' => 'mydomo.',
+        'redis' => [
+            'host' => Config::string('REDIS_HOST', '127.0.0.1'),
+            'port' => Config::int('REDIS_PORT', 6379) ?: 6379,
+            'database' => Config::int('REDIS_DB', 0),
+            'password' => Config::string('REDIS_PASSWORD', ''),
+        ],
     ],
     'database' => [
         'driver' => 'mysql',

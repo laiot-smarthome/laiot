@@ -6,4 +6,10 @@ return [
     'driver' => 'file',
     'path' => __DIR__ . '/../var/cache/data',
     'prefix' => 'mydomo.',
+    'redis' => [
+        'host' => '127.0.0.1',
+        'port' => 6379,
+        'database' => 0,
+        'password' => '',
+    ],
 ];
