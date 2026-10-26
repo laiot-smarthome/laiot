@@ -57,7 +57,7 @@ order: 5
 - [x] Логи: `LoggerFactory` с каналами `app`/`http`/`security` и
   `request_id` в `extra`; тест.
 - [x] Новый CLI `bin/mydomo` на Symfony Console: `about`, `health`,
-  `cache:clear`, `module:list`; 4 теста.
+  `cache:clear`, `module:list`, `route:list`, `queue:stats`; 6 тестов.
 - [x] `Queue` + `DatabaseQueue`: отложенные задания, резервирование,
   повторы и dead-letter по попыткам; 4 теста.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
@@ -685,8 +685,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   доставка модулям через очередь, outbox после commit.
 - [ ] Планировщик: задания, повторы, отмена, trace; cron-expression только
   если появятся cron-правила.
-- [ ] CLI: `queue:status`, `queue:retry`, `queue:failed`, `jobs:list`,
-  `worker:start`, `worker:stop`.
+- [x] CLI: `queue:stats` (pending/reserved/failed).
+- [ ] CLI: `queue:retry`, `queue:failed`, `jobs:list`, `worker:start`,
+  `worker:stop`.
 - [ ] Метрики: глубина, задержка, ошибки, возраст старейшего задания.
 - [ ] Тесты: конкурентные воркеры, потеря соединения, повтор после сбоя,
   отсутствие двойного выполнения на уровне handlers.
@@ -743,7 +744,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 ### 6.8. CLI
 
 - [x] Новый `bin/mydomo` на Symfony Console: `about`, `health`, `cache:clear`,
-  `module:list`; старый `php majordomo` пока не трогаем.
+  `module:list`, `route:list`, `queue:stats`; старый `php majordomo` пока не
+  трогаем.
 - [ ] Сохранить/перенести имена старых команд, где возможно.
 - [ ] Команды: `doctor`, `install`, `upgrade`, `db:migrate`,
   `db:seed`, `route:list`, `route:cache`, `route:clear`, `cache:*`,

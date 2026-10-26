@@ -25,4 +25,9 @@ interface Queue
     public function ack(QueueJob $job): void;
 
     public function fail(QueueJob $job, Throwable $error): void;
+
+    /**
+     * @return array{pending:int,reserved:int,failed:int}
+     */
+    public function stats(string $queue): array;
 }

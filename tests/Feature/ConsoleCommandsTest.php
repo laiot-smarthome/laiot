@@ -8,6 +8,8 @@ use MajorDoMo\Console\AboutCommand;
 use MajorDoMo\Console\CacheClearCommand;
 use MajorDoMo\Console\HealthCommand;
 use MajorDoMo\Console\ModuleListCommand;
+use MajorDoMo\Console\QueueStatsCommand;
+use MajorDoMo\Console\RouteListCommand;
 use MajorDoMo\Foundation\Application;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -70,5 +72,25 @@ final class ConsoleCommandsTest extends TestCase
 
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('Core-модули не найдены', $tester->getDisplay());
+    }
+
+    public function testQueueStatsShowsEmptyQueue(): void
+    {
+        $tester = new CommandTester(new QueueStatsCommand($this->app));
+        $tester->execute(['--queue' => 'default']);
+
+        self::assertSame(0, $tester->getStatusCode());
+        self::assertStringContainsString('default', $tester->getDisplay());
+        self::assertStringContainsString('Pending', $tester->getDisplay());
+    }
+
+    public function testRouteListShowsHealthRoute(): void
+    {
+        $tester = new CommandTester(new RouteListCommand($this->app));
+        $tester->execute([]);
+
+        self::assertSame(0, $tester->getStatusCode());
+        self::assertStringContainsString('/health', $tester->getDisplay());
+        self::assertStringContainsString('health', $tester->getDisplay());
     }
 }

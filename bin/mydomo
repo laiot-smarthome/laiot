@@ -18,5 +18,7 @@ $console->add(new MajorDoMo\Console\AboutCommand($app));
 $console->add(new MajorDoMo\Console\HealthCommand($app));
 $console->add(new MajorDoMo\Console\CacheClearCommand($app));
 $console->add(new MajorDoMo\Console\ModuleListCommand($app));
+$console->add(new MajorDoMo\Console\RouteListCommand($app));
+$console->add(new MajorDoMo\Console\QueueStatsCommand($app));
 
 exit($console->run());

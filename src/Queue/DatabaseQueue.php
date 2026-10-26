@@ -137,6 +137,31 @@ final class DatabaseQueue implements Queue
         $this->database->connection()->table($this->table)->where('ID', $job->id)->update($values);
     }
 
+    public function stats(string $queue): array
+    {
+        $this->assertName($queue, 'queue');
+        $this->ensureTable();
+        $now = ($this->clock)();
+        $reservationCutoff = date('Y-m-d H:i:s', $now - $this->reservationTimeout);
+        $table = $this->database->connection()->table($this->table)->where('QUEUE', $queue);
+
+        $failed = (int)(clone $table)->whereNotNull('FAILED_AT')->count();
+        $reserved = (int)(clone $table)
+            ->whereNull('FAILED_AT')
+            ->where('RESERVED_AT', '>', $reservationCutoff)
+            ->count();
+        $pending = (int)(clone $table)
+            ->whereNull('FAILED_AT')
+            ->where('AVAILABLE_AT', '<=', date('Y-m-d H:i:s', $now))
+            ->where(static function ($query) use ($reservationCutoff): void {
+                $query->whereNull('RESERVED_AT')
+                    ->orWhere('RESERVED_AT', '<=', $reservationCutoff);
+            })
+            ->count();
+
+        return ['pending' => $pending, 'reserved' => $reserved, 'failed' => $failed];
+    }
+
     private function ensureTable(): void
     {
         $schema = $this->database->connection()->getSchemaBuilder();

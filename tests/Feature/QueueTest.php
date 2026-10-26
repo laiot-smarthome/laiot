@@ -77,6 +77,19 @@ final class QueueTest extends TestCase
             ->count());
     }
 
+    public function testStatsShowPendingAndReserved(): void
+    {
+        $this->queue->push('default', 'demo.job');
+        self::assertSame(['pending' => 1, 'reserved' => 0, 'failed' => 0], $this->queue->stats('default'));
+
+        $job = $this->queue->pop('default');
+        self::assertNotNull($job);
+        self::assertSame(['pending' => 0, 'reserved' => 1, 'failed' => 0], $this->queue->stats('default'));
+
+        $this->queue->ack($job);
+        self::assertSame(['pending' => 0, 'reserved' => 0, 'failed' => 0], $this->queue->stats('default'));
+    }
+
     public function testInvalidQueueNameIsRejected(): void
     {
         $this->expectException(RuntimeException::class);
