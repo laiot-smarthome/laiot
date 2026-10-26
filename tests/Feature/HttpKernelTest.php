@@ -44,6 +44,8 @@ final class HttpKernelTest extends TestCase
         self::assertSame(503, $response->getStatusCode());
         self::assertStringContainsString('"status":"degraded"', (string)$response->getContent());
         self::assertStringContainsString('"database":"not_configured"', (string)$response->getContent());
+        self::assertSame('nosniff', $response->headers->get('X-Content-Type-Options'));
+        self::assertSame('SAMEORIGIN', $response->headers->get('X-Frame-Options'));
     }
 
     public function testRootRedirectsToYoyoWhenLoggedIn(): void

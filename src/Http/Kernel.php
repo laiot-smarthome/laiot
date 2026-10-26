@@ -60,6 +60,7 @@ final readonly class Kernel
             );
         }
 
+        SecurityHeaders::apply($response);
         $response->headers->set('X-Request-Id', $requestId);
 
         return $response;
