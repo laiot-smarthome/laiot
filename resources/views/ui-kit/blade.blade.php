@@ -33,4 +33,24 @@
             </p>
         </x-md.card>
     </div>
+
+    <div class="md-ui-kpi-grid">
+        <x-md.kpi label="Объекты" value="128" icon="home" tone="primary" meta="В системе" />
+        <x-md.kpi label="Онлайн" value="96" icon="wifi" tone="success" meta="За последний час" />
+        <x-md.kpi label="Ошибки" value="2" icon="alert-triangle" tone="warning" meta="Требуют внимания" />
+        <x-md.kpi label="База" value="42" unit="МБ" icon="database" tone="info" meta="Размер" />
+    </div>
+
+    <div class="md-ui-demo__canvas" style="display:block;">
+        <x-md.alert type="info" title="Blade-компоненты" text="Это та же alpha-разметка, но уже на новом движке." />
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin:1rem 0;">
+            <x-md.status state="online" />
+            <x-md.status state="warning" label="Проверка" />
+            <x-md.status state="offline" />
+            <x-md.avatar name="Admin User" />
+            <x-md.avatar name="Сергей" tone="primary" />
+        </div>
+        <x-md.progress :value="64" label="Перенос компонентов" show-value />
+        <x-md.empty-state icon="inbox" title="Пока пусто" text="Empty-state тоже перенесён без изменения вида." />
+    </div>
 </section>

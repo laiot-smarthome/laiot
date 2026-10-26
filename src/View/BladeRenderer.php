@@ -37,7 +37,7 @@ final class BladeRenderer
 
         $files = new Filesystem();
         $compiler = new BladeCompiler($files, $cache);
-        foreach (['button', 'icon', 'badge', 'card', 'section-heading'] as $component) {
+        foreach (['alert', 'avatar', 'badge', 'button', 'card', 'empty-state', 'icon', 'kpi', 'progress', 'section-heading', 'status'] as $component) {
             $compiler->component('components.md.' . $component, 'md.' . $component);
         }
         $resolver = new EngineResolver();

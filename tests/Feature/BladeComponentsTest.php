@@ -17,6 +17,12 @@ final class BladeComponentsTest extends TestCase
         self::assertStringContainsString('md-card', $html);
         self::assertStringContainsString('Карточка на новом движке', $html);
         self::assertStringContainsString('Сохранить', $html);
+        self::assertStringContainsString('md-alert md-alert--info', $html);
+        self::assertStringContainsString('md-kpi', $html);
+        self::assertStringContainsString('md-status--online', $html);
+        self::assertStringContainsString('md-avatar', $html);
+        self::assertStringContainsString('md-progress', $html);
+        self::assertStringContainsString('md-empty', $html);
         self::assertStringNotContainsString('component not found', $html);
     }
 }
