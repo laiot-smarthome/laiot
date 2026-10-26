@@ -106,6 +106,7 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 - `resources/views/pages/roles.blade.php` — роли/права, `/roles`;
 - `resources/views/pages/profile.blade.php` — профиль, `/admin/profile`;
 - `resources/views/pages/api.blade.php` — список API-маршрутов, `/admin/api`;
+- `resources/views/pages/modules.blade.php` — реестр модулей, `/admin/modules`;
 - `resources/views/pages/shoutbox.blade.php` — промежуточная страница.
 
 Новый layout/CSS не создаём. Alpha-shell и `MDJUI` остаются эталоном, пока

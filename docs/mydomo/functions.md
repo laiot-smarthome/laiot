@@ -148,6 +148,7 @@ php bin/mydomo api:token 1 "monitoring"
 
 `/admin` (auth) — обзор веб-админки на Blade-компонентах и alpha-layout.
 `/admin/tokens` (auth + `can:users.manage`) — выпуск/отзыв API-токенов.
+`/admin/modules` (auth) — реестр core-модулей: версии, таблицы, helpers.
 `/admin/api` (auth) — живой список API-маршрутов.
 `/admin/profile` (auth) — имя и смена пароля текущего пользователя.
 `/admin/maintenance` (auth + `can:settings.manage`) — режим обслуживания;

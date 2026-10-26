@@ -8,6 +8,7 @@ use MajorDoMo\Http\Controllers\DashboardController;
 use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\LoginController;
 use MajorDoMo\Http\Controllers\MaintenanceController;
+use MajorDoMo\Http\Controllers\ModulesPageController;
 use MajorDoMo\Http\Controllers\ProfileController;
 use MajorDoMo\Http\Controllers\RolesController;
 use MajorDoMo\Http\Controllers\StatusController;
@@ -23,6 +24,9 @@ return static function (Router $router): void {
         $router->get('/admin', DashboardController::class)
             ->middleware(['auth'])
             ->name('admin.dashboard');
+        $router->get('/admin/modules', ModulesPageController::class)
+            ->middleware(['auth'])
+            ->name('admin.modules');
         $router->get('/admin/api', ApiDocsController::class)
             ->middleware(['auth'])
             ->name('admin.api');
