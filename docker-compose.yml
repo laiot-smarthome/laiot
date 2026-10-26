@@ -91,7 +91,7 @@ services:
       MARIADB_DATABASE: "${MJD_DB_NAME:-majordomo}"
       MARIADB_USER: "${MJD_DB_USER:-majordomo}"
       MARIADB_PASSWORD: "${MJD_DB_PASSWORD:-majordomo}"
-      MJD_DB_SEED: "${MJD_DB_SEED:-legacy}"
+      MJD_DB_SEED: "${MJD_DB_SEED:-none}"
     volumes:
       - majordomo_db:/var/lib/mysql
       # Демо-дамп и чистая схема монтируются только для первичного импорта.

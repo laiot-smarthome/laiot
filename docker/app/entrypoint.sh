@@ -277,7 +277,15 @@ if [ "${MJD_RUN_MIGRATIONS:-1}" = "1" ]; then
             log "ПРЕДУПРЕЖДЕНИЕ: configure.php не завершился; проверьте БД и .env"
         fi
     else
-        log "База пуста: миграции пропущены, откройте /install.php для первичной настройки"
+        log "База пуста: применяю миграции MyDoMo"
+        if run_as_www "$PHP_BIN bin/mydomo db:migrate"; then
+            log "Создаю администратора MyDoMo"
+            if ! run_as_www "$PHP_BIN bin/mydomo user:create '${MJD_ADMIN_USER:-admin}' '${MJD_ADMIN_NAME:-Docker Admin}' '${MJD_ADMIN_PASSWORD:-majordomo}' --admin"; then
+                log "ПРЕДУПРЕЖДЕНИЕ: администратор не создан; создайте вручную: php bin/mydomo user:create ..."
+            fi
+        else
+            log "ПРЕДУПРЕЖДЕНИЕ: миграции не применились; смотрите docker compose logs app"
+        fi
     fi
 fi
 

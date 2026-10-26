@@ -34,10 +34,11 @@ curl -I http://127.0.0.1/login
 
 Ожидается:
 
-- `/` → новый вход `/login` (или `/yoyo-demo` при сессии);
+- `/` → новый вход `/login` (или `/admin` при сессии);
 - `/health` → 200 и `database: ok`, `cache: ok`;
 - `/login` → 200;
-- `/status` → 200 после входа.
+- `/admin` → 200 после входа;
+- dev-доступ: `admin` / `majordomo` (из `MJD_ADMIN_*`).
 
 ## 3. CLI внутри контейнера
 
@@ -55,11 +56,14 @@ docker compose exec -T app php bin/mydomo queue:stats
 
 ```bash
 docker compose down -v
-docker compose up -d --build app
-docker compose exec -T app php bin/mydomo db:migrate
+MJD_DB_SEED=none docker compose up -d --build db app
+docker compose exec -T app php bin/mydomo db:status
 ```
 
-`down -v` удаляет тестовые данные; production-данных MyDoMo ещё нет.
+При `MJD_DB_SEED=none` entrypoint сам применяет миграции MyDoMo и создаёт
+admin из `MJD_ADMIN_*`. `down -v` удаляет тестовые данные;
+production-данных MyDoMo ещё нет. Не используйте `legacy`/`clean` — это
+старые alpha-схемы.
 
 ## 5. Ограничения
 
