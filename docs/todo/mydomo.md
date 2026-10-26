@@ -50,8 +50,9 @@ order: 5
   [modules.md](../agents/modules.md).
 - [x] `ModuleDb`: MySQL/SQLite, префикс `module_<id>_`, allowlist таблиц,
   запрет raw/join; 4 теста.
-- [ ] Core-модули: retained `ModuleBus`, layout/Yoyo, первый порт
-  (`ui_kit`/`shoutbox`).
+- [x] `ModuleBus`: retained events с TTL, namespace и wildcard-подписки;
+  4 теста.
+- [ ] Core-модули: layout/Yoyo, первый порт (`ui_kit`/`shoutbox`).
 - [ ] Ядро параллельно: кэш, очереди/события, логирование, CLI и панель.
 
 ### 0.1. Как ведём дорожную карту
@@ -682,7 +683,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `modules/welcome` удалён; `modules/core` — единственный core-root.
 - [x] `ModuleDb`: MySQL/SQLite, префикс `module_<id>_`, allowlist, без raw SQL;
   тесты CRUD, чужой таблицы, отсутствия raw/join и SQLite-файла.
-- [ ] `ModuleBus`: retained events + TTL, namespaced topics.
+- [x] `ModuleBus`: retained events + TTL, namespaced topics, wildcard-подписки;
+  таблица `module_shared_events` создаётся лениво.
 - [ ] `PanelPage`/общий layout + Yoyo-компоненты модулей.
 - [ ] Миграции core-модулей при обновлении ядра.
 - [ ] `module:list` показывает `type=core`, `removable=false`, `enabled=true`.

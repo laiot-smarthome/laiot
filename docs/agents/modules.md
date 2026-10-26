@@ -129,8 +129,10 @@ $module->bus()->subscribe('keenetic.router.*', $callback);
 - topic namespaced: `module.<id>.*`;
 - писать можно только в свой namespace;
 - `latest()` возвращает последнее событие, пока не истёк TTL;
-- `subscribe()` доставляет новые события через общий EventBus/очередь;
-- хранение: Redis, если доступен, иначе таблица `module_shared_events` в MySQL;
+- `subscribe()` сейчас доставляет события в текущем процессе; фоновая
+  доставка через очередь — следующий шаг;
+- хранение сейчас — таблица `module_shared_events` в MySQL/SQLite; Redis-адаптер
+  добавим позже, контракт `publish/latest` от него не зависит;
 - core-модули доверенные, но контракт topic/namespace единый.
 
 Это закрывает сценарий «Keenetic сообщает, что роутер включён, другие модули
