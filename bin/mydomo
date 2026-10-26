@@ -15,6 +15,7 @@ $console = new Symfony\Component\Console\Application(
     (string)$app->config('version', 'dev')
 );
 $console->add(new MajorDoMo\Console\AboutCommand($app));
+$console->add(new MajorDoMo\Console\DoctorCommand($app));
 $console->add(new MajorDoMo\Console\HealthCommand($app));
 $console->add(new MajorDoMo\Console\CacheClearCommand($app));
 $console->add(new MajorDoMo\Console\ModuleListCommand($app));

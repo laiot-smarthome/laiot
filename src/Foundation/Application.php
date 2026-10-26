@@ -101,6 +101,13 @@ final class Application
         $this->container->instance(Container::class, $this->container);
         $this->container->instance(self::class, $this);
 
+        foreach (['var', 'var/cache', 'var/log'] as $directory) {
+            $path = $this->root . '/' . $directory;
+            if (!is_dir($path) && !mkdir($path, 0775, true) && !is_dir($path)) {
+                throw new LogicException('Не удалось создать runtime-каталог: ' . $path);
+            }
+        }
+
         $timezone = (string)($this->config['timezone'] ?? 'Europe/Moscow');
         if (in_array($timezone, timezone_identifiers_list(), true)) {
             date_default_timezone_set($timezone);

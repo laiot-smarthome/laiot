@@ -669,6 +669,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] API auth: `api_tokens`, Bearer/X-API-Key, `/api/v1/me`, `api:token`;
   2 теста.
 - [x] `/health` проверяет БД и кэш; `/status` — версия/БД/кэш/модули.
+- [x] `doctor` + автосоздание `var/cache`, `var/log`; 1 тест.
 - [ ] Остальные роуты ядра: `/panel/...`, `/api/v2/...`, `/install`, `/ws`.
 - [ ] Роуты модулей: `/panel/<id>/...`, `/api/v2/modules/<id>/...`;
   автоматический префикс и проверка владельца.
@@ -809,7 +810,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   `module:list`, `route:list`, `queue:stats`; старый `php majordomo` пока не
   трогаем.
 - [ ] Сохранить/перенести имена старых команд, где возможно.
-- [ ] Команды: `doctor`, `install`, `upgrade`, `db:migrate`,
+- [x] `doctor`: PHP-расширения, runtime-каталоги, БД, кэш, timezone.
+- [ ] Команды: `install`, `upgrade`, `db:migrate`,
   `db:seed`, `route:list`, `route:cache`, `route:clear`, `cache:*`,
   `queue:*`, `module:*`, `user:*`, `maintenance:*`.
 - [ ] JSON-вывод, коды завершения, `--no-interaction`, `--verbose`.

@@ -155,6 +155,7 @@ php bin/mydomo api:token 1 "monitoring"
 
 ```bash
 php bin/mydomo about
+php bin/mydomo doctor
 php bin/mydomo health
 php bin/mydomo route:list
 php bin/mydomo module:list

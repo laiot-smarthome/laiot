@@ -6,6 +6,7 @@ namespace MajorDoMo\Tests\Feature;
 
 use MajorDoMo\Console\AboutCommand;
 use MajorDoMo\Console\CacheClearCommand;
+use MajorDoMo\Console\DoctorCommand;
 use MajorDoMo\Console\HealthCommand;
 use MajorDoMo\Console\MigrateCommand;
 use MajorDoMo\Console\MigrateStatusCommand;
@@ -47,6 +48,16 @@ final class ConsoleCommandsTest extends TestCase
         self::assertStringContainsString('MyDoMo', $tester->getDisplay());
         self::assertStringContainsString('PHP:', $tester->getDisplay());
         self::assertStringContainsString('Core modules: 0', $tester->getDisplay());
+    }
+
+    public function testDoctorCommandReportsEnvironment(): void
+    {
+        $tester = new CommandTester(new DoctorCommand($this->app));
+        $tester->execute([]);
+
+        self::assertSame(0, $tester->getStatusCode());
+        self::assertStringContainsString('Database', $tester->getDisplay());
+        self::assertStringContainsString('Cache', $tester->getDisplay());
     }
 
     public function testHealthCommandChecksDatabaseAndCache(): void
