@@ -963,9 +963,10 @@ curl -sS http://127.0.0.1/health
 curl -I http://127.0.0.1/login
 ```
 
-Проверять: `/` → 302 `/panel/`, `/health` → 200, `/login` → 200, вход
-`admin/majordomo` (docker seed) → `/yoyo-demo` 200, `/panel/` старый shell
-пока открывается. Если что-то сломалось — чинить до следующего этапа.
+Проверять: `/` → новый вход (`/login` или `/yoyo-demo` при сессии),
+`/health` → 200, `/login` → 200, вход `admin/majordomo` (docker seed) →
+`/yoyo-demo` 200, `/panel/` старый shell пока открывается. Если что-то
+сломалось — чинить до следующего этапа.
 
 Docker — только локальная отладка и наглядный прогресс; production-инструкция
 остаётся в `docs/deploy/`.

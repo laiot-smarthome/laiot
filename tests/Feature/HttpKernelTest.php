@@ -46,12 +46,12 @@ final class HttpKernelTest extends TestCase
         self::assertStringContainsString('"database":"not_configured"', (string)$response->getContent());
     }
 
-    public function testRootRedirectsToPanel(): void
+    public function testRootRedirectsToYoyoWhenLoggedIn(): void
     {
         $response = $this->app->handle(Request::create('/', 'GET'));
 
         self::assertSame(302, $response->getStatusCode());
-        self::assertSame('/panel/', $response->headers->get('Location'));
+        self::assertSame('/yoyo-demo', $response->headers->get('Location'));
     }
 
     public function testNotFound(): void
