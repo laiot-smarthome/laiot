@@ -9,8 +9,7 @@ use Illuminate\Database\Eloquent\Model as EloquentModel;
 /**
  * Базовая модель MyDoMo.
  *
- * Старые таблицы MajorDoMo используют `ID` и не имеют `created_at/updated_at`.
- * Новые модели наследуются отсюда, чтобы не повторять эти настройки.
+ * Новая схема MyDoMo: `id` и обязательные `created_at/updated_at`.
  */
 abstract class Model extends EloquentModel
 {
@@ -20,7 +19,7 @@ abstract class Model extends EloquentModel
 
     protected $keyType = 'int';
 
-    public $timestamps = false;
+    public $timestamps = true;
 
     /** @var list<string> */
     protected $guarded = [];

@@ -24,15 +24,18 @@ final class ModelTest extends TestCase
         $this->database->schema()->create('demo_items', static function (Blueprint $table): void {
             $table->increments('id');
             $table->string('name');
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
-    public function testBaseModelUsesLowercaseIdAndNoTimestamps(): void
+    public function testBaseModelUsesLowercaseIdAndTimestamps(): void
     {
         $item = DemoItem::query()->create(['name' => 'test']);
 
         self::assertSame(1, $item->id);
-        self::assertFalse($item->usesTimestamps());
+        self::assertTrue($item->usesTimestamps());
+        self::assertNotNull($item->created_at);
         self::assertSame('test', DemoItem::query()->find(1)?->name);
     }
 
@@ -40,7 +43,7 @@ final class ModelTest extends TestCase
     {
         try {
             $this->database->transaction(function (): void {
-                DemoItem::query()->create(['NAME' => 'rolled back']);
+                DemoItem::query()->create(['name' => 'rolled back']);
                 throw new RuntimeException('rollback');
             });
         } catch (RuntimeException) {
@@ -54,6 +57,7 @@ final class ModelTest extends TestCase
 /**
  * @property int $id
  * @property string $name
+ * @property \Carbon\CarbonImmutable|null $created_at
  */
 final class DemoItem extends Model
 {

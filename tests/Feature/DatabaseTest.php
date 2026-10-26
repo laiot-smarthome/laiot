@@ -31,18 +31,20 @@ final class DatabaseTest extends TestCase
         $this->app->boot();
 
         $this->app->database()->schema()->create('settings', static function (Blueprint $table): void {
-            $table->increments('ID');
-            $table->string('NAME', 50);
-            $table->text('VALUE')->nullable();
-            $table->string('TITLE')->default('');
-            $table->string('TYPE')->default('');
+            $table->increments('id');
+            $table->string('name', 100);
+            $table->text('value')->nullable();
+            $table->string('title')->default('');
+            $table->string('type')->default('');
+            $table->timestamps();
+            $table->softDeletes();
         });
 
         Setting::query()->create([
-            'NAME' => 'SITE_TITLE',
-            'VALUE' => 'MyDoMo',
-            'TITLE' => 'Название сайта',
-            'TYPE' => 'text',
+            'name' => 'SITE_TITLE',
+            'value' => 'MyDoMo',
+            'title' => 'Название сайта',
+            'type' => 'text',
         ]);
     }
 

@@ -9,7 +9,9 @@
 
 **MyDoMo:** перед изменениями нового ядра читайте
 [`docs/mydomo/README.md`](docs/mydomo/README.md) и
-[`docs/mydomo/AGENTS.md`](docs/mydomo/AGENTS.md). Полная версия старых
+[`docs/mydomo/AGENTS.md`](docs/mydomo/AGENTS.md). MyDoMo — чистый лист:
+никаких редиректов со старых URL, legacy-таблиц/адаптеров и старых
+`.inc.php`/шаблонов после переноса модуля. Полная версия старых
 правил — `docs/agents/AGENTS.md` (alpha/legacy).
 
 Коротко, что нельзя нарушать:

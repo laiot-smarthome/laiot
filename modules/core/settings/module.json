@@ -1,0 +1,15 @@
+{
+    "id": "settings",
+    "type": "core",
+    "name": "Настройки",
+    "version": "2.0.0",
+    "namespace": "MajorDoMo\\Modules\\Core\\Settings\\",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "menu": {
+        "title": "Настройки",
+        "route": "settings.index",
+        "order": 60
+    }
+}

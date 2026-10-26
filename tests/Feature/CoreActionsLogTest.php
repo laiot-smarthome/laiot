@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 final class CoreActionsLogTest extends TestCase
 {
-    public function testLegacyLogIsRenderedAndDeleted(): void
+    public function testActionLogIsRenderedAndSoftDeleted(): void
     {
         $session = new ArraySession();
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
@@ -23,22 +23,24 @@ final class CoreActionsLogTest extends TestCase
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
         ]);
         $app->boot();
-        $app->database()->schema()->create('actions_log', static function (Blueprint $table): void {
-            $table->increments('ID');
-            $table->dateTime('ADDED')->nullable();
-            $table->string('ACTION_TYPE')->default('');
-            $table->string('TITLE')->default('');
-            $table->string('USER')->default('');
-            $table->string('TERMINAL')->default('');
-            $table->string('IP')->default('');
+        $app->database()->schema()->create('action_log', static function (Blueprint $table): void {
+            $table->increments('id');
+            $table->string('type')->default('');
+            $table->string('title')->default('');
+            $table->string('user_name')->default('');
+            $table->string('terminal')->default('');
+            $table->string('ip')->default('');
+            $table->timestamps();
+            $table->softDeletes();
         });
-        $app->database()->connection()->table('actions_log')->insert([
-            'ADDED' => date('Y-m-d H:i:s'),
-            'ACTION_TYPE' => 'login',
-            'TITLE' => 'Вход администратора',
-            'USER' => 'admin',
-            'TERMINAL' => 'web',
-            'IP' => '127.0.0.1',
+        $app->database()->connection()->table('action_log')->insert([
+            'type' => 'login',
+            'title' => 'Вход администратора',
+            'user_name' => 'admin',
+            'terminal' => 'web',
+            'ip' => '127.0.0.1',
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
         $page = $app->handle(Request::create('/module/actions_log', 'GET'));
@@ -49,6 +51,6 @@ final class CoreActionsLogTest extends TestCase
             '_token' => $session->csrfToken(),
         ]));
         self::assertSame(302, $delete->getStatusCode());
-        self::assertSame(0, $app->database()->connection()->table('actions_log')->count());
+        self::assertNull($app->database()->connection()->table('action_log')->whereNull('deleted_at')->first());
     }
 }

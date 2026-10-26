@@ -62,20 +62,6 @@ if ($requestPath === $panelRoot || $requestPath === rtrim($panelRoot, '/')) {
     exit;
 }
 
-// MyDoMo: старый Shoutbox заменён core-модулем нового ядра.
-if ($requestPath === rtrim($rootHTML, '/') . '/panel/shoutbox.html') {
-    header('Location: ' . rtrim($rootHTML, '/') . '/module/shoutbox', true, 302);
-    exit;
-}
-if ($requestPath === rtrim($rootHTML, '/') . '/panel/jobs.html') {
-    header('Location: ' . rtrim($rootHTML, '/') . '/module/jobs', true, 302);
-    exit;
-}
-if ($requestPath === rtrim($rootHTML, '/') . '/panel/actions_log.html') {
-    header('Location: ' . rtrim($rootHTML, '/') . '/module/actions_log', true, 302);
-    exit;
-}
-
 $found=0;
 foreach($requests as $key => $value)
 {
