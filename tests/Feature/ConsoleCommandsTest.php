@@ -8,6 +8,8 @@ use MajorDoMo\Console\AboutCommand;
 use MajorDoMo\Console\CacheClearCommand;
 use MajorDoMo\Console\HealthCommand;
 use MajorDoMo\Console\ModuleListCommand;
+use MajorDoMo\Console\QueueFailedCommand;
+use MajorDoMo\Console\QueueRetryCommand;
 use MajorDoMo\Console\QueueStatsCommand;
 use MajorDoMo\Console\QueueWorkCommand;
 use MajorDoMo\Console\RouteListCommand;
@@ -99,6 +101,19 @@ final class ConsoleCommandsTest extends TestCase
         self::assertSame(0, $tester->getStatusCode());
         self::assertSame(1, $called);
         self::assertStringContainsString('Обработано заданий: 1', $tester->getDisplay());
+    }
+
+    public function testQueueFailedListAndRetryMissing(): void
+    {
+        $failed = new CommandTester(new QueueFailedCommand($this->app));
+        $failed->execute(['--queue' => 'default']);
+        self::assertSame(0, $failed->getStatusCode());
+        self::assertStringContainsString('Упавших заданий нет', $failed->getDisplay());
+
+        $retry = new CommandTester(new QueueRetryCommand($this->app));
+        $retry->execute(['id' => '999']);
+        self::assertSame(1, $retry->getStatusCode());
+        self::assertStringContainsString('не найдено', $retry->getDisplay());
     }
 
     public function testRouteListShowsHealthRoute(): void

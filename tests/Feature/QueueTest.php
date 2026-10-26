@@ -90,6 +90,32 @@ final class QueueTest extends TestCase
         self::assertSame(['pending' => 0, 'reserved' => 0, 'failed' => 0], $this->queue->stats('default'));
     }
 
+    public function testFailedJobCanBeListedRetriedAndForgotten(): void
+    {
+        $queue = new DatabaseQueue($this->database, [
+            'max_attempts' => 1,
+            'retry_delay' => 1,
+        ], fn (): int => $this->now);
+        $queue->push('default', 'demo.job');
+        $job = $queue->pop('default');
+        self::assertNotNull($job);
+        $queue->fail($job, new RuntimeException('boom'));
+
+        $failed = $queue->failed('default');
+        self::assertCount(1, $failed);
+        self::assertSame('demo.job', $failed[0]['job']);
+        self::assertSame('boom', $failed[0]['error']);
+
+        self::assertTrue($queue->retry($failed[0]['id']));
+        self::assertSame(1, $queue->stats('default')['pending']);
+
+        $job = $queue->pop('default');
+        self::assertNotNull($job);
+        $queue->fail($job, new RuntimeException('again'));
+        self::assertTrue($queue->forget($failed[0]['id']));
+        self::assertSame([], $queue->failed('default'));
+    }
+
     public function testInvalidQueueNameIsRejected(): void
     {
         $this->expectException(RuntimeException::class);

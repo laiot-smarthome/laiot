@@ -30,4 +30,19 @@ interface Queue
      * @return array{pending:int,reserved:int,failed:int}
      */
     public function stats(string $queue): array;
+
+    /**
+     * @return list<array{id:int,queue:string,job:string,attempts:int,error:string,failed_at:string}>
+     */
+    public function failed(string $queue, int $limit = 50): array;
+
+    /**
+     * Вернуть failed-задание в очередь с нулевыми попытками.
+     */
+    public function retry(int $id): bool;
+
+    /**
+     * Удалить failed-задание окончательно.
+     */
+    public function forget(int $id): bool;
 }

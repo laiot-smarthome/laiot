@@ -162,6 +162,55 @@ final class DatabaseQueue implements Queue
         return ['pending' => $pending, 'reserved' => $reserved, 'failed' => $failed];
     }
 
+    public function failed(string $queue, int $limit = 50): array
+    {
+        $this->assertName($queue, 'queue');
+        $this->ensureTable();
+
+        return $this->database->connection()->table($this->table)
+            ->where('QUEUE', $queue)
+            ->whereNotNull('FAILED_AT')
+            ->orderByDesc('ID')
+            ->limit(max(1, min(500, $limit)))
+            ->get()
+            ->map(static fn (object $row): array => [
+                'id' => (int)$row->ID,
+                'queue' => (string)$row->QUEUE,
+                'job' => (string)$row->JOB,
+                'attempts' => (int)$row->ATTEMPTS,
+                'error' => (string)($row->ERROR ?? ''),
+                'failed_at' => (string)$row->FAILED_AT,
+            ])
+            ->all();
+    }
+
+    public function retry(int $id): bool
+    {
+        $this->ensureTable();
+        $now = ($this->clock)();
+
+        return $this->database->connection()->table($this->table)
+            ->where('ID', $id)
+            ->whereNotNull('FAILED_AT')
+            ->update([
+                'ATTEMPTS' => 0,
+                'FAILED_AT' => null,
+                'ERROR' => null,
+                'RESERVED_AT' => null,
+                'AVAILABLE_AT' => date('Y-m-d H:i:s', $now),
+            ]) > 0;
+    }
+
+    public function forget(int $id): bool
+    {
+        $this->ensureTable();
+
+        return $this->database->connection()->table($this->table)
+            ->where('ID', $id)
+            ->whereNotNull('FAILED_AT')
+            ->delete() > 0;
+    }
+
     private function ensureTable(): void
     {
         $schema = $this->database->connection()->getSchemaBuilder();

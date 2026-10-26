@@ -21,5 +21,7 @@ $console->add(new MajorDoMo\Console\ModuleListCommand($app));
 $console->add(new MajorDoMo\Console\RouteListCommand($app));
 $console->add(new MajorDoMo\Console\QueueStatsCommand($app));
 $console->add(new MajorDoMo\Console\QueueWorkCommand($app));
+$console->add(new MajorDoMo\Console\QueueFailedCommand($app));
+$console->add(new MajorDoMo\Console\QueueRetryCommand($app));
 
 exit($console->run());
