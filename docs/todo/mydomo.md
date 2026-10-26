@@ -389,11 +389,12 @@ Laravel-роутинг, Eloquent, коллекции, кэш, Blade и конт�
 | `symfony/http-client` | `^7.4` | Исходящие HTTP-запросы | Берём |
 | `symfony/rate-limiter` | `^7.4` | Ограничение частоты | Берём |
 | `symfony/process` | `^7.4` | Процессы воркеров | Берём/транзитивно |
+| `symfony/console` | `^7.4` | CLI `bin/mydomo` | Берём |
 | `symfony/uid` | `^7.4` | ID/trace при необходимости | Оценить |
 | `zircote/swagger-php` | `^5.0` | OpenAPI из атрибутов | Оценить |
 | `league/commonmark` | `^2.7` | Markdown базы знаний | Оценить |
 | `dragonmantank/cron-expression` | `^3.4` | Cron-расписания, если появятся | Оценить |
-| `illuminate/console` | `^12.0` | CLI на Symfony Console | Позже |
+| `illuminate/console` | `^12.0` | CLI на Symfony Console | Не берём: достаточно `symfony/console` |
 | `illuminate/validation` | `^12.0` | Валидация API и форм | Позже |
 | `illuminate/translation` | `^12.0` | Сообщения валидации | Вместе с validation |
 | `php-di/php-di` | `^7.1` | Альтернативный DI | Не берём: есть Illuminate Container |
@@ -446,7 +447,8 @@ composer require illuminate/routing:^12.0 illuminate/http:^12.0 \
   illuminate/collections:^12.0 illuminate/cache:^12.0 \
   illuminate/redis:^12.0 illuminate/view:^12.0
 composer require predis/predis:^2.4 monolog/monolog:^3.9 \
-  symfony/http-client:^7.4 symfony/rate-limiter:^7.4 symfony/process:^7.4
+  symfony/console:^7.4 symfony/http-client:^7.4 \
+  symfony/rate-limiter:^7.4 symfony/process:^7.4
 composer require --dev phpunit/phpunit:^11.5 mockery/mockery:^1.6 \
   fakerphp/faker:^1.24 phpstan/phpstan:^2.1 \
   phpstan/phpstan-strict-rules:^2.0 phpstan/phpstan-deprecation-rules:^2.0 \
@@ -982,10 +984,19 @@ php tests/config_smoke.php
 
 Ручная проверка в Docker дополняет тесты, но не заменяет их.
 
-### 9.4. Docker после существенных изменений
+### 9.4. Локальная проверка и Docker
 
-После каждого этапа, который меняет HTTP-слой, вход или UI, пересобираем
-контейнер и проверяем вручную:
+Основной быстрый просмотр — локальный dev server, без пересборки Docker
+после каждого коммита:
+
+```bash
+php dev_server.php --host=127.0.0.1 --port=8080
+php bin/mydomo about
+php bin/mydomo health
+```
+
+Docker пересобираем только по отдельной просьбе или когда проверка нужна
+именно в Linux-окружении. Тогда:
 
 ```bash
 docker compose up -d --build app
@@ -996,13 +1007,8 @@ curl -sS http://127.0.0.1/health
 curl -I http://127.0.0.1/login
 ```
 
-Проверять: `/` → новый вход (`/login` или `/yoyo-demo` при сессии),
-`/health` → 200, `/login` → 200, вход `admin/majordomo` (docker seed) →
-`/yoyo-demo` 200, `/panel/` старый shell пока открывается. Если что-то
-сломалось — чинить до следующего этапа.
-
-Docker — только локальная отладка и наглядный прогресс; production-инструкция
-остаётся в `docs/deploy/`.
+Docker — только локальная отладка; production-инструкция остаётся в
+`docs/deploy/`.
 
 ## 10. Документация
 

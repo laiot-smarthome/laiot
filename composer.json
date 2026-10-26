@@ -19,6 +19,7 @@
         "neuron-core/neuron-ai": "~4.1.13",
         "phpmailer/phpmailer": "^7.0",
         "predis/predis": "^2.4",
+        "symfony/console": "^7.4",
         "symfony/http-client": "^7.4",
         "symfony/process": "^7.4",
         "symfony/rate-limiter": "^7.4",
