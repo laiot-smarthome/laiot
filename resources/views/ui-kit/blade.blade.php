@@ -53,4 +53,21 @@
         <x-md.progress :value="64" label="Перенос компонентов" show-value />
         <x-md.empty-state icon="inbox" title="Пока пусто" text="Empty-state тоже перенесён без изменения вида." />
     </div>
+
+    <div class="md-ui-demo__canvas" style="display:block;">
+        <x-md.field label="Название" for="blade-name" hint="Подсказка остаётся прежней.">
+            <x-md.input name="name" id="blade-name" placeholder="Например, гостиная" />
+        </x-md.field>
+        <x-md.select
+            name="room"
+            label="Комната"
+            :options="['living' => 'Гостиная', 'kitchen' => 'Кухня', 'bedroom' => 'Спальня']"
+            selected="living"
+        />
+        <x-md.textarea name="comment" label="Комментарий" placeholder="Текст" />
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.75rem;">
+            <x-md.checkbox name="enabled" label="Включено" checked />
+            <x-md.switch name="notify" label="Уведомления" />
+        </div>
+    </div>
 </section>
