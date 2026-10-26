@@ -71,6 +71,7 @@ public/index.php
 | `Clock` | CarbonImmutable, таймзона `APP_TIMEZONE` |
 | `LoggerFactory` | каналы `app`, `http`, `security`, request_id |
 | `Authorization` / `RoleRepository` | `can()`, роли и разрешения из БД |
+| `UserRepository` | новая таблица `users`, password_hash/verify |
 | `ApiTokenRepository` | API-токены, SHA-256, выпуск/отзыв |
 | `ModuleManager` | core-модули, `modules/core` |
 | `ModuleDb` | таблицы модуля `module_<id>_*`, без raw SQL |

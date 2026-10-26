@@ -18,6 +18,9 @@ queue_jobs
 module_shared_events
 api_tokens
 user_roles
+settings
+action_log
+users
 ```
 
 Никаких `ID`, `QUEUE`, `CREATED_AT`. Таблицы alpha (`users`, `objects`)

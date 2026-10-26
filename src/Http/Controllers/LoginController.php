@@ -15,8 +15,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Минимальный вход администратора для нового ядра.
  *
- * Использует ту же таблицу users и формат паролей, что alpha, но отдельную
- * сессию `mydomo`. Форма защищена CSRF, пароль не логируется.
+ * Новая таблица users MyDoMo, password_hash/password_verify и отдельная
+ * сессия `mydomo`. Форма защищена CSRF, пароль не логируется.
  */
 final readonly class LoginController extends Controller
 {

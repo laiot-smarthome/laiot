@@ -28,9 +28,9 @@ use MajorDoMo\Auth\AdminAuthenticator;
 use MajorDoMo\Auth\ApiTokenRepository;
 use MajorDoMo\Auth\Authorization;
 use MajorDoMo\Auth\RoleRepository;
+use MajorDoMo\Auth\UserRepository;
 use MajorDoMo\Cache\CacheFactory;
 use MajorDoMo\Cache\CacheStore;
-use MajorDoMo\Core\Users\UserAccounts;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Database\SettingsRepository;
 use MajorDoMo\Http\Kernel;
@@ -159,16 +159,9 @@ final class Application
         $this->container->instance(ActionLogRepository::class, new ActionLogRepository($this->database));
         $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
-        $this->container->bind(
-            UserAccounts::class,
-            fn (): UserAccounts => new UserAccounts($this->database->connection()->getPdo())
-        );
-        $this->container->bind(
-            AdminAuthenticator::class,
-            fn (): AdminAuthenticator => new AdminAuthenticator(
-                fn (): UserAccounts => $this->container->make(UserAccounts::class)
-            )
-        );
+        $users = new UserRepository($this->database);
+        $this->container->instance(UserRepository::class, $users);
+        $this->container->instance(AdminAuthenticator::class, new AdminAuthenticator($users));
         $this->container->singleton(
             PanelRenderer::class,
             fn (): PanelRenderer => new PanelRenderer(

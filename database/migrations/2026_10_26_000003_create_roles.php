@@ -100,34 +100,4 @@ return static function (Connection $connection): void {
         ]);
     }
 
-    if (!$schema->hasTable('users')) {
-        return;
-    }
-
-    $userRoles = $connection->table('user_roles');
-    if ($userRole !== null) {
-        foreach ($connection->table('users')->pluck('ID') as $userId) {
-            if (!$userRoles->where('user_id', (int)$userId)->where('role_id', (int)$userRole)->exists()) {
-                $userRoles->insert([
-                    'user_id' => (int)$userId,
-                    'role_id' => (int)$userRole,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            }
-        }
-    }
-
-    if ($adminRole !== null) {
-        foreach ($connection->table('users')->where('IS_ADMIN', 1)->pluck('ID') as $userId) {
-            if (!$userRoles->where('user_id', (int)$userId)->where('role_id', (int)$adminRole)->exists()) {
-                $userRoles->insert([
-                    'user_id' => (int)$userId,
-                    'role_id' => (int)$adminRole,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            }
-        }
-    }
 };

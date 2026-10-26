@@ -6,7 +6,6 @@ namespace MajorDoMo\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
-use MajorDoMo\Core\Users\Passwords;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
@@ -34,18 +33,22 @@ final class LoginTest extends TestCase
         $this->app->boot();
 
         $this->app->database()->schema()->create('users', static function (Blueprint $table): void {
-            $table->increments('ID');
-            $table->string('USERNAME', 255);
-            $table->string('NAME', 255)->default('');
-            $table->string('PASSWORD', 255);
-            $table->integer('IS_ADMIN')->default(0);
+            $table->increments('id');
+            $table->string('username');
+            $table->string('name')->default('');
+            $table->string('password');
+            $table->boolean('is_admin')->default(false);
+            $table->timestamps();
+            $table->softDeletes();
         });
 
         $this->app->database()->connection()->table('users')->insert([
-            'USERNAME' => 'admin',
-            'NAME' => 'Admin',
-            'PASSWORD' => Passwords::hash('secret'),
-            'IS_ADMIN' => 1,
+            'username' => 'admin',
+            'name' => 'Admin',
+            'password' => password_hash('secret', PASSWORD_DEFAULT),
+            'is_admin' => 1,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
         ]);
     }
 

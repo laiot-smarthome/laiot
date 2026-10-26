@@ -813,6 +813,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `actions_log`: журнал через `ActionLogRepository`, фильтр/удаление.
 - [x] `settings`: список/поиск/редактирование через `SettingsRepository`;
   старый модуль удалён.
+- [x] `users` новая lowercase-таблица; `UserRepository` и
+  password_hash/password_verify; старый UserAccounts не используется.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
   остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.
