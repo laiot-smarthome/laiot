@@ -172,7 +172,35 @@ php bin/mydomo api:token 1 "monitoring"
 
 `health` возвращает 0 только если БД и кэш доступны.
 
-## 10. Пользовательские обёртки
+## 10. Пользовательские обёртки и helpers
+
+### Автоподключение
+
+- core: `src/Support/helpers/*.php` — загружает `HelperLoader` при boot;
+- модуль: `module.json` → `"helpers": "helpers.php"` (или список) —
+  загружает `ModuleManager` при обнаружении модуля;
+- если `helpers` не указан, ищется `helpers.php` в корне модуля;
+- ручных `require` в bootstrap нет.
+
+Модульный helper — тонкий фасад над сервисом модуля:
+
+```php
+function kinetic_change_connection(string $connection): bool
+{
+    return app()
+        ->modules()
+        ->service('kinetic', KineticService::class)
+        ->changeConnection($connection);
+}
+```
+
+`ModuleManager::service()` проверяет, что класс принадлежит namespace модуля,
+и не даёт helper-функции создать произвольный core-сервис. Имя helper
+начинается с id модуля, чтобы не было коллизий.
+
+`shoutbox_latest()` — рабочий пример: helper → `ShoutboxService::latest()`.
+
+### `say()`
 
 `say()` уже работает в MyDoMo:
 

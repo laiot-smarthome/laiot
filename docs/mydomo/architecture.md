@@ -67,6 +67,7 @@ public/index.php
 | `CacheStore` | array/file/database/redis, TTL, namespace `mydomo.` |
 | `Queue` / `DatabaseQueue` | задания, резервирование, retry/dead-letter |
 | `JobRegistry` / `QueueWorker` | именованные обработчики и worker |
+| `HelperLoader` | автоподключение core/module helper-файлов |
 | `Clock` | CarbonImmutable, таймзона `APP_TIMEZONE` |
 | `LoggerFactory` | каналы `app`, `http`, `security`, request_id |
 | `Authorization` / `RoleRepository` | `can()`, роли и разрешения из БД |

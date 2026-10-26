@@ -4,14 +4,10 @@ declare(strict_types=1);
 
 use MajorDoMo\Support\AppContext;
 
-/**
- * Пользовательские обёртки, которые уже работают в MyDoMo.
- *
- * Файл подключается только новым bootstrap, не Composer-автолоадом:
- * alpha продолжает использовать свои lib/core/Helpers без конфликта имён.
- */
 if (!function_exists('say')) {
     /**
+     * Сообщение в Shoutbox. `level` пока не используется.
+     *
      * @param mixed $ph
      * @param mixed $level
      * @param mixed $member_id

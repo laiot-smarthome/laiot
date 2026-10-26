@@ -34,6 +34,8 @@ legacy-коду. Если документ относится к новому я
 - `/health` проверяет БД и кэш, `/status` — версия/БД/кэш/модули;
 - `PanelRenderer` + `layouts.alpha`, меню из core-модулей;
 - пользовательская `say()` пишет в Shoutbox;
+- core/module helpers подключаются автоматически; модуль публикует функции
+  через `helpers.php` и сервис модуля (`shoutbox_latest()`);
 - модули `shoutbox` и `jobs` перенесены полностью, старый код удалён;
 - Blade-компоненты `x-md.*` с alpha-разметкой;
 - Carbon/Clock, `APP_TIMEZONE`, lowercase-схема + timestamps + soft deletes.

@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Routing\Router;
 use Illuminate\View\Factory;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Support\HelperLoader;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -27,7 +28,8 @@ final class ModuleManager
     public function __construct(
         private readonly string $root,
         private readonly DatabaseManager $database,
-        private readonly Container $container
+        private readonly Container $container,
+        private readonly HelperLoader $helpers
     ) {
         $this->discover();
     }
@@ -38,6 +40,57 @@ final class ModuleManager
     public function all(): array
     {
         return $this->modules;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function get(string $id): ?array
+    {
+        return $this->modules[$id] ?? null;
+    }
+
+    public function db(string $id): ?ModuleDb
+    {
+        $module = $this->modules[$id] ?? null;
+
+        return $module['db'] ?? null;
+    }
+
+    /**
+     * Публичный сервис модуля для helper-функций и других модулей.
+     *
+     * Класс обязан принадлежать namespace модуля: нельзя через helper
+     * заставить ядро создать произвольный сервис.
+     *
+     * @template T of object
+     * @param class-string<T> $class
+     * @return T
+     */
+    public function service(string $id, string $class): object
+    {
+        $module = $this->modules[$id] ?? null;
+        if ($module === null) {
+            throw new RuntimeException('Модуль не найден: ' . $id);
+        }
+        $namespace = (string)$module['namespace'];
+        if (!str_starts_with($class, $namespace)) {
+            throw new RuntimeException('Сервис не принадлежит модулю ' . $id);
+        }
+
+        $key = 'module.service.' . $id . '.' . $class;
+        if ($this->container->bound($key)) {
+            /** @var T $service */
+            $service = $this->container->make($key);
+
+            return $service;
+        }
+
+        /** @var T $service */
+        $service = $this->container->make($class);
+        $this->container->instance($key, $service);
+
+        return $service;
     }
 
     /**
@@ -137,6 +190,11 @@ final class ModuleManager
 
             $this->registerAutoloader($module);
             $this->modules[$module['id']] = $module;
+            $this->helpers->loadModule(
+                (string)$module['id'],
+                (string)$module['path'],
+                $module['helpers'] ?? null
+            );
         }
 
         ksort($this->modules);
@@ -185,6 +243,7 @@ final class ModuleManager
             'views' => $views,
             'storage' => is_array($manifest['storage'] ?? null) ? $manifest['storage'] : null,
             'menu' => is_array($manifest['menu'] ?? null) ? $manifest['menu'] : null,
+            'helpers' => $manifest['helpers'] ?? null,
         ];
     }
 

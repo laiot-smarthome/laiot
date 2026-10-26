@@ -40,7 +40,6 @@ final class CoreShoutboxTest extends TestCase
 
     public function testSayWrapperWritesToModuleTable(): void
     {
-        require_once dirname(__DIR__, 2) . '/src/Support/legacy_helpers.php';
         say('Сообщение через say()', 0, 1, 'test');
 
         $row = $this->app->database()->connection()
@@ -50,6 +49,7 @@ final class CoreShoutboxTest extends TestCase
         self::assertNotNull($row);
         self::assertSame('Сообщение через say()', $row->message);
         self::assertSame('test', $row->source);
+        self::assertSame('Сообщение через say()', shoutbox_latest(1)[0]['message']);
     }
 
     public function testMessageCanBeCreatedAndSoftDeleted(): void

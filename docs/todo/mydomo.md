@@ -964,6 +964,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 Сохранить как фасады над новыми сервисами:
 
 - [x] `say` — уже пишет в Shoutbox core-модуля (level пока игнорируется);
+- [x] Автоподключение helpers: core `src/Support/helpers/*.php`, модульные
+  `helpers.php` из `module.json`; сервисы через `ModuleManager::service`.
+- [x] `shoutbox_latest()` — пример публичного helper модуля; 1 тест.
 - [ ] `getGlobal`, `setGlobal`, `gg`, `sg`;
 - `setTimeOut`, `clearTimeOut`;
 - `callMethod`, `callMethodSafe`, `callScript`, `runScript`;

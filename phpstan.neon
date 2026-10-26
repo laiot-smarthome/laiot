@@ -5,3 +5,5 @@ parameters:
         - tests/Feature
     tmpDir: var/cache/phpstan
     reportUnmatchedIgnoredErrors: false
+    scanFiles:
+        - modules/core/shoutbox/helpers.php

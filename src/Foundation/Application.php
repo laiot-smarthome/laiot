@@ -50,6 +50,7 @@ use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
 use MajorDoMo\Support\AppContext;
 use MajorDoMo\Support\Clock;
+use MajorDoMo\Support\HelperLoader;
 use MajorDoMo\View\BladeComponents;
 use MajorDoMo\View\BladeView;
 use MajorDoMo\Yoyo\Counter;
@@ -72,6 +73,7 @@ final class Application
     private LoggerFactory $loggerFactory;
     private RequestContext $requestContext;
     private Clock $clock;
+    private HelperLoader $helperLoader;
     private DatabaseManager $database;
     private CacheStore $cache;
     private Queue $queue;
@@ -120,6 +122,9 @@ final class Application
         }
         $this->clock = new Clock($timezone);
         $this->container->instance(Clock::class, $this->clock);
+        $this->helperLoader = new HelperLoader($this->root . '/src/Support/helpers');
+        $this->helperLoader->loadCore();
+        $this->container->instance(HelperLoader::class, $this->helperLoader);
 
         $this->requestContext = new RequestContext();
         $this->container->instance(RequestContext::class, $this->requestContext);
@@ -192,7 +197,7 @@ final class Application
         $this->router->aliasMiddleware('throttle.login', ThrottleLogin::class);
         $this->container->instance(Router::class, $this->router);
 
-        $this->modules = new ModuleManager($this->root, $this->database, $this->container);
+        $this->modules = new ModuleManager($this->root, $this->database, $this->container, $this->helperLoader);
         $this->container->instance(ModuleManager::class, $this->modules);
 
         $this->kernel = new Kernel(

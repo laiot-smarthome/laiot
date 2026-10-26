@@ -203,6 +203,50 @@ Third-party (позже):
   старый scheduler-модуль удалён;
 - остальные модули — после закрытия оставшегося core-gate.
 
+## 8. Публичные helpers модуля
+
+Модуль может опубликовать функции для пользовательского кода. Это не
+доступ к чужим таблицам, а **фасад над сервисом модуля**:
+
+```php
+// modules/core/kinetic/helpers.php
+function kinetic_change_connection(string $connection): bool
+{
+    return app()
+        ->modules()
+        ->service('kinetic', KineticService::class)
+        ->changeConnection($connection);
+}
+```
+
+`module.json`:
+
+```json
+"helpers": "helpers.php"
+```
+
+или несколько файлов:
+
+```json
+"helpers": ["helpers.php", "helpers_extra.php"]
+```
+
+`ModuleManager` подключает их автоматически при обнаружении модуля. Если
+`helpers` не указан, ищется `helpers.php` в корне модуля.
+
+Правила:
+
+- имя функции начинается с id модуля (`kinetic_...`, `shoutbox_...`), чтобы
+  не было коллизий;
+- helper — тонкий фасад; данные читает/пишет сервис модуля;
+- helper не ходит в чужие таблицы и не содержит SQL;
+- сервис обязан принадлежать namespace модуля — `ModuleManager::service()`
+  это проверяет;
+- helpers подключаются только в новом ядре; alpha-хелперы не затрагиваются.
+
+Пример из MyDoMo: `shoutbox_latest()` → `ShoutboxService::latest()`. Такой
+helper можно звать из сценариев/методов, не зная, как устроена таблица.
+
 ## 9. Что запрещено
 
 - Удалять/отключать core-модуль через менеджер.
