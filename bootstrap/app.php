@@ -11,6 +11,7 @@ $root = dirname(__DIR__);
 Config::boot($root);
 
 $app = new Application($root, [
+    'timezone' => Config::string('APP_TIMEZONE', 'Europe/Moscow'),
     'cache' => [
         'driver' => Config::string('CACHE_DRIVER', 'file'),
         'path' => $root . '/var/cache/data',

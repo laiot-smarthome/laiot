@@ -74,6 +74,8 @@ order: 5
   2 теста.
 - [x] Redis-кэш (`CacheFactory`) через Predis и SCAN-clear; live Redis в
   тестах не поднимался.
+- [x] Новые таблицы: lowercase snake_case, `created_at/updated_at/deleted_at`;
+  Carbon/Clock и `APP_TIMEZONE`; 1 тест.
 - [x] Typed jobs: `Job` + `Queue::pushJob()`; 2 теста.
 - [x] API v1: `health`, `about`; JSON + request_id; 2 теста.
 - [x] AuthZ: `Authorization`, middleware `can:`, таблицы ролей и
@@ -681,19 +683,20 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 
 ### 6.3. Данные и Eloquent
 
-- [ ] Перевести соединение на PDO (`pdo_mysql`), убрать `mysqli` из нового
-  слоя; старый слой — только на время переноса.
-- [ ] Настроить `Illuminate\Database\Capsule\Manager` или собственный
-  `DatabaseManager` с одним соединением на запрос/воркер.
+- [x] PDO/Capsule через `DatabaseManager`; новый слой без `mysqli`.
 - [x] Базовая модель `src/Database/Model.php`: `$timestamps=false`,
-  `$primaryKey='ID'`, `$keyType='int'`, `$incrementing=true`.
+  `$primaryKey='id'`, `$keyType='int'`, `$incrementing=true`.
 - [x] `DatabaseManager::transaction()`; тест rollback на SQLite.
+- [x] Все новые таблицы — lowercase snake_case, обязательные
+  `created_at/updated_at/deleted_at`; alpha uppercase — legacy-исключение.
+- [x] `Clock` на CarbonImmutable, `APP_TIMEZONE`, таймзона в boot; 1 тест.
 - [ ] Модели ядра: `ObjectModel`, `ClassModel`, `PropertyModel`,
   `MethodModel`, `PropertyValue`, `Script`, `Event`, `Job`, `User`,
   `Setting`, `Module`, `History`.
 - [ ] Репозитории для сложных выборок; контроллеры не пишут SQL.
-- [ ] Сохранить таблицы и поля alpha; новые таблицы — с префиксом `mydomo_`
-  или `module_<id>_`.
+- [x] Новые таблицы — lowercase snake_case, `id`/timestamps/soft deletes;
+  модульные — `module_<id>_<table>`.
+- [ ] Alpha-таблицы оставить как есть; при необходимости — адаптеры.
 - [x] `Migrator` + журнал `migrations`, файлы `database/migrations/`,
   `db:migrate`, `db:status`; миграции `queue_jobs`, `module_shared_events`.
 - [ ] Транзакции вокруг миграций/пакетов и откат.
@@ -1087,7 +1090,8 @@ Docker — только локальная отладка; production-инстр
 - [x] `docs/README.md` и корневой `AGENTS.md` ссылаются на MyDoMo-документацию.
 - [ ] Переписать `docs/agents/AGENTS.md` под MyDoMo или оставить alpha-only.
 - [ ] `docs/agents/routing.md` — новый роутер, middleware, имена, кэш.
-- [ ] `docs/mydomo/database.md` — Eloquent, репозитории, миграции, InnoDB.
+- [x] `docs/mydomo/database.md` — lowercase, timestamps, soft deletes,
+  Carbon/Clock, миграции; Eloquent/InnoDB — позже.
 - [ ] `docs/mydomo/cache.md`, `queue.md`, `events.md`.
 - [ ] `docs/mydomo/upgrade.md` — alpha → MyDoMo, backup, откат.
 - [ ] `docs/user/upgrade.md` — инструкция пользователю.

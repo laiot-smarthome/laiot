@@ -73,7 +73,7 @@ final class QueueTest extends TestCase
 
         self::assertSame(1, $this->database->connection()
             ->table('queue_jobs')
-            ->whereNotNull('FAILED_AT')
+            ->whereNotNull('failed_at')
             ->count());
     }
 

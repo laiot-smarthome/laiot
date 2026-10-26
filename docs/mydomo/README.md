@@ -47,7 +47,8 @@ legacy-коду. Если документ относится к новому я
 3. [Правила для агентов](AGENTS.md) — как читать, менять и проверять.
 4. [Тестирование](testing.md) — укрупнённые тесты, dev server, Docker.
 5. [Модульная система](modules.md) — core/third-party, `ModuleDb`, `ModuleBus`.
-6. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
+6. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
+7. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
 
 ## Правило обновления
 

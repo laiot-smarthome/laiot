@@ -35,7 +35,7 @@ final class Migrator
                 'name' => $name,
                 'applied' => isset($applied[$name]),
                 'batch' => $applied[$name]['batch'] ?? null,
-                'ran_at' => $applied[$name]['ran_at'] ?? null,
+                'ran_at' => $applied[$name]['created_at'] ?? null,
             ];
         }
 
@@ -69,10 +69,12 @@ final class Migrator
                 throw new RuntimeException('Миграция не выполнена: ' . $name . ': ' . $error->getMessage(), 0, $error);
             }
 
+            $now = date('Y-m-d H:i:s');
             $this->database->connection()->table('migrations')->insert([
                 'migration' => $name,
                 'batch' => $batch,
-                'ran_at' => date('Y-m-d H:i:s'),
+                'created_at' => $now,
+                'updated_at' => $now,
             ]);
             $ran[] = $name;
         }
@@ -81,7 +83,7 @@ final class Migrator
     }
 
     /**
-     * @return array<string, array{batch:int,ran_at:string}>
+     * @return array<string, array{batch:int,created_at:string}>
      */
     private function applied(): array
     {
@@ -90,7 +92,7 @@ final class Migrator
         foreach ($this->database->connection()->table('migrations')->get() as $row) {
             $result[(string)$row->migration] = [
                 'batch' => (int)$row->batch,
-                'ran_at' => (string)$row->ran_at,
+                'created_at' => (string)$row->created_at,
             ];
         }
 
@@ -115,7 +117,8 @@ final class Migrator
             $table->increments('id');
             $table->string('migration', 191)->unique();
             $table->integer('batch');
-            $table->dateTime('ran_at');
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 

@@ -46,6 +46,7 @@ use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Queue\DatabaseQueue;
 use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
+use MajorDoMo\Support\Clock;
 use MajorDoMo\View\BladeComponents;
 use MajorDoMo\View\BladeView;
 use MajorDoMo\Yoyo\Counter;
@@ -67,6 +68,7 @@ final class Application
     private LoggerInterface $logger;
     private LoggerFactory $loggerFactory;
     private RequestContext $requestContext;
+    private Clock $clock;
     private DatabaseManager $database;
     private CacheStore $cache;
     private Queue $queue;
@@ -98,6 +100,15 @@ final class Application
         Container::setInstance($this->container);
         $this->container->instance(Container::class, $this->container);
         $this->container->instance(self::class, $this);
+
+        $timezone = (string)($this->config['timezone'] ?? 'Europe/Moscow');
+        if (in_array($timezone, timezone_identifiers_list(), true)) {
+            date_default_timezone_set($timezone);
+        } else {
+            $timezone = date_default_timezone_get();
+        }
+        $this->clock = new Clock($timezone);
+        $this->container->instance(Clock::class, $this->clock);
 
         $this->requestContext = new RequestContext();
         $this->container->instance(RequestContext::class, $this->requestContext);
@@ -218,6 +229,13 @@ final class Application
         $this->ensureBooted();
 
         return $this->router;
+    }
+
+    public function clock(): Clock
+    {
+        $this->ensureBooted();
+
+        return $this->clock;
     }
 
     public function logger(): LoggerInterface

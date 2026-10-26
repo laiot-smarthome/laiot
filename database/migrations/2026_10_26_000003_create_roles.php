@@ -10,66 +10,93 @@ return static function (Connection $connection): void {
 
     if (!$schema->hasTable('roles')) {
         $schema->create('roles', static function (Blueprint $table): void {
-            $table->increments('ID');
-            $table->string('NAME', 64)->unique();
-            $table->string('TITLE', 191);
-            $table->boolean('IS_SYSTEM')->default(false);
+            $table->increments('id');
+            $table->string('name', 64)->unique();
+            $table->string('title', 191);
+            $table->boolean('is_system')->default(false);
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
     if (!$schema->hasTable('permissions')) {
         $schema->create('permissions', static function (Blueprint $table): void {
-            $table->increments('ID');
-            $table->string('NAME', 191)->unique();
-            $table->string('TITLE', 191);
+            $table->increments('id');
+            $table->string('name', 191)->unique();
+            $table->string('title', 191);
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
     if (!$schema->hasTable('role_permissions')) {
         $schema->create('role_permissions', static function (Blueprint $table): void {
-            $table->integer('ROLE_ID');
-            $table->integer('PERMISSION_ID');
-            $table->unique(['ROLE_ID', 'PERMISSION_ID']);
+            $table->increments('id');
+            $table->integer('role_id');
+            $table->integer('permission_id');
+            $table->timestamps();
+            $table->softDeletes();
+            $table->unique(['role_id', 'permission_id']);
         });
     }
 
     if (!$schema->hasTable('user_roles')) {
         $schema->create('user_roles', static function (Blueprint $table): void {
-            $table->integer('USER_ID');
-            $table->integer('ROLE_ID');
-            $table->unique(['USER_ID', 'ROLE_ID']);
+            $table->increments('id');
+            $table->integer('user_id');
+            $table->integer('role_id');
+            $table->timestamps();
+            $table->softDeletes();
+            $table->unique(['user_id', 'role_id']);
         });
     }
 
+    $now = date('Y-m-d H:i:s');
     $roles = $connection->table('roles');
-    $roles->insertOrIgnore([
-        ['NAME' => 'admin', 'TITLE' => 'Администратор', 'IS_SYSTEM' => 1],
-        ['NAME' => 'user', 'TITLE' => 'Пользователь', 'IS_SYSTEM' => 1],
-    ]);
+    foreach ([['admin', 'Администратор'], ['user', 'Пользователь']] as [$name, $title]) {
+        if (!$roles->where('name', $name)->exists()) {
+            $roles->insert([
+                'name' => $name,
+                'title' => $title,
+                'is_system' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+    }
 
     $permissions = $connection->table('permissions');
-    $permissions->insertOrIgnore([
-        ['NAME' => '*', 'TITLE' => 'Все действия'],
-        ['NAME' => 'panel.view', 'TITLE' => 'Просмотр панели'],
-        ['NAME' => 'settings.manage', 'TITLE' => 'Управление настройками'],
-        ['NAME' => 'users.manage', 'TITLE' => 'Управление пользователями'],
-    ]);
+    foreach ([['*', 'Все действия'], ['panel.view', 'Просмотр панели'], ['settings.manage', 'Управление настройками'], ['users.manage', 'Управление пользователями']] as [$name, $title]) {
+        if (!$permissions->where('name', $name)->exists()) {
+            $permissions->insert([
+                'name' => $name,
+                'title' => $title,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+    }
 
-    $adminRole = $connection->table('roles')->where('NAME', 'admin')->value('ID');
-    $userRole = $connection->table('roles')->where('NAME', 'user')->value('ID');
-    $all = $connection->table('permissions')->where('NAME', '*')->value('ID');
-    $panel = $connection->table('permissions')->where('NAME', 'panel.view')->value('ID');
+    $adminRole = $connection->table('roles')->where('name', 'admin')->value('id');
+    $userRole = $connection->table('roles')->where('name', 'user')->value('id');
+    $all = $connection->table('permissions')->where('name', '*')->value('id');
+    $panel = $connection->table('permissions')->where('name', 'panel.view')->value('id');
 
-    if ($adminRole !== null && $all !== null) {
-        $connection->table('role_permissions')->insertOrIgnore([
-            'ROLE_ID' => (int)$adminRole,
-            'PERMISSION_ID' => (int)$all,
+    $rolePermissions = $connection->table('role_permissions');
+    if ($adminRole !== null && $all !== null && !$rolePermissions->where('role_id', $adminRole)->where('permission_id', $all)->exists()) {
+        $rolePermissions->insert([
+            'role_id' => (int)$adminRole,
+            'permission_id' => (int)$all,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
     }
-    if ($userRole !== null && $panel !== null) {
-        $connection->table('role_permissions')->insertOrIgnore([
-            'ROLE_ID' => (int)$userRole,
-            'PERMISSION_ID' => (int)$panel,
+    if ($userRole !== null && $panel !== null && !$rolePermissions->where('role_id', $userRole)->where('permission_id', $panel)->exists()) {
+        $rolePermissions->insert([
+            'role_id' => (int)$userRole,
+            'permission_id' => (int)$panel,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
     }
 
@@ -77,23 +104,30 @@ return static function (Connection $connection): void {
         return;
     }
 
+    $userRoles = $connection->table('user_roles');
     if ($userRole !== null) {
-        $userIds = $connection->table('users')->pluck('ID');
-        foreach ($userIds as $userId) {
-            $connection->table('user_roles')->insertOrIgnore([
-                'USER_ID' => (int)$userId,
-                'ROLE_ID' => (int)$userRole,
-            ]);
+        foreach ($connection->table('users')->pluck('ID') as $userId) {
+            if (!$userRoles->where('user_id', (int)$userId)->where('role_id', (int)$userRole)->exists()) {
+                $userRoles->insert([
+                    'user_id' => (int)$userId,
+                    'role_id' => (int)$userRole,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
         }
     }
 
     if ($adminRole !== null) {
-        $adminIds = $connection->table('users')->where('IS_ADMIN', 1)->pluck('ID');
-        foreach ($adminIds as $userId) {
-            $connection->table('user_roles')->insertOrIgnore([
-                'USER_ID' => (int)$userId,
-                'ROLE_ID' => (int)$adminRole,
-            ]);
+        foreach ($connection->table('users')->where('IS_ADMIN', 1)->pluck('ID') as $userId) {
+            if (!$userRoles->where('user_id', (int)$userId)->where('role_id', (int)$adminRole)->exists()) {
+                $userRoles->insert([
+                    'user_id' => (int)$userId,
+                    'role_id' => (int)$adminRole,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
         }
     }
 };

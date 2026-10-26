@@ -28,14 +28,15 @@ final class ApiTokenTest extends TestCase
         ]);
         $this->app->boot();
         $this->app->database()->schema()->create('api_tokens', static function (Blueprint $table): void {
-            $table->increments('ID');
-            $table->integer('USER_ID');
-            $table->string('NAME');
-            $table->string('TOKEN_HASH', 64)->unique();
-            $table->dateTime('CREATED_AT');
-            $table->dateTime('EXPIRES_AT')->nullable();
-            $table->dateTime('LAST_USED_AT')->nullable();
-            $table->dateTime('REVOKED_AT')->nullable();
+            $table->increments('id');
+            $table->integer('user_id');
+            $table->string('name');
+            $table->string('token_hash', 64)->unique();
+            $table->dateTime('expires_at')->nullable();
+            $table->dateTime('last_used_at')->nullable();
+            $table->dateTime('revoked_at')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
         });
         $this->tokens = $this->app->container()->make(ApiTokenRepository::class);
     }
@@ -45,7 +46,7 @@ final class ApiTokenTest extends TestCase
         $token = $this->tokens->issue(7, 'test');
         self::assertSame(7, $this->tokens->userId($token));
 
-        $id = $this->app->database()->connection()->table('api_tokens')->value('ID');
+        $id = $this->app->database()->connection()->table('api_tokens')->value('id');
         self::assertTrue($this->tokens->revoke((int)$id));
         self::assertNull($this->tokens->userId($token));
     }

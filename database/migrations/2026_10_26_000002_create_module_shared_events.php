@@ -12,11 +12,13 @@ return static function (Connection $connection): void {
     }
 
     $schema->create('module_shared_events', static function (Blueprint $table): void {
-        $table->string('TOPIC', 191)->primary();
-        $table->string('MODULE_ID', 64);
-        $table->text('PAYLOAD');
-        $table->dateTime('UPDATED_AT');
-        $table->dateTime('EXPIRES_AT');
-        $table->index('EXPIRES_AT');
+        $table->increments('id');
+        $table->string('topic', 191)->unique();
+        $table->string('module_id', 64);
+        $table->text('payload');
+        $table->dateTime('expires_at');
+        $table->timestamps();
+        $table->softDeletes();
+        $table->index('expires_at');
     });
 };

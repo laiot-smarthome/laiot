@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model as EloquentModel;
  */
 abstract class Model extends EloquentModel
 {
-    protected $primaryKey = 'ID';
+    protected $primaryKey = 'id';
 
     public $incrementing = true;
 

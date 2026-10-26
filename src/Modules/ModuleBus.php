@@ -49,12 +49,14 @@ final class ModuleBus
 
         $this->ensureTable();
         $this->database->connection()->table('module_shared_events')->updateOrInsert(
-            ['TOPIC' => $fullTopic],
+            ['topic' => $fullTopic],
             [
-                'MODULE_ID' => $this->moduleId,
-                'PAYLOAD' => $json,
-                'UPDATED_AT' => date('Y-m-d H:i:s', $now),
-                'EXPIRES_AT' => date('Y-m-d H:i:s', $expires),
+                'module_id' => $this->moduleId,
+                'payload' => $json,
+                'created_at' => date('Y-m-d H:i:s', $now),
+                'updated_at' => date('Y-m-d H:i:s', $now),
+                'expires_at' => date('Y-m-d H:i:s', $expires),
+                'deleted_at' => null,
             ]
         );
 
@@ -69,25 +71,26 @@ final class ModuleBus
         $fullTopic = $this->fullTopic($topic);
         $this->ensureTable();
         $row = $this->database->connection()->table('module_shared_events')
-            ->where('TOPIC', $fullTopic)
-            ->where('EXPIRES_AT', '>', date('Y-m-d H:i:s', ($this->clock)()))
+            ->where('topic', $fullTopic)
+            ->whereNull('deleted_at')
+            ->where('expires_at', '>', date('Y-m-d H:i:s', ($this->clock)()))
             ->first();
 
         if ($row === null) {
             return null;
         }
 
-        $payload = json_decode((string)$row->PAYLOAD, true);
+        $payload = json_decode((string)$row->payload, true);
         if (!is_array($payload)) {
             return null;
         }
 
         return [
-            'topic' => (string)$row->TOPIC,
-            'module' => (string)$row->MODULE_ID,
+            'topic' => (string)$row->topic,
+            'module' => (string)$row->module_id,
             'payload' => $payload,
-            'updated_at' => (string)$row->UPDATED_AT,
-            'expires_at' => (string)$row->EXPIRES_AT,
+            'updated_at' => (string)$row->updated_at,
+            'expires_at' => (string)$row->expires_at,
         ];
     }
 
@@ -154,12 +157,14 @@ final class ModuleBus
             return;
         }
         $schema->create('module_shared_events', static function (Blueprint $table): void {
-            $table->string('TOPIC', 191)->primary();
-            $table->string('MODULE_ID', 64);
-            $table->text('PAYLOAD');
-            $table->dateTime('UPDATED_AT');
-            $table->dateTime('EXPIRES_AT');
-            $table->index('EXPIRES_AT');
+            $table->increments('id');
+            $table->string('topic', 191)->unique();
+            $table->string('module_id', 64);
+            $table->text('payload');
+            $table->dateTime('expires_at');
+            $table->timestamps();
+            $table->softDeletes();
+            $table->index('expires_at');
         });
     }
 

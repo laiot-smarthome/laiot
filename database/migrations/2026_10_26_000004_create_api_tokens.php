@@ -12,14 +12,15 @@ return static function (Connection $connection): void {
     }
 
     $schema->create('api_tokens', static function (Blueprint $table): void {
-        $table->increments('ID');
-        $table->integer('USER_ID');
-        $table->string('NAME', 191);
-        $table->string('TOKEN_HASH', 64)->unique();
-        $table->dateTime('CREATED_AT');
-        $table->dateTime('EXPIRES_AT')->nullable();
-        $table->dateTime('LAST_USED_AT')->nullable();
-        $table->dateTime('REVOKED_AT')->nullable();
-        $table->index(['USER_ID', 'REVOKED_AT']);
+        $table->increments('id');
+        $table->integer('user_id');
+        $table->string('name', 191);
+        $table->string('token_hash', 64)->unique();
+        $table->dateTime('expires_at')->nullable();
+        $table->dateTime('last_used_at')->nullable();
+        $table->dateTime('revoked_at')->nullable();
+        $table->timestamps();
+        $table->softDeletes();
+        $table->index(['user_id', 'revoked_at']);
     });
 };

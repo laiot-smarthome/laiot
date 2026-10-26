@@ -30,15 +30,17 @@ final readonly class ApiTokenRepository
         $token = bin2hex(random_bytes(32));
         $now = time();
         $this->database->connection()->table('api_tokens')->insert([
-            'USER_ID' => $userId,
-            'NAME' => $name,
-            'TOKEN_HASH' => hash('sha256', $token),
-            'CREATED_AT' => date('Y-m-d H:i:s', $now),
-            'EXPIRES_AT' => $ttlSeconds !== null && $ttlSeconds > 0
+            'user_id' => $userId,
+            'name' => $name,
+            'token_hash' => hash('sha256', $token),
+            'created_at' => date('Y-m-d H:i:s', $now),
+            'updated_at' => date('Y-m-d H:i:s', $now),
+            'expires_at' => $ttlSeconds !== null && $ttlSeconds > 0
                 ? date('Y-m-d H:i:s', $now + $ttlSeconds)
                 : null,
-            'LAST_USED_AT' => null,
-            'REVOKED_AT' => null,
+            'last_used_at' => null,
+            'revoked_at' => null,
+            'deleted_at' => null,
         ]);
 
         return $token;
@@ -52,11 +54,12 @@ final readonly class ApiTokenRepository
         }
 
         $row = $this->database->connection()->table('api_tokens')
-            ->where('TOKEN_HASH', hash('sha256', $token))
-            ->whereNull('REVOKED_AT')
+            ->where('token_hash', hash('sha256', $token))
+            ->whereNull('deleted_at')
+            ->whereNull('revoked_at')
             ->where(static function ($query): void {
-                $query->whereNull('EXPIRES_AT')
-                    ->orWhere('EXPIRES_AT', '>', date('Y-m-d H:i:s'));
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', date('Y-m-d H:i:s'));
             })
             ->first();
 
@@ -65,17 +68,24 @@ final readonly class ApiTokenRepository
         }
 
         $this->database->connection()->table('api_tokens')
-            ->where('ID', (int)$row->ID)
-            ->update(['LAST_USED_AT' => date('Y-m-d H:i:s')]);
+            ->where('id', (int)$row->id)
+            ->update([
+                'last_used_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
 
-        return (int)$row->USER_ID;
+        return (int)$row->user_id;
     }
 
     public function revoke(int $id): bool
     {
         return $this->database->connection()->table('api_tokens')
-            ->where('ID', $id)
-            ->whereNull('REVOKED_AT')
-            ->update(['REVOKED_AT' => date('Y-m-d H:i:s')]) > 0;
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->whereNull('revoked_at')
+            ->update([
+                'revoked_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]) > 0;
     }
 }

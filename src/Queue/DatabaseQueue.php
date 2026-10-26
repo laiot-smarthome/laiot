@@ -56,15 +56,16 @@ final class DatabaseQueue implements Queue
         $now = ($this->clock)();
 
         return (int)$this->database->connection()->table($this->table)->insertGetId([
-            'QUEUE' => $queue,
-            'JOB' => $job,
-            'PAYLOAD' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR),
-            'ATTEMPTS' => 0,
-            'AVAILABLE_AT' => date('Y-m-d H:i:s', $now + max(0, $delaySeconds)),
-            'RESERVED_AT' => null,
-            'FAILED_AT' => null,
-            'ERROR' => null,
-            'CREATED_AT' => date('Y-m-d H:i:s', $now),
+            'queue' => $queue,
+            'job' => $job,
+            'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR),
+            'attempts' => 0,
+            'available_at' => date('Y-m-d H:i:s', $now + max(0, $delaySeconds)),
+            'reserved_at' => null,
+            'failed_at' => null,
+            'error' => null,
+            'created_at' => date('Y-m-d H:i:s', $now),
+            'updated_at' => date('Y-m-d H:i:s', $now),
         ]);
     }
 
@@ -83,14 +84,15 @@ final class DatabaseQueue implements Queue
 
         for ($attempt = 0; $attempt < 3; $attempt++) {
             $row = $connection->table($this->table)
-                ->where('QUEUE', $queue)
-                ->whereNull('FAILED_AT')
-                ->where('AVAILABLE_AT', '<=', date('Y-m-d H:i:s', $now))
+                ->where('queue', $queue)
+                ->whereNull('deleted_at')
+                ->whereNull('failed_at')
+                ->where('available_at', '<=', date('Y-m-d H:i:s', $now))
                 ->where(static function ($query) use ($reservationCutoff): void {
-                    $query->whereNull('RESERVED_AT')
-                        ->orWhere('RESERVED_AT', '<=', $reservationCutoff);
+                    $query->whereNull('reserved_at')
+                        ->orWhere('reserved_at', '<=', $reservationCutoff);
                 })
-                ->orderBy('ID')
+                ->orderBy('id')
                 ->first();
 
             if ($row === null) {
@@ -98,19 +100,22 @@ final class DatabaseQueue implements Queue
             }
 
             $reserved = $connection->table($this->table)
-                ->where('ID', (int)$row->ID)
-                ->whereNull('RESERVED_AT')
-                ->update(['RESERVED_AT' => date('Y-m-d H:i:s', $now)]);
+                ->where('id', (int)$row->id)
+                ->whereNull('reserved_at')
+                ->update([
+                    'reserved_at' => date('Y-m-d H:i:s', $now),
+                    'updated_at' => date('Y-m-d H:i:s', $now),
+                ]);
 
             if ($reserved === 1) {
-                $payload = json_decode((string)$row->PAYLOAD, true);
+                $payload = json_decode((string)$row->payload, true);
 
                 return new QueueJob(
-                    (int)$row->ID,
-                    (string)$row->QUEUE,
-                    (string)$row->JOB,
+                    (int)$row->id,
+                    (string)$row->queue,
+                    (string)$row->job,
                     is_array($payload) ? $payload : [],
-                    (int)$row->ATTEMPTS
+                    (int)$row->attempts
                 );
             }
         }
@@ -120,7 +125,7 @@ final class DatabaseQueue implements Queue
 
     public function ack(QueueJob $job): void
     {
-        $this->database->connection()->table($this->table)->where('ID', $job->id)->delete();
+        $this->database->connection()->table($this->table)->where('id', $job->id)->delete();
     }
 
     public function fail(QueueJob $job, Throwable $error): void
@@ -128,18 +133,19 @@ final class DatabaseQueue implements Queue
         $attempts = $job->attempts + 1;
         $now = ($this->clock)();
         $values = [
-            'ATTEMPTS' => $attempts,
-            'RESERVED_AT' => null,
-            'ERROR' => mb_substr($error->getMessage(), 0, 2000),
+            'attempts' => $attempts,
+            'reserved_at' => null,
+            'error' => mb_substr($error->getMessage(), 0, 2000),
+            'updated_at' => date('Y-m-d H:i:s', $now),
         ];
 
         if ($attempts >= $this->maxAttempts) {
-            $values['FAILED_AT'] = date('Y-m-d H:i:s', $now);
+            $values['failed_at'] = date('Y-m-d H:i:s', $now);
         } else {
-            $values['AVAILABLE_AT'] = date('Y-m-d H:i:s', $now + $this->retryDelay);
+            $values['available_at'] = date('Y-m-d H:i:s', $now + $this->retryDelay);
         }
 
-        $this->database->connection()->table($this->table)->where('ID', $job->id)->update($values);
+        $this->database->connection()->table($this->table)->where('id', $job->id)->update($values);
     }
 
     public function stats(string $queue): array
@@ -148,19 +154,21 @@ final class DatabaseQueue implements Queue
         $this->ensureTable();
         $now = ($this->clock)();
         $reservationCutoff = date('Y-m-d H:i:s', $now - $this->reservationTimeout);
-        $table = $this->database->connection()->table($this->table)->where('QUEUE', $queue);
+        $table = $this->database->connection()->table($this->table)
+            ->where('queue', $queue)
+            ->whereNull('deleted_at');
 
-        $failed = (int)(clone $table)->whereNotNull('FAILED_AT')->count();
+        $failed = (int)(clone $table)->whereNotNull('failed_at')->count();
         $reserved = (int)(clone $table)
-            ->whereNull('FAILED_AT')
-            ->where('RESERVED_AT', '>', $reservationCutoff)
+            ->whereNull('failed_at')
+            ->where('reserved_at', '>', $reservationCutoff)
             ->count();
         $pending = (int)(clone $table)
-            ->whereNull('FAILED_AT')
-            ->where('AVAILABLE_AT', '<=', date('Y-m-d H:i:s', $now))
+            ->whereNull('failed_at')
+            ->where('available_at', '<=', date('Y-m-d H:i:s', $now))
             ->where(static function ($query) use ($reservationCutoff): void {
-                $query->whereNull('RESERVED_AT')
-                    ->orWhere('RESERVED_AT', '<=', $reservationCutoff);
+                $query->whereNull('reserved_at')
+                    ->orWhere('reserved_at', '<=', $reservationCutoff);
             })
             ->count();
 
@@ -173,18 +181,19 @@ final class DatabaseQueue implements Queue
         $this->ensureTable();
 
         return $this->database->connection()->table($this->table)
-            ->where('QUEUE', $queue)
-            ->whereNotNull('FAILED_AT')
-            ->orderByDesc('ID')
+            ->where('queue', $queue)
+            ->whereNull('deleted_at')
+            ->whereNotNull('failed_at')
+            ->orderByDesc('id')
             ->limit(max(1, min(500, $limit)))
             ->get()
             ->map(static fn (object $row): array => [
-                'id' => (int)$row->ID,
-                'queue' => (string)$row->QUEUE,
-                'job' => (string)$row->JOB,
-                'attempts' => (int)$row->ATTEMPTS,
-                'error' => (string)($row->ERROR ?? ''),
-                'failed_at' => (string)$row->FAILED_AT,
+                'id' => (int)$row->id,
+                'queue' => (string)$row->queue,
+                'job' => (string)$row->job,
+                'attempts' => (int)$row->attempts,
+                'error' => (string)($row->error ?? ''),
+                'failed_at' => (string)$row->failed_at,
             ])
             ->all();
     }
@@ -195,14 +204,16 @@ final class DatabaseQueue implements Queue
         $now = ($this->clock)();
 
         return $this->database->connection()->table($this->table)
-            ->where('ID', $id)
-            ->whereNotNull('FAILED_AT')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->whereNotNull('failed_at')
             ->update([
-                'ATTEMPTS' => 0,
-                'FAILED_AT' => null,
-                'ERROR' => null,
-                'RESERVED_AT' => null,
-                'AVAILABLE_AT' => date('Y-m-d H:i:s', $now),
+                'attempts' => 0,
+                'failed_at' => null,
+                'error' => null,
+                'reserved_at' => null,
+                'available_at' => date('Y-m-d H:i:s', $now),
+                'updated_at' => date('Y-m-d H:i:s', $now),
             ]) > 0;
     }
 
@@ -211,8 +222,9 @@ final class DatabaseQueue implements Queue
         $this->ensureTable();
 
         return $this->database->connection()->table($this->table)
-            ->where('ID', $id)
-            ->whereNotNull('FAILED_AT')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->whereNotNull('failed_at')
             ->delete() > 0;
     }
 
@@ -224,17 +236,18 @@ final class DatabaseQueue implements Queue
         }
 
         $schema->create($this->table, static function (Blueprint $table): void {
-            $table->increments('ID');
-            $table->string('QUEUE', 64);
-            $table->string('JOB', 191);
-            $table->text('PAYLOAD');
-            $table->integer('ATTEMPTS')->default(0);
-            $table->dateTime('AVAILABLE_AT');
-            $table->dateTime('RESERVED_AT')->nullable();
-            $table->dateTime('FAILED_AT')->nullable();
-            $table->text('ERROR')->nullable();
-            $table->dateTime('CREATED_AT');
-            $table->index(['QUEUE', 'FAILED_AT', 'AVAILABLE_AT']);
+            $table->increments('id');
+            $table->string('queue', 64);
+            $table->string('job', 191);
+            $table->text('payload');
+            $table->integer('attempts')->default(0);
+            $table->dateTime('available_at');
+            $table->dateTime('reserved_at')->nullable();
+            $table->dateTime('failed_at')->nullable();
+            $table->text('error')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+            $table->index(['queue', 'failed_at', 'available_at']);
         });
     }
 

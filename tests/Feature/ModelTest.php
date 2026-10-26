@@ -22,18 +22,18 @@ final class ModelTest extends TestCase
             'prefix' => '',
         ]);
         $this->database->schema()->create('demo_items', static function (Blueprint $table): void {
-            $table->increments('ID');
-            $table->string('NAME');
+            $table->increments('id');
+            $table->string('name');
         });
     }
 
-    public function testBaseModelUsesAlphaPrimaryKeyAndNoTimestamps(): void
+    public function testBaseModelUsesLowercaseIdAndNoTimestamps(): void
     {
-        $item = DemoItem::query()->create(['NAME' => 'test']);
+        $item = DemoItem::query()->create(['name' => 'test']);
 
-        self::assertSame(1, $item->ID);
+        self::assertSame(1, $item->id);
         self::assertFalse($item->usesTimestamps());
-        self::assertSame('test', DemoItem::query()->find(1)?->NAME);
+        self::assertSame('test', DemoItem::query()->find(1)?->name);
     }
 
     public function testTransactionRollsBackOnException(): void
@@ -52,8 +52,8 @@ final class ModelTest extends TestCase
 }
 
 /**
- * @property int $ID
- * @property string $NAME
+ * @property int $id
+ * @property string $name
  */
 final class DemoItem extends Model
 {

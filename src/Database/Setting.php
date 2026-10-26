@@ -16,4 +16,7 @@ namespace MajorDoMo\Database;
 final class Setting extends Model
 {
     protected $table = 'settings';
+
+    // Исключение: старая таблица alpha сохраняет uppercase-колонки.
+    protected $primaryKey = 'ID';
 }

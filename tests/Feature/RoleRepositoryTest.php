@@ -22,40 +22,50 @@ final class RoleRepositoryTest extends TestCase
             'prefix' => '',
         ]);
         $this->database->schema()->create('roles', static function (Blueprint $table): void {
-            $table->increments('ID');
-            $table->string('NAME');
-            $table->string('TITLE');
+            $table->increments('id');
+            $table->string('name');
+            $table->string('title');
+            $table->timestamps();
+            $table->softDeletes();
         });
         $this->database->schema()->create('permissions', static function (Blueprint $table): void {
-            $table->increments('ID');
-            $table->string('NAME');
-            $table->string('TITLE');
+            $table->increments('id');
+            $table->string('name');
+            $table->string('title');
+            $table->timestamps();
+            $table->softDeletes();
         });
         $this->database->schema()->create('role_permissions', static function (Blueprint $table): void {
-            $table->integer('ROLE_ID');
-            $table->integer('PERMISSION_ID');
+            $table->increments('id');
+            $table->integer('role_id');
+            $table->integer('permission_id');
+            $table->timestamps();
+            $table->softDeletes();
         });
         $this->database->schema()->create('user_roles', static function (Blueprint $table): void {
-            $table->integer('USER_ID');
-            $table->integer('ROLE_ID');
+            $table->increments('id');
+            $table->integer('user_id');
+            $table->integer('role_id');
+            $table->timestamps();
+            $table->softDeletes();
         });
 
         $connection = $this->database->connection();
         $connection->table('roles')->insert([
-            ['ID' => 1, 'NAME' => 'admin', 'TITLE' => 'Администратор'],
-            ['ID' => 2, 'NAME' => 'user', 'TITLE' => 'Пользователь'],
+            ['id' => 1, 'name' => 'admin', 'title' => 'Администратор'],
+            ['id' => 2, 'name' => 'user', 'title' => 'Пользователь'],
         ]);
         $connection->table('permissions')->insert([
-            ['ID' => 1, 'NAME' => '*', 'TITLE' => 'Все'],
-            ['ID' => 2, 'NAME' => 'panel.view', 'TITLE' => 'Панель'],
+            ['id' => 1, 'name' => '*', 'title' => 'Все'],
+            ['id' => 2, 'name' => 'panel.view', 'title' => 'Панель'],
         ]);
         $connection->table('role_permissions')->insert([
-            ['ROLE_ID' => 1, 'PERMISSION_ID' => 1],
-            ['ROLE_ID' => 2, 'PERMISSION_ID' => 2],
+            ['role_id' => 1, 'permission_id' => 1],
+            ['role_id' => 2, 'permission_id' => 2],
         ]);
         $connection->table('user_roles')->insert([
-            ['USER_ID' => 10, 'ROLE_ID' => 1],
-            ['USER_ID' => 20, 'ROLE_ID' => 2],
+            ['user_id' => 10, 'role_id' => 1],
+            ['user_id' => 20, 'role_id' => 2],
         ]);
 
         $this->roles = new RoleRepository($this->database);

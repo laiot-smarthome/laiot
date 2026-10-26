@@ -24,10 +24,10 @@ final readonly class RoleRepository
     public function permissionsForUser(int $userId): array
     {
         return $this->database->connection()->table('permissions')
-            ->join('role_permissions', 'role_permissions.PERMISSION_ID', '=', 'permissions.ID')
-            ->join('user_roles', 'user_roles.ROLE_ID', '=', 'role_permissions.ROLE_ID')
-            ->where('user_roles.USER_ID', $userId)
-            ->pluck('permissions.NAME')
+            ->join('role_permissions', 'role_permissions.permission_id', '=', 'permissions.id')
+            ->join('user_roles', 'user_roles.role_id', '=', 'role_permissions.role_id')
+            ->where('user_roles.user_id', $userId)
+            ->pluck('permissions.name')
             ->map(static fn (mixed $name): string => (string)$name)
             ->values()
             ->all();
@@ -39,9 +39,9 @@ final readonly class RoleRepository
     public function rolesForUser(int $userId): array
     {
         return $this->database->connection()->table('roles')
-            ->join('user_roles', 'user_roles.ROLE_ID', '=', 'roles.ID')
-            ->where('user_roles.USER_ID', $userId)
-            ->pluck('roles.NAME')
+            ->join('user_roles', 'user_roles.role_id', '=', 'roles.id')
+            ->where('user_roles.user_id', $userId)
+            ->pluck('roles.name')
             ->map(static fn (mixed $name): string => (string)$name)
             ->values()
             ->all();
@@ -54,11 +54,14 @@ final readonly class RoleRepository
     {
         $connection = $this->database->connection();
         $connection->transaction(function () use ($connection, $userId, $roleIds): void {
-            $connection->table('user_roles')->where('USER_ID', $userId)->delete();
+            $connection->table('user_roles')->where('user_id', $userId)->delete();
+            $now = date('Y-m-d H:i:s');
             foreach (array_unique($roleIds) as $roleId) {
                 $connection->table('user_roles')->insertOrIgnore([
-                    'USER_ID' => $userId,
-                    'ROLE_ID' => (int)$roleId,
+                    'user_id' => $userId,
+                    'role_id' => (int)$roleId,
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]);
             }
         });

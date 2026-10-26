@@ -10,6 +10,7 @@ declare(strict_types=1);
  */
 return [
     'version' => '2.0.0-dev',
+    'timezone' => 'Europe/Moscow',
     'debug' => true,
     'views' => __DIR__ . '/../resources/views',
     'view_cache' => __DIR__ . '/../var/cache/views',

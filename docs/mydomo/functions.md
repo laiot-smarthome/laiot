@@ -22,6 +22,7 @@ order: 3
 $app = require __DIR__ . '/bootstrap/app.php'; // уже booted
 
 $app->config('version', 'dev');
+$app->clock();      // CarbonImmutable, таймзона из APP_TIMEZONE
 $app->router();
 $app->logger();
 $app->database();
