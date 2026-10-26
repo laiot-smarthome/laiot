@@ -52,7 +52,11 @@ order: 5
   запрет raw/join; 4 теста.
 - [x] `ModuleBus`: retained events с TTL, namespace и wildcard-подписки;
   4 теста.
-- [ ] Core-модули: layout/Yoyo, первый порт (`ui_kit`/`shoutbox`).
+- **UI:** новый дизайн админки не делаем. Core-модули используют alpha-
+  оболочку: `templates/panel.html`, `admin.css`, `ui-system.css`, `MDJUI` и
+  UI Kit; новый layout/CSS не создаём.
+- [ ] Core-модули: интегрировать страницу в alpha-оболочку, затем `ui_kit`
+  и `shoutbox`.
 - [ ] Ядро параллельно: кэш, очереди/события, логирование, CLI и панель.
 
 ### 0.1. Как ведём дорожную карту
@@ -317,7 +321,7 @@ project/
 | 2026-10-26 | `public/spike.php`, `SpikeController`, `SpikeNote`, `spike.blade.php`, `SpikeTest`, `EloquentSpikeTest` | `public/index.php`, `YoyoDemoController`, `DatabaseTest`, `YoyoTest` |
 | 2026-10-26 | старый `public/index.php` (`SiteApplication`) и `lib/core/SiteApplication.php` | новый `public/index.php` (kernel) |
 | 2026-10-26 | `SettingController` и маршрут `/db/setting/{name}` | `SettingsRepository` + `DatabaseTest` |
-| 2026-10-26 | прототип `modules/welcome` | `modules/core` + первый реальный core-модуль (следующий шаг) |
+| 2026-10-26 | прототип `modules/welcome` | `modules/core` + первый реальный core-модуль |
 
 ## 4. Стек и Composer
 
@@ -685,11 +689,15 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   тесты CRUD, чужой таблицы, отсутствия raw/join и SQLite-файла.
 - [x] `ModuleBus`: retained events + TTL, namespaced topics, wildcard-подписки;
   таблица `module_shared_events` создаётся лениво.
-- [ ] `PanelPage`/общий layout + Yoyo-компоненты модулей.
-- [ ] Миграции core-модулей при обновлении ядра.
+- [ ] Интеграция страницы core-модуля в alpha-оболочку (`templates/panel.html`,
+  `MDJUI`); **новый layout/дизайн не создаём**.
+- [x] `ModuleManager` биндит `ModuleDb`/`ModuleBus` на маршрутах модуля.
+- [ ] Первый порт: `shoutbox` в alpha-оболочке, затем `ui_kit`; старый код
+  удаляем после рабочей интеграции.
+- [ ] Миграции core-модулей при обновлении ядра (пока bootstrap-таблица).
 - [ ] `module:list` показывает `type=core`, `removable=false`, `enabled=true`.
 - [ ] `module:remove`/`module:disable` запрещены для core.
-- [ ] Первый порт: `ui_kit`, затем `shoutbox`; старый код удаляем.
+- [ ] Следующий порт: `ui_kit`, затем остальные по порядку.
 - [ ] `module:check` — сканер старых вызовов для будущих third-party.
 - [ ] Third-party lifecycle (install/update/remove) — позже, не сейчас.
 

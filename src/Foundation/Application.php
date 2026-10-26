@@ -127,7 +127,7 @@ final class Application
         $this->router->aliasMiddleware('csrf', VerifyCsrfToken::class);
         $this->container->instance(Router::class, $this->router);
 
-        $this->modules = new ModuleManager($this->root);
+        $this->modules = new ModuleManager($this->root, $this->database, $this->container);
         $this->container->instance(ModuleManager::class, $this->modules);
 
         $this->kernel = new Kernel($this->router, $this->logger, (bool)($this->config['debug'] ?? false));

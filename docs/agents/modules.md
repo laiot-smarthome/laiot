@@ -140,18 +140,24 @@ $module->bus()->subscribe('keenetic.router.*', $callback);
 
 ## 5. Frontend
 
-Core-модуль не приносит собственный layout. Он получает область в админском
-layout:
+Core-модуль не приносит собственный layout и не создаёт новый дизайн
+админки. Используется существующая alpha-оболочка:
 
-- `resources/views/layouts/panel.blade.php` — общий каркас;
-- модуль возвращает `PanelPage`/Blade-секцию;
-- Yoyo-компоненты модуля регистрируются в
-  `MajorDoMo\Modules\Core\<Name>\Yoyo\`;
-- меню, заголовок и хлебные крошки — из манифеста/ядра;
-- CSS/JS — page-only, через Vite или `public/assets/modules/<id>/`.
+- `templates/panel.html`, `templates/panel_nav_left.html`;
+- `resources/css/ui-system.css`, `resources/css/admin_panel.css` и
+  `public/assets/admin/admin.css`;
+- серверные компоненты `lib/ui/MDJUI.php` и `templates/ui/components/`;
+- страница UI Kit `?action=ui_kit` / `templates/ui_kit/` — компоненты
+  добавляем и перерабатываем там, а не в отдельном новом layout.
+
+Модуль отдаёт только содержимое страницы (Blade-секцию/Yoyo-компонент),
+которое вставляется в alpha-оболочку. Yoyo-компоненты модуля регистрируются
+в `MajorDoMo\Modules\Core\<Name>\Yoyo\`; CSS/JS — page-only, через Vite или
+`public/assets/modules/<id>/`.
 
 Никакого отдельного origin, iframe или PHP-FPM pool для core-модулей нет.
-Yoyo — основной способ дать модулю интерактивность внутри админки.
+Yoyo — основной способ дать модулю интерактивность внутри существующей
+админки.
 
 ## 6. Lifecycle
 
@@ -171,8 +177,8 @@ Third-party (позже):
 
 ## 7. Порядок портирования core-модулей
 
-1. `ui_kit` — проверка layout/Yoyo.
-2. `shoutbox` — первая БД-таблица, форма, CSRF.
+1. `ui_kit` — проверка alpha-компонентов и Yoyo без нового дизайна.
+2. `shoutbox` — первая БД-таблица, форма, CSRF в alpha-оболочке.
 3. `modes` — настройки и доменная логика.
 4. `locations`, `pinghosts`, `actions_log`, `history`, `pvalues`.
 5. `system_errors`, `jobs`, `linkedobject`, `knowledge_base`.

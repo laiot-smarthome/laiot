@@ -4,24 +4,31 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Modules;
 
+use Illuminate\Container\Container;
 use Illuminate\Routing\Router;
 use Illuminate\View\Factory;
+use MajorDoMo\Database\DatabaseManager;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
- * Обнаружение и подключение модулей MyDoMo.
+ * Обнаружение и подключение core-модулей MyDoMo.
  *
- * Пока модуль — это каталог с module.json, необязательным autoload-namespace
- * и routes.php. Реестр установленных модулей в БД появится отдельным этапом;
- * сейчас discover() нужен, чтобы проверить контракт на живом модуле.
+ * Модуль — каталог `modules/core/<id>` с module.json, autoload-namespace
+ * и routes.php. Core-модули нельзя удалить/отключить; их маршруты
+ * регистрируются с auth и получают ModuleDb/ModuleBus своего модуля.
  */
 final class ModuleManager
 {
     /** @var array<string, array<string, mixed>> */
     private array $modules = [];
 
-    public function __construct(private readonly string $root)
-    {
+    public function __construct(
+        private readonly string $root,
+        private readonly DatabaseManager $database,
+        private readonly Container $container
+    ) {
         $this->discover();
     }
 
@@ -51,10 +58,21 @@ final class ModuleManager
                 throw new RuntimeException('routes.php модуля должен возвращать callable: ' . $id);
             }
 
+            $moduleDb = $module['db'] ?? null;
+            $moduleBus = $module['bus'];
+            $bindServices = function (mixed $request, callable $next) use ($moduleDb, $moduleBus): Response {
+                if ($moduleDb instanceof ModuleDb) {
+                    $this->container->instance(ModuleDb::class, $moduleDb);
+                }
+                $this->container->instance(ModuleBus::class, $moduleBus);
+
+                return $next($request);
+            };
+
             $router->group([
                 'prefix' => '/module/' . $id,
                 'as' => $id . '.',
-                'middleware' => ['request-id', 'auth'],
+                'middleware' => ['request-id', 'auth', $bindServices],
             ], $routes);
         }
     }
@@ -74,6 +92,21 @@ final class ModuleManager
 
             $module = $this->readManifest($manifestFile, $path);
             if ($module === null) {
+                continue;
+            }
+
+            try {
+                $module['db'] = is_array($module['storage'])
+                    ? new ModuleDb(
+                        (string)$module['id'],
+                        $module['storage'],
+                        $this->database,
+                        (string)$module['path']
+                    )
+                    : null;
+                $module['bus'] = new ModuleBus((string)$module['id'], $this->database);
+            } catch (Throwable $error) {
+                error_log('MyDoMo module storage is invalid for ' . $module['id'] . ': ' . $error->getMessage());
                 continue;
             }
 
@@ -117,6 +150,7 @@ final class ModuleManager
 
         return [
             'id' => $id,
+            'type' => (string)($manifest['type'] ?? 'core'),
             'name' => (string)($manifest['name'] ?? $id),
             'version' => (string)($manifest['version'] ?? '0.0.0'),
             'path' => $path,
@@ -124,6 +158,7 @@ final class ModuleManager
             'src' => $src,
             'routes' => $routes,
             'views' => $views,
+            'storage' => is_array($manifest['storage'] ?? null) ? $manifest['storage'] : null,
         ];
     }
 

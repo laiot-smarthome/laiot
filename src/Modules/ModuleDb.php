@@ -77,6 +77,11 @@ final class ModuleDb
         $this->connection()->getSchemaBuilder()->create($this->physicalName($logical), $definition);
     }
 
+    public function hasTable(string $logical): bool
+    {
+        return $this->connection()->getSchemaBuilder()->hasTable($this->physicalName($logical));
+    }
+
     public function dropTable(string $logical): void
     {
         $this->connection()->getSchemaBuilder()->dropIfExists($this->physicalName($logical));

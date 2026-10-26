@@ -43,6 +43,13 @@ final class ModuleQuery
         return $this;
     }
 
+    public function orderByDesc(string $column): self
+    {
+        $this->query->orderByDesc($column);
+
+        return $this;
+    }
+
     public function limit(int $value): self
     {
         $this->query->limit($value);
