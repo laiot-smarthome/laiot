@@ -666,8 +666,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] API-срез: `/api/v1/health`, `/api/v1/about`, `/api/v1/modules` в
   `routes/api.php`.
 - [x] `layouts.alpha` + `PanelRenderer`/`/status`; 2 теста.
-- [x] API auth: `api_tokens`, Bearer/X-API-Key, `/api/v1/me`, `api:token`;
-  2 теста.
+- [x] API auth: `api_tokens`, Bearer/X-API-Key, `/api/v1/me` с ролями и
+  permissions, `api:token`; 2 теста.
 - [x] `/health` проверяет БД и кэш; `/status` — версия/БД/кэш/модули.
 - [x] `doctor` + автосоздание `var/cache`, `var/log`; 1 тест.
 - [ ] Остальные роуты ядра: `/panel/...`, `/api/v2/...`, `/install`, `/ws`.

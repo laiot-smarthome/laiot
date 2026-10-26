@@ -38,6 +38,31 @@ final class ApiTokenTest extends TestCase
             $table->timestamps();
             $table->softDeletes();
         });
+        $this->app->database()->schema()->create('roles', static function (Blueprint $table): void {
+            $table->increments('id');
+            $table->string('name');
+            $table->string('title');
+        });
+        $this->app->database()->schema()->create('permissions', static function (Blueprint $table): void {
+            $table->increments('id');
+            $table->string('name');
+            $table->string('title');
+        });
+        $this->app->database()->schema()->create('role_permissions', static function (Blueprint $table): void {
+            $table->increments('id');
+            $table->integer('role_id');
+            $table->integer('permission_id');
+        });
+        $this->app->database()->schema()->create('user_roles', static function (Blueprint $table): void {
+            $table->increments('id');
+            $table->integer('user_id');
+            $table->integer('role_id');
+        });
+        $this->app->database()->connection()->table('roles')->insert(['id' => 1, 'name' => 'admin', 'title' => 'Администратор']);
+        $this->app->database()->connection()->table('permissions')->insert(['id' => 1, 'name' => '*', 'title' => 'Все']);
+        $this->app->database()->connection()->table('role_permissions')->insert(['role_id' => 1, 'permission_id' => 1]);
+        $this->app->database()->connection()->table('user_roles')->insert(['user_id' => 7, 'role_id' => 1]);
+
         $this->tokens = $this->app->container()->make(ApiTokenRepository::class);
     }
 
@@ -59,7 +84,10 @@ final class ApiTokenTest extends TestCase
             'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
         ]));
         self::assertSame(200, $ok->getStatusCode());
-        self::assertSame(7, json_decode((string)$ok->getContent(), true)['user_id']);
+        $payload = json_decode((string)$ok->getContent(), true);
+        self::assertSame(7, $payload['user_id']);
+        self::assertSame(['admin'], $payload['roles']);
+        self::assertSame(['*'], $payload['permissions']);
 
         $missing = $this->app->handle(Request::create('/api/v1/me', 'GET', [], [], [], [
             'HTTP_ACCEPT' => 'application/json',

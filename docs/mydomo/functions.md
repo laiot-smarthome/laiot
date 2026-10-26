@@ -133,7 +133,7 @@ Middleware: `->middleware('can:panel.view')`.
 GET /api/v1/health   — БД и кэш, 200/503
 GET /api/v1/about    — версия, PHP, число core-модулей
 GET /api/v1/modules  — список core-модулей
-GET /api/v1/me       — Bearer/X-API-Key, user_id
+GET /api/v1/me       — Bearer/X-API-Key, user_id + roles/permissions
 ```
 
 Токены: `api_tokens`, в БД только SHA-256. Выпуск:
