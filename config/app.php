@@ -20,4 +20,10 @@ return [
         'path' => __DIR__ . '/../var/cache/data',
         'prefix' => 'mydomo.',
     ],
+    'queue' => [
+        'table' => 'queue_jobs',
+        'max_attempts' => 3,
+        'retry_delay' => 60,
+        'reservation_timeout' => 300,
+    ],
 ];

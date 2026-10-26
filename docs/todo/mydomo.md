@@ -58,6 +58,8 @@ order: 5
   `request_id` в `extra`; тест.
 - [x] Новый CLI `bin/mydomo` на Symfony Console: `about`, `health`,
   `cache:clear`, `module:list`; 4 теста.
+- [x] `Queue` + `DatabaseQueue`: отложенные задания, резервирование,
+  повторы и dead-letter по попыткам; 4 теста.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
@@ -666,13 +668,16 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [ ] Не использовать `FLUSHDB`/`FLUSHALL`; только SCAN по префиксу.
 - [ ] Redis опционален; без него — database/file store с теми же гарантиями.
 - [ ] `predis/predis` — fallback, если ext-redis нет; предпочитать phpredis.
-- [ ] CLI: `cache:clear`, `cache:stats`, `cache:warm`.
+- [x] CLI: `cache:clear`.
+- [ ] CLI: `cache:stats`, `cache:warm`.
 - [ ] Метрики hit/miss и размера в health-check.
 
 ### 6.5. Очередь, события, планировщик
 
-- [ ] Сохранить долговечный журнал и Redis-быстрый путь; вынести интерфейсы
-  `Queue`, `Job`, `JobHandler`, `EventBus`.
+- [x] Контракт `Queue` + долговечная `DatabaseQueue`: push/pop/ack/fail,
+  задержка, reservation timeout, лимит попыток; 4 теста.
+- [ ] Redis-быстрый путь и `JobHandler`; typed jobs.
+- [x] `ModuleBus`: retained events с TTL для публичного обмена core-модулей.
 - [ ] Типизированные задания вместо произвольных строк; валидация payload.
 - [ ] Идемпотентность, ключи повторов, dead-letter, лимиты попыток.
 - [ ] Полосы `object:<id>` и `serial` сохранить; они уже доказали порядок.

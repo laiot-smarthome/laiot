@@ -38,6 +38,8 @@ use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Logging\RequestContext;
 use MajorDoMo\Modules\ModuleManager;
+use MajorDoMo\Queue\DatabaseQueue;
+use MajorDoMo\Queue\Queue;
 use MajorDoMo\View\BladeView;
 use MajorDoMo\Yoyo\Counter;
 use Psr\Log\LoggerInterface;
@@ -60,6 +62,7 @@ final class Application
     private RequestContext $requestContext;
     private DatabaseManager $database;
     private CacheStore $cache;
+    private Queue $queue;
     private SessionStore $session;
     private ModuleManager $modules;
     private Yoyo $yoyo;
@@ -105,6 +108,9 @@ final class Application
 
         $this->cache = CacheFactory::create((array)($this->config['cache'] ?? []), $this->database);
         $this->container->instance(CacheStore::class, $this->cache);
+
+        $this->queue = new DatabaseQueue($this->database, (array)($this->config['queue'] ?? []));
+        $this->container->instance(Queue::class, $this->queue);
 
         $session = $this->config['session'] ?? null;
         $this->session = $session instanceof SessionStore
@@ -217,6 +223,13 @@ final class Application
         $this->ensureBooted();
 
         return $this->cache;
+    }
+
+    public function queue(): Queue
+    {
+        $this->ensureBooted();
+
+        return $this->queue;
     }
 
     public function yoyo(): Yoyo
