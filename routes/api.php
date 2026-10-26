@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Routing\Router;
 use MajorDoMo\Http\Controllers\AboutController;
+use MajorDoMo\Http\Controllers\ApiMeController;
 use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\ModulesController;
 
@@ -12,5 +13,8 @@ return static function (Router $router): void {
         $router->get('/health', [HealthController::class, '__invoke'])->name('api.health');
         $router->get('/about', AboutController::class)->name('api.about');
         $router->get('/modules', ModulesController::class)->name('api.modules');
+        $router->get('/me', ApiMeController::class)
+            ->middleware('api.auth')
+            ->name('api.me');
     });
 };

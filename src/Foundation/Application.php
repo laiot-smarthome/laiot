@@ -24,6 +24,7 @@ use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
 use LogicException;
 use MajorDoMo\Auth\AdminAuthenticator;
+use MajorDoMo\Auth\ApiTokenRepository;
 use MajorDoMo\Auth\Authorization;
 use MajorDoMo\Auth\RoleRepository;
 use MajorDoMo\Cache\CacheFactory;
@@ -33,6 +34,7 @@ use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Database\SettingsRepository;
 use MajorDoMo\Http\Kernel;
 use MajorDoMo\Http\Middleware\AuthenticateAdmin;
+use MajorDoMo\Http\Middleware\AuthenticateApiToken;
 use MajorDoMo\Http\Middleware\Authorize;
 use MajorDoMo\Http\Middleware\RequestIdMiddleware;
 use MajorDoMo\Http\Middleware\VerifyCsrfToken;
@@ -125,6 +127,7 @@ final class Application
         $this->container->instance(SessionStore::class, $this->session);
         $roles = new RoleRepository($this->database);
         $this->container->instance(RoleRepository::class, $roles);
+        $this->container->instance(ApiTokenRepository::class, new ApiTokenRepository($this->database));
         $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
         $this->container->bind(
@@ -155,6 +158,7 @@ final class Application
         $this->router->aliasMiddleware('auth', AuthenticateAdmin::class);
         $this->router->aliasMiddleware('csrf', VerifyCsrfToken::class);
         $this->router->aliasMiddleware('can', Authorize::class);
+        $this->router->aliasMiddleware('api.auth', AuthenticateApiToken::class);
         $this->container->instance(Router::class, $this->router);
 
         $this->modules = new ModuleManager($this->root, $this->database, $this->container);

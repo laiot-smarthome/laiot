@@ -132,7 +132,17 @@ Middleware: `->middleware('can:panel.view')`.
 GET /api/v1/health   — БД/кэш, 200/503
 GET /api/v1/about    — версия, PHP, число core-модулей
 GET /api/v1/modules  — список core-модулей
+GET /api/v1/me       — Bearer/X-API-Key, user_id
 ```
+
+Токены: `api_tokens`, в БД только SHA-256. Выпуск:
+
+```bash
+php bin/mydomo api:token 1 "monitoring"
+```
+
+Токен показывается один раз. `Authorization: Bearer <token>` или
+`X-API-Key: <token>`.
 
 Страница `/status` (auth) показывает версию, PHP, БД/кэш и число модулей
 в alpha-layout.
@@ -154,6 +164,7 @@ php bin/mydomo queue:failed
 php bin/mydomo queue:retry <id>
 php bin/mydomo db:migrate
 php bin/mydomo db:status
+php bin/mydomo api:token 1 "monitoring"
 ```
 
 `health` возвращает 0 только если БД и кэш доступны.

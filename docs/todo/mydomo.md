@@ -664,6 +664,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] API-срез: `/api/v1/health`, `/api/v1/about`, `/api/v1/modules` в
   `routes/api.php`.
 - [x] `layouts.alpha` + первая страница `/status`; 2 теста.
+- [x] API auth: `api_tokens`, Bearer/X-API-Key, `/api/v1/me`, `api:token`;
+  2 теста.
 - [ ] Остальные роуты ядра: `/panel/...`, `/api/v2/...`, `/install`, `/ws`.
 - [ ] Роуты модулей: `/panel/<id>/...`, `/api/v2/modules/<id>/...`;
   автоматический префикс и проверка владельца.
@@ -737,7 +739,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   доставка модулям через очередь, outbox после commit.
 - [ ] Планировщик: задания, повторы, отмена, trace; cron-expression только
   если появятся cron-правила.
-- [x] CLI: `queue:stats`, `queue:work`, `queue:failed`, `queue:retry`.
+- [x] CLI: `queue:stats`, `queue:work`, `queue:failed`, `queue:retry`,
+  `db:migrate`, `db:status`, `api:token`.
 - [ ] CLI: `jobs:list`, `worker:start`, `worker:stop`.
 - [ ] Метрики: глубина, задержка, ошибки, возраст старейшего задания.
 - [ ] Тесты: конкурентные воркеры, потеря соединения, повтор после сбоя,
@@ -822,7 +825,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] Сессии: `HttpOnly`, `Secure`, `SameSite=Strict`, regenerate при входе.
 - [x] CSRF для небезопасных методов; никаких GET-мутаций.
 - [ ] Rate limit для логина, API, публичных маршрутов и тяжёлых действий.
-- [ ] Токены API — только хеш в БД, ротация, отзыв, срок.
+- [x] Токены API — SHA-256 в БД, выпуск/отзыв/срок, Bearer/X-API-Key.
+- [ ] Ротация токенов и UI управления.
 - [ ] Секреты модулей — шифрование sodium, ключ вне БД.
 - [ ] Валидация загрузок, путей, JSON, размеров тела; запрет `..` и null-byte.
 - [ ] `composer audit` в CI; `roave/security-advisories` — только отдельным
