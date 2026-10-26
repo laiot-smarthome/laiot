@@ -43,6 +43,7 @@ use MajorDoMo\Http\Middleware\VerifyCsrfToken;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\NativeSession;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Logging\RequestContext;
 use MajorDoMo\Modules\ModuleManager;
@@ -157,6 +158,7 @@ final class Application
         $this->container->instance(RoleRepository::class, $roles);
         $this->container->instance(ApiTokenRepository::class, new ApiTokenRepository($this->database));
         $this->container->instance(ActionLogRepository::class, new ActionLogRepository($this->database));
+        $this->container->instance(ErrorRepository::class, new ErrorRepository($this->database));
         $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
         $users = new UserRepository($this->database);
@@ -199,7 +201,8 @@ final class Application
             $this->router,
             $this->logger,
             (bool)($this->config['debug'] ?? false),
-            $this->requestContext
+            $this->requestContext,
+            new ErrorRepository($this->database)
         );
         $this->container->instance(Kernel::class, $this->kernel);
 

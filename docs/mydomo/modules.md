@@ -206,6 +206,7 @@ Third-party (позже):
 - `users` перенесён на новую таблицу `users`: список/создание/редактирование/
   soft delete, пароли через `password_hash`;
 - `ui_kit` — живой справочник `x-md.*` без legacy-шаблонов;
+- `system_errors` — новая таблица `system_errors`, ошибки ядра с request_id;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 8. Публичные helpers модуля

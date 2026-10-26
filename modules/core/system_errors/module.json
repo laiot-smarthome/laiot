@@ -1,0 +1,15 @@
+{
+    "id": "system_errors",
+    "type": "core",
+    "name": "Ошибки",
+    "version": "2.0.0",
+    "namespace": "MajorDoMo\\Modules\\Core\\SystemErrors\\",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "menu": {
+        "title": "Ошибки",
+        "route": "system_errors.index",
+        "order": 95
+    }
+}

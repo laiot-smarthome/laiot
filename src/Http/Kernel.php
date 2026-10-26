@@ -6,6 +6,7 @@ namespace MajorDoMo\Http;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
+use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Logging\RequestContext;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,7 +27,8 @@ final readonly class Kernel
         private Router $router,
         private LoggerInterface $logger,
         private bool $debug = false,
-        private RequestContext $context = new RequestContext()
+        private RequestContext $context = new RequestContext(),
+        private ?ErrorRepository $errors = null
     ) {
     }
 
@@ -49,6 +51,12 @@ final readonly class Kernel
                 'request_id' => $requestId,
                 'path' => $request->getPathInfo(),
             ]);
+            $this->errors?->record('error', $error->getMessage(), [
+                'class' => $error::class,
+                'file' => $error->getFile(),
+                'line' => $error->getLine(),
+                'path' => $request->getPathInfo(),
+            ], $requestId);
             $response = ErrorResponse::make(
                 $request,
                 500,
