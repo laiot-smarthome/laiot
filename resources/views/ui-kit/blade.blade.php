@@ -72,15 +72,23 @@
     </div>
 
     <div class="md-ui-demo__canvas" style="display:block;">
-        <x-md.activity-feed
-            title="Лента событий"
+        <x-md.hint
+            tone="tip"
+            title="Blade без нового дизайна"
+            text="Компонент использует те же md-hint-классы, что и alpha."
+            :points="['Классы не меняются', 'CSS не добавляется', 'Yoyo подключается позже']"
+        />
+        <div style="margin-top:1rem;">
+            <x-md.activity-feed
+                title="Лента событий"
             subtitle="Blade-версия activity feed"
             eyebrow="Blade"
             :items="[
                 ['title' => 'Объект обновлён', 'text' => 'Гостиная · температура 23°C', 'time' => '12:40', 'date' => 'Сегодня', 'tone' => 'success', 'actor' => 'Сценарий'],
                 ['title' => 'Ошибка устройства', 'text' => 'Кухня · нет связи', 'time' => '12:35', 'date' => 'Сегодня', 'tone' => 'danger', 'badge' => 'важно', 'badge_tone' => 'danger'],
             ]"
-        />
+            />
+        </div>
         <div style="margin-top:1rem;">
             <x-md.disclosure title="Disclosure" description="Раскрывающийся блок на details/summary." badge="Blade">
             <p>Содержимое раскрывается без нового JavaScript и без изменения вида.</p>
