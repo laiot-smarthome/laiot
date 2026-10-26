@@ -6,6 +6,7 @@ namespace MajorDoMo\Http;
 
 use Illuminate\Contracts\View\Factory;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Modules\ModuleManager;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -17,7 +18,8 @@ final readonly class PanelRenderer
 {
     public function __construct(
         private Factory $view,
-        private SessionStore $session
+        private SessionStore $session,
+        private ModuleManager $modules
     ) {
     }
 
@@ -41,12 +43,13 @@ final readonly class PanelRenderer
      */
     private function defaultMenu(string $active): array
     {
-        return [[
-            'label' => 'Система',
-            'items' => [
-                ['id' => 'status', 'label' => 'Статус', 'href' => '/status', 'icon' => 'ti-activity'],
-                ['id' => 'shoutbox', 'label' => 'Shoutbox', 'href' => '/module/shoutbox', 'icon' => 'ti-message'],
-            ],
-        ]];
+        $items = [
+            ['id' => 'status', 'label' => 'Статус', 'href' => '/status', 'icon' => 'ti-activity'],
+        ];
+        foreach ($this->modules->menuItems() as $item) {
+            $items[] = $item;
+        }
+
+        return [['label' => 'Система', 'items' => $items]];
     }
 }

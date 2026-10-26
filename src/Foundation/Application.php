@@ -162,7 +162,11 @@ final class Application
         );
         $this->container->singleton(
             PanelRenderer::class,
-            fn (): PanelRenderer => new PanelRenderer($this->container->make(Factory::class), $this->session)
+            fn (): PanelRenderer => new PanelRenderer(
+                $this->container->make(Factory::class),
+                $this->session,
+                $this->modules
+            )
         );
 
         $events = new Dispatcher($this->container);

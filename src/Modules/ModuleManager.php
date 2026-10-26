@@ -40,6 +40,31 @@ final class ModuleManager
         return $this->modules;
     }
 
+    /**
+     * @return list<array{id:string,label:string,href:string,icon:string}>
+     */
+    public function menuItems(): array
+    {
+        $items = [];
+        foreach ($this->modules as $id => $module) {
+            $menu = is_array($module['menu'] ?? null) ? $module['menu'] : [];
+            $items[] = [
+                'id' => (string)$id,
+                'label' => (string)($menu['title'] ?? $module['name'] ?? $id),
+                'href' => '/module/' . $id,
+                'icon' => 'ti-puzzle',
+                'order' => (int)($menu['order'] ?? 100),
+            ];
+        }
+        usort($items, static fn (array $a, array $b): int => $a['order'] <=> $b['order']);
+
+        return array_map(static function (array $item): array {
+            unset($item['order']);
+
+            return $item;
+        }, $items);
+    }
+
     public function register(Router $router, Factory $view): void
     {
         foreach ($this->modules as $id => $module) {
@@ -159,6 +184,7 @@ final class ModuleManager
             'routes' => $routes,
             'views' => $views,
             'storage' => is_array($manifest['storage'] ?? null) ? $manifest['storage'] : null,
+            'menu' => is_array($manifest['menu'] ?? null) ? $manifest['menu'] : null,
         ];
     }
 

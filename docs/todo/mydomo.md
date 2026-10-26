@@ -794,7 +794,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `layouts.alpha` — перенос topbar/sidebar/меню на Blade с alpha-классами;
   тема, X-Ray, Health, выход.
 - [x] Первая страница на `layouts.alpha`: `/status` (БД, кэш, версия, модули).
-- [x] `PanelRenderer`/`PanelPage` — единая сборка страниц в alpha-layout.
+- [x] `PanelRenderer`/`PanelPage` — единая сборка страниц в alpha-layout;
+  меню автоматически из core-модулей.
 - [x] `shoutbox`: полный вертикальный срез (ModuleDb, Blade, alpha-layout);
   старые `modules/shoutbox` удалены.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести

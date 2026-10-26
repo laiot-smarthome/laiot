@@ -92,6 +92,7 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 - `resources/views/ui-kit/blade.blade.php` — демо в существующем UI Kit;
 - `src/View/BladeRenderer.php` — временный мост для alpha-shell;
 - `Http\PanelRenderer` + `PanelPage` — единая сборка страницы в alpha-layout;
+  меню строится из `ModuleManager::menuItems()`;
 - `resources/views/layouts/alpha.blade.php` — перенос alpha-shell на Blade
   (topbar/sidebar/меню);
 - `resources/views/pages/status.blade.php` — первая страница нового kernel

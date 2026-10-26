@@ -29,5 +29,6 @@ final class StatusPageTest extends TestCase
         self::assertStringContainsString('md-admin-shell', (string)$response->getContent());
         self::assertStringContainsString('md-kpi', (string)$response->getContent());
         self::assertStringContainsString('Статус системы', (string)$response->getContent());
+        self::assertStringContainsString('href="/module/shoutbox"', (string)$response->getContent());
     }
 }
