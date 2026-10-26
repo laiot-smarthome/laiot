@@ -78,7 +78,7 @@ final class Application
      */
     public function __construct(private readonly string $root, array $config = [])
     {
-        $defaults = require $root . '/config/app.php';
+        $defaults = ConfigLoader::load($root);
         $this->config = array_replace_recursive($defaults, $config);
     }
 

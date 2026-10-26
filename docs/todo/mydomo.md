@@ -66,9 +66,13 @@ order: 5
 - [x] Dead-letter: `queue:failed`, `queue:retry`, `forget`; список/повтор/
   удаление упавших заданий.
 - [x] `ErrorResponse`: 404/405/500 в JSON или тексте, request_id, без trace.
+- [x] `ConfigLoader`: `config/cache.php`, `config/queue.php`,
+  `config/logging.php`; 2 теста.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
+- [x] Первая страница на Blade: Shoutbox в alpha-shell; старые
+  `templates/shoutbox/*.html` удалены.
 - [x] Blade-компоненты `x-md.button/icon/badge/card/section-heading/alert/
   avatar/empty-state/kpi/progress/status/field/input/textarea/select/
   checkbox/switch/disclosure/drawer/modal/skeleton/activity-feed/hint` и
@@ -340,6 +344,7 @@ project/
 | 2026-10-26 | старый `public/index.php` (`SiteApplication`) и `lib/core/SiteApplication.php` | новый `public/index.php` (kernel) |
 | 2026-10-26 | `SettingController` и маршрут `/db/setting/{name}` | `SettingsRepository` + `DatabaseTest` |
 | 2026-10-26 | прототип `modules/welcome` | `modules/core` + первый реальный core-модуль |
+| 2026-10-26 | `templates/shoutbox/action_admin.html`, `shoutbox.html`, `shouts_search_admin.html` | `resources/views/pages/shoutbox.blade.php` в alpha-shell |
 
 ## 4. Стек и Composer
 
@@ -729,6 +734,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   section-heading, alert, avatar, empty-state, kpi, progress, status, field,
   input, textarea, select, checkbox, switch, disclosure, drawer, modal,
   skeleton, activity-feed, hint; секция в UI Kit. Внешний вид не менялся.
+- [x] Первая страница: `pages.shoutbox` в alpha-shell, KPI/activity/hint/code;
+  старые шаблоны Shoutbox удалены.
 - [x] `BladeRenderer` — временный мост для alpha-shell; удалить после
   переноса shell на новый kernel.
 - [ ] Перенести остальные `MDJUI`-компоненты на Blade; не держать две
@@ -782,10 +789,10 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 
 ### 6.10. Конфигурация, установка, обновление
 
-- [ ] Сохранить `.env` + `Config`, добавить типизированные объекты и
-  валидацию обязательных ключей.
-- [ ] `config/app.php`, `config/database.php`, `config/cache.php`,
-  `config/queue.php`, `config/logging.php`, `config/modules.php`.
+- [x] `ConfigLoader` + `config/cache.php`, `config/queue.php`,
+  `config/logging.php`; `app.php` остаётся базой.
+- [ ] Типизированные объекты конфигурации и валидация обязательных ключей.
+- [ ] `config/database.php`, `config/modules.php` + `.env`-оверрайды.
 - [ ] Установщик: PDO, проверка PHP 8.2/расширений (`pdo_mysql`, `mbstring`,
   `intl`, `curl`, `json`, `openssl`, `fileinfo`, `sockets`; `redis` —
   опционально), utf8mb4, Redis optional.

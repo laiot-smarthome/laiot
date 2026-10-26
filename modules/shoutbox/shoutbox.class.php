@@ -104,8 +104,9 @@ function run() {
    $out['SINGLE_REC']=1;
   }
   $this->data=$out;
-  $p=new parser(DIR_TEMPLATES.$this->name."/".$this->name.".html", $this->data, $this);
-  $this->result=$p->result;
+  // 2026-10-26 — страница Shoutbox переведена на Blade; alpha-shell остаётся.
+  $this->result=(new \MajorDoMo\View\BladeRenderer(ROOT))->render('pages.shoutbox', $this->data);
+  return;
 }
 /**
 * BackEnd
