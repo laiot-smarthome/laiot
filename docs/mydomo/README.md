@@ -48,7 +48,8 @@ legacy-коду. Если документ относится к новому я
 4. [Тестирование](testing.md) — укрупнённые тесты, dev server, Docker.
 5. [Модульная система](modules.md) — core/third-party, `ModuleDb`, `ModuleBus`.
 6. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
-7. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
+7. [Docker-стенд](docker.md) — локальная отладка и проверки.
+8. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
 
 ## Правило обновления
 

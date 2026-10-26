@@ -670,6 +670,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   permissions, `api:token`; 2 теста.
 - [x] `/health` проверяет БД и кэш; `/status` — версия/БД/кэш/модули.
 - [x] `doctor` + автосоздание `var/cache`, `var/log`; 1 тест.
+- [x] Docker-инструкция MyDoMo: сборка, health, CLI, reset pre-release-БД.
 - [ ] Остальные роуты ядра: `/panel/...`, `/api/v2/...`, `/install`, `/ws`.
 - [ ] Роуты модулей: `/panel/<id>/...`, `/api/v2/modules/<id>/...`;
   автоматический префикс и проверка владельца.
@@ -1096,6 +1097,7 @@ Docker — только локальная отладка; production-инстр
 - [ ] `docs/agents/routing.md` — новый роутер, middleware, имена, кэш.
 - [x] `docs/mydomo/database.md` — lowercase, timestamps, soft deletes,
   Carbon/Clock, миграции; Eloquent/InnoDB — позже.
+- [x] `docs/mydomo/docker.md` — стенд, проверки, reset pre-release-БД.
 - [ ] `docs/mydomo/cache.md`, `queue.md`, `events.md`.
 - [ ] `docs/mydomo/upgrade.md` — alpha → MyDoMo, backup, откат.
 - [ ] `docs/user/upgrade.md` — инструкция пользователю.
