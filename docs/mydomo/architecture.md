@@ -55,7 +55,7 @@ public/index.php
   `Referrer-Policy`, `Permissions-Policy`.
 
 Маршруты веб-слоя используют middleware `request-id`, `auth`, `csrf`;
-для прав — `can:<permission>`.
+для прав — `can:<permission>`, для входа — `throttle.login`.
 
 ## 4. Сервисы
 

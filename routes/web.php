@@ -20,7 +20,7 @@ return static function (Router $router): void {
 
         $router->get('/login', [LoginController::class, 'show'])->name('login');
         $router->post('/login', [LoginController::class, 'login'])
-            ->middleware('csrf')
+            ->middleware(['csrf', 'throttle.login'])
             ->name('login.attempt');
         $router->post('/logout', [LoginController::class, 'logout'])
             ->middleware(['auth', 'csrf'])

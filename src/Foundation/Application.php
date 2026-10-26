@@ -37,6 +37,7 @@ use MajorDoMo\Http\Middleware\AuthenticateAdmin;
 use MajorDoMo\Http\Middleware\AuthenticateApiToken;
 use MajorDoMo\Http\Middleware\Authorize;
 use MajorDoMo\Http\Middleware\RequestIdMiddleware;
+use MajorDoMo\Http\Middleware\ThrottleLogin;
 use MajorDoMo\Http\Middleware\VerifyCsrfToken;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\NativeSession;
@@ -182,6 +183,7 @@ final class Application
         $this->router->aliasMiddleware('csrf', VerifyCsrfToken::class);
         $this->router->aliasMiddleware('can', Authorize::class);
         $this->router->aliasMiddleware('api.auth', AuthenticateApiToken::class);
+        $this->router->aliasMiddleware('throttle.login', ThrottleLogin::class);
         $this->container->instance(Router::class, $this->router);
 
         $this->modules = new ModuleManager($this->root, $this->database, $this->container);
