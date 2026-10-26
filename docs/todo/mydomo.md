@@ -391,6 +391,7 @@ project/
 | 2026-10-26 | `modules/actions_log`, `templates/actions_log/*` | `modules/core/actions_log` через `ActionLogRepository` |
 | 2026-10-26 | `modules/settings`, `templates/settings/*` | `modules/core/settings` через `SettingsRepository` |
 | 2026-10-26 | `modules/users`, `templates/users/*` | `modules/core/users` на новой `users` |
+| 2026-10-26 | `modules/ui_kit`, `templates/ui_kit/*` | `modules/core/ui_kit` на `x-md.*` |
 
 ## 4. Стек и Composer
 
@@ -818,6 +819,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   password_hash/password_verify; старый UserAccounts не используется.
 - [x] `users`-модуль: список/создание/редактирование/soft delete; старый
   модуль и шаблоны удалены.
+- [x] `ui_kit`: новый справочник `x-md.*`; старые шаблоны удалены.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
   остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.
