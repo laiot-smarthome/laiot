@@ -7,7 +7,10 @@
 
 Этот файл — обязательный вход для агентов, которые работают с репозиторием.
 
-**Полная версия инструкций: `docs/agents/AGENTS.md` — прочитайте её перед любыми изменениями.**
+**MyDoMo:** перед изменениями нового ядра читайте
+[`docs/mydomo/README.md`](docs/mydomo/README.md) и
+[`docs/mydomo/AGENTS.md`](docs/mydomo/AGENTS.md). Полная версия старых
+правил — `docs/agents/AGENTS.md` (alpha/legacy).
 
 Коротко, что нельзя нарушать:
 

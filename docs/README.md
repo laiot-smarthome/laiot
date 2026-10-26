@@ -20,8 +20,10 @@ order: 1
 
 - **Пользователю** — начните с [`user/README.md`](user/README.md), затем
   [`user/commands.md`](user/commands.md) и [`user/modes.md`](user/modes.md).
-- **Агенту** — сначала [`agents/AGENTS.md`](agents/AGENTS.md): правила проекта
-  и текущее состояние. Перед переписыванием старого модуля —
+- **Агенту MyDoMo** — сначала [`mydomo/README.md`](mydomo/README.md) и
+  [`mydomo/AGENTS.md`](mydomo/AGENTS.md): новое ядро, core-gate и правила.
+  [`agents/AGENTS.md`](agents/AGENTS.md) остаётся правилами `alpha`.
+  Перед переписыванием старого модуля —
   [`agents/legacy-module-migration.md`](agents/legacy-module-migration.md).
 - **Перед изменением интерфейса** — [`agents/DESIGN_SYSTEM.md`](agents/DESIGN_SYSTEM.md)
   и [`agents/admin-module-ui-guidelines.md`](agents/admin-module-ui-guidelines.md).
@@ -32,8 +34,9 @@ order: 1
 | Категория | Что внутри | Ключевые документы |
 | --- | --- | --- |
 | **Общее** | Обзор проекта, структура каталогов, установка | [`README`](README.md), [`project-structure`](agents/project-structure.md), [`install`](agents/install.md), [`AGENTS`](agents/AGENTS.md), [`docker-debug`](agents/docker-debug.md) |
+| **MyDoMo** | Новое ядро: архитектура, функции, модули, тесты, правила | [`README`](mydomo/README.md), [`architecture`](mydomo/architecture.md), [`functions`](mydomo/functions.md), [`AGENTS`](mydomo/AGENTS.md), [`modules`](mydomo/modules.md), [`testing`](mydomo/testing.md) |
 | **TODO** | Заметки обсуждений и требования для будущих отдельных задач | [Порядок работы и список заметок](todo/README.md), [MyDoMo](todo/mydomo.md), [ORM](todo/eloquent-orm.md), [коллекции](todo/collections.md), [Redis](todo/redis-facade.md), [Cache](todo/cache-facade.md), [маршрутизация модулей](todo/routing.md) |
-| **Ядро** | Точки входа, конфигурация, авторизация, сервисы, ошибки, состояние БД, комментарии в коде | [`core-runtime`](agents/core-runtime.md), [`entrypoints`](agents/entrypoints.md), [`modules`](agents/modules.md), [`configuration`](agents/configuration.md), [`authentication`](agents/authentication.md), [`errors`](agents/errors.md), [`code-comments`](agents/code-comments.md), [`db-lib-analysis`](agents/db-lib-analysis.md) |
+| **Ядро** | Точки входа, конфигурация, авторизация, сервисы, ошибки, состояние БД, комментарии в коде | [`core-runtime`](agents/core-runtime.md), [`entrypoints`](agents/entrypoints.md), [`modules`](mydomo/modules.md), [`configuration`](agents/configuration.md), [`authentication`](agents/authentication.md), [`errors`](agents/errors.md), [`code-comments`](agents/code-comments.md), [`db-lib-analysis`](agents/db-lib-analysis.md) |
 | **Свойства и данные** | Запись свойств, `ONCHANGE`, привязки, журнал изменений, справочник функций | [`property-bindings`](agents/property-bindings.md), [`property-audit`](agents/property-audit.md), [`system-functions`](user/system-functions.md) |
 | **Автоматизация** | Циклы, супервизор, события, режимы | [`cycles`](agents/cycles.md), [`cycle-components`](agents/cycle-components.md), [`events`](agents/events.md), [`modes`](user/modes.md) |
 | **Интерфейс** | Дизайн-система, UI-правила модулей, сборка статики, настройки, база знаний, WebSocket, редактор кода | [`DESIGN_SYSTEM`](agents/DESIGN_SYSTEM.md), [`admin-module-ui-guidelines`](agents/admin-module-ui-guidelines.md), [`admin-assets`](agents/admin-assets.md), [`settings`](agents/settings.md), [`knowledge-base`](agents/knowledge-base.md), [`websocket-ui-migration`](agents/websocket-ui-migration.md), [`codemirror-module-integration`](agents/codemirror-module-integration.md) |

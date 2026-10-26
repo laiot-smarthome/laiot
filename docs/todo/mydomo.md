@@ -47,7 +47,7 @@ order: 5
   `modules/core/` зарезервирован под core-модули.
 - [x] Модульная система утверждена: два типа `core`/`third-party`,
   core-модули в `modules/core`, нельзя удалять/отключать; спецификация —
-  [modules.md](../agents/modules.md).
+  [modules.md](../mydomo/modules.md).
 - [x] `ModuleDb`: MySQL/SQLite, префикс `module_<id>_`, allowlist таблиц,
   запрет raw/join; 4 теста.
 - [x] `ModuleBus`: retained events с TTL, namespace и wildcard-подписки;
@@ -742,7 +742,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 
 ### 6.6. Модульный SDK
 
-> **Утверждено 2026-10-26:** [modules.md](../agents/modules.md). Сейчас
+> **Утверждено 2026-10-26:** [modules.md](../mydomo/modules.md). Сейчас
 > работаем только с `core`-модулями; `third-party` — отдельный будущий этап.
 
 - [x] Два типа: `core` и `third-party`; core нельзя удалить/отключить.
@@ -1072,15 +1072,14 @@ Docker — только локальная отладка; production-инстр
 
 ## 10. Документация
 
-- [ ] Переписать `AGENTS.md` и `docs/agents/AGENTS.md` под MyDoMo: PHP 8.2,
-  новый стек, запрет старых модульных API, новые правила.
-- [ ] `docs/agents/architecture.md` — слои, boot, контейнер, lifecycle.
+- [x] Новая папка `docs/mydomo/`: README, architecture, functions, AGENTS,
+  testing; модульная спецификация перенесена туда.
+- [x] `docs/README.md` и корневой `AGENTS.md` ссылаются на MyDoMo-документацию.
+- [ ] Переписать `docs/agents/AGENTS.md` под MyDoMo или оставить alpha-only.
 - [ ] `docs/agents/routing.md` — новый роутер, middleware, имена, кэш.
-- [ ] `docs/agents/modules.md` — SDK, манифест, lifecycle, портирование.
-- [ ] `docs/agents/database.md` — Eloquent, репозитории, миграции, InnoDB.
-- [ ] `docs/agents/cache.md`, `queue.md`, `events.md`.
-- [ ] `docs/agents/testing.md` — PHPUnit, CI, фикстуры.
-- [ ] `docs/agents/upgrade.md` — alpha → MyDoMo, backup, откат.
+- [ ] `docs/mydomo/database.md` — Eloquent, репозитории, миграции, InnoDB.
+- [ ] `docs/mydomo/cache.md`, `queue.md`, `events.md`.
+- [ ] `docs/mydomo/upgrade.md` — alpha → MyDoMo, backup, откат.
 - [ ] `docs/user/upgrade.md` — инструкция пользователю.
 - [ ] Обновить `docs/README.md`, `docs/todo/README.md`, базу знаний.
 - [ ] Старые `legacy-module-migration.md` и `admin-routing.md` пометить как

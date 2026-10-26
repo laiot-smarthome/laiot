@@ -169,7 +169,7 @@ CLI-скрипты; существующие `tools/config.php` и `tools/instal
 16. `docs/agents/mqtt-runtime.md` — быстрый путь MQTT, полосы `core_runtime`, проекция состояния, настройки и диагностика.
 17. `docs/agents/http-cache.md` — кэш HTTP-ответов (Redis/файл), условные запросы ETag/Last-Modified и сброс после обновления.
 18. `docs/agents/docker-debug.md` — docker-стенд **только для отладки**: состав сервисов, единственный внешний порт, seed базы, защита от `DROP DATABASE`, миграции и проверки.
-19. `docs/agents/modules.md` — **обязательно** перед работой с core-модулями: два типа модулей, `modules/core`, `ModuleDb`, SQLite, события и layout/Yoyo.
+19. `docs/mydomo/modules.md` — **обязательно** перед работой с core-модулями: два типа модулей, `modules/core`, `ModuleDb`, SQLite, события и layout/Yoyo.
 
 Если документы противоречат друг другу, приоритет у `docs/agents/AGENTS.md` и фактического кода.
 

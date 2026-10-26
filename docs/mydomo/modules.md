@@ -4,7 +4,7 @@ audience: user, agent
 category: core
 tags: модули, core, ModuleManager, ModuleDb, SQLite, события, Yoyo, архитектура
 description: Утверждённая модель core-модулей MyDoMo — структура, права, БД, события, layout и порядок портирования.
-order: 15
+order: 6
 ---
 
 # Модульная система MyDoMo — core-модули
@@ -192,14 +192,13 @@ Third-party (позже):
 Порядок можно менять, но `panel`/`objects` идут последними: они зависят
 от всех остальных контрактов.
 
-## 8. Текущий прототип
-
-`src/Modules/ModuleManager.php` и `modules/welcome` — прототип. При переходе
-на `modules/core`:
+## 8. Текущее состояние
 
 - `ModuleManager` сканирует только `modules/core`;
-- `modules/welcome` удаляется;
-- первый реальный core-модуль становится эталоном.
+- `modules/welcome` удалён;
+- `ModuleDb`/`ModuleBus` готовы, но модули заморожены до core-gate;
+- страница Shoutbox на Blade — промежуточная, backend ещё legacy;
+- первый реальный core-модуль станет эталоном после закрытия ядра.
 
 ## 9. Что запрещено
 
@@ -213,5 +212,6 @@ Third-party (позже):
 ## Связанные документы
 
 - [Мастер-план MyDoMo](../todo/mydomo.md)
-- [Правила проекта](AGENTS.md)
-- [Дизайн-система](DESIGN_SYSTEM.md)
+- [Правила для агентов](AGENTS.md)
+- [Архитектура](architecture.md)
+- [Дизайн-система](../agents/DESIGN_SYSTEM.md)
