@@ -43,6 +43,17 @@ final class DatabaseManager
         return $this->connection()->getSchemaBuilder();
     }
 
+    /**
+     * @template T
+     * @param callable(Connection): T $callback
+     * @return T
+     */
+    public function transaction(callable $callback): mixed
+    {
+        /** @phpstan-ignore argument.templateType */
+        return $this->connection()->transaction($callback);
+    }
+
     public function ping(): bool
     {
         if (!$this->isConfigured()) {

@@ -70,6 +70,8 @@ order: 5
   `config/logging.php`; 2 теста.
 - [x] `Migrator` + `database/migrations/`, `db:migrate`, `db:status`;
   1 unit-тест и CLI-тест.
+- [x] Базовая `Model` (`ID`, без timestamps) и `DatabaseManager::transaction()`;
+  2 теста.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
@@ -673,8 +675,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   слоя; старый слой — только на время переноса.
 - [ ] Настроить `Illuminate\Database\Capsule\Manager` или собственный
   `DatabaseManager` с одним соединением на запрос/воркер.
-- [ ] Создать базовую модель `src/Database/Model.php`: `$timestamps=false`,
+- [x] Базовая модель `src/Database/Model.php`: `$timestamps=false`,
   `$primaryKey='ID'`, `$keyType='int'`, `$incrementing=true`.
+- [x] `DatabaseManager::transaction()`; тест rollback на SQLite.
 - [ ] Модели ядра: `ObjectModel`, `ClassModel`, `PropertyModel`,
   `MethodModel`, `PropertyValue`, `Script`, `Event`, `Job`, `User`,
   `Setting`, `Module`, `History`.
