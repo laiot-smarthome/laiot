@@ -16,7 +16,7 @@ legacy-коду. Если документ относится к новому я
 ## Статус
 
 **База ядра и веб-админка готовы.** Перенесено **18 core-модулей**;
-осталось 10 старых модулей. Старая alpha-панель и её бандл удалены из
+осталось 9 старых модулей. Старая alpha-панель и её бандл удалены из
 MyDoMo. Пользовательские обёртки работают.
 
 Уже работает в новом ядре:
@@ -36,8 +36,7 @@ MyDoMo. Пользовательские обёртки работают.
   журнал последнего вызова; публичный вход `/api/v1/webhooks/{secret}`;
 - linked object — ядровой `LinkedObjectService`, API
   `/api/v1/panel/linked-object` и Alpine-компонент `x-md.linked-object`
-  (поиск объекта, свойства/методы класса); старый модуль остаётся только
-  зависимостью alpha-Zigbee;
+  (поиск объекта, свойства/методы класса); старый модуль удалён;
 - база знаний `/module/knowledge_base`: `docs/**`, front matter, поиск,
   безопасный Markdown и оглавление;
 - единые 404/405/500, `request_id`, security headers, maintenance mode;
@@ -66,8 +65,8 @@ MyDoMo. Пользовательские обёртки работают.
 
 Ещё не закрыто:
 
-- 10 старых модулей: modes, pinghosts, mqtt, zigbee, xray,
-  ai_assistant, control_modules, linkedobject, market, saverestore;
+- 9 старых модулей: modes, pinghosts, mqtt, zigbee, xray,
+  ai_assistant, control_modules, market, saverestore;
 - UI Kit: Alpine-компоненты (`modal`, `drawer`, alerts) и Yoyo-счётчик
   работают; остались Yoyo-обёртки для остальных блоков;
 - установка/обновление, полный API v2;

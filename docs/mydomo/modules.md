@@ -225,8 +225,7 @@ Third-party (позже):
   jQuery). Старые `modules/blockly_code` и шаблон удалены;
 - linked object вынесен в ядро: `LinkedObjectService`,
   `/api/v1/panel/linked-object` и `x-md.linked-object` (Alpine). Старый
-  `modules/linkedobject` пока остаётся только как зависимость alpha-Zigbee
-  и будет удалён вместе с ним;
+  `modules/linkedobject`, шаблоны и page-ассеты удалены;
 - `knowledge_base` — `docs/**` в alpha-layout: категории, поиск, безопасный
   Markdown и оглавление; без собственной таблицы. Старый модуль, шаблоны и
   page-ассеты удалены; `lib/knowledge_base.php`/`lib/markdown.php` остаются

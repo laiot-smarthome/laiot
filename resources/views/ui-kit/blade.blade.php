@@ -68,7 +68,7 @@
         <x-md.code name="demo_code" label="PHP-код" value="echo 'Hello';" rows="4" hint="Нумерация строк на Alpine, без CodeMirror." />
         <x-md.linked-object name="demo_object" label="Связанный объект"
                             property-name="demo_property" method-name="demo_method"
-                            hint="Поиск объекта и выбор свойства/метода класса; без старого modules/linkedobject." />
+                            hint="Поиск объекта и выбор свойства/метода класса; ядровой Alpine-компонент." />
         <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.75rem;">
             <x-md.checkbox name="enabled" label="Включено" checked />
             <x-md.switch name="notify" label="Уведомления" />
