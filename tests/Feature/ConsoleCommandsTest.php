@@ -7,6 +7,8 @@ namespace MajorDoMo\Tests\Feature;
 use MajorDoMo\Console\AboutCommand;
 use MajorDoMo\Console\CacheClearCommand;
 use MajorDoMo\Console\HealthCommand;
+use MajorDoMo\Console\MigrateCommand;
+use MajorDoMo\Console\MigrateStatusCommand;
 use MajorDoMo\Console\ModuleListCommand;
 use MajorDoMo\Console\QueueFailedCommand;
 use MajorDoMo\Console\QueueRetryCommand;
@@ -114,6 +116,19 @@ final class ConsoleCommandsTest extends TestCase
         $retry->execute(['id' => '999']);
         self::assertSame(1, $retry->getStatusCode());
         self::assertStringContainsString('не найдено', $retry->getDisplay());
+    }
+
+    public function testMigrationsCanBeRunAndListed(): void
+    {
+        $migrate = new CommandTester(new MigrateCommand($this->app));
+        $migrate->execute([]);
+        self::assertSame(0, $migrate->getStatusCode());
+        self::assertStringContainsString('Применена', $migrate->getDisplay());
+
+        $status = new CommandTester(new MigrateStatusCommand($this->app));
+        $status->execute([]);
+        self::assertSame(0, $status->getStatusCode());
+        self::assertStringContainsString('2026_10_26_000001_create_queue_jobs.php', $status->getDisplay());
     }
 
     public function testRouteListShowsHealthRoute(): void

@@ -58,7 +58,7 @@ order: 5
   `request_id` в `extra`; тест.
 - [x] Новый CLI `bin/mydomo` на Symfony Console: `about`, `health`,
   `cache:clear`, `module:list`, `route:list`, `queue:stats`, `queue:work`,
-  `queue:failed`, `queue:retry`; 8 CLI-тестов.
+  `queue:failed`, `queue:retry`, `db:migrate`, `db:status`; 9 CLI-тестов.
 - [x] `Queue` + `DatabaseQueue`: отложенные задания, резервирование,
   повторы и dead-letter по попыткам; 4 теста.
 - [x] `JobRegistry` + `QueueWorker` + `queue:work`: именованные обработчики,
@@ -68,11 +68,13 @@ order: 5
 - [x] `ErrorResponse`: 404/405/500 в JSON или тексте, request_id, без trace.
 - [x] `ConfigLoader`: `config/cache.php`, `config/queue.php`,
   `config/logging.php`; 2 теста.
+- [x] `Migrator` + `database/migrations/`, `db:migrate`, `db:status`;
+  1 unit-тест и CLI-тест.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
-- [x] Первая страница на Blade: Shoutbox в alpha-shell; старые
-  `templates/shoutbox/*.html` удалены.
+- **Промежуточно:** страница Shoutbox переведена на Blade, но backend ещё
+  старый. По решению 2026-10-26 модули заморожены до закрытия ядра.
 - [x] Blade-компоненты `x-md.button/icon/badge/card/section-heading/alert/
   avatar/empty-state/kpi/progress/status/field/input/textarea/select/
   checkbox/switch/disclosure/drawer/modal/skeleton/activity-feed/hint` и
@@ -93,6 +95,29 @@ order: 5
 - Удалённый старый код фиксируем в журнале раздела 3.6, чтобы было видно,
   что уже заменено, а что ещё нет.
 - Открытые вопросы и решения владельца держим в разделе 13, а не в переписке.
+
+### 0.2. Стратегия: сначала ядро
+
+Решение владельца 2026-10-26: **сначала полностью закрываем ядро**, затем
+берём модули по одному и переносим целиком. Модули не трогаем, пока core-gate
+не закрыт.
+
+Core-gate:
+
+1. HTTP, ошибки, middleware, security headers — закрыть остатки.
+2. Config + `.env`, типизированные значения.
+3. БД: PDO/Capsule, `Model`, `Migrator`, миграции, транзакции.
+4. Кэш: Redis, `clearPrefix`, CLI, health.
+5. Очередь: typed jobs, worker lifecycle, scheduler-совместимость.
+6. Логи: каналы, ротация, уровни.
+7. Auth/роли/права.
+8. Alpha-layout на Blade/Yoyo без изменения дизайна.
+9. API-слой и health.
+10. Тесты, docs, Docker.
+
+После gate: один модуль = новый контроллер, `modules/core/<id>`, `ModuleDb`,
+Blade-страница в alpha-shell, удаление старого кода, тесты, ручная проверка.
+Только потом следующий модуль.
 
 ## 1. Решение и границы
 
@@ -656,8 +681,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [ ] Репозитории для сложных выборок; контроллеры не пишут SQL.
 - [ ] Сохранить таблицы и поля alpha; новые таблицы — с префиксом `mydomo_`
   или `module_<id>_`.
-- [ ] Миграции: базовый снимок схемы + инкрементальные файлы; отдельный
-  `Migrator` с журналом и транзакциями.
+- [x] `Migrator` + журнал `migrations`, файлы `database/migrations/`,
+  `db:migrate`, `db:status`; миграции `queue_jobs`, `module_shared_events`.
+- [ ] Транзакции вокруг миграций/пакетов и откат.
 - [ ] Перевести горячие таблицы в InnoDB, затем `utf8mb4`; делать пакетно,
   с резервной копией и проверкой внешних ключей.
 - [ ] Добавить индексы под новые запросы; убрать N+1 через eager loading.
