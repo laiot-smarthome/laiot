@@ -64,6 +64,15 @@ final class WrappersTest extends TestCase
                 $table->timestamps();
                 $table->softDeletes();
             },
+            'methods' => static function (Blueprint $table): void {
+                $table->increments('id');
+                $table->integer('class_id');
+                $table->string('title');
+                $table->text('description')->nullable();
+                $table->text('code')->nullable();
+                $table->timestamps();
+                $table->softDeletes();
+            },
         ] as $name => $definition) {
             $app->database()->schema()->create($name, $definition);
         }
@@ -75,7 +84,12 @@ final class WrappersTest extends TestCase
         $app->database()->connection()->table('objects')->insert([
             'title' => 'Кухня', 'class_id' => 1, 'location_id' => 0, 'created_at' => $now, 'updated_at' => $now,
         ]);
+        $app->database()->connection()->table('methods')->insert([
+            'class_id' => 1, 'title' => 'double', 'code' => 'return ((int)($params["x"] ?? 0)) * 2;',
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
 
+        self::assertSame(10, callMethod('Кухня', 'double', ['x' => 5]));
         self::assertTrue(sg('Кухня.temperature', '23.5'));
         self::assertSame('23.5', gg('Кухня.temperature'));
         self::assertSame('Кухня', getObject('Кухня')['title'] ?? null);

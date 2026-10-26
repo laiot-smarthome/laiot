@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use MajorDoMo\History\HistoryRepository;
+use MajorDoMo\Methods\MethodRunner;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
 use MajorDoMo\Properties\ValueRepository;
@@ -69,6 +70,21 @@ if (!function_exists('sg')) {
         $app->container()->make(ValueRepository::class)->set($object['id'], $property['id'], (string)$value);
 
         return true;
+    }
+}
+
+if (!function_exists('callMethod')) {
+    /**
+     * @param array<string, mixed> $params
+     */
+    function callMethod(string $object, string $method, array $params = []): mixed
+    {
+        $app = AppContext::get();
+        if ($app === null) {
+            return null;
+        }
+
+        return $app->container()->make(MethodRunner::class)->run($object, $method, $params);
     }
 }
 

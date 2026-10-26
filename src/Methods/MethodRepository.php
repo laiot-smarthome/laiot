@@ -54,6 +54,26 @@ final readonly class MethodRepository
         ];
     }
 
+    /**
+     * @return array{id:int,class_id:int,title:string,description:string,code:string}|null
+     */
+    public function findForClass(int $classId, string $title): ?array
+    {
+        $row = $this->database->connection()->table('methods')
+            ->where('class_id', $classId)
+            ->where('title', $title)
+            ->whereNull('deleted_at')
+            ->first();
+
+        return $row === null ? null : [
+            'id' => (int)$row->id,
+            'class_id' => (int)$row->class_id,
+            'title' => (string)$row->title,
+            'description' => (string)($row->description ?? ''),
+            'code' => (string)($row->code ?? ''),
+        ];
+    }
+
     public function create(int $classId, string $title, string $description, string $code): int
     {
         $now = date('Y-m-d H:i:s');

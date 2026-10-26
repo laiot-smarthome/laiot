@@ -240,8 +240,11 @@ getObject('Кухня');            // array|null
 `getHistory('Кухня.temperature', 50)` тоже работает: возвращает последние
 значения из `property_history`.
 
-`setTimeOut`, `clearTimeOut`, `callMethod` **пока не перенесены**: они
-зависят от исполнения методов, которое ещё не стало core-сервисом.
+`callMethod('Кухня', 'double', ['x' => 5])` работает: находит объект, класс,
+метод и выполняет доверенный пользовательский PHP через временный файл
+(без eval). Код методов — как в alpha, доверенный.
+
+`setTimeOut`, `clearTimeOut` **пока не перенесены**.
 
 Планируемый контракт (ещё не реализован):
 
@@ -249,7 +252,7 @@ getObject('Кухня');            // array|null
 | --- | --- | --- |
 | `setTimeOut($name, $delay, $method)` | таймер | id/результат |
 | `clearTimeOut($id)` | снять таймер | bool |
-| `callMethod($object, $method, $params = [])` | вызвать метод | mixed |
+| — | `callMethod` уже работает | mixed |
 | — | `getHistory` уже работает | array |
 
 ## 11. Для агента
