@@ -47,6 +47,7 @@ final readonly class PanelRenderer
             ['id' => 'dashboard', 'label' => 'Обзор', 'href' => '/admin', 'icon' => 'ti-layout-dashboard'],
             ['id' => 'status', 'label' => 'Статус', 'href' => '/status', 'icon' => 'ti-activity'],
             ['id' => 'roles', 'label' => 'Роли', 'href' => '/roles', 'icon' => 'ti-shield'],
+            ['id' => 'tokens', 'label' => 'API-токены', 'href' => '/admin/tokens', 'icon' => 'ti-key'],
         ];
         foreach ($this->modules->menuItems() as $item) {
             $items[] = $item;

@@ -24,7 +24,8 @@ legacy-коду. Если документ относится к новому я
 - сессия `mydomo`, вход/выход, CSRF, rate limit входа;
 - `Authorization`/`can:`, таблицы `roles`/`permissions`/`user_roles`,
   страница `/roles`;
-- API-токены (`api_tokens`, Bearer/X-API-Key, `/api/v1/me` с правами);
+- API-токены (`api_tokens`, Bearer/X-API-Key, `/api/v1/me` с правами,
+  управление в `/admin/tokens`);
 - единые 404/405/500, `request_id`, security headers;
 - `ModuleManager`, `ModuleDb` (MySQL/SQLite), `ModuleBus` (retained events);
 - кэш `array`/`file`/`database`/`redis`;

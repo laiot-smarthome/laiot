@@ -46,6 +46,32 @@ final readonly class ApiTokenRepository
         return $token;
     }
 
+    /**
+     * @return list<array{id:int,user_id:int,user_name:string,name:string,created_at:string,last_used_at:string,expires_at:string,revoked_at:string}>
+     */
+    public function all(): array
+    {
+        return $this->database->connection()->table('api_tokens')
+            ->leftJoin('users', 'users.id', '=', 'api_tokens.user_id')
+            ->whereNull('api_tokens.deleted_at')
+            ->orderByDesc('api_tokens.id')
+            ->get([
+                'api_tokens.*',
+                'users.name as user_name',
+            ])
+            ->map(static fn (object $row): array => [
+                'id' => (int)$row->id,
+                'user_id' => (int)$row->user_id,
+                'user_name' => (string)($row->user_name ?? ''),
+                'name' => (string)$row->name,
+                'created_at' => (string)$row->created_at,
+                'last_used_at' => (string)($row->last_used_at ?? ''),
+                'expires_at' => (string)($row->expires_at ?? ''),
+                'revoked_at' => (string)($row->revoked_at ?? ''),
+            ])
+            ->all();
+    }
+
     public function userId(string $token): ?int
     {
         $token = trim($token);

@@ -8,6 +8,7 @@ use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\LoginController;
 use MajorDoMo\Http\Controllers\RolesController;
 use MajorDoMo\Http\Controllers\StatusController;
+use MajorDoMo\Http\Controllers\TokensController;
 use MajorDoMo\Http\Controllers\YoyoController;
 use MajorDoMo\Http\Controllers\YoyoDemoController;
 
@@ -25,6 +26,16 @@ return static function (Router $router): void {
         $router->get('/roles', RolesController::class)
             ->middleware(['auth', 'can:users.manage'])
             ->name('roles');
+        $router->get('/admin/tokens', [TokensController::class, 'index'])
+            ->middleware(['auth', 'can:users.manage'])
+            ->name('admin.tokens');
+        $router->post('/admin/tokens', [TokensController::class, 'issue'])
+            ->middleware(['auth', 'can:users.manage', 'csrf'])
+            ->name('admin.tokens.issue');
+        $router->post('/admin/tokens/{id}/revoke', [TokensController::class, 'revoke'])
+            ->whereNumber('id')
+            ->middleware(['auth', 'can:users.manage', 'csrf'])
+            ->name('admin.tokens.revoke');
 
         $router->get('/login', [LoginController::class, 'show'])->name('login');
         $router->post('/login', [LoginController::class, 'login'])
