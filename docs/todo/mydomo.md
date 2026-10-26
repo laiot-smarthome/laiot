@@ -287,7 +287,7 @@ project/
 | Дата | Удалено | Замена |
 | --- | --- | --- |
 | 2026-10-26 | `public/spike.php`, `SpikeController`, `SpikeNote`, `spike.blade.php`, `SpikeTest`, `EloquentSpikeTest` | `public/index.php`, `YoyoDemoController`, `DatabaseTest`, `YoyoTest` |
-| 2026-10-26 | старый `public/index.php` (`SiteApplication`) | новый `public/index.php` (kernel) |
+| 2026-10-26 | старый `public/index.php` (`SiteApplication`) и `lib/core/SiteApplication.php` | новый `public/index.php` (kernel) |
 
 ## 4. Стек и Composer
 
