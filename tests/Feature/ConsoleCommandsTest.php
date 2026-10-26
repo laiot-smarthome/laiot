@@ -47,7 +47,7 @@ final class ConsoleCommandsTest extends TestCase
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('MyDoMo', $tester->getDisplay());
         self::assertStringContainsString('PHP:', $tester->getDisplay());
-        self::assertStringContainsString('Core modules: 0', $tester->getDisplay());
+        self::assertStringContainsString('Core modules: 1', $tester->getDisplay());
     }
 
     public function testDoctorCommandReportsEnvironment(): void
@@ -87,7 +87,7 @@ final class ConsoleCommandsTest extends TestCase
         $tester->execute([]);
 
         self::assertSame(0, $tester->getStatusCode());
-        self::assertStringContainsString('Core-модули не найдены', $tester->getDisplay());
+        self::assertStringContainsString('Shoutbox', $tester->getDisplay());
     }
 
     public function testQueueStatsShowsEmptyQueue(): void

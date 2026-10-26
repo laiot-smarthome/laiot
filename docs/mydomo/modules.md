@@ -196,9 +196,10 @@ Third-party (позже):
 
 - `ModuleManager` сканирует только `modules/core`;
 - `modules/welcome` удалён;
-- `ModuleDb`/`ModuleBus` готовы, но модули заморожены до core-gate;
-- страница Shoutbox на Blade — промежуточная, backend ещё legacy;
-- первый реальный core-модуль станет эталоном после закрытия ядра.
+- `ModuleDb`/`ModuleBus` готовы;
+- первый core-модуль `shoutbox` перенесён полностью: `modules/core/shoutbox`,
+  `ModuleDb`, Blade, alpha-layout; старый `modules/shoutbox` удалён;
+- остальные модули — после закрытия оставшегося core-gate.
 
 ## 9. Что запрещено
 

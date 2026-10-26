@@ -26,6 +26,13 @@ final class ModuleQuery
         return $this;
     }
 
+    public function whereNull(string $column): self
+    {
+        $this->query->whereNull($column);
+
+        return $this;
+    }
+
     /**
      * @param array<int, mixed> $values
      */

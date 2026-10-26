@@ -1,0 +1,19 @@
+{
+    "id": "shoutbox",
+    "type": "core",
+    "name": "Shoutbox",
+    "version": "2.0.0",
+    "namespace": "MajorDoMo\\Modules\\Core\\Shoutbox\\",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "storage": {
+        "driver": "mysql",
+        "tables": ["messages"]
+    },
+    "menu": {
+        "title": "Shoutbox",
+        "route": "shoutbox.index",
+        "order": 80
+    }
+}

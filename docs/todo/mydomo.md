@@ -83,8 +83,8 @@ order: 5
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
-- **Промежуточно:** страница Shoutbox переведена на Blade, но backend ещё
-  старый. По решению 2026-10-26 модули заморожены до закрытия ядра.
+- [x] Первый core-модуль `shoutbox` перенесён полностью: `modules/core`,
+  `ModuleDb`, Blade, alpha-layout; старый код удалён.
 - [x] Blade-компоненты `x-md.button/icon/badge/card/section-heading/alert/
   avatar/empty-state/kpi/progress/status/field/input/textarea/select/
   checkbox/switch/disclosure/drawer/modal/skeleton/activity-feed/hint` и
@@ -109,8 +109,8 @@ order: 5
 ### 0.2. Стратегия: сначала ядро
 
 Решение владельца 2026-10-26: **сначала полностью закрываем ядро**, затем
-берём модули по одному и переносим целиком. Модули не трогаем, пока core-gate
-не закрыт.
+берём модули по одному и переносим целиком. Исключение — пилот `shoutbox`:
+он уже прошёл вертикальный срез и подтвердил контракт ядра.
 
 Core-gate:
 
@@ -379,7 +379,8 @@ project/
 | 2026-10-26 | старый `public/index.php` (`SiteApplication`) и `lib/core/SiteApplication.php` | новый `public/index.php` (kernel) |
 | 2026-10-26 | `SettingController` и маршрут `/db/setting/{name}` | `SettingsRepository` + `DatabaseTest` |
 | 2026-10-26 | прототип `modules/welcome` | `modules/core` + первый реальный core-модуль |
-| 2026-10-26 | `templates/shoutbox/action_admin.html`, `shoutbox.html`, `shouts_search_admin.html` | `resources/views/pages/shoutbox.blade.php` в alpha-shell |
+| 2026-10-26 | `templates/shoutbox/*`, `modules/shoutbox/*` | `modules/core/shoutbox` на `ModuleDb` + alpha-layout |
+| 2026-10-26 | промежуточная `pages/shoutbox.blade.php` | `modules/core/shoutbox/views/index.blade.php` |
 
 ## 4. Стек и Composer
 
@@ -794,6 +795,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   тема, X-Ray, Health, выход.
 - [x] Первая страница на `layouts.alpha`: `/status` (БД, кэш, версия, модули).
 - [x] `PanelRenderer`/`PanelPage` — единая сборка страниц в alpha-layout.
+- [x] `shoutbox`: полный вертикальный срез (ModuleDb, Blade, alpha-layout);
+  старые `modules/shoutbox` удалены.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
   остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.

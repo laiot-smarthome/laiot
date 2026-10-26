@@ -29,10 +29,11 @@ final class ModuleListCommand extends Command
         }
 
         $table = new Table($output);
-        $table->setHeaders(['ID', 'Type', 'Version', 'Path']);
+        $table->setHeaders(['ID', 'Name', 'Type', 'Version', 'Path']);
         foreach ($modules as $module) {
             $table->addRow([
                 (string)$module['id'],
+                (string)($module['name'] ?? $module['id']),
                 (string)($module['type'] ?? 'core'),
                 (string)($module['version'] ?? '0.0.0'),
                 (string)($module['path'] ?? ''),
