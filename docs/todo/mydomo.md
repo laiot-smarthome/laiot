@@ -56,6 +56,8 @@ order: 5
   `forget`, типы; 4 теста.
 - [x] Логи: `LoggerFactory` с каналами `app`/`http`/`security` и
   `request_id` в `extra`; тест.
+- [x] Новый CLI `bin/mydomo` на Symfony Console: `about`, `health`,
+  `cache:clear`, `module:list`; 4 теста.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
@@ -733,10 +735,10 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 
 ### 6.8. CLI
 
-- [ ] Сохранить `php majordomo` и имена существующих команд, где возможно.
-- [ ] Решить: собственный Console или Symfony/Illuminate Console; spike после
-  этапа 2. До решения новые команды — в текущем стиле.
-- [ ] Команды: `about`, `doctor`, `install`, `upgrade`, `db:migrate`,
+- [x] Новый `bin/mydomo` на Symfony Console: `about`, `health`, `cache:clear`,
+  `module:list`; старый `php majordomo` пока не трогаем.
+- [ ] Сохранить/перенести имена старых команд, где возможно.
+- [ ] Команды: `doctor`, `install`, `upgrade`, `db:migrate`,
   `db:seed`, `route:list`, `route:cache`, `route:clear`, `cache:*`,
   `queue:*`, `module:*`, `user:*`, `maintenance:*`.
 - [ ] JSON-вывод, коды завершения, `--no-interaction`, `--verbose`.

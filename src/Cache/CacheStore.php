@@ -43,6 +43,11 @@ final class CacheStore
         return $this->repository->forget($this->key($key));
     }
 
+    public function clear(): bool
+    {
+        return $this->repository->clear();
+    }
+
     /**
      * @param Closure(): mixed $callback
      */

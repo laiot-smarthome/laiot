@@ -1,0 +1,22 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('CLI only');
+}
+
+$app = require dirname(__DIR__) . '/bootstrap/app.php';
+
+$console = new Symfony\Component\Console\Application(
+    'MyDoMo',
+    (string)$app->config('version', 'dev')
+);
+$console->add(new MajorDoMo\Console\AboutCommand($app));
+$console->add(new MajorDoMo\Console\HealthCommand($app));
+$console->add(new MajorDoMo\Console\CacheClearCommand($app));
+$console->add(new MajorDoMo\Console\ModuleListCommand($app));
+
+exit($console->run());
