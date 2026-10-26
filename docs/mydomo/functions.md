@@ -130,7 +130,7 @@ Middleware: `->middleware('can:panel.view')`.
 ## 8. API v1
 
 ```text
-GET /api/v1/health   — БД/кэш, 200/503
+GET /api/v1/health   — БД и кэш, 200/503
 GET /api/v1/about    — версия, PHP, число core-модулей
 GET /api/v1/modules  — список core-модулей
 GET /api/v1/me       — Bearer/X-API-Key, user_id

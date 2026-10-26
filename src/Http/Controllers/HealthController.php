@@ -5,42 +5,52 @@ declare(strict_types=1);
 namespace MajorDoMo\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
+use MajorDoMo\Cache\CacheStore;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Http\Controller;
+use Throwable;
 
 /**
- * Проверка готовности: приложение, БД и версия.
+ * Проверка готовности: приложение, БД и кэш.
  *
  * 503 означает «сервис ещё не готов», а не «страница не найдена».
  */
 final readonly class HealthController extends Controller
 {
-    public function __construct(private DatabaseManager $database)
-    {
+    public function __construct(
+        private DatabaseManager $database,
+        private CacheStore $cache
+    ) {
     }
 
     public function __invoke(): JsonResponse
     {
+        $database = 'ok';
         if (!$this->database->isConfigured()) {
-            return $this->json([
-                'status' => 'degraded',
-                'app' => 'MyDoMo',
-                'database' => 'not_configured',
-            ], 503);
+            $database = 'not_configured';
+        } elseif (!$this->database->ping()) {
+            $database = 'unavailable';
         }
 
-        if (!$this->database->ping()) {
-            return $this->json([
-                'status' => 'degraded',
-                'app' => 'MyDoMo',
-                'database' => 'unavailable',
-            ], 503);
+        $cache = 'ok';
+        try {
+            $key = 'health.' . bin2hex(random_bytes(6));
+            $this->cache->put($key, 'ok', 30);
+            if ($this->cache->get($key) !== 'ok') {
+                $cache = 'failed';
+            }
+            $this->cache->forget($key);
+        } catch (Throwable) {
+            $cache = 'unavailable';
         }
+
+        $ok = $database === 'ok' && $cache === 'ok';
 
         return $this->json([
-            'status' => 'ok',
+            'status' => $ok ? 'ok' : 'degraded',
             'app' => 'MyDoMo',
-            'database' => 'ok',
-        ]);
+            'database' => $database,
+            'cache' => $cache,
+        ], $ok ? 200 : 503);
     }
 }

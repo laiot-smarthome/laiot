@@ -68,6 +68,7 @@ final class DatabaseTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
         self::assertStringContainsString('"status":"ok"', (string)$response->getContent());
         self::assertStringContainsString('"database":"ok"', (string)$response->getContent());
+        self::assertStringContainsString('"cache":"ok"', (string)$response->getContent());
     }
 
 }
