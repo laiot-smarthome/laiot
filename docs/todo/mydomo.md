@@ -38,7 +38,10 @@ order: 5
 - [x] Yoyo 0.15.1 + Blade подключён через собственный адаптер; компонент
   рендерится, POST `/yoyo` обновляет HTML; htmx/yoyo.js лежат локально.
 - [x] Новый `public/index.php` заменил старый вход; spike-файлы удалены.
-- [ ] Этап 2: auth, сессии, CSRF для `/yoyo`, полноценный middleware и панель.
+- [x] Вход администратора: таблица `users`, `Passwords`, PDO, отдельная
+  сессия `mydomo`, CSRF, `/login` и `/logout`.
+- [x] `/yoyo` закрыт auth + CSRF; Yoyo-страница передаёт токен в htmx.
+- [ ] Этап 2: панель и полноценный глобальный middleware-стек.
 
 ## 1. Решение и границы
 
@@ -288,6 +291,7 @@ project/
 | --- | --- | --- |
 | 2026-10-26 | `public/spike.php`, `SpikeController`, `SpikeNote`, `spike.blade.php`, `SpikeTest`, `EloquentSpikeTest` | `public/index.php`, `YoyoDemoController`, `DatabaseTest`, `YoyoTest` |
 | 2026-10-26 | старый `public/index.php` (`SiteApplication`) и `lib/core/SiteApplication.php` | новый `public/index.php` (kernel) |
+| 2026-10-26 | `SettingController` и маршрут `/db/setting/{name}` | `SettingsRepository` + `DatabaseTest` |
 
 ## 4. Стек и Composer
 
@@ -496,11 +500,14 @@ endpoint. Поэтому архитектура такая:
   `public/assets/vendor/`, CDN не используется;
 - `@yoyo('counter')` рендерится на первичной загрузке, POST `/yoyo`
   возвращает обновлённый HTML;
-- компонент `MajorDoMo\Yoyo\Counter` зарегистрирован в контейнере.
+- компонент `MajorDoMo\Yoyo\Counter` зарегистрирован в контейнере;
+- `/yoyo` закрыт сеансом администратора и CSRF, страница передаёт токен
+  в htmx;
+- `/login` и `/logout` работают через users/Passwords и отдельную сессию
+  `mydomo`.
 
 Осталось:
 
-- [ ] закрыть `/yoyo` сеансом администратора и CSRF;
 - [ ] проверить компонент модуля через namespace
   `MajorDoMo\Modules\<Name>\Yoyo\`;
 - [ ] решить, заменяет ли Yoyo `partLoad` полностью или только новые страницы;
@@ -517,7 +524,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 | --- | --- | --- |
 | 0 | Решения, CI, инструменты, spike | CI зелёный, spike работает |
 | 1 | Каркас: контейнер, конфиг, логи, ошибки, БД | Один запрос и одна модель |
-| 2 | HTTP, роутер, middleware, auth, Blade, Yoyo spike | `/panel/` и API-эндпоинт |
+| 2 | HTTP, роутер, middleware, auth/сессии/CSRF, Blade, Yoyo | `/panel/` и API-эндпоинт |
 | 3 | Данные: Eloquent, репозитории, миграции | CRUD объекта и свойства |
 | 4 | Кэш, очередь, события, планировщик | Операция через очередь |
 | 5 | Модульный SDK и lifecycle | Фикстурный модуль |
@@ -698,10 +705,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [ ] Сохранить `DebMes` как фасад; новые логи — только через PSR-3.
 - [ ] Единый error handler: HTML/JSON, error id, без stack trace в production.
 - [ ] `RequestId`/`TraceId` во всех логах и ответах.
-- [ ] Пароли: `password_hash` с `PASSWORD_ARGON2ID` или bcrypt; перехеширование
-  при входе.
-- [ ] Сессии: `HttpOnly`, `Secure`, `SameSite=Strict`, regenerate при входе.
-- [ ] CSRF для небезопасных методов; никаких GET-мутаций.
+- [x] Пароли: `Passwords`/`password_hash`, перехеширование при входе.
+- [x] Сессии: `HttpOnly`, `Secure`, `SameSite=Strict`, regenerate при входе.
+- [x] CSRF для небезопасных методов; никаких GET-мутаций.
 - [ ] Rate limit для логина, API, публичных маршрутов и тяжёлых действий.
 - [ ] Токены API — только хеш в БД, ротация, отзыв, срок.
 - [ ] Секреты модулей — шифрование sodium, ключ вне БД.

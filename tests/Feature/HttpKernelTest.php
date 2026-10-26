@@ -6,6 +6,7 @@ namespace MajorDoMo\Tests\Feature;
 
 use Illuminate\Http\Request;
 use MajorDoMo\Foundation\Application;
+use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
 final class HttpKernelTest extends TestCase
@@ -14,10 +15,13 @@ final class HttpKernelTest extends TestCase
 
     protected function setUp(): void
     {
+        $session = new ArraySession();
+        $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin']);
         $this->app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
             'view_cache' => sys_get_temp_dir() . '/mydomo-views-' . bin2hex(random_bytes(4)),
             'log' => 'php://stderr',
+            'session' => $session,
         ]);
         $this->app->boot();
     }
@@ -29,7 +33,7 @@ final class HttpKernelTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
         self::assertStringContainsString('Yoyo + Blade', (string)$response->getContent());
         self::assertStringContainsString('increment', (string)$response->getContent());
-        self::assertSame('yes', $response->headers->get('X-Spike-Middleware'));
+        self::assertSame('yes', $response->headers->get('X-MyDoMo-Middleware'));
         self::assertNotEmpty($response->headers->get('X-Request-Id'));
     }
 

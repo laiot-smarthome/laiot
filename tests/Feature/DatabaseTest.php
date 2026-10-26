@@ -8,6 +8,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use MajorDoMo\Database\Setting;
 use MajorDoMo\Foundation\Application;
+use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
 final class DatabaseTest extends TestCase
@@ -20,6 +21,7 @@ final class DatabaseTest extends TestCase
             'debug' => true,
             'view_cache' => sys_get_temp_dir() . '/mydomo-views-' . bin2hex(random_bytes(4)),
             'log' => 'php://stderr',
+            'session' => new ArraySession(),
             'database' => [
                 'driver' => 'sqlite',
                 'database' => ':memory:',
@@ -68,20 +70,4 @@ final class DatabaseTest extends TestCase
         self::assertStringContainsString('"database":"ok"', (string)$response->getContent());
     }
 
-    public function testHttpReadsSettingThroughRepository(): void
-    {
-        $response = $this->app->handle(Request::create('/db/setting/SITE_TITLE', 'GET'));
-
-        self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('"name":"SITE_TITLE"', (string)$response->getContent());
-        self::assertStringContainsString('"value":"MyDoMo"', (string)$response->getContent());
-    }
-
-    public function testUnknownSettingReturnsNull(): void
-    {
-        $response = $this->app->handle(Request::create('/db/setting/UNKNOWN', 'GET'));
-
-        self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('"value":null', (string)$response->getContent());
-    }
 }

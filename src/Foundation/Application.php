@@ -23,10 +23,16 @@ use Illuminate\View\Engines\EngineResolver;
 use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
 use LogicException;
+use MajorDoMo\Auth\AdminAuthenticator;
+use MajorDoMo\Core\Users\UserAccounts;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Database\SettingsRepository;
 use MajorDoMo\Http\Kernel;
+use MajorDoMo\Http\Middleware\AuthenticateAdmin;
 use MajorDoMo\Http\Middleware\RequestIdMiddleware;
+use MajorDoMo\Http\Middleware\VerifyCsrfToken;
+use MajorDoMo\Http\Session\NativeSession;
+use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\View\BladeView;
 use MajorDoMo\Yoyo\Counter;
 use Monolog\Handler\StreamHandler;
@@ -39,8 +45,8 @@ use Symfony\Component\HttpFoundation\Response;
  * Каркас MyDoMo: контейнер, конфиг, логгер, Blade, роутер и HTTP-kernel.
  *
  * Это вертикальный срез нового ядра. Он не подключает legacy loader,
- * лениво открывает PDO-соединение через Illuminate Database и пока не
- * содержит сессий, auth и модулей.
+ * лениво открывает PDO-соединение через Illuminate Database, содержит
+ * сессию, вход администратора и CSRF.
  */
 final class Application
 {
@@ -49,6 +55,7 @@ final class Application
     private Kernel $kernel;
     private LoggerInterface $logger;
     private DatabaseManager $database;
+    private SessionStore $session;
     private Yoyo $yoyo;
 
     /** @var array<string, mixed> */
@@ -83,6 +90,23 @@ final class Application
         $this->container->instance(DatabaseManager::class, $this->database);
         $this->container->instance(SettingsRepository::class, new SettingsRepository($this->database));
 
+        $session = $this->config['session'] ?? null;
+        $this->session = $session instanceof SessionStore
+            ? $session
+            : new NativeSession('mydomo', '/');
+        $this->container->instance(SessionStore::class, $this->session);
+
+        $this->container->bind(
+            UserAccounts::class,
+            fn (): UserAccounts => new UserAccounts($this->database->connection()->getPdo())
+        );
+        $this->container->bind(
+            AdminAuthenticator::class,
+            fn (): AdminAuthenticator => new AdminAuthenticator(
+                fn (): UserAccounts => $this->container->make(UserAccounts::class)
+            )
+        );
+
         $events = new Dispatcher($this->container);
         $this->container->instance(Dispatcher::class, $events);
 
@@ -96,7 +120,9 @@ final class Application
         );
 
         $this->router = new Router($events, $this->container);
-        $this->router->aliasMiddleware('spike-request', RequestIdMiddleware::class);
+        $this->router->aliasMiddleware('request-id', RequestIdMiddleware::class);
+        $this->router->aliasMiddleware('auth', AuthenticateAdmin::class);
+        $this->router->aliasMiddleware('csrf', VerifyCsrfToken::class);
         $this->container->instance(Router::class, $this->router);
 
         $this->kernel = new Kernel($this->router, $this->logger, (bool)($this->config['debug'] ?? false));
@@ -120,6 +146,10 @@ final class Application
         if (!$this->booted) {
             $this->boot();
         }
+
+        // Контроллеры получают текущий Request через DI, а не из глобальных
+        // суперглобалов: иначе тесты и вложенные вызовы видят пустой запрос.
+        $this->container->instance(Request::class, $request);
 
         return $this->kernel->handle($request);
     }
@@ -162,6 +192,13 @@ final class Application
         $this->ensureBooted();
 
         return $this->yoyo;
+    }
+
+    public function session(): SessionStore
+    {
+        $this->ensureBooted();
+
+        return $this->session;
     }
 
     public function config(string $key, mixed $default = null): mixed

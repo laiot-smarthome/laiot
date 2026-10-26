@@ -20,7 +20,7 @@ final class RequestIdMiddleware
     {
         $response = $next($request);
         if ($response instanceof Response) {
-            $response->headers->set('X-Spike-Middleware', 'yes');
+            $response->headers->set('X-MyDoMo-Middleware', 'yes');
         }
 
         return $response;
