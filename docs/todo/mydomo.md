@@ -661,7 +661,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   `where`, имена, `route()`, `redirect()`, `back()`.
 - [ ] Middleware: `InstallGate`, `Maintenance`, `AuthenticateAdmin`,
   `VerifyCsrf`, `Throttle`, `SetLocale`, `RequestId`, `SecurityHeaders`.
-- [x] Первый API-срез: `/api/v1/health`, `/api/v1/about` в `routes/api.php`.
+- [x] API-срез: `/api/v1/health`, `/api/v1/about`, `/api/v1/modules` в
+  `routes/api.php`.
 - [ ] Остальные роуты ядра: `/panel/...`, `/api/v2/...`, `/install`, `/ws`.
 - [ ] Роуты модулей: `/panel/<id>/...`, `/api/v2/modules/<id>/...`;
   автоматический префикс и проверка владельца.

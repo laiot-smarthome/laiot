@@ -37,6 +37,16 @@ final class ApiTest extends TestCase
         self::assertNotEmpty($response->headers->get('X-Request-Id'));
     }
 
+    public function testApiModulesReturnsList(): void
+    {
+        $response = $this->app->handle(Request::create('/api/v1/modules', 'GET'));
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = json_decode((string)$response->getContent(), true);
+        self::assertIsArray($payload);
+        self::assertArrayHasKey('modules', $payload);
+    }
+
     public function testApiHealthReturnsJson(): void
     {
         $response = $this->app->handle(Request::create('/api/v1/health', 'GET'));
