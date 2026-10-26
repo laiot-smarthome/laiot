@@ -75,6 +75,7 @@ order: 5
 - [x] Redis-кэш (`CacheFactory`) через Predis и SCAN-clear; live Redis в
   тестах не поднимался.
 - [x] Typed jobs: `Job` + `Queue::pushJob()`; 2 теста.
+- [x] API v1: `health`, `about`; JSON + request_id; 2 теста.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
@@ -658,8 +659,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   `where`, имена, `route()`, `redirect()`, `back()`.
 - [ ] Middleware: `InstallGate`, `Maintenance`, `AuthenticateAdmin`,
   `VerifyCsrf`, `Throttle`, `SetLocale`, `RequestId`, `SecurityHeaders`.
-- [ ] Роуты ядра: `/`, `/panel/...`, `/api/v1/...`, `/api/v2/...`, `/install`,
-  `/health`, `/ws`.
+- [x] Первый API-срез: `/api/v1/health`, `/api/v1/about` в `routes/api.php`.
+- [ ] Остальные роуты ядра: `/panel/...`, `/api/v2/...`, `/install`, `/ws`.
 - [ ] Роуты модулей: `/panel/<id>/...`, `/api/v2/modules/<id>/...`;
   автоматический префикс и проверка владельца.
 - [ ] Кэш маршрутов: `php majordomo route:cache`, `route:clear`, проверка

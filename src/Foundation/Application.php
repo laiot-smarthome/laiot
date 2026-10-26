@@ -162,6 +162,8 @@ final class Application
 
         $routes = require $this->root . '/routes/web.php';
         $routes($this->router);
+        $apiRoutes = require $this->root . '/routes/api.php';
+        $apiRoutes($this->router);
         $this->modules->register($this->router, $view);
 
         // Имена задаются после добавления маршрута, поэтому справочники
