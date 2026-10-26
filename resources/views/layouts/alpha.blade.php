@@ -32,10 +32,18 @@
                 </div>
             </div>
             <div class="md-admin-topbar__actions">
-                <span class="md-admin-topbar__time">{{ $now ?? '' }}</span>
                 <a class="md-topbar-action" href="/api/v1/health" aria-label="Health">
                     <i class="ti ti-heartbeat" aria-hidden="true"></i><span>Health</span>
                 </a>
+                <a class="md-topbar-action" href="/panel/xray.html" aria-label="X-Ray">
+                    <i class="ti ti-activity" aria-hidden="true"></i><span>X-Ray</span>
+                </a>
+                <div class="md-topbar-theme" role="group" aria-label="Тема оформления">
+                    <input class="btn-check" type="radio" name="topbarTheme" id="topbarThemeLight" value="light" data-md-theme-choice="light">
+                    <label for="topbarThemeLight" title="Светлая тема"><i class="ti ti-sun" aria-hidden="true"></i><span class="visually-hidden">Светлая тема</span></label>
+                    <input class="btn-check" type="radio" name="topbarTheme" id="topbarThemeDark" value="dark" data-md-theme-choice="dark">
+                    <label for="topbarThemeDark" title="Тёмная тема"><i class="ti ti-moon-stars" aria-hidden="true"></i><span class="visually-hidden">Тёмная тема</span></label>
+                </div>
                 <form method="post" action="/logout">
                     <input type="hidden" name="_token" value="{{ $csrf }}">
                     <button type="submit" class="md-topbar-action" aria-label="Выйти">
@@ -77,6 +85,12 @@
                             <span class="md-admin-sidebar__account-role">{{ ($user['is_admin'] ?? false) ? 'Администратор' : 'Пользователь' }}</span>
                         </span>
                     </div>
+                    <form method="post" action="/logout">
+                        <input type="hidden" name="_token" value="{{ $csrf }}">
+                        <button type="submit" class="dropdown-item md-admin-sidebar__profile-logout">
+                            <i class="ti ti-logout" aria-hidden="true"></i><span>Выйти</span>
+                        </button>
+                    </form>
                 </div>
             </div>
         </aside>

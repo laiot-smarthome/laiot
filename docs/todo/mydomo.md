@@ -790,7 +790,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   переноса shell на новый kernel.
 - [ ] Перенести остальные `MDJUI`-компоненты на Blade; не держать две
   разметки.
-- [x] `layouts.alpha` — перенос topbar/sidebar/меню на Blade с alpha-классами.
+- [x] `layouts.alpha` — перенос topbar/sidebar/меню на Blade с alpha-классами;
+  тема, X-Ray, Health, выход.
 - [x] Первая страница на `layouts.alpha`: `/status` (БД, кэш, версия, модули).
 - [x] `PanelRenderer`/`PanelPage` — единая сборка страниц в alpha-layout.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
