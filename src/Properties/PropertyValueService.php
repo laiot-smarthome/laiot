@@ -22,6 +22,7 @@ use Throwable;
  * фоновые циклы и очередь для этого не нужны. Ошибка пользовательского кода
  * не откатывает значение — она попадает в журнал `property_events` и в лог.
  *
+ * 2026-10-26 — запись по ID проверяет принадлежность свойства классу объекта.
  * 2026-10-26 — сервис создан для нового ядра MyDoMo: единая запись вместо
  *              `ValueRepository::updateValue()` и `sg()` в обход истории.
  */
@@ -110,7 +111,8 @@ final class PropertyValueService
     {
         $object = $this->objects->find($objectId);
         $property = $this->properties->find($propertyId);
-        if ($object === null || $property === null) {
+        if ($object === null || $property === null
+            || ($property['class_id'] !== 0 && $property['class_id'] !== $object['class_id'])) {
             return false;
         }
 

@@ -9,6 +9,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — действующая сессия и проверка скрытия деталей ошибок вне debug.
+ */
 final class HttpKernelTest extends TestCase
 {
     private Application $app;
@@ -22,8 +25,11 @@ final class HttpKernelTest extends TestCase
             'view_cache' => sys_get_temp_dir() . '/mydomo-views-' . bin2hex(random_bytes(4)),
             'log' => 'php://stderr',
             'session' => $session,
+            'cache' => ['driver' => 'array'],
+            'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
         ]);
         $this->app->boot();
+        SessionFixture::authenticate($this->app);
     }
 
     public function testBladeAndContainerWork(): void
@@ -39,7 +45,12 @@ final class HttpKernelTest extends TestCase
 
     public function testHealthWithoutDatabase(): void
     {
-        $response = $this->app->handle(Request::create('/health', 'GET'));
+        $app = new Application(dirname(__DIR__, 2), [
+            'session' => new ArraySession(),
+            'cache' => ['driver' => 'array'],
+            'log' => 'php://stderr',
+        ]);
+        $response = $app->handle(Request::create('/health', 'GET'));
 
         self::assertSame(503, $response->getStatusCode());
         self::assertStringContainsString('"status":"degraded"', (string)$response->getContent());
@@ -107,5 +118,23 @@ final class HttpKernelTest extends TestCase
 
         self::assertNotNull($route);
         self::assertSame('health', $route->uri());
+    }
+
+    public function testDefaultConfigurationHidesExceptionDetails(): void
+    {
+        $app = new Application(dirname(__DIR__, 2), [
+            'session' => new ArraySession(),
+            'cache' => ['driver' => 'array'],
+            'log' => 'php://stderr',
+        ]);
+        $app->boot();
+        $app->router()->get('/boom', static function (): never {
+            throw new \RuntimeException('private error detail');
+        });
+        foreach (['text/html', 'application/json'] as $accept) {
+            $response = $app->handle(Request::create('/boom', 'GET', [], [], [], ['HTTP_ACCEPT' => $accept]));
+            self::assertSame(500, $response->getStatusCode());
+            self::assertStringNotContainsString('private error detail', (string)$response->getContent());
+        }
     }
 }

@@ -13,8 +13,11 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Простой лимит попыток входа по IP через CacheStore.
  *
- * После успешного входа (302 на /yoyo-demo) счётчик сбрасывается. Ошибка
+ * После успешного входа (302 на /admin) счётчик сбрасывается. Ошибка
  * валидации/пароля оставляет попытку, чтобы перебор не был бесплатным.
+ *
+ * Изменения:
+ * 2026-10-26 — успешный вход сбрасывает лимит по актуальному адресу панели.
  */
 final readonly class ThrottleLogin
 {
@@ -38,7 +41,7 @@ final readonly class ThrottleLogin
         $this->cache->put($key, $attempts + 1, 60);
 
         $response = $next($request);
-        if ($response->getStatusCode() === 302 && $response->headers->get('Location') === '/yoyo-demo') {
+        if ($response->getStatusCode() === 302 && $response->headers->get('Location') === '/admin') {
             $this->cache->forget($key);
         }
 

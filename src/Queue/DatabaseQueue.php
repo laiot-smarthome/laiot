@@ -16,6 +16,9 @@ use Throwable;
  * Задание резервируется на время, чтобы упавший воркер не держал его вечно.
  * После исчерпания попыток оно остаётся в таблице с FAILED_AT и ошибкой —
  * это удобно для диагностики.
+ *
+ * Изменения:
+ * 2026-10-26 — просроченная резервация снова доступна после падения воркера.
  */
 final class DatabaseQueue implements Queue
 {
@@ -101,7 +104,13 @@ final class DatabaseQueue implements Queue
 
             $reserved = $connection->table($this->table)
                 ->where('id', (int)$row->id)
-                ->whereNull('reserved_at')
+                ->whereNull('deleted_at')
+                ->whereNull('failed_at')
+                ->where('available_at', '<=', date('Y-m-d H:i:s', $now))
+                ->where(static function ($query) use ($reservationCutoff): void {
+                    $query->whereNull('reserved_at')
+                        ->orWhere('reserved_at', '<=', $reservationCutoff);
+                })
                 ->update([
                     'reserved_at' => date('Y-m-d H:i:s', $now),
                     'updated_at' => date('Y-m-d H:i:s', $now),

@@ -52,6 +52,7 @@ file_put_contents($fixture . '/.env', implode("\n", array(
     'DB_USER=fixture_user',
     'DB_PASSWORD="p#ss word"',
     'DEBUG_MODE=0',
+    'APP_DEBUG=true',
     'USE_REDIS=false',
     'LOG_MAX_SIZE=9000',
     'TIMEZONE=Europe/Moscow',
@@ -67,6 +68,7 @@ Config::boot($fixture);
 check(Config::string('DB_HOST') === 'db.local', 'reads values from .env');
 check(Config::string('DB_PASSWORD') === 'p#ss word', 'keeps quoted password intact');
 check(Config::bool('DEBUG_MODE') === false, 'casts DEBUG_MODE=0 to false');
+check(Config::bool('APP_DEBUG') === true, 'casts explicit APP_DEBUG=true to boolean');
 check(Config::int('LOG_MAX_SIZE') === 9000, 'casts integer values');
 check(Config::has('UPDATES_REPOSITORY_NAME') === true, 'keeps a value from a legacy constant');
 check(Config::string('UPDATES_REPOSITORY_NAME') === 'from_legacy_constant', 'legacy constant wins over the schema default');

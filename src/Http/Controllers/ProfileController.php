@@ -17,6 +17,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Профиль текущего пользователя: имя и смена пароля.
+ *
+ * Изменения:
+ * 2026-10-26 — смена своего пароля обновляет отпечаток текущей сессии.
  */
 final readonly class ProfileController extends Controller
 {
@@ -49,8 +52,13 @@ final readonly class ProfileController extends Controller
             return $this->render($error->getMessage(), $name, 422);
         }
 
-        $user['name'] = $name;
-        $this->session->login($user);
+        $current = $this->users->sessionUser((int)$user['id']);
+        if ($current === null) {
+            $this->session->logout();
+
+            return new RedirectResponse('/login');
+        }
+        $this->session->login($current);
 
         return new RedirectResponse('/admin/profile');
     }

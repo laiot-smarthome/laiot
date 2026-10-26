@@ -11,6 +11,8 @@ $root = dirname(__DIR__);
 Config::boot($root);
 
 $app = new Application($root, [
+    // 2026-10-26 — подробности ошибок включаются только явным APP_DEBUG.
+    'debug' => Config::bool('APP_DEBUG', false),
     'timezone' => Config::string('APP_TIMEZONE', 'Europe/Moscow'),
     'cache' => [
         'driver' => Config::string('CACHE_DRIVER', 'file'),

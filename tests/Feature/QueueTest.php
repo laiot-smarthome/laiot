@@ -9,6 +9,9 @@ use MajorDoMo\Queue\DatabaseQueue;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
+/**
+ * 2026-10-26 — проверка возврата задания после просроченной резервации.
+ */
 final class QueueTest extends TestCase
 {
     private DatabaseManager $database;
@@ -120,5 +123,25 @@ final class QueueTest extends TestCase
     {
         $this->expectException(RuntimeException::class);
         $this->queue->push('bad queue', 'demo.job');
+    }
+
+    public function testExpiredReservationDoesNotBlockFollowingJobs(): void
+    {
+        $firstId = $this->queue->push('default', 'demo.first');
+        self::assertNotNull($this->queue->pop('default'));
+        self::assertNull($this->queue->pop('default'));
+        $secondId = $this->queue->push('default', 'demo.second');
+
+        $this->now += 300;
+        $recovery = new DatabaseQueue($this->database, [
+            'reservation_timeout' => 300,
+        ], fn (): int => $this->now);
+        $reclaimed = $recovery->pop('default');
+        self::assertNotNull($reclaimed);
+        self::assertSame($firstId, $reclaimed->id);
+        $second = $recovery->pop('default');
+        self::assertNotNull($second);
+        self::assertSame($secondId, $second->id);
+        self::assertNull($recovery->pop('default'));
     }
 }

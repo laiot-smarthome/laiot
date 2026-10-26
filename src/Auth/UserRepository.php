@@ -12,6 +12,9 @@ use MajorDoMo\Database\DatabaseManager;
  *
  * Новая таблица `users` с lowercase-колонками и timestamps; пароли —
  * password_hash/password_verify.
+ *
+ * Изменения:
+ * 2026-10-26 — проверка действующей сессии по пользователю и отпечатку пароля.
  */
 final readonly class UserRepository
 {
@@ -62,6 +65,28 @@ final readonly class UserRepository
             'username' => (string)$row->username,
             'name' => (string)$row->name,
             'is_admin' => (int)$row->is_admin === 1,
+        ];
+    }
+
+    /**
+     * Данные активного администратора для проверки и обновления сессии.
+     *
+     * @return array{id:int,username:string,name:string,stamp:string,is_admin:bool}|null
+     */
+    public function sessionUser(int $id): ?array
+    {
+        $row = $this->database->connection()->table('users')
+            ->where('id', $id)
+            ->where('is_admin', 1)
+            ->whereNull('deleted_at')
+            ->first();
+
+        return $row === null ? null : [
+            'id' => (int)$row->id,
+            'username' => (string)$row->username,
+            'name' => (string)$row->name,
+            'stamp' => hash('sha256', (string)$row->password),
+            'is_admin' => true,
         ];
     }
 

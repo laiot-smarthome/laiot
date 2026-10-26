@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — Yoyo проверяется с действующим пользователем SQLite.
+ */
 final class YoyoTest extends TestCase
 {
     private Application $app;
@@ -25,8 +28,11 @@ final class YoyoTest extends TestCase
             'view_cache' => sys_get_temp_dir() . '/mydomo-views-' . bin2hex(random_bytes(4)),
             'log' => 'php://stderr',
             'session' => $this->session,
+            'cache' => ['driver' => 'array'],
+            'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
         ]);
         $this->app->boot();
+        SessionFixture::authenticate($this->app);
     }
 
     protected function tearDown(): void

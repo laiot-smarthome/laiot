@@ -14,6 +14,8 @@ use PHPUnit\Framework\TestCase;
  *
  * Старый alpha-бандл admin.js остаётся для /panel/, но layout и вход нового
  * ядра обязаны грузить mydomo.js.
+ *
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  */
 final class AdminAssetsTest extends TestCase
 {
@@ -68,6 +70,8 @@ final class AdminAssetsTest extends TestCase
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
         ]);
         $app->boot();
+
+        SessionFixture::authenticate($app);
 
         return $app;
     }

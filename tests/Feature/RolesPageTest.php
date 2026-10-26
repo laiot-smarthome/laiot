@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — права проверяются после аутентификации действующего пользователя.
+ */
 final class RolesPageTest extends TestCase
 {
     public function testAdminSeesRolesAndPermissions(): void
@@ -22,12 +25,14 @@ final class RolesPageTest extends TestCase
         self::assertStringContainsString('settings.manage', (string)$response->getContent());
     }
 
-    public function testUserWithoutPermissionIsForbidden(): void
+    public function testDemotedAdminMustLogInAgain(): void
     {
         $app = $this->app(false);
         $response = $app->handle(Request::create('/roles', 'GET'));
 
-        self::assertSame(403, $response->getStatusCode());
+        self::assertSame(302, $response->getStatusCode());
+        self::assertSame('/login', $response->headers->get('Location'));
+        self::assertNull($app->session()->user());
     }
 
     private function app(bool $admin): Application
@@ -38,6 +43,7 @@ final class RolesPageTest extends TestCase
             'debug' => true,
             'log' => 'php://stderr',
             'session' => $session,
+            'cache' => ['driver' => 'array'],
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
         ]);
         $app->boot();
@@ -55,6 +61,11 @@ final class RolesPageTest extends TestCase
         });
         $app->database()->connection()->table('roles')->insert(['id' => 1, 'name' => 'admin', 'title' => 'Администратор']);
         $app->database()->connection()->table('permissions')->insert(['id' => 1, 'name' => 'settings.manage', 'title' => 'Настройки']);
+
+        SessionFixture::authenticate($app);
+        if (!$admin) {
+            $app->database()->connection()->table('users')->where('id', 1)->update(['is_admin' => 0]);
+        }
 
         return $app;
     }

@@ -10,6 +10,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ */
 final class ProfilePageTest extends TestCase
 {
     public function testNameAndPasswordCanBeChanged(): void
@@ -18,6 +21,7 @@ final class ProfilePageTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
@@ -38,8 +42,11 @@ final class ProfilePageTest extends TestCase
             'is_admin' => 1, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
+        SessionFixture::authenticate($app);
+
         $page = $app->handle(Request::create('/admin/profile', 'GET'));
         self::assertSame(200, $page->getStatusCode());
+        $oldStamp = $session->user()['stamp'];
 
         $save = $app->handle(Request::create('/admin/profile', 'POST', [
             '_token' => $session->csrfToken(),
@@ -51,5 +58,8 @@ final class ProfilePageTest extends TestCase
         self::assertSame('Главный админ', $row->name);
         self::assertTrue(password_verify('newsecret123', $row->password));
         self::assertSame('Главный админ', $session->user()['name']);
+        self::assertNotSame($oldStamp, $session->user()['stamp']);
+        $next = $app->handle(Request::create('/admin/profile', 'GET'));
+        self::assertSame(200, $next->getStatusCode());
     }
 }

@@ -11,6 +11,9 @@ use MajorDoMo\Http\Middleware\ThrottleLogin;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * 2026-10-26 — сброс лимита использует актуальный адрес /admin.
+ */
 final class ThrottleLoginTest extends TestCase
 {
     public function testSixthAttemptIsRejected(): void
@@ -41,7 +44,7 @@ final class ThrottleLoginTest extends TestCase
         for ($i = 0; $i < 4; $i++) {
             $middleware->handle($request, static fn (): Response => new Response('', 200));
         }
-        $middleware->handle($request, static fn (): Response => new Response('', 302, ['Location' => '/yoyo-demo']));
+        $middleware->handle($request, static fn (): Response => new Response('', 302, ['Location' => '/admin']));
 
         self::assertSame(200, $middleware->handle($request, static fn (): Response => new Response('', 200))->getStatusCode());
     }

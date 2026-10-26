@@ -21,6 +21,9 @@ use Throwable;
  * Пока это минимальный kernel без глобального middleware-стека. Он уже
  * отделяет инфраструктурные ошибки от ответов контроллеров и не отдаёт
  * stack trace в production.
+ *
+ * Изменения:
+ * 2026-10-26 — обслуживание разрешает защищённые маршруты управления и выход.
  */
 final readonly class Kernel
 {
@@ -87,7 +90,10 @@ final readonly class Kernel
 
     private function allowedDuringMaintenance(Request $request): bool
     {
-        return in_array($request->getPathInfo(), ['/login', '/health', '/api/v1/health', '/admin/maintenance'], true);
+        return in_array($request->getPathInfo(), [
+            '/login', '/logout', '/health', '/api/v1/health',
+            '/admin/maintenance', '/admin/maintenance/enable', '/admin/maintenance/disable',
+        ], true);
     }
 
     private function requestId(Request $request): string

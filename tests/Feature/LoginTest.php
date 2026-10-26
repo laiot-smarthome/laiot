@@ -9,7 +9,11 @@ use Illuminate\Http\Request;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * 2026-10-26 — сброс лимита проверяется полным циклом входа.
+ */
 final class LoginTest extends TestCase
 {
     private Application $app;
@@ -64,11 +68,7 @@ final class LoginTest extends TestCase
 
     public function testValidCredentialsCreateSession(): void
     {
-        $response = $this->app->handle(Request::create('/login', 'POST', [
-            '_token' => $this->session->csrfToken(),
-            'username' => 'admin',
-            'password' => 'secret',
-        ]));
+        $response = $this->attempt('secret');
 
         self::assertSame(302, $response->getStatusCode());
         self::assertSame('/admin', $response->headers->get('Location'));
@@ -77,11 +77,7 @@ final class LoginTest extends TestCase
 
     public function testInvalidCredentialsAreRejected(): void
     {
-        $response = $this->app->handle(Request::create('/login', 'POST', [
-            '_token' => $this->session->csrfToken(),
-            'username' => 'admin',
-            'password' => 'wrong',
-        ]));
+        $response = $this->attempt('wrong');
 
         self::assertSame(422, $response->getStatusCode());
         self::assertStringContainsString('Неверный логин или пароль', (string)$response->getContent());
@@ -102,6 +98,7 @@ final class LoginTest extends TestCase
     public function testLogoutClearsSession(): void
     {
         $this->session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin']);
+        SessionFixture::authenticate($this->app);
 
         $response = $this->app->handle(Request::create('/logout', 'POST', [
             '_token' => $this->session->csrfToken(),
@@ -110,5 +107,24 @@ final class LoginTest extends TestCase
         self::assertSame(302, $response->getStatusCode());
         self::assertSame('/login', $response->headers->get('Location'));
         self::assertNull($this->session->user());
+    }
+
+    public function testSuccessfulLoginClearsFailedAttempts(): void
+    {
+        for ($i = 0; $i < 4; $i++) {
+            self::assertSame(422, $this->attempt('wrong')->getStatusCode());
+        }
+        self::assertSame(302, $this->attempt('secret')->getStatusCode());
+        $this->session->logout();
+        self::assertSame(422, $this->attempt('wrong')->getStatusCode());
+    }
+
+    private function attempt(string $password): Response
+    {
+        return $this->app->handle(Request::create('/login', 'POST', [
+            '_token' => $this->session->csrfToken(),
+            'username' => 'admin',
+            'password' => $password,
+        ]));
     }
 }

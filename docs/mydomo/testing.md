@@ -31,6 +31,13 @@ php tests/docs_quality_smoke.php
 
 `composer check` = lint + PHP-CS-Fixer dry-run + PHPStan + PHPUnit.
 
+`phpunit.xml` задаёт `APP_ENV=testing`, SQLite `:memory:` и тестовые драйверы.
+`tests/phpunit.php` проверяет эти настройки и подключает только autoload,
+без рабочего `.env`. HTTP-фикстуры используют `SessionFixture`: пользователь
+существует в SQLite, а сессия содержит настоящий отпечаток пароля. SDK-тесты
+отдельно создают временный файл SQLite. Тест обслуживания хранит флаг во
+временном каталоге, не меняя рабочий `var/maintenance.flag`.
+
 ## 3. Локальный просмотр
 
 ```bash

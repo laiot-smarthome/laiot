@@ -6,10 +6,15 @@ namespace MajorDoMo\Tests\Feature;
 
 use Illuminate\Http\Request;
 use MajorDoMo\Foundation\Application;
+use MajorDoMo\Http\Kernel;
 use MajorDoMo\Http\Session\ArraySession;
 use MajorDoMo\Support\MaintenanceMode;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 
+/**
+ * 2026-10-26 — управление обслуживанием проверяется с отдельным временным флагом.
+ */
 final class MaintenanceTest extends TestCase
 {
     public function testMaintenanceBlocksAdminButKeepsHealth(): void
@@ -24,21 +29,54 @@ final class MaintenanceTest extends TestCase
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
         ]);
         $app->boot();
-        $mode = $app->container()->make(MaintenanceMode::class);
+        SessionFixture::authenticate($app);
+
+        $root = sys_get_temp_dir() . '/mydomo-maintenance-' . bin2hex(random_bytes(6));
+        $mode = new MaintenanceMode($root);
+        $app->container()->instance(MaintenanceMode::class, $mode);
+        $kernel = new Kernel($app->router(), new NullLogger(), maintenance: $mode);
 
         try {
             $mode->enable();
 
-            $admin = $app->handle(Request::create('/admin', 'GET'));
+            $admin = $kernel->handle(Request::create('/admin', 'GET'));
             self::assertSame(503, $admin->getStatusCode());
 
-            $page = $app->handle(Request::create('/admin/maintenance', 'GET'));
+            $page = $kernel->handle(Request::create('/admin/maintenance', 'GET'));
             self::assertSame(200, $page->getStatusCode());
 
-            $health = $app->handle(Request::create('/health', 'GET'));
+            $health = $kernel->handle(Request::create('/health', 'GET'));
             self::assertSame(200, $health->getStatusCode());
+
+            $withoutCsrf = $kernel->handle(Request::create('/admin/maintenance/disable', 'POST'));
+            self::assertSame(403, $withoutCsrf->getStatusCode());
+            self::assertTrue($mode->enabled());
+
+            $stored = $session->user();
+            self::assertNotNull($stored);
+            $logout = $kernel->handle(Request::create('/logout', 'POST', [
+                '_token' => $session->csrfToken(),
+            ]));
+            self::assertSame(302, $logout->getStatusCode());
+            self::assertNull($session->user());
+            $guest = $kernel->handle(Request::create('/admin/maintenance/disable', 'POST'));
+            self::assertSame(401, $guest->getStatusCode());
+            self::assertTrue($mode->enabled());
+
+            $session->login($stored);
+            $disable = $kernel->handle(Request::create('/admin/maintenance/disable', 'POST', [
+                '_token' => $session->csrfToken(),
+            ]));
+            self::assertSame(302, $disable->getStatusCode());
+            self::assertFalse($mode->enabled());
         } finally {
             $mode->disable();
+            if (is_dir($root . '/var')) {
+                rmdir($root . '/var');
+            }
+            if (is_dir($root)) {
+                rmdir($root);
+            }
         }
     }
 }

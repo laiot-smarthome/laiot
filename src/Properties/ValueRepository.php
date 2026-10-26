@@ -9,6 +9,9 @@ use MajorDoMo\History\HistoryRepository;
 
 /**
  * Значения свойств объектов.
+ *
+ * Изменения:
+ * 2026-10-26 — обновление и восстановление значения сохраняют created_at.
  */
 final readonly class ValueRepository
 {
@@ -78,7 +81,9 @@ final readonly class ValueRepository
         $now = date('Y-m-d H:i:s');
         $this->database->connection()->table('property_values')->updateOrInsert(
             ['object_id' => $objectId, 'property_id' => $propertyId],
-            ['value' => $value, 'updated_at' => $now, 'created_at' => $now, 'deleted_at' => null]
+            static fn (bool $exists): array => [
+                'value' => $value, 'updated_at' => $now, 'deleted_at' => null,
+            ] + ($exists ? [] : ['created_at' => $now])
         );
     }
 
