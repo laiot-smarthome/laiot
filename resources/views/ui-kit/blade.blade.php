@@ -70,4 +70,19 @@
             <x-md.switch name="notify" label="Уведомления" />
         </div>
     </div>
+
+    <div class="md-ui-demo__canvas" style="display:block;">
+        <x-md.disclosure title="Disclosure" description="Раскрывающийся блок на details/summary." badge="Blade">
+            <p>Содержимое раскрывается без нового JavaScript и без изменения вида.</p>
+        </x-md.disclosure>
+        <div style="margin-top:1rem;">
+            <x-md.skeleton :lines="3" />
+        </div>
+        <x-md.modal id="blade-demo-modal" title="Модалка на Blade">
+            <p>Разметка модалки совпадает с alpha; открытие остаётся на Bootstrap.</p>
+        </x-md.modal>
+        <x-md.drawer id="blade-demo-drawer" title="Drawer на Blade" subtitle="Те же классы md-drawer.">
+            <p>Содержимое drawer.</p>
+        </x-md.drawer>
+    </div>
 </section>
