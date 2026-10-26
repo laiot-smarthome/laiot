@@ -23,6 +23,7 @@ action_log
 users
 objects
 property_values
+property_history
 ```
 
 Никаких `ID`, `QUEUE`, `CREATED_AT`. Таблицы alpha (`users`, `objects`)

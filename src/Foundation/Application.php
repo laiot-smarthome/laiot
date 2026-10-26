@@ -35,6 +35,7 @@ use MajorDoMo\Cache\CacheStore;
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Database\SettingsRepository;
+use MajorDoMo\History\HistoryRepository;
 use MajorDoMo\Http\Kernel;
 use MajorDoMo\Http\Middleware\AuthenticateAdmin;
 use MajorDoMo\Http\Middleware\AuthenticateApiToken;
@@ -176,7 +177,9 @@ final class Application
         $this->container->instance(PropertyRepository::class, new PropertyRepository($this->database));
         $this->container->instance(MethodRepository::class, new MethodRepository($this->database));
         $this->container->instance(ObjectRepository::class, new ObjectRepository($this->database));
-        $this->container->instance(ValueRepository::class, new ValueRepository($this->database));
+        $history = new HistoryRepository($this->database);
+        $this->container->instance(HistoryRepository::class, $history);
+        $this->container->instance(ValueRepository::class, new ValueRepository($this->database, $history));
         $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
         $users = new UserRepository($this->database);

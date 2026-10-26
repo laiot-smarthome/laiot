@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use MajorDoMo\History\HistoryRepository;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
 use MajorDoMo\Properties\ValueRepository;
@@ -68,6 +69,27 @@ if (!function_exists('sg')) {
         $app->container()->make(ValueRepository::class)->set($object['id'], $property['id'], (string)$value);
 
         return true;
+    }
+}
+
+if (!function_exists('getHistory')) {
+    /**
+     * @return list<array{value:string,created_at:string}>
+     */
+    function getHistory(string $name, int $limit = 50): array
+    {
+        $app = AppContext::get();
+        if ($app === null) {
+            return [];
+        }
+        [$objectName, $propertyName] = split_object_property($name);
+        $object = $app->container()->make(ObjectRepository::class)->findByTitle($objectName);
+        $property = $app->container()->make(PropertyRepository::class)->findByTitle($propertyName);
+        if ($object === null || $property === null) {
+            return [];
+        }
+
+        return $app->container()->make(HistoryRepository::class)->forValue($object['id'], $property['id'], $limit);
     }
 }
 

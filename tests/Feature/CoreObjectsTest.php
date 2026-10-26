@@ -65,6 +65,14 @@ final class CoreObjectsTest extends TestCase
                 $table->timestamps();
                 $table->softDeletes();
             },
+            'property_history' => static function (Blueprint $table): void {
+                $table->increments('id');
+                $table->integer('object_id');
+                $table->integer('property_id');
+                $table->text('value')->nullable();
+                $table->timestamps();
+                $table->softDeletes();
+            },
         ] as $name => $definition) {
             $app->database()->schema()->create($name, $definition);
         }

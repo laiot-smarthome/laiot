@@ -236,9 +236,11 @@ getObject('Кухня');            // array|null
 `gg`/`sg` работают только с существующими объектом и свойством; значения
 хранятся в `property_values`.
 
-`setTimeOut`, `clearTimeOut`, `callMethod`, `getHistory` **пока не
-перенесены**: они зависят от исполнения методов/истории, которые ещё не
-стали core-сервисами.
+`getHistory('Кухня.temperature', 50)` тоже работает: возвращает последние
+значения из `property_history`.
+
+`setTimeOut`, `clearTimeOut`, `callMethod` **пока не перенесены**: они
+зависят от исполнения методов, которое ещё не стало core-сервисом.
 
 Планируемый контракт (ещё не реализован):
 
@@ -247,7 +249,7 @@ getObject('Кухня');            // array|null
 | `setTimeOut($name, $delay, $method)` | таймер | id/результат |
 | `clearTimeOut($id)` | снять таймер | bool |
 | `callMethod($object, $method, $params = [])` | вызвать метод | mixed |
-| `getHistory($object, $property, $limit)` | история свойства | array |
+| — | `getHistory` уже работает | array |
 
 ## 11. Для агента
 

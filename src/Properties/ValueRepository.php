@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace MajorDoMo\Properties;
 
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\History\HistoryRepository;
 
 /**
  * Значения свойств объектов.
  */
 final readonly class ValueRepository
 {
-    public function __construct(private DatabaseManager $database)
-    {
+    public function __construct(
+        private DatabaseManager $database,
+        private ?HistoryRepository $history = null
+    ) {
     }
 
     /**
@@ -99,5 +102,6 @@ final readonly class ValueRepository
             ['object_id' => $objectId, 'property_id' => $propertyId],
             ['value' => $value, 'updated_at' => $now, 'created_at' => $now, 'deleted_at' => null]
         );
+        $this->history?->record($objectId, $propertyId, $value);
     }
 }

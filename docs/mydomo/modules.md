@@ -214,6 +214,7 @@ Third-party (позже):
 - `methods` — новая таблица `methods`, CRUD без запуска кода;
 - `objects` — новые `objects`/`property_values`, объект + значения свойств;
 - `pvalues` — просмотр/правка/удаление значений свойств;
+- `history` — `property_history`, история значений и `getHistory()`;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 8. Публичные helpers модуля
