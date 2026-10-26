@@ -8,6 +8,8 @@
         property: 'Свойство',
         method: 'Метод',
         script: 'Скрипт',
+        user: 'Пользователь',
+        location: 'Локация',
         zwave: 'Z-Wave',
         gps: 'GPS',
         item: 'Элемент'

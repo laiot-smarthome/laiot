@@ -57,6 +57,13 @@ public/index.php
 Маршруты веб-слоя используют middleware `request-id`, `auth`, `csrf`;
 для прав — `can:<permission>`, для входа — `throttle.login`.
 
+Внешний маршрут API один: `/api/v1/*` отдаётся фронт-контроллером
+`public/index.php` (kernel). Legacy `/api/*` и `/api.php/*` остаются на
+`public/api.php` — это старый alpha-контракт с webhook и своими обработчиками.
+Nginx (`docker/app/nginx.conf`, `docs/deploy/nginx.conf.sample`) и
+`dev_server.php` различают эти префиксы: иначе `/api/v1/health` попадал в
+legacy API и возвращал 503 «install_required».
+
 ## 4. Сервисы
 
 | Сервис | Назначение |
@@ -81,6 +88,7 @@ public/index.php
 | `PropertyValueService` | единый путь записи значения: история, журнал, OnChange |
 | `PropertyEventRepository` | журнал `property_events` |
 | `PropertyEventChain` | контекст цепочки и предел вложенности |
+| `PanelSearch` | поиск по core-сущностям для шапки админки |
 
 Запись значения свойства — не просто `UPDATE property_values`. Сервис
 `PropertyValueService` сохраняет значение, пишет историю (если включена),
@@ -108,7 +116,9 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 - `Http\PanelRenderer` + `PanelPage` — единая сборка страницы в alpha-layout;
   меню строится из `ModuleManager::menuItems()`;
 - `resources/views/layouts/alpha.blade.php` — перенос alpha-shell на Blade
-  (topbar/sidebar/меню);
+  (topbar/sidebar/меню, поиск в шапке и полный drawer результатов);
+- `src/Http/Controllers/PanelSearchController.php` — `/api/v1/panel/search`
+  в конверте `{ok,data}` для `window.MDJAdminApi`;
 - `resources/views/login.blade.php` — alpha-вход (`md-auth`, логотип, `x-md`);
 - `resources/views/pages/dashboard.blade.php` — веб-админка `/admin`;
 - `resources/views/pages/status.blade.php` — первая страница нового kernel
@@ -128,6 +138,7 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 
 - `alpha` — совместимая ветка; её модульный API не является контрактом MyDoMo.
 - `public/api.php`, `public/admin.php`, `public/nf.php` — legacy-входы.
+- `/api/v1/*` — контракт нового ядра; `/api/*` — legacy-вход alpha.
 - Новый код не использует `$db`, `SQLSelect*`, `mysqli_*`, `PDO` напрямую.
 - Пользовательские сценарии/модули получают только документированные
   обёртки; список — в [functions.md](functions.md).

@@ -122,8 +122,9 @@ Core-gate:
    ещё нет.
 6. [x] Логи: каналы, request_id, уровни.
 7. [x] Auth/роли/права: таблицы, `can:`, `/roles`, API-токены.
-8. [~] Alpha-layout: `layouts.alpha` + `PanelRenderer` + меню; полная parity
-   (notifications/console) ещё нет.
+8. [~] Alpha-layout: `layouts.alpha` + `PanelRenderer` + меню; поиск в шапке
+   и полный drawer готовы (`/api/v1/panel/search`); notifications/console
+   ещё нет.
 9. [x] API-слой и health: v1 health/about/modules/me + токены.
 10. [x] Тесты, docs, Docker-инструкция.
 11. [x] Цепочка события свойства: единая запись, история, `property_events`,
@@ -692,6 +693,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   `VerifyCsrf`, `Throttle`, `SetLocale`, `RequestId`, `SecurityHeaders`.
 - [x] API-срез: `/api/v1/health`, `/api/v1/about`, `/api/v1/modules` в
   `routes/api.php`.
+- [x] `/api/v1/*` во всех входах отдаётся kernel (nginx dev/sample,
+  `dev_server.php`); legacy `/api/*` остаётся на `api.php`.
 - [x] `layouts.alpha` + `PanelRenderer`/`/status`; 2 теста.
 - [x] API auth: `api_tokens`, Bearer/X-API-Key, `/api/v1/me` с ролями и
   permissions, `api:token`; 2 теста.
@@ -831,6 +834,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] Maintenance mode: файл-флаг, CLI, `/admin/maintenance`, health/login
   доступны; 1 тест.
 - [x] `/admin/api`: живой список маршрутов Router; 1 тест.
+- [x] Поиск в шапке и полный drawer: `PanelSearch` +
+  `/api/v1/panel/search`, разделы по core-сущностям; 6 тестов.
 - [x] `/admin/modules`: реестр core-модулей; 1 тест.
 - [x] Аудит: login success/failed/logout и user create/update/delete пишутся
   в `action_log`; 1 тест.
@@ -871,6 +876,12 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   больше не показывают пустой список; проверено в `CoreEventsTest`.
 - [x] Docker-стенд применяет `bin/mydomo db:migrate` и к непустой базе:
   новая миграция не теряется после пересборки образа.
+- [x] API v1 доступен снаружи: nginx (dev и sample) и `dev_server.php`
+  направляют `/api/v1/*` в kernel, legacy `/api/*` остаётся на `api.php`;
+  `/api/v1/health` больше не возвращает legacy 503.
+- [x] Alpha-shell поиск: `PanelSearch` + `/api/v1/panel/search` + drawer
+  `#mdmGlobalSearchDrawer` в `layouts.alpha`; объекты, классы, свойства,
+  методы, скрипты, пользователи, локации, core-модули; 6 тестов.
 - [ ] Подключить `layouts.alpha` к остальным новым страницам и перенести
   остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.

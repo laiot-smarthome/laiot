@@ -29,6 +29,7 @@ docker compose logs --tail=80 app
 ```bash
 curl -I http://127.0.0.1/
 curl -sS http://127.0.0.1/health
+curl -sS http://127.0.0.1/api/v1/health
 curl -I http://127.0.0.1/login
 ```
 
@@ -36,6 +37,8 @@ curl -I http://127.0.0.1/login
 
 - `/` → новый вход `/login` (или `/admin` при сессии);
 - `/health` → 200 и `database: ok`, `cache: ok`;
+- `/api/v1/health` → 200 из нового ядра; `/api/*` без `v1` обслуживает
+  legacy `api.php`;
 - `/login` → 200;
 - `/admin` → 200 после входа;
 - dev-доступ: `admin` / `majordomo` (из `MJD_ADMIN_*`).

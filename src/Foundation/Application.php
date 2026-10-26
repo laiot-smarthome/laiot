@@ -64,6 +64,7 @@ use MajorDoMo\Queue\Queue;
 use MajorDoMo\Runtime\CodeRunner;
 use MajorDoMo\Runtime\TimeoutRepository;
 use MajorDoMo\Scripts\ScriptRepository;
+use MajorDoMo\Search\PanelSearch;
 use MajorDoMo\Support\AppContext;
 use MajorDoMo\Support\Clock;
 use MajorDoMo\Support\HelperLoader;
@@ -245,6 +246,7 @@ final class Application
 
         $this->modules = new ModuleManager($this->root, $this->database, $this->container, $this->helperLoader);
         $this->container->instance(ModuleManager::class, $this->modules);
+        $this->container->instance(PanelSearch::class, new PanelSearch($this->database, $this->modules));
 
         $this->kernel = new Kernel(
             $this->router,

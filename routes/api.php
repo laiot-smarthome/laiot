@@ -7,6 +7,7 @@ use MajorDoMo\Http\Controllers\AboutController;
 use MajorDoMo\Http\Controllers\ApiMeController;
 use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\ModulesController;
+use MajorDoMo\Http\Controllers\PanelSearchController;
 
 return static function (Router $router): void {
     $router->middleware(['request-id'])->prefix('/api/v1')->group(static function (Router $router): void {
@@ -16,5 +17,9 @@ return static function (Router $router): void {
         $router->get('/me', ApiMeController::class)
             ->middleware('api.auth')
             ->name('api.me');
+        // Поиск в шапке админки: только сессия администратора, без API-токена.
+        $router->get('/panel/search', PanelSearchController::class)
+            ->middleware('auth')
+            ->name('api.panel.search');
     });
 };

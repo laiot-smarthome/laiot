@@ -135,7 +135,38 @@ GET /api/v1/health   — БД и кэш, 200/503
 GET /api/v1/about    — версия, PHP, число core-модулей
 GET /api/v1/modules  — список core-модулей
 GET /api/v1/me       — Bearer/X-API-Key, user_id + roles/permissions
+GET /api/v1/panel/search?q=<текст>&limit=<1..50> — поиск для админки
 ```
+
+`/api/v1/*` обслуживает новое ядро (`public/index.php`); legacy `/api/*`
+остаётся на `public/api.php` — это разные контракты. Nginx и
+`dev_server.php` различают префиксы.
+
+`panel/search` требует сессию администратора (без API-токена) и отдаёт
+конверт для `window.MDJAdminApi`:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "query": "Датчик",
+    "total": 3,
+    "counts": {"Классы": 1, "Свойства": 1, "Методы": 1},
+    "sections": {
+      "Классы": [
+        {"type": "class", "title": "Датчик", "url": "/module/classes/1/edit", "description": "", "meta": ["Класс"], "action": ""}
+      ]
+    },
+    "message": ""
+  }
+}
+```
+
+Ищутся объекты, классы, свойства, методы, скрипты, пользователи, локации и
+core-модули. Запрос короче 3 символов возвращает пустой результат; `limit`
+ограничивает число элементов в каждом разделе, а не общий итог. Результаты
+выводятся в шапке (`MDJAdminApi.search`) и в полном drawer
+`#mdmGlobalSearchDrawer` из `layouts.alpha`.
 
 Токены: `api_tokens`, в БД только SHA-256. Выпуск:
 
@@ -146,7 +177,8 @@ php bin/mydomo api:token 1 "monitoring"
 Токен показывается один раз. `Authorization: Bearer <token>` или
 `X-API-Key: <token>`.
 
-`/admin` (auth) — обзор веб-админки на Blade-компонентах и alpha-layout.
+`/admin` (auth) — обзор веб-админки на Blade-компонентах и alpha-layout;
+в шапке работает поиск (`Ctrl K`) с полным drawer результатов.
 `/module/users` — пользователи; роли назначаются в форме пользователя.
 `/admin/tokens` (auth + `can:users.manage`) — выпуск/отзыв API-токенов.
 `/admin/modules` (auth) — реестр core-модулей: версии, таблицы, helpers.

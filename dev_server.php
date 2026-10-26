@@ -123,6 +123,11 @@ function devServerRoute($projectRoot)
         return true;
     }
 
+    // API v1 — новый kernel; legacy /api/ (webhook, старый api.php) отдельно.
+    if (strpos($path, '/api/v1/') === 0) {
+        return devSetScript($publicRoot . DIRECTORY_SEPARATOR . 'index.php', '/index.php');
+    }
+
     if (strpos($path, '/api/') === 0) {
         return devSetScript($publicRoot . DIRECTORY_SEPARATOR . 'api.php', '/api.php');
     }

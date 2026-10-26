@@ -26,7 +26,10 @@ legacy-коду. Если документ относится к новому я
 - `Authorization`/`can:`, таблицы `roles`/`permissions`/`user_roles`,
   `/roles`, назначение ролей в users;
 - API-токены (`api_tokens`, Bearer/X-API-Key, `/api/v1/me` с правами,
-  `/admin/tokens`);
+  `/admin/tokens`); `/api/v1/*` обслуживает новое ядро, legacy `/api/*` —
+  старый `api.php`;
+- поиск в шапке админки и полный drawer `/api/v1/panel/search`
+  (объекты, классы, свойства, методы, скрипты, пользователи, локации, модули);
 - единые 404/405/500, `request_id`, security headers, maintenance mode;
 - `ModuleManager`, `ModuleDb` (MySQL/SQLite), `ModuleBus` (retained events);
 - автозагрузка core/module helpers; модуль публикует функции через
@@ -53,7 +56,7 @@ legacy-коду. Если документ относится к новому я
 - 13 старых модулей: api, modes, pinghosts, mqtt, zigbee, xray,
   blockly_code, knowledge_base, ai_assistant, control_modules, linkedobject,
   market, saverestore;
-- полная alpha-shell parity (notifications/console/search);
+- полная alpha-shell parity (notifications/console; поиск уже работает);
 - установка/обновление, полный API v2;
 - live Redis-проверка;
 - автоматический запуск timeout/queue — только явные команды, циклы не трогаем.

@@ -107,6 +107,29 @@
     </div>
 </div>
 
+<div class="md-admin-search-backdrop" data-md-search-close></div>
+<aside class="md-admin-search-drawer" id="mdmGlobalSearchDrawer" aria-labelledby="mdmGlobalSearchTitle" aria-hidden="true">
+    <div class="md-admin-search-drawer__header">
+        <div>
+            <div class="md-admin-search-drawer__eyebrow">Панель управления</div>
+            <h2 id="mdmGlobalSearchTitle">Поиск</h2>
+        </div>
+        <button type="button" class="btn-close" data-md-search-close aria-label="Закрыть"></button>
+    </div>
+    <div class="md-admin-search-drawer__body">
+        <div class="md-admin-search-field">
+            <span class="md-admin-search-field__icon" aria-hidden="true"><i class="ti ti-search"></i></span>
+            <input type="text" class="form-control" name="filter_modules" id="filter_modules"
+                   placeholder="Объект, класс, свойство, метод, скрипт" autocomplete="off">
+            <button type="button" class="md-admin-search-field__clear" id="btnFilterCloseSearch"
+                    data-md-search-clear aria-label="Очистить">×</button>
+        </div>
+        <div class="md-admin-search-hint searchNoty">Введите минимум 3 символа. Результаты сгруппированы по разделам.</div>
+        <div class="md-admin-search-summary" id="filter_summary"></div>
+        <div id="filter_add" class="md-admin-search-results" aria-live="polite"></div>
+    </div>
+</aside>
+
 <script src="/assets/admin/admin.js" defer></script>
 @stack('scripts')
 </body>

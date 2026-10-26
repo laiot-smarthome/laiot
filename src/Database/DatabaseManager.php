@@ -19,6 +19,7 @@ use Throwable;
 final class DatabaseManager
 {
     private ?Capsule $capsule = null;
+    private bool $sqliteFunctionsRegistered = false;
 
     /**
      * @param array<string, mixed> $config
@@ -35,7 +36,19 @@ final class DatabaseManager
 
     public function connection(): Connection
     {
-        return $this->capsule()->getConnection();
+        $connection = $this->capsule()->getConnection();
+        if ($connection->getDriverName() === 'sqlite' && !$this->sqliteFunctionsRegistered) {
+            // Встроенный lower() в SQLite понижает только ASCII, поэтому поиск
+            // по русским названиям без своей функции зависит от регистра.
+            $connection->getPdo()->sqliteCreateFunction(
+                'mjd_lower',
+                static fn (mixed $value): string => mb_strtolower((string)$value),
+                1
+            );
+            $this->sqliteFunctionsRegistered = true;
+        }
+
+        return $connection;
     }
 
     public function schema(): Builder
