@@ -33,7 +33,7 @@ final readonly class LoginController extends Controller
             return new RedirectResponse('/admin');
         }
 
-        return $this->render(null, 200);
+        return $this->render(null, 200, '');
     }
 
     public function login(Request $request): Response
@@ -43,7 +43,7 @@ final readonly class LoginController extends Controller
         $user = $this->authenticator->attempt($username, $password);
 
         if ($user === null) {
-            return $this->render('Неверный логин или пароль.', 422);
+            return $this->render('Неверный логин или пароль.', 422, $username);
         }
 
         $this->session->login($user);
@@ -58,11 +58,12 @@ final readonly class LoginController extends Controller
         return new RedirectResponse('/login');
     }
 
-    private function render(?string $error, int $status): Response
+    private function render(?string $error, int $status, string $username): Response
     {
         $html = $this->view->make('login', [
             'csrf' => $this->session->csrfToken(),
             'error' => $error,
+            'username' => $username,
         ])->render();
 
         return $this->html($html, $status);

@@ -33,7 +33,7 @@ legacy-коду. Если документ относится к новому я
   `db:*`, `module:list`, `api:token`;
 - `/health` проверяет БД и кэш, `/status` — версия/БД/кэш/модули;
 - `PanelRenderer` + `layouts.alpha`, меню из core-модулей;
-- веб-админка `/admin` на Blade-компонентах;
+- веб-админка `/admin` и вход на Blade-компонентах;
 - пользовательская `say()` пишет в Shoutbox;
 - core/module helpers подключаются автоматически; модуль публикует функции
   через `helpers.php` и сервис модуля (`shoutbox_latest()`);

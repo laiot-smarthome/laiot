@@ -57,7 +57,8 @@ final class LoginTest extends TestCase
         $response = $this->app->handle(Request::create('/login', 'GET'));
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('Вход в MyDoMo', (string)$response->getContent());
+        self::assertStringContainsString('Вход в панель управления', (string)$response->getContent());
+        self::assertStringContainsString('md-auth', (string)$response->getContent());
         self::assertStringContainsString('_token', (string)$response->getContent());
     }
 
