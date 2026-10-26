@@ -26,6 +26,10 @@ $icons = isset($data['icons']) ? $data['icons'] : array();
 
 $paletteJson = json_encode($paletteItems, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP);
 
+// Мост на время перехода: alpha-shell ещё не поднимает новый kernel, но
+// статические компоненты уже можно рендерить Blade-движком.
+$bladeDemo = (new \MajorDoMo\View\BladeRenderer(ROOT))->render('ui-kit.blade');
+
 /**
  * Renders one documentation demo block.
  *
@@ -106,6 +110,7 @@ function md_ui_label($text)
             <div class="md-ui-docs__nav-title">Разделы</div>
             <a class="md-ui-docs__nav-link is-active" href="#foundations" data-md-doc-link><?= MDJUI::icon('grid-1x2') ?>Основы</a>
             <a class="md-ui-docs__nav-link" href="#buttons" data-md-doc-link><?= MDJUI::icon('hand-index-thumb') ?>Кнопки</a>
+            <a class="md-ui-docs__nav-link" href="#blade" data-md-doc-link><?= MDJUI::icon('braces') ?>Blade/Yoyo</a>
             <a class="md-ui-docs__nav-link" href="#forms" data-md-doc-link><?= MDJUI::icon('input-cursor-text') ?>Формы</a>
             <a class="md-ui-docs__nav-link" href="#linkedobject" data-md-doc-link><?= MDJUI::icon('link') ?>Связи объектов</a>
             <a class="md-ui-docs__nav-link" href="#navigation" data-md-doc-link><?= MDJUI::icon('signpost-split') ?>Навигация</a>
@@ -121,6 +126,7 @@ function md_ui_label($text)
         <main class="md-ui-docs__main">
             <?php include __DIR__ . '/sections/foundations.php'; ?>
             <?php include __DIR__ . '/sections/buttons.php'; ?>
+            <?php include __DIR__ . '/sections/blade.php'; ?>
             <?php include __DIR__ . '/sections/forms.php'; ?>
             <?php include __DIR__ . '/sections/linkedobject.php'; ?>
             <?php include __DIR__ . '/sections/navigation.php'; ?>

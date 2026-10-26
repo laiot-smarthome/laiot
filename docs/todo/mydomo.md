@@ -57,6 +57,8 @@ order: 5
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
+- [x] Первые Blade-компоненты `x-md.button/icon/badge/card/section-heading`
+  и секция «Blade/Yoyo» в alpha UI Kit; `BladeRenderer` — временный мост.
 - [ ] Core-модули: интегрировать страницу в alpha-оболочку, затем `ui_kit`
   и `shoutbox`.
 - [ ] Ядро параллельно: кэш, очереди/события, логирование, CLI и панель.
@@ -703,10 +705,14 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 
 ### 6.7. Шаблоны и UI
 
-- [ ] Blade-лейаут `resources/views/layouts/panel.blade.php`, компоненты
-  `resources/views/components/`.
-- [ ] Перенести `MDJUI` в Blade-компоненты или оставить PHP-хелперы,
-  вызываемые из Blade; не держать две разметки.
+- [x] Первые Blade-компоненты на alpha-классах: button, icon, badge, card,
+  section-heading; секция в UI Kit. Внешний вид не менялся.
+- [x] `BladeRenderer` — временный мост для alpha-shell; удалить после
+  переноса shell на новый kernel.
+- [ ] Перенести остальные `MDJUI`-компоненты на Blade; не держать две
+  разметки.
+- [ ] Перенести alpha-layout `templates/panel.html` на Blade/Yoyo без
+  изменения дизайна; новый layout не создавать.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.
 - [ ] Yoyo spike: Blade-страница + компонент + `/yoyo` update endpoint;
   Yoyo остаётся UI-слоем, а не роутером (см. 4.7).
