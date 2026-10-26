@@ -45,6 +45,8 @@ order: 5
   вход `admin/majordomo` и `/yoyo-demo` проверены.
 - [x] ModuleManager + эталонный модуль `modules/welcome`: манифест, routes,
   Blade-namespace, auth и тест без правки ядра.
+- [x] Docker: после входа `admin/majordomo` страница `/module/welcome`
+  открывается (200).
 - [ ] Этап 2: панель и полноценный глобальный middleware-стек.
 - [ ] Module SDK: lifecycle, реестр, меню, миграции, настройки, CLI.
 
