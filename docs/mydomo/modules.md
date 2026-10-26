@@ -208,6 +208,7 @@ Third-party (позже):
 - `ui_kit` — живой справочник `x-md.*` без legacy-шаблонов;
 - `system_errors` — новая таблица `system_errors`, ошибки ядра с request_id;
 - `locations` — новая таблица `locations`, CRUD и приоритет;
+- `scripts` — новая таблица `scripts`, CRUD/редактор без запуска циклов;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 8. Публичные helpers модуля

@@ -1,0 +1,125 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MajorDoMo\Scripts;
+
+use InvalidArgumentException;
+use MajorDoMo\Database\DatabaseManager;
+
+/**
+ * Пользовательские скрипты MyDoMo.
+ */
+final readonly class ScriptRepository
+{
+    public function __construct(private DatabaseManager $database)
+    {
+    }
+
+    /**
+     * @return list<array{id:int,title:string,category_id:int,description:string}>
+     */
+    public function all(string $search = ''): array
+    {
+        $query = $this->database->connection()->table('scripts')->whereNull('deleted_at');
+        if ($search !== '') {
+            $query->where(static function ($query) use ($search): void {
+                $query->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
+        return $query->orderBy('title')
+            ->get()
+            ->map(static fn (object $row): array => [
+                'id' => (int)$row->id,
+                'title' => (string)$row->title,
+                'category_id' => (int)$row->category_id,
+                'description' => (string)($row->description ?? ''),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array{id:int,title:string,code:string,description:string,category_id:int,run_periodically:bool}|null
+     */
+    public function find(int $id): ?array
+    {
+        $row = $this->database->connection()->table('scripts')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->first();
+
+        return $row === null ? null : [
+            'id' => (int)$row->id,
+            'title' => (string)$row->title,
+            'code' => (string)($row->code ?? ''),
+            'description' => (string)($row->description ?? ''),
+            'category_id' => (int)$row->category_id,
+            'run_periodically' => (int)$row->run_periodically === 1,
+        ];
+    }
+
+    public function create(string $title, string $code, string $description, int $categoryId, bool $runPeriodically): int
+    {
+        $now = date('Y-m-d H:i:s');
+
+        return (int)$this->database->connection()->table('scripts')->insertGetId([
+            'title' => $this->title($title),
+            'code' => $code,
+            'description' => $description,
+            'category_id' => max(0, $categoryId),
+            'run_periodically' => $runPeriodically ? 1 : 0,
+            'created_at' => $now,
+            'updated_at' => $now,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function update(int $id, string $title, string $code, string $description, int $categoryId, bool $runPeriodically): void
+    {
+        $this->database->connection()->table('scripts')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->update([
+                'title' => $this->title($title),
+                'code' => $code,
+                'description' => $description,
+                'category_id' => max(0, $categoryId),
+                'run_periodically' => $runPeriodically ? 1 : 0,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+    }
+
+    public function delete(int $id): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $this->database->connection()->table('scripts')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->update(['deleted_at' => $now, 'updated_at' => $now]);
+    }
+
+    /**
+     * @return list<array{id:int,title:string}>
+     */
+    public function categories(): array
+    {
+        return $this->database->connection()->table('script_categories')
+            ->whereNull('deleted_at')
+            ->orderBy('title')
+            ->get()
+            ->map(static fn (object $row): array => ['id' => (int)$row->id, 'title' => (string)$row->title])
+            ->all();
+    }
+
+    private function title(string $title): string
+    {
+        $title = trim($title);
+        if ($title === '' || mb_strlen($title) > 191) {
+            throw new InvalidArgumentException('Название скрипта обязательно, до 191 символа.');
+        }
+
+        return $title;
+    }
+}

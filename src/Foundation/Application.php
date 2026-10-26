@@ -52,6 +52,7 @@ use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Queue\DatabaseQueue;
 use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
+use MajorDoMo\Scripts\ScriptRepository;
 use MajorDoMo\Support\AppContext;
 use MajorDoMo\Support\Clock;
 use MajorDoMo\Support\HelperLoader;
@@ -165,6 +166,7 @@ final class Application
         $this->container->instance(ErrorRepository::class, new ErrorRepository($this->database));
         $this->container->instance(MaintenanceMode::class, new MaintenanceMode($this->root));
         $this->container->instance(LocationRepository::class, new LocationRepository($this->database));
+        $this->container->instance(ScriptRepository::class, new ScriptRepository($this->database));
         $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
         $users = new UserRepository($this->database);
