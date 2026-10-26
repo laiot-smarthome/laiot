@@ -121,7 +121,10 @@ $auth->isAdmin();
 ```
 
 Middleware: `->middleware('can:panel.view')`.
-Пока роль в сессии (`is_admin`); таблица ролей — следующий этап.
+
+Роли: `roles`, `permissions`, `role_permissions`, `user_roles`; миграция
+создаёт `admin`/`user` и переносит администраторов. Если БД/миграции ещё
+недоступны, используется сессионный `is_admin`.
 
 ## 8. CLI
 

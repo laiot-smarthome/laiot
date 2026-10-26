@@ -25,6 +25,7 @@ use Illuminate\View\FileViewFinder;
 use LogicException;
 use MajorDoMo\Auth\AdminAuthenticator;
 use MajorDoMo\Auth\Authorization;
+use MajorDoMo\Auth\RoleRepository;
 use MajorDoMo\Cache\CacheFactory;
 use MajorDoMo\Cache\CacheStore;
 use MajorDoMo\Core\Users\UserAccounts;
@@ -121,7 +122,9 @@ final class Application
             ? $session
             : new NativeSession('mydomo', '/');
         $this->container->instance(SessionStore::class, $this->session);
-        $this->container->instance(Authorization::class, new Authorization($this->session));
+        $roles = new RoleRepository($this->database);
+        $this->container->instance(RoleRepository::class, $roles);
+        $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
         $this->container->bind(
             UserAccounts::class,

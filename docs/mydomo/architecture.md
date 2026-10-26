@@ -68,7 +68,7 @@ public/index.php
 | `Queue` / `DatabaseQueue` | задания, резервирование, retry/dead-letter |
 | `JobRegistry` / `QueueWorker` | именованные обработчики и worker |
 | `LoggerFactory` | каналы `app`, `http`, `security`, request_id |
-| `Authorization` | `can()` по текущей сессии |
+| `Authorization` / `RoleRepository` | `can()`, роли и разрешения из БД |
 | `ModuleManager` | core-модули, `modules/core` |
 | `ModuleDb` | таблицы модуля `module_<id>_*`, без raw SQL |
 | `ModuleBus` | retained events с TTL |

@@ -5,18 +5,20 @@ declare(strict_types=1);
 namespace MajorDoMo\Auth;
 
 use MajorDoMo\Http\Session\SessionStore;
+use Throwable;
 
 /**
  * Проверка прав текущего пользователя.
  *
- * Пока роль хранится в сессии (`is_admin`); таблица ролей появится отдельным
- * этапом. Контракт `can()` уже позволяет модулям и middleware не знать,
- * откуда берётся роль.
+ * Основной источник — таблицы ролей; если БД/миграции ещё недоступны,
+ * используется сессионный `is_admin` как безопасный fallback.
  */
 final readonly class Authorization
 {
-    public function __construct(private SessionStore $session)
-    {
+    public function __construct(
+        private SessionStore $session,
+        private ?RoleRepository $roles = null
+    ) {
     }
 
     /**
@@ -29,18 +31,44 @@ final readonly class Authorization
 
     public function isAdmin(): bool
     {
-        return (bool)($this->user()['is_admin'] ?? false);
+        $user = $this->user();
+        if ($user === null) {
+            return false;
+        }
+        if ($this->roles instanceof RoleRepository) {
+            try {
+                if (in_array('admin', $this->roles->rolesForUser($user['id']), true)) {
+                    return true;
+                }
+            } catch (Throwable) {
+                // Ниже — fallback на сессию.
+            }
+        }
+
+        return (bool)($user['is_admin'] ?? false);
     }
 
     public function can(string $permission): bool
     {
-        if ($this->user() === null) {
+        $user = $this->user();
+        if ($user === null) {
             return false;
         }
-        if ($this->isAdmin()) {
-            return true;
+
+        if ($this->roles instanceof RoleRepository) {
+            try {
+                $granted = $this->roles->permissionsForUser($user['id']);
+                if (in_array('*', $granted, true) || in_array($permission, $granted, true)) {
+                    return true;
+                }
+                if ($granted !== []) {
+                    return false;
+                }
+            } catch (Throwable) {
+                // Fallback ниже.
+            }
         }
 
-        return in_array($permission, ['panel.view'], true);
+        return $this->isAdmin() || in_array($permission, ['panel.view'], true);
     }
 }
