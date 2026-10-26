@@ -20,5 +20,6 @@ $console->add(new MajorDoMo\Console\CacheClearCommand($app));
 $console->add(new MajorDoMo\Console\ModuleListCommand($app));
 $console->add(new MajorDoMo\Console\RouteListCommand($app));
 $console->add(new MajorDoMo\Console\QueueStatsCommand($app));
+$console->add(new MajorDoMo\Console\QueueWorkCommand($app));
 
 exit($console->run());

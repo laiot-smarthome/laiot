@@ -9,6 +9,7 @@ use MajorDoMo\Console\CacheClearCommand;
 use MajorDoMo\Console\HealthCommand;
 use MajorDoMo\Console\ModuleListCommand;
 use MajorDoMo\Console\QueueStatsCommand;
+use MajorDoMo\Console\QueueWorkCommand;
 use MajorDoMo\Console\RouteListCommand;
 use MajorDoMo\Foundation\Application;
 use PHPUnit\Framework\TestCase;
@@ -82,6 +83,22 @@ final class ConsoleCommandsTest extends TestCase
         self::assertSame(0, $tester->getStatusCode());
         self::assertStringContainsString('default', $tester->getDisplay());
         self::assertStringContainsString('Pending', $tester->getDisplay());
+    }
+
+    public function testQueueWorkProcessesRegisteredJob(): void
+    {
+        $called = 0;
+        $this->app->jobs()->register('demo.job', static function () use (&$called): void {
+            $called++;
+        });
+        $this->app->queue()->push('default', 'demo.job');
+
+        $tester = new CommandTester(new QueueWorkCommand($this->app));
+        $tester->execute(['--once' => true]);
+
+        self::assertSame(0, $tester->getStatusCode());
+        self::assertSame(1, $called);
+        self::assertStringContainsString('Обработано заданий: 1', $tester->getDisplay());
     }
 
     public function testRouteListShowsHealthRoute(): void

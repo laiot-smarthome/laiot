@@ -57,9 +57,12 @@ order: 5
 - [x] Логи: `LoggerFactory` с каналами `app`/`http`/`security` и
   `request_id` в `extra`; тест.
 - [x] Новый CLI `bin/mydomo` на Symfony Console: `about`, `health`,
-  `cache:clear`, `module:list`, `route:list`, `queue:stats`; 6 тестов.
+  `cache:clear`, `module:list`, `route:list`, `queue:stats`, `queue:work`;
+  7 тестов.
 - [x] `Queue` + `DatabaseQueue`: отложенные задания, резервирование,
   повторы и dead-letter по попыткам; 4 теста.
+- [x] `JobRegistry` + `QueueWorker` + `queue:work`: именованные обработчики,
+  ack/fail, ошибки в лог; 2 теста worker и CLI-тест.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
@@ -676,7 +679,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 
 - [x] Контракт `Queue` + долговечная `DatabaseQueue`: push/pop/ack/fail,
   задержка, reservation timeout, лимит попыток; 4 теста.
-- [ ] Redis-быстрый путь и `JobHandler`; typed jobs.
+- [x] `JobRegistry`, `JobHandler`, `QueueWorker`; CLI `queue:work`.
+- [ ] Redis-быстрый путь и typed jobs.
 - [x] `ModuleBus`: retained events с TTL для публичного обмена core-модулей.
 - [ ] Типизированные задания вместо произвольных строк; валидация payload.
 - [ ] Идемпотентность, ключи повторов, dead-letter, лимиты попыток.
@@ -685,7 +689,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   доставка модулям через очередь, outbox после commit.
 - [ ] Планировщик: задания, повторы, отмена, trace; cron-expression только
   если появятся cron-правила.
-- [x] CLI: `queue:stats` (pending/reserved/failed).
+- [x] CLI: `queue:stats` (pending/reserved/failed), `queue:work`.
 - [ ] CLI: `queue:retry`, `queue:failed`, `jobs:list`, `worker:start`,
   `worker:stop`.
 - [ ] Метрики: глубина, задержка, ошибки, возраст старейшего задания.

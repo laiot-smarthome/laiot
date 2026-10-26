@@ -39,6 +39,7 @@ use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Logging\RequestContext;
 use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Queue\DatabaseQueue;
+use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
 use MajorDoMo\View\BladeView;
 use MajorDoMo\Yoyo\Counter;
@@ -111,6 +112,7 @@ final class Application
 
         $this->queue = new DatabaseQueue($this->database, (array)($this->config['queue'] ?? []));
         $this->container->instance(Queue::class, $this->queue);
+        $this->container->instance(JobRegistry::class, new JobRegistry());
 
         $session = $this->config['session'] ?? null;
         $this->session = $session instanceof SessionStore
@@ -230,6 +232,13 @@ final class Application
         $this->ensureBooted();
 
         return $this->queue;
+    }
+
+    public function jobs(): JobRegistry
+    {
+        $this->ensureBooted();
+
+        return $this->container->make(JobRegistry::class);
     }
 
     public function yoyo(): Yoyo
