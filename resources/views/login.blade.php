@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>Вход — MyDoMo</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="stylesheet" href="/assets/admin/admin.css">
+    <link rel="stylesheet" href="/assets/admin/mydomo.css">
     <link rel="stylesheet" href="/assets/auth/login.css">
     <script>
         (function () {
@@ -45,6 +45,6 @@
         </form>
     </x-md.card>
 </main>
-<script src="/assets/admin/admin.js" defer></script>
+<script src="/assets/admin/mydomo.js" defer></script>
 </body>
 </html>

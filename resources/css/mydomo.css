@@ -1,0 +1,14 @@
+/*
+ * Стили нового admin-shell MyDoMo.
+ *
+ * Визуал — alpha (классы и токены), но это отдельный слой нового ядра,
+ * без legacy-бандла admin.js/admin.css.
+ */
+
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+@import '@tabler/icons-webfont/dist/tabler-icons.min.css';
+@import '../../public/assets/fonts/rubik/rubik.css';
+@import 'ui-v2.css';
+@import 'ui-system.css';
+@import 'admin_panel.css';

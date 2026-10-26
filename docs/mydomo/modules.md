@@ -141,21 +141,19 @@ $module->bus()->subscribe('keenetic.router.*', $callback);
 ## 5. Frontend
 
 Core-модуль не приносит собственный layout и не создаёт новый дизайн
-админки. Используется существующая alpha-оболочка:
+админки. Используется только новая Blade-оболочка с alpha-визуалом:
 
-- `templates/panel.html`, `templates/panel_nav_left.html`;
-- `resources/css/ui-system.css`, `resources/css/admin_panel.css` и
-  `public/assets/admin/admin.css`;
-- серверные компоненты `lib/ui/MDJUI.php` и `templates/ui/components/`;
-- страница UI Kit `?action=ui_kit` / `templates/ui_kit/` — компоненты
-  добавляем и перерабатываем там, а не в отдельном новом layout.
+- `resources/views/layouts/alpha.blade.php` + компоненты `x-md.*`;
+- `resources/css/ui-system.css` (токены и `md-*`) и `mydomo.css`;
+- страница UI Kit `/module/ui_kit` — компоненты добавляем и перерабатываем
+  там, а не в отдельном layout;
+- `lib/ui/MDJUI.php`, `templates/ui/`, `templates/panel*` и alpha-бандл
+  `admin.js` в MyDoMo не используются.
 
-Модуль отдаёт только содержимое страницы (Blade-секцию/Yoyo-компонент),
-которое вставляется в alpha-оболочку. Существующие представления alpha
-переносим с PHP/HTML на Blade/Yoyo, сохраняя те же `md-*`-классы, разметку
-и внешний вид; новый дизайн не рисуем. Yoyo-компоненты модуля регистрируются
-в `MajorDoMo\Modules\Core\<Name>\Yoyo\`; CSS/JS — page-only, через Vite или
-`public/assets/modules/<id>/`.
+Модуль отдаёт только Blade-содержимое страницы, которое вставляется в
+alpha-оболочку. jQuery и alpha-плагины в модулях и представлениях запрещены;
+интерактивность — Alpine, Yoyo или небольшой page-only vanilla-модуль;
+CSS/JS страницы — в `public/assets/modules/<id>/`.
 
 Никакого отдельного origin, iframe или PHP-FPM pool для core-модулей нет.
 Yoyo — основной способ дать модулю интерактивность внутри существующей

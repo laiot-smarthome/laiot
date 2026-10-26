@@ -30,6 +30,9 @@ final class AlphaLayoutTest extends TestCase
         self::assertStringContainsString('md-admin-main', $html);
         self::assertStringContainsString('Shoutbox', $html);
         self::assertStringContainsString('page-content', $html);
-        self::assertStringContainsString('assets/admin/admin.css', $html);
+        self::assertStringContainsString('assets/admin/mydomo.css', $html);
+        self::assertStringContainsString('assets/admin/mydomo.js', $html);
+        self::assertStringNotContainsString('assets/admin/admin.css', $html);
+        self::assertStringNotContainsString('assets/admin/admin.js', $html);
     }
 }

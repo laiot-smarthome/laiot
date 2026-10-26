@@ -68,7 +68,7 @@ function devServerCli(array $argv, $projectRoot)
 
     echo "MajorDoMo dev server\n";
     echo "URL: http://" . $address . "/\n";
-    echo "Admin: http://" . $address . "/admin.php\n";
+    echo "Admin: http://" . $address . "/admin\n";
     echo "Root: " . $projectRoot . "\n";
     echo "Config: " . $projectRoot . DIRECTORY_SEPARATOR . ".env\n";
     echo "Stop: Ctrl+C\n\n";
@@ -115,14 +115,6 @@ function devServerRoute($projectRoot)
         return true;
     }
 
-    // rc/ was removed: keep old bookmarks working.
-    if ($path === '/rc' || strpos($path, '/rc/') === 0) {
-        if (!headers_sent()) {
-            header('Location: /panel/', true, 301);
-        }
-        return true;
-    }
-
     // API v1 — новый kernel; legacy /api/ (webhook, старый api.php) отдельно.
     if (strpos($path, '/api/v1/') === 0) {
         return devSetScript($publicRoot . DIRECTORY_SEPARATOR . 'index.php', '/index.php');
@@ -140,11 +132,6 @@ function devServerRoute($projectRoot)
 
     if ($path === '/' || $path === '') {
         return devSetScript($publicRoot . DIRECTORY_SEPARATOR . 'index.php', '/index.php');
-    }
-
-    // Admin pretty URLs and the admin root are resolved by nf.php.
-    if ($path === '/panel' || $path === '/panel/' || strpos($path, '/panel/') === 0) {
-        return devSetScript($publicRoot . DIRECTORY_SEPARATOR . 'nf.php', '/nf.php');
     }
 
     // Legacy application directories live outside public/ and are served from
@@ -190,18 +177,8 @@ function devServerRoute($projectRoot)
         return true;
     }
 
-    if (preg_match('/\.(html|xml)$/i', $path) || preg_match('#/module/app_mediabrowser\.#i', $path)) {
-        return devSetScript($publicRoot . DIRECTORY_SEPARATOR . 'nf.php', '/nf.php');
-    }
-
-    http_response_code(404);
-    if (is_file($publicRoot . DIRECTORY_SEPARATOR . '404.php')) {
-        return devSetScript($publicRoot . DIRECTORY_SEPARATOR . '404.php', '/404.php');
-    }
-
-    header('Content-Type: text/plain; charset=utf-8');
-    echo "Not found: " . $path;
-    return true;
+    // Всё остальное обрабатывает kernel: он сам отдаёт 404/405/500.
+    return devSetScript($publicRoot . DIRECTORY_SEPARATOR . 'index.php', '/index.php');
 }
 
 /**

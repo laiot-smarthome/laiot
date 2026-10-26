@@ -122,18 +122,18 @@ Core-gate:
    ещё нет.
 6. [x] Логи: каналы, request_id, уровни.
 7. [x] Auth/роли/права: таблицы, `can:`, `/roles`, API-токены.
-8. [~] Alpha-layout: `layouts.alpha` + `PanelRenderer` + меню; поиск в шапке,
+8. [x] Alpha-layout: `layouts.alpha` + `PanelRenderer` + меню; поиск в шапке,
    drawer и центр уведомлений готовы (`/api/v1/panel/search`,
-   `/api/v1/panel/notifications`); console ещё нет.
+   `/api/v1/panel/notifications`). Старая панель `/panel/`, `admin.php`,
+   `nf.php` и alpha-бандл удалены; UI Kit на Alpine/Yoyo — отдельный этап.
 9. [x] API-слой и health: v1 health/about/modules/me + токены.
 10. [x] Тесты, docs, Docker-инструкция.
 11. [x] Цепочка события свойства: единая запись, история, `property_events`,
     OnChange-метод и защита от циклов; модуль `events` перенесён.
 
-Остаток после 20 раундов: полная alpha-shell parity (console),
-остальные core-модули, install/update, API v2 и live Redis. Обёртки
-`gg`/`sg`/`getObject`/`getHistory`/`callMethod`/`setTimeOut`/`clearTimeOut`
-уже работают, поэтому отдельным блокером больше не считаются.
+Остаток: остальные core-модули, UI Kit на Alpine/Yoyo, install/update,
+API v2 и live Redis. Обёртки `gg`/`sg`/`getObject`/`getHistory`/`callMethod`/
+`setTimeOut`/`clearTimeOut` уже работают.
 
 После gate: один модуль = новый контроллер, `modules/core/<id>`, `ModuleDb`,
 Blade-страница в alpha-shell, удаление старого кода, тесты, ручная проверка.
@@ -409,6 +409,8 @@ project/
 | 2026-10-26 | `lib/core/Helpers/Events.php`, `lib/events.class.php`, `public/assets/modules/events/*` | журнал `property_events`; legacy `registerEvent()` убран, `Api\Dispatcher` не падает без него |
 | 2026-10-26 | `modules/knowledge_base`, `templates/knowledge_base/*`, `public/assets/modules/knowledge_base/*` | `modules/core/knowledge_base` на `KnowledgeBase` + `league/commonmark`; `lib/knowledge_base.php` и `lib/markdown.php` оставлены только для `ai_assistant`/alpha-тестов |
 | 2026-10-26 | `.env.bak.20261022-202814` | `.env.example` + `Config`; резервные копии `.env` не храним в git |
+| 2026-10-26 | `public/admin.php`, `public/nf.php`, `modules/panel.class.php`, `modules/apps.php`, `modules/first_start.php`, `modules/inc_panel_ajax.php`, `templates/panel*`, `common_header_admin.html`, `lib/admin_router.php`, `lib/core/AdminApplication.php`, `lib/core/Api/Panel*`, `lib/dashboard_data.php` | новый `layouts.alpha` + `PanelRenderer`; alpha-панель остаётся в ветке `alpha` |
+| 2026-10-26 | `resources/js/app.js`, `bootstrap.js`, `modules/admin_panel/*`, `vite*.config.js`, `public/assets/admin/admin.js|admin.css|charts|codeeditor|codehighlight` | `resources/js/mydomo/*`, `vite.mydomo.config.js`, `mydomo.js`/`mydomo.css` без jQuery и alpha-модулей |
 
 ## 4. Стек и Composer
 
@@ -839,6 +841,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   `/api/v1/panel/search`, разделы по core-сущностям; 6 тестов.
 - [x] Центр уведомлений: колокольчик, общий drawer, явное прочтение,
   `notify()` для сценариев; 7 тестов.
+- [x] Старая панель и alpha-бандл удалены; новый shell `mydomo.js`/`mydomo.css`
+  без jQuery/alpha-модулей; 2 теста.
 - [x] `knowledge_base`: страница `docs/**` с поиском, категориями, безопасным
   Markdown и оглавлением; 4 теста.
 - [x] `/admin/modules`: реестр core-модулей; 1 тест.
@@ -881,6 +885,10 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   история по `keep_history`, журнал `property_events`, OnChange-метод,
   защита от циклов; `sg`, `/module/pvalues` и форма объекта идут одним путём;
   8 тестов, документация — [events.md](../mydomo/events.md).
+- [x] Старая alpha-панель удалена: `public/admin.php`/`nf.php`, `panel.class.php`,
+  `admin_router`, panel-шаблоны, `lib/core/Api/Panel*`, alpha-бандл и
+  `resources/js/modules/admin_panel`; новый `mydomo.js`/`mydomo.css` без
+  jQuery/alpha-модулей, 2 теста (`AdminAssetsTest`).
 - [x] `events`: `modules/core/events` — журнал цепочки в alpha-layout,
   фильтры по типу/статусу; старый `modules/events` и `templates/events`
   удалены.

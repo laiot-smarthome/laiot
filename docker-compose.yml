@@ -68,8 +68,8 @@ services:
       mosquitto:
         condition: service_healthy
     healthcheck:
-      # Проверяет не только nginx, но и PHP + БД: /panel/ проходит полный boot.
-      test: ["CMD-SHELL", "curl -fsS --max-time 8 -o /dev/null http://127.0.0.1/panel/ || exit 1"]
+      # Проверяет не только nginx, но и PHP + БД: /login проходит полный boot.
+      test: ["CMD-SHELL", "curl -fsS --max-time 8 -o /dev/null http://127.0.0.1/login || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5

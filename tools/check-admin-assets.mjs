@@ -1,14 +1,8 @@
 import { existsSync, statSync } from 'node:fs';
 
 const required = [
-  'public/assets/admin/admin.js',
-  'public/assets/admin/admin.css',
-  'public/assets/admin/codeeditor.js',
-  'public/assets/admin/codeeditor.css',
-  'public/assets/admin/charts.js',
-  'public/assets/admin/charts.css',
-  'public/assets/admin/codehighlight.js',
-  'public/assets/admin/codehighlight.css',
+  'public/assets/admin/mydomo.js',
+  'public/assets/admin/mydomo.css',
 ];
 
 const missing = required.filter((file) => !existsSync(file) || statSync(file).size === 0);

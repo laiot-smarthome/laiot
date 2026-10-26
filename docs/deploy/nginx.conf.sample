@@ -57,10 +57,6 @@ server {
 
     location = /install { return 302 /install.php; }
     location = /install/ { return 302 /install.php; }
-    location = /panel { return 301 /panel/; }
-    location ^~ /panel/ {
-        try_files $uri $uri/ /nf.php?$query_string;
-    }
 
     # MyDoMo API v1 — новый kernel (public/index.php). Legacy /api/ (webhook,
     # старый api.php) остаётся отдельным контрактом и обрабатывается ниже.
@@ -132,8 +128,7 @@ server {
         return 301 /assets/modules/$1/$2$is_args$args;
     }
     location ~ ^/public/(.*)$ { return 301 /$1$is_args$args; }
-    location = /rc { return 301 /panel/; }
-    location ^~ /rc/ { return 301 /panel/; }
+
 
     # Эти каталоги не монтируются из корня приложения ни для LAN, ни извне.
     location ~ ^/(scripts|objects|3rdparty|packages|vendor)(/|$) {
@@ -199,10 +194,10 @@ server {
     }
 
     location ~* ^/module/app_mediabrowser\..*$ {
-        try_files $uri $uri/ /nf.php?$query_string;
+        try_files $uri $uri/ /index.php?$query_string;
     }
     location ~* \.(html|xml)$ {
-        try_files $uri $uri/ /nf.php?$query_string;
+        try_files $uri $uri/ /index.php?$query_string;
     }
 
     location ~* [^/]\.php(/|$) {

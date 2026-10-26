@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ $csrf }}">
     <title>{{ $title }} — MyDoMo</title>
-    <link rel="stylesheet" href="/assets/admin/admin.css">
+    <link rel="stylesheet" href="/assets/admin/mydomo.css">
     <script>
         (function () {
             var match = document.cookie.match(/(?:^|;\s*)theme=([^;]+)/);
@@ -35,9 +35,6 @@
             <div class="md-admin-topbar__actions">
                 <a class="md-topbar-action" href="/api/v1/health" aria-label="Health">
                     <i class="ti ti-heartbeat" aria-hidden="true"></i><span>Health</span>
-                </a>
-                <a class="md-topbar-action" href="/panel/xray.html" aria-label="X-Ray">
-                    <i class="ti ti-activity" aria-hidden="true"></i><span>X-Ray</span>
                 </a>
                 <button type="button" class="md-topbar-action md-notifications-bell" data-md-notifications-open
                         aria-label="Уведомления" title="Уведомления">
@@ -101,6 +98,8 @@
                 </div>
             </div>
         </aside>
+
+        <div class="md-admin-sidebar-backdrop" data-md-sidebar-close></div>
 
         <main class="col-lg-10 col-md-9 col-sm-8 col-xs-12 md-admin-main" id="main-content">
             <div class="md-admin-contextbar">
@@ -170,7 +169,7 @@
     </div>
 </aside>
 
-<script src="/assets/admin/admin.js" defer></script>
+<script src="/assets/admin/mydomo.js" defer></script>
 @stack('scripts')
 </body>
 </html>

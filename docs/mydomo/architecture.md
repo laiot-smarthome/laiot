@@ -121,6 +121,10 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
   меню строится из `ModuleManager::menuItems()`;
 - `resources/views/layouts/alpha.blade.php` — перенос alpha-shell на Blade
   (topbar/sidebar/меню, поиск в шапке и полный drawer результатов);
+- `public/assets/admin/mydomo.js` и `mydomo.css` — единственный бандл нового
+  ядра: Bootstrap CSS, Alpine и собственные vanilla-модули (тема, меню,
+  поиск, уведомления, drawer). jQuery, `admin.js` и alpha-плагины в MyDoMo не
+  подключаются и не собираются;
 - `src/Http/Controllers/PanelSearchController.php` — `/api/v1/panel/search`
   в конверте `{ok,data}` для `window.MDJAdminApi`;
 - `src/Http/Controllers/NotificationsController.php` — `/api/v1/panel/notifications`
@@ -140,13 +144,15 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
   `/module/knowledge_base`; Markdown рендерится `src/Docs/MarkdownRenderer.php`;
 - `resources/views/pages/shoutbox.blade.php` — промежуточная страница.
 
-Новый layout/CSS не создаём. Alpha-shell и `MDJUI` остаются эталоном, пока
-панель не будет перенесена целиком.
+Визуал берём из alpha, реализацию — нет: `layouts.alpha`, `mydomo.css` и
+`mydomo.js` полностью новые. Alpha-разметка, `MDJUI`, `admin.js` и старая
+панель — только архивный ориентир в ветке `alpha`.
 
 ## 7. Границы
 
 - `alpha` — совместимая ветка; её модульный API не является контрактом MyDoMo.
-- `public/api.php`, `public/admin.php`, `public/nf.php` — legacy-входы.
+- `public/api.php` — legacy-вход alpha; `public/admin.php`, `public/nf.php` и
+  старая панель удалены из MyDoMo.
 - `/api/v1/*` — контракт нового ядра; `/api/*` — legacy-вход alpha.
 - Новый код не использует `$db`, `SQLSelect*`, `mysqli_*`, `PDO` напрямую.
 - Пользовательские сценарии/модули получают только документированные

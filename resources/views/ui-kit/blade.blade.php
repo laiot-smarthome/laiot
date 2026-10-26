@@ -3,7 +3,7 @@
         <x-md.section-heading
             eyebrow="13 · Blade/Yoyo"
             title="Blade-компоненты"
-            description="Те же md-* классы и внешний вид, что у MDJUI, но разметка уже на Blade. Компоненты переносятся по одному, без изменения дизайна."
+            description="Blade-компоненты нового ядра в alpha-визуале. Alpha-разметка — ориентир, а не реализация."
         />
         <span class="md-ui-section__kicker">x-md.*</span>
     </div>
@@ -20,7 +20,7 @@
         <x-md.card
             eyebrow="Blade"
             title="Карточка на новом движке"
-            subtitle="Разметка совпадает с md-card в alpha, поэтому визуально ничего не меняется."
+            subtitle="Визуал alpha сохранён, разметка и поведение — новые."
         >
             <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
                 <x-md.badge tone="success">готово</x-md.badge>
@@ -42,7 +42,7 @@
     </div>
 
     <div class="md-ui-demo__canvas" style="display:block;">
-        <x-md.alert type="info" title="Blade-компоненты" text="Это та же alpha-разметка, но уже на новом движке." />
+        <x-md.alert type="info" title="Blade-компоненты" text="Компоненты нового ядра; alpha используется только как визуальный ориентир." />
         <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin:1rem 0;">
             <x-md.status state="online" />
             <x-md.status state="warning" label="Проверка" />

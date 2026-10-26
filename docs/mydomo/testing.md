@@ -58,3 +58,17 @@ docker compose logs --tail=80 app
 - каждую кнопку/каждый URL;
 - комбинации всех опций;
 - live Redis без отдельного стенда (пока отмечаем как непроверенное).
+
+## 6. Ассеты
+
+Новый layout и вход грузят только `mydomo.js`/`mydomo.css` — shell нового
+ядра без jQuery и alpha-бандла. Старого `admin.js` в MyDoMo больше нет.
+
+```bash
+npm run build:mydomo   # shell нового ядра
+npm run build          # он же (других бандлов в ветке нет)
+```
+
+`tests/Feature/AdminAssetsTest.php` проверяет, что в `mydomo.js` нет
+jQuery/migrate/alpha-модулей, а `/admin` и `/login` не ссылаются на
+`admin.js`.

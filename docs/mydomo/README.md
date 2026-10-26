@@ -16,8 +16,8 @@ legacy-коду. Если документ относится к новому я
 ## Статус
 
 **База ядра и веб-админка готовы.** Перенесено **17 core-модулей**;
-остались 12 старых модулей и alpha-shell parity. Пользовательские обёртки
-работают.
+остались 12 старых модулей. Старая alpha-панель и её бандл удалены из
+MyDoMo. Пользовательские обёртки работают.
 
 Уже работает в новом ядре:
 
@@ -43,7 +43,8 @@ legacy-коду. Если документ относится к новому я
 - CLI: `about`, `doctor`, `health`, `route:list`, `queue:*`, `db:*`,
   `module:list`, `api:token`, `maintenance`, `timeout:run`;
 - `/health` (БД+кэш), `/status`, `/admin` (Blade-админка);
-- `PanelRenderer` + `layouts.alpha`, меню из core-модулей;
+- `PanelRenderer` + `layouts.alpha` на новом CSS/JS (`mydomo.css`/`mydomo.js`),
+  меню из core-модулей; старая панель `/panel/` и alpha-бандл удалены;
 - вход, UI Kit, профиль, API-маршруты, реестр модулей;
 - пользовательские обёртки: `say`, `gg`/`sg`, `getGlobal`/`setGlobal`,
   `getObject`, `getHistory`, `callMethod`/`cm`/`runMethod`/
@@ -62,7 +63,8 @@ legacy-коду. Если документ относится к новому я
 - 12 старых модулей: api, modes, pinghosts, mqtt, zigbee, xray,
   blockly_code, ai_assistant, control_modules, linkedobject, market,
   saverestore;
-- полная alpha-shell parity (console; поиск и уведомления уже работают);
+- UI Kit на Alpine/Yoyo и перенос оставшихся визуальных компонентов
+  (alpha — только ориентир, реализация своя);
 - установка/обновление, полный API v2;
 - live Redis-проверка;
 - автоматический запуск timeout/queue — только явные команды, циклы не трогаем.
