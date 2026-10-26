@@ -3,7 +3,7 @@
         <div>
             <div class="md-ui-hero__eyebrow"><x-md.icon name="palette" /> core · ui</div>
             <h1 class="md-ui-hero__title">UI Kit</h1>
-            <p class="md-ui-hero__lede">Alpha-дизайн и Blade-компоненты `x-md.*`. Новый CSS не добавляется.</p>
+            <p class="md-ui-hero__lede">Визуал alpha, компоненты нового ядра: Blade + Alpine. Alpha — только ориентир.</p>
         </div>
     </section>
 
@@ -61,4 +61,6 @@
     <x-md.activity-feed title="Лента" :items="[
         ['title' => 'Событие', 'text' => 'Alpha activity feed.', 'time' => '12:00', 'tone' => 'primary'],
     ]" />
+
+    @include('ui-kit.blade')
 </div>

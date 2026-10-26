@@ -37,6 +37,7 @@
 @endphp
 
 <aside {{ $attributes->class(['md-hint', 'md-hint--' . $tone, 'md-hint--compact' => $compact]) }}
+       @if ($dismissible) x-data="{show: true}" x-show="show" @endif
        role="note"
        @if ($id !== null) id="{{ $id }}" @endif>
     <span class="md-hint__icon"><x-md.icon :name="$icon" /></span>
@@ -67,7 +68,7 @@
         @endif
     </div>
     @if ($dismissible)
-        <button type="button" class="md-hint__close" data-md-dismiss="hint" aria-label="Скрыть подсказку">
+        <button type="button" class="md-hint__close" @click="show = false" aria-label="Скрыть подсказку">
             <x-md.icon name="x" />
         </button>
     @endif

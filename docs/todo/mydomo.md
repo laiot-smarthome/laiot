@@ -82,7 +82,7 @@ order: 5
   `RoleRepository`; 5 тестов.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
-  `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
+  `mydomo.css`/`mydomo.js`, `x-md.*` и Alpine, без нового layout/CSS.
 - [x] Первый core-модуль `shoutbox` перенесён полностью: `modules/core`,
   `ModuleDb`, Blade, alpha-layout; старый код удалён.
 - [x] Blade-компоненты `x-md.button/icon/badge/card/section-heading/alert/
@@ -125,13 +125,13 @@ Core-gate:
 8. [x] Alpha-layout: `layouts.alpha` + `PanelRenderer` + меню; поиск в шапке,
    drawer и центр уведомлений готовы (`/api/v1/panel/search`,
    `/api/v1/panel/notifications`). Старая панель `/panel/`, `admin.php`,
-   `nf.php` и alpha-бандл удалены; UI Kit на Alpine/Yoyo — отдельный этап.
+   `nf.php` и alpha-бандл удалены; Yoyo-обёртки UI Kit — отдельный этап.
 9. [x] API-слой и health: v1 health/about/modules/me + токены.
 10. [x] Тесты, docs, Docker-инструкция.
 11. [x] Цепочка события свойства: единая запись, история, `property_events`,
     OnChange-метод и защита от циклов; модуль `events` перенесён.
 
-Остаток: остальные core-модули, UI Kit на Alpine/Yoyo, install/update,
+Остаток: остальные core-модули, Yoyo-обёртки UI Kit, install/update,
 API v2 и live Redis. Обёртки `gg`/`sg`/`getObject`/`getHistory`/`callMethod`/
 `setTimeOut`/`clearTimeOut` уже работают.
 
@@ -858,6 +858,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `users`-модуль: список/создание/редактирование/soft delete; старый
   модуль и шаблоны удалены.
 - [x] `ui_kit`: новый справочник `x-md.*`; старые шаблоны удалены.
+- [x] UI Kit: `modal`/`drawer`/alerts на Alpine (`$store.mdModal`/
+  `$store.mdDrawer`), каталог встроен в `/module/ui_kit`; Bootstrap JS и
+  jQuery не используются; 4 теста.
 - [x] `system_errors`: новая таблица, запись из Kernel, фильтр/soft delete.
 - [x] `locations`: новая таблица, CRUD и приоритет; старый модуль удалён.
 - [x] `scripts`: новая таблица, CRUD/редактор без запуска циклов; старый

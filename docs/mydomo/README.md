@@ -63,8 +63,8 @@ MyDoMo. Пользовательские обёртки работают.
 - 12 старых модулей: api, modes, pinghosts, mqtt, zigbee, xray,
   blockly_code, ai_assistant, control_modules, linkedobject, market,
   saverestore;
-- UI Kit на Alpine/Yoyo и перенос оставшихся визуальных компонентов
-  (alpha — только ориентир, реализация своя);
+- UI Kit: Alpine-компоненты (`modal`, `drawer`, alerts) готовы; остались
+  Yoyo-обёртки и перенос оставшихся визуальных блоков (alpha — ориентир);
 - установка/обновление, полный API v2;
 - live Redis-проверка;
 - автоматический запуск timeout/queue — только явные команды, циклы не трогаем.

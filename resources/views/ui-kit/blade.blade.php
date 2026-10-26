@@ -42,7 +42,7 @@
     </div>
 
     <div class="md-ui-demo__canvas" style="display:block;">
-        <x-md.alert type="info" title="Blade-компоненты" text="Компоненты нового ядра; alpha используется только как визуальный ориентир." />
+        <x-md.alert id="blade-demo-alert" type="info" title="Blade-компоненты" text="Компоненты нового ядра; alpha используется только как визуальный ориентир." dismissible />
         <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin:1rem 0;">
             <x-md.status state="online" />
             <x-md.status state="warning" label="Проверка" />
@@ -73,10 +73,12 @@
 
     <div class="md-ui-demo__canvas" style="display:block;">
         <x-md.hint
+            id="blade-demo-hint"
             tone="tip"
-            title="Blade без нового дизайна"
-            text="Компонент использует те же md-hint-классы, что и alpha."
-            :points="['Классы не меняются', 'CSS не добавляется', 'Yoyo подключается позже']"
+            title="Blade + Alpine"
+            text="Визуал alpha, поведение новое: без jQuery и Bootstrap JS."
+            :points="['Blade-компоненты', 'Alpine для интерактива', 'Yoyo для серверных блоков']"
+            dismissible
         />
         <div style="margin-top:1rem;">
             <x-md.activity-feed
@@ -97,10 +99,14 @@
         <div style="margin-top:1rem;">
             <x-md.skeleton :lines="3" />
         </div>
-        <x-md.modal id="blade-demo-modal" title="Модалка на Blade">
-            <p>Разметка модалки совпадает с alpha; открытие остаётся на Bootstrap.</p>
+        <div x-data style="margin-top:1rem; display:flex; gap:.5rem; flex-wrap:wrap;">
+            <x-md.button type="button" icon="maximize" @click="$store.mdModal.show('blade-demo-modal')">Открыть модалку</x-md.button>
+            <x-md.button type="button" variant="secondary" icon="layout-sidebar" @click="$store.mdDrawer.show('blade-demo-drawer')">Открыть drawer</x-md.button>
+        </div>
+        <x-md.modal id="blade-demo-modal" title="Модалка на Alpine">
+            <p>Состояние хранится в Alpine store, Bootstrap JS не нужен.</p>
         </x-md.modal>
-        <x-md.drawer id="blade-demo-drawer" title="Drawer на Blade" subtitle="Те же классы md-drawer.">
+        <x-md.drawer id="blade-demo-drawer" title="Drawer на Alpine" subtitle="Те же md-* классы, новое поведение.">
             <p>Содержимое drawer.</p>
         </x-md.drawer>
     </div>

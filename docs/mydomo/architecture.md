@@ -115,7 +115,8 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 Внешний вид — **только alpha**. Новый слой представлений:
 
 - `resources/views/components/md/*` — Blade-компоненты с alpha-классами;
-- `resources/views/ui-kit/blade.blade.php` — демо в существующем UI Kit;
+- `resources/views/ui-kit/blade.blade.php` — каталог компонентов, встроен в
+  `/module/ui_kit`;
 - `src/View/BladeRenderer.php` — временный мост для alpha-shell;
 - `Http\PanelRenderer` + `PanelPage` — единая сборка страницы в alpha-layout;
   меню строится из `ModuleManager::menuItems()`;
@@ -125,8 +126,10 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
   ядра: Bootstrap CSS, Alpine и собственные vanilla-модули (тема, меню,
   поиск, уведомления, drawer). jQuery, `admin.js` и alpha-плагины в MyDoMo не
   подключаются и не собираются;
+- интерактивные `x-md.*` — на Alpine: `$store.mdModal`/`$store.mdDrawer`,
+  `@click`/`:class`/`:style`, без Bootstrap JS и `data-bs-*`;
 - `src/Http/Controllers/PanelSearchController.php` — `/api/v1/panel/search`
-  в конверте `{ok,data}` для `window.MDJAdminApi`;
+  в конверте `{ok,data}` для `resources/js/mydomo/api.js`;
 - `src/Http/Controllers/NotificationsController.php` — `/api/v1/panel/notifications`
   и `dismiss`; колокольчик и drawer строятся из `layouts.alpha` и JS
   `60/61_module_notifications`, `20_drawer`;

@@ -5,7 +5,6 @@
     'selected' => '',
     'placeholder' => null,
     'multiple' => false,
-    'searchable' => false,
     'label' => null,
     'description' => null,
     'hint' => null,
@@ -38,9 +37,6 @@
     }
     if ($multiple) {
         $attrs .= ' multiple';
-    }
-    if ($searchable) {
-        $attrs .= ' data-md-searchable';
     }
     if ($hasError) {
         $attrs .= ' aria-invalid="true" aria-describedby="' . e($id) . '-help"';
