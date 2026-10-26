@@ -51,7 +51,9 @@ use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Logging\RequestContext;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Modules\ModuleManager;
+use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
+use MajorDoMo\Properties\ValueRepository;
 use MajorDoMo\Queue\DatabaseQueue;
 use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
@@ -173,6 +175,8 @@ final class Application
         $this->container->instance(ClassRepository::class, new ClassRepository($this->database));
         $this->container->instance(PropertyRepository::class, new PropertyRepository($this->database));
         $this->container->instance(MethodRepository::class, new MethodRepository($this->database));
+        $this->container->instance(ObjectRepository::class, new ObjectRepository($this->database));
+        $this->container->instance(ValueRepository::class, new ValueRepository($this->database));
         $this->container->instance(Authorization::class, new Authorization($this->session, $roles));
 
         $users = new UserRepository($this->database);

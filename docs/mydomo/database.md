@@ -21,6 +21,8 @@ user_roles
 settings
 action_log
 users
+objects
+property_values
 ```
 
 Никаких `ID`, `QUEUE`, `CREATED_AT`. Таблицы alpha (`users`, `objects`)

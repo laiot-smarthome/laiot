@@ -7,3 +7,4 @@ parameters:
     reportUnmatchedIgnoredErrors: false
     scanFiles:
         - modules/core/shoutbox/helpers.php
+        - src/Support/helpers/globals.php

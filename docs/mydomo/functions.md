@@ -225,20 +225,28 @@ say('Дверь открыта', 0, 0, 'script');
 - `level` пока игнорируется;
 - при отсутствии таблицы/БД пишет warning в лог, не роняет сценарий.
 
-`gg`, `sg`, `setTimeOut`, `clearTimeOut`, `callMethod`, `getObject`,
-`getHistory` **пока не перенесены**: они зависят от объектов/свойств/методов,
-которые ещё не стали core-сервисами. Не обещайте их в новом API.
+Уже работают в MyDoMo:
+
+```php
+gg('Кухня.temperature');      // значение свойства (string|null)
+sg('Кухня.temperature', 23.5); // true/false
+getObject('Кухня');            // array|null
+```
+
+`gg`/`sg` работают только с существующими объектом и свойством; значения
+хранятся в `property_values`.
+
+`setTimeOut`, `clearTimeOut`, `callMethod`, `getHistory` **пока не
+перенесены**: они зависят от исполнения методов/истории, которые ещё не
+стали core-сервисами.
 
 Планируемый контракт (ещё не реализован):
 
 | Обёртка | Смысл | Возврат |
 | --- | --- | --- |
-| `gg($name, $default = null)` | публичное состояние/свойство | mixed |
-| `sg($name, $value)` | записать публичное состояние | bool/результат сервиса |
 | `setTimeOut($name, $delay, $method)` | таймер | id/результат |
 | `clearTimeOut($id)` | снять таймер | bool |
 | `callMethod($object, $method, $params = [])` | вызвать метод | mixed |
-| `getObject($name)` | объект по имени | object/array |
 | `getHistory($object, $property, $limit)` | история свойства | array |
 
 ## 11. Для агента

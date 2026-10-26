@@ -57,6 +57,41 @@ final readonly class PropertyRepository
         ];
     }
 
+    /**
+     * @return list<array{id:int,title:string,data_type:string}>
+     */
+    public function forClass(int $classId): array
+    {
+        return $this->database->connection()->table('properties')
+            ->where('class_id', $classId)
+            ->whereNull('deleted_at')
+            ->orderBy('title')
+            ->get()
+            ->map(static fn (object $row): array => [
+                'id' => (int)$row->id,
+                'title' => (string)$row->title,
+                'data_type' => (string)$row->data_type,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array{id:int,class_id:int,title:string}|null
+     */
+    public function findByTitle(string $title): ?array
+    {
+        $row = $this->database->connection()->table('properties')
+            ->where('title', $title)
+            ->whereNull('deleted_at')
+            ->first();
+
+        return $row === null ? null : [
+            'id' => (int)$row->id,
+            'class_id' => (int)$row->class_id,
+            'title' => (string)$row->title,
+        ];
+    }
+
     public function create(int $classId, string $title, string $description, string $dataType, bool $keepHistory, string $onChange): int
     {
         $now = date('Y-m-d H:i:s');

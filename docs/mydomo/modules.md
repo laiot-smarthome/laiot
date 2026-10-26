@@ -212,6 +212,7 @@ Third-party (позже):
 - `classes` — новая таблица `classes`, CRUD;
 - `properties` — новая таблица `properties`, CRUD; значения/история — дальше;
 - `methods` — новая таблица `methods`, CRUD без запуска кода;
+- `objects` — новые `objects`/`property_values`, объект + значения свойств;
 - остальные модули — после закрытия оставшегося core-gate.
 
 ## 8. Публичные helpers модуля

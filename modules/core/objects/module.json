@@ -1,0 +1,15 @@
+{
+    "id": "objects",
+    "type": "core",
+    "name": "Объекты",
+    "version": "2.0.0",
+    "namespace": "MajorDoMo\\Modules\\Core\\Objects\\",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "menu": {
+        "title": "Объекты",
+        "route": "objects.index",
+        "order": 21
+    }
+}
