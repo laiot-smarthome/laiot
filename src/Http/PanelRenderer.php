@@ -45,6 +45,7 @@ final readonly class PanelRenderer
     {
         $items = [
             ['id' => 'status', 'label' => 'Статус', 'href' => '/status', 'icon' => 'ti-activity'],
+            ['id' => 'roles', 'label' => 'Роли', 'href' => '/roles', 'icon' => 'ti-shield'],
         ];
         foreach ($this->modules->menuItems() as $item) {
             $items[] = $item;

@@ -48,6 +48,40 @@ final readonly class RoleRepository
     }
 
     /**
+     * @return list<array{id:int,name:string,title:string}>
+     */
+    public function allRoles(): array
+    {
+        return $this->database->connection()->table('roles')
+            ->whereNull('deleted_at')
+            ->orderBy('id')
+            ->get()
+            ->map(static fn (object $row): array => [
+                'id' => (int)$row->id,
+                'name' => (string)$row->name,
+                'title' => (string)$row->title,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return list<array{id:int,name:string,title:string}>
+     */
+    public function allPermissions(): array
+    {
+        return $this->database->connection()->table('permissions')
+            ->whereNull('deleted_at')
+            ->orderBy('id')
+            ->get()
+            ->map(static fn (object $row): array => [
+                'id' => (int)$row->id,
+                'name' => (string)$row->name,
+                'title' => (string)$row->title,
+            ])
+            ->all();
+    }
+
+    /**
      * @param list<int> $roleIds
      */
     public function syncUserRoles(int $userId, array $roleIds): void

@@ -147,7 +147,7 @@ php bin/mydomo api:token 1 "monitoring"
 `X-API-Key: <token>`.
 
 Страница `/status` (auth) показывает версию, PHP, БД/кэш и число модулей
-в alpha-layout.
+в alpha-layout. `/roles` (auth + `can:users.manage`) — роли и permissions.
 
 Ошибки — JSON с `error.code` и `request_id`. Пока это публичный срез без
 токенов; auth API — следующий этап.

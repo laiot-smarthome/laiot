@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Routing\Router;
 use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\LoginController;
+use MajorDoMo\Http\Controllers\RolesController;
 use MajorDoMo\Http\Controllers\StatusController;
 use MajorDoMo\Http\Controllers\YoyoController;
 use MajorDoMo\Http\Controllers\YoyoDemoController;
@@ -17,6 +18,9 @@ return static function (Router $router): void {
         $router->get('/status', StatusController::class)
             ->middleware(['auth'])
             ->name('status');
+        $router->get('/roles', RolesController::class)
+            ->middleware(['auth', 'can:users.manage'])
+            ->name('roles');
 
         $router->get('/login', [LoginController::class, 'show'])->name('login');
         $router->post('/login', [LoginController::class, 'login'])

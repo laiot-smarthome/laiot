@@ -670,6 +670,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `layouts.alpha` + `PanelRenderer`/`/status`; 2 теста.
 - [x] API auth: `api_tokens`, Bearer/X-API-Key, `/api/v1/me` с ролями и
   permissions, `api:token`; 2 теста.
+- [x] Страница `/roles`: роли/права, `can:users.manage`; 2 теста.
 - [x] `/health` проверяет БД и кэш; `/status` — версия/БД/кэш/модули.
 - [x] `doctor` + автосоздание `var/cache`, `var/log`; 1 тест.
 - [x] Login throttle: 5 попыток/60 секунд по IP; 2 теста.
