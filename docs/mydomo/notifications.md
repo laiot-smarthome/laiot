@@ -34,7 +34,7 @@ order: 9
 ```php
 use MajorDoMo\Notifications\NotificationService;
 
-$service = app()->container()->make(NotificationService::class);
+$service = $app->container()->make(NotificationService::class);
 
 $result = $service->send('events', 'Цикл остановлен', 'warning', [
     'key' => 'chain:Кухня.temperature',
@@ -106,8 +106,8 @@ GET требует сессию администратора, POST — ещё и
 
 - кнопка `[data-md-notifications-open]` с бейджем
   `[data-md-notifications-count]` в шапке;
-- общий drawer `#mdAdminDrawerHost` (`20_drawer.js`);
-- скрытый блок `#mdNotificationsContent` (`61_module_notifications.js`),
+- общий drawer `#mdAdminDrawerHost` (`resources/js/mydomo/drawer.js`);
+- скрытый блок `#mdNotificationsContent` (`resources/js/mydomo/notifications.js`),
   который переносится в drawer при открытии.
 
 Открытие списка не считается прочтением: запись скрывается только после
@@ -116,6 +116,12 @@ GET требует сессию администратора, POST — ещё и
 нет.
 
 ## 6. Чего пока нет
+
+Отдельная ядровая страница `/notifications` уже существует:
+`src/Http/Controllers/Core/NotificationsPageController.php` и
+`resources/views/pages/notifications/index.blade.php`. Она показывает
+непрочитанные записи и принимает POST `/notifications/{id}/dismiss` с CSRF.
+Это не история всех прочитанных уведомлений.
 
 - push по WebSocket и отдельного события в журнале системы;
 - страницы истории прочитанных уведомлений и retention;
@@ -128,3 +134,4 @@ GET требует сессию администратора, POST — ещё и
 - [Функции и обёртки](functions.md)
 - [Модульная система](modules.md)
 - [Мастер-план](../todo/mydomo.md)
+- [API](api.md)

@@ -1,105 +1,118 @@
 ---
-title: Ядро и модули MyDoMo
-audience: user, agent
+title: MyDoMo — границы ядра и модулей
+audience: agent, user
 category: core
-tags: mydomo, модули, core, sdk, ModuleDb, ModuleBus, CoreSections
-description: Разделение ядровых разделов и модулей MyDoMo, SDK, ModuleDb и порядок переноса.
-order: 6
+tags: mydomo, модули, ядро, sdk, module_db, module_bus
+description: Чем ядровая страница отличается от интеграционного SDK-модуля, как устроены данные, события и доверие к коду.
+order: 11
 ---
 
-# Ядро и модули
+# Ядро и SDK-модули
 
-## 1. Две категории
+Ядровые страницы объектов, пользователей, настроек, очереди и журналов —
+часть приложения. Они перенесены в `src/Http/Controllers/Core` и
+`resources/views/pages`; у них нет манифеста и lifecycle. Полная карта —
+[core-sections.md](core-sections.md).
 
-| Категория | Где живёт | Lifecycle | Примеры |
+Модуль — интеграция или внешнее расширение с `module.json`: например,
+MQTT, Zigbee, сторонний сетевой адаптер. Базовый SDK уже реализован,
+это не будущий контракт. Пример — `modules/example_sdk`.
+
+## Типы
+
+| Тип | Каталог | Установка | Выключение/удаление |
 | --- | --- | --- | --- |
-| Ядровой раздел | `src/Http/Controllers/Core`, `resources/views/pages`, `routes/web.php` | часть ядра | объекты, классы, скрипты, события, очередь, API, база знаний |
-| Модуль | `modules/core/<id>` или `modules/<id>` | SDK install/enable/disable | MQTT, Zigbee, сторонние |
+| Ядровая страница | `src/Http/Controllers/Core` | Поставка приложения | Не предусмотрено |
+| SDK `core` | `modules/core/<id>` | Подключается как встроенный модуль | Запрещено lifecycle-сервисом |
+| SDK `module` | `modules/<id>` | Через `module:install` | Через SDK lifecycle |
 
-Ядровые разделы **не являются модулями**: у них нет `module.json`,
-`ModuleDb`, `ModuleBus` и lifecycle. Они не появляются в `module:list` и
-`/admin/modules`. Меню строится `src/Panel/CoreSections.php`.
+Наличие старого каталога в `modules` ещё не означает, что он подключён
+новым SDK: нужны валидный манифест, совместимость, а для стороннего модуля —
+активная запись реестра. Оставшиеся alpha-интеграции переносятся отдельно.
 
-Модулями остаются только MQTT, Zigbee и сторонние SDK-модули.
+## Одна инструкция по реализации
 
-## 2. Ядровые разделы
+Формат манифеста, boot/install hooks, миграции и CLI описаны только в
+[sdk.md](sdk.md), фоновые задачи — в [runtime.md](runtime.md).
+Не копируйте альтернативную схему module.json в этот документ: раньше
+такие копии расходились с фактическим ModuleManifest.
 
-URL без `/module`:
+`ModuleManager::all()` — подключённые модули; `discovered()` — все
+найденные валидные манифесты, включая неустановленные.
+`module:list` показывает SDK, а не количество ядровых разделов панели.
 
-| Раздел | URL |
-| --- | --- |
-| объекты | `/objects` |
-| классы | `/classes` |
-| свойства | `/properties` |
-| методы | `/methods` |
-| значения | `/values` |
-| история | `/history` |
-| локации | `/locations` |
-| скрипты | `/scripts` |
-| события | `/events` |
-| очередь | `/jobs` |
-| база знаний | `/knowledge-base` |
-| пользователи | `/users` |
-| настройки | `/settings` |
-| журнал | `/journal` |
-| ошибки | `/errors` |
-| API/webhooks | `/api` |
-| оповещения | `/notifications` |
-| UI Kit | `/ui-kit` |
+## Данные модуля
 
-Контроллеры — `MajorDoMo\Http\Controllers\Core`, views — `pages.<id>.*`.
-Доступ к данным идёт через ядровые репозитории/сервисы, а не `ModuleDb`.
+`ModuleDb` разрешает только логические таблицы из `storage.tables`.
+Физические имена в обоих драйверах — `module_<id>_<table>`.
+SQLite-хранилище модуля изолируется отдельным файлом в разрешённом
+каталоге; точное имя определяет ModuleDb, не вызывающий контроллер.
 
-## 3. Модули
-
-```text
-modules/core/mqtt/       # type=core, всегда включён
-modules/core/zigbee/     # type=core, всегда включён
-modules/<id>/            # сторонний, install/disable/remove
+```php
+$db = $context->db();
+if ($db === null) {
+    throw new LogicException('Для этого сервиса требуется storage модуля.');
+}
+$rows = $db->table('notes')->orderByDesc('id')->get();
 ```
 
-Структура модуля и `module.json` описаны в [sdk.md](sdk.md). Модуль получает:
+ModuleDb может отсутствовать, если `storage` не объявлен: сервис модуля,
+которому нужны данные, должен проверять это явно, а не молча считать
+операцию записи успешной. Доступны ограниченные query-операции;
+raw SQL, join и обращение к чужой таблице не часть этого API.
 
-- префикс маршрутов `/module/<id>`;
-- `ModuleDb` только для своих таблиц `module_<id>_*`;
-- `ModuleBus` для retained-событий;
-- запись в `module_registry` (сторонние);
-- меню в группе «Модули».
+Данные ядра читаются/изменяются через публичные сервисы: например,
+PropertyValueService, а не через попытку включить `objects` в список
+собственных таблиц модуля. Методы репозитория и бизнес-инварианты ядра
+не следует обходить прямой записью из интеграции.
 
-Core-модули (MQTT/Zigbee) нельзя disable/remove; они обновляются вместе с
-ядром.
+## Обмен состоянием
 
-## 4. Данные
+ModuleBus публикует в `module.<id>.*`, хранит последнее состояние в
+`shared_events` и даёт читать чужие публичные темы. Старое имя
+`module_shared_events` переименовывает миграция `000026`.
 
-- ядровые таблицы — lowercase без префикса (`objects`, `property_events`,
-  `api_webhooks`, `shared_events` и т.д.);
-- таблицы модулей — `module_<id>_<table>`, доступ только через `ModuleDb`;
-- `module_registry`/`module_migrations` — SDK-реестр;
-- `shared_events` — ядровая шина `ModuleBus`.
+```php
+$bus = $context->bus();
+$bus->publish('router.42.online', ['online' => true], 300);
+$event = $bus->latest('module.keenetic.router.42.online');
+$bus->subscribe('module.keenetic.router.*', static function (string $topic, array $payload): void {
+    // $topic — полное имя темы, $payload — опубликованные данные.
+});
+```
 
-## 5. Frontend
+Подписки существуют в текущем PHP-процессе, а не как отдельный брокер или
+долговечная доставка. Callback получает `($topic, $payload)`;
+retained-чтение не выполняет старые listener заново.
+Фоновое выполнение работы оформляется отдельным заданием/задачей.
 
-- ядровой layout `resources/views/layouts/alpha.blade.php`;
-- ядровые views `resources/views/pages/<id>`;
-- модульные views — namespace `<id>::`;
-- `x-md.*` компоненты общие; модуль не создаёт свой layout.
+## Helpers и сервисы
 
-## 6. Порядок переноса
+HelperLoader подключает `src/Support/helpers/*.php` и объявленный в
+манифесте helper-файл включённого модуля. Публичная функция должна иметь
+префикс ID, например `weather_latest`, и делегировать сервису, а не
+содержать SQL и сборку HTML.
 
-1. Ядровые разделы уже перенесены из `modules/core` в ядро.
-2. Следующие шаги:
-   - MQTT и Zigbee как core-модули SDK;
-   - оставшийся старый backend `modes`, `pinghosts`, `xray`,
-     `control_modules`, `market`, `saverestore`, `ai_assistant` — в ядровые
-     сервисы/разделы;
-   - удаление старых `modules/<id>` после переноса.
-3. Циклы переводятся на `worker`/`core-worker`; старые `cycle_*` не трогаются
-   до готовности systemd-слоя.
+`$app->modules()->service($id, $class)` разрешает класс из namespace
+модуля и кэширует его экземпляр в текущем контейнере. Не путайте это
+кэширование объекта с межпроцессным CacheStore.
 
-## 7. Текущее состояние
+Shoutbox удалён; `shoutbox_latest()` больше не рабочий учебный пример.
+Для новой интеграции используйте пример SDK, для сообщений панели —
+[NotificationService](notifications.md).
 
-- `CoreSections` — источник меню ядра;
-- `modules/core` пуст, готов для MQTT/Zigbee;
-- `modules/example_sdk` — пример SDK, не установлен по умолчанию;
-- старые `modules/<id>` без `module.json` не подключаются;
-- `/admin/modules` показывает только SDK-модули.
+## Представления и доверие
+
+Маршруты SDK получают `/module/<id>`, `auth`, контекст данных/шины и
+namespace представлений. Изменяющим маршрутам модуль сам назначает CSRF
+и нужные разрешения. Автоматического связывания `permissions` манифеста
+с таблицами ролей пока нет.
+
+Представления используют общий Blade-layout, `x-md.*` и локальный бандл.
+Визуальный образец — `/ui-kit`; старые MDJUI PHP/JTemplate и jQuery в новый
+код не переносятся.
+
+SDK не является PHP-песочницей: модуль получает контейнер и выполняется
+как доверенный код. ModuleDb — граница поддерживаемого API, а не защита
+от злонамеренного произвольного PHP. CodeGuard пока не реализован.
+См. [limitations.md](limitations.md) перед обещанием технической изоляции.

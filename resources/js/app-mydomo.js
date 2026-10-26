@@ -14,6 +14,9 @@ import {initSidebar} from './mydomo/sidebar.js';
 import {initDrawer} from './mydomo/drawer.js';
 import {initSearch} from './mydomo/search.js';
 import {initNotifications} from './mydomo/notifications.js';
+import {initConfirm} from './mydomo/confirm.js';
+import {initCodeEditors} from './mydomo/code-editor.js';
+import {initChartMounts} from './mydomo/chart-mount.js';
 import './mydomo/linked-object.js';
 
 window.Alpine = Alpine;
@@ -38,10 +41,14 @@ Alpine.store('mdDrawer', {
     },
 });
 
+Alpine.store('mdConfirm', initConfirm());
+
 initTheme();
 initSidebar();
 initDrawer();
 initSearch();
 initNotifications();
+initCodeEditors();
+initChartMounts();
 
 Alpine.start();

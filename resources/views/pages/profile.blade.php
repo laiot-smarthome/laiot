@@ -1,22 +1,46 @@
 <div class="md-ui-page md-ui-page--stack">
-    <section class="md-ui-hero">
-        <div>
-            <div class="md-ui-hero__eyebrow"><x-md.icon name="user-circle" /> аккаунт</div>
-            <h1 class="md-ui-hero__title">Профиль</h1>
-            <p class="md-ui-hero__lede">{{ $user['username'] ?? '' }}</p>
-        </div>
-    </section>
+    <x-md.page-hero
+        eyebrow="Аккаунт"
+        icon="user-circle"
+        title="Профиль"
+        :lede="$user['username'] ?? ''"
+        :meta="[
+            ['icon' => 'shield', 'label' => 'Доступ', 'value' => ($user['is_admin'] ?? false) ? 'администратор' : 'пользователь'],
+        ]">
+        <x-slot:actions>
+            @if ($user['is_admin'] ?? false)
+                <x-md.button href="/users" variant="secondary" icon="users">Пользователи</x-md.button>
+            @endif
+            <form method="post" action="/logout" class="md-inline-form">
+                <input type="hidden" name="_token" value="{{ $csrf }}">
+                <x-md.button type="submit" variant="ghost" icon="logout">Выйти</x-md.button>
+            </form>
+        </x-slot:actions>
+    </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" :text="$error" />
+        <x-md.alert type="danger" title="Не удалось сохранить профиль" :text="$error" />
     @endif
 
-    <x-md.card title="Данные">
-        <form method="post" action="/admin/profile" class="md-form">
-            <input type="hidden" name="_token" value="{{ $csrf }}">
-            <x-md.input name="name" label="Имя" :value="$name" required />
-            <x-md.input name="password" type="password" label="Новый пароль" hint="Оставьте пустым, чтобы не менять" />
+    <form method="post" action="/admin/profile" class="md-ui-form">
+        <input type="hidden" name="_token" value="{{ $csrf }}">
+
+        <x-md.card title="Личные данные">
+            <div class="md-ui-form-stack">
+                <div class="md-ui-form-grid">
+                    <x-md.input name="name" label="Имя" :value="$name" required
+                                hint="Отображается в панели и журнале действий." />
+                    <x-md.input name="username" label="Логин" :value="$user['username'] ?? ''" disabled
+                                hint="Логин меняет администратор в карточке пользователя." />
+                    <x-md.input name="password" type="password" label="Новый пароль" value=""
+                                hint="Оставьте пустым, чтобы не менять. Минимум 8 символов." />
+                </div>
+            </div>
+        </x-md.card>
+
+        <div class="md-ui-form-actions">
             <x-md.button type="submit" icon="check">Сохранить</x-md.button>
-        </form>
-    </x-md.card>
+            <x-md.button href="/admin" variant="ghost">Отмена</x-md.button>
+        </div>
+    </form>
 </div>

@@ -10,6 +10,7 @@ use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyValueService;
 use MajorDoMo\Properties\ValueRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -28,6 +29,7 @@ final readonly class PvaluesController extends Controller
         private Factory $view,
         private ValueRepository $values,
         private PropertyValueService $propertyValues,
+        private ObjectRepository $objects,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -36,9 +38,12 @@ final readonly class PvaluesController extends Controller
     public function index(Request $request): Response
     {
         $search = trim((string)$request->query->get('q', ''));
+        $objectId = max(0, (int)$request->query->get('object_id', 0));
         $content = $this->view->make('pages.pvalues.index', [
-            'values' => $this->values->all($search),
+            'values' => $this->values->all($search, $objectId),
+            'objects' => $this->objects->all(),
             'search' => $search,
+            'objectId' => $objectId,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
@@ -57,13 +62,13 @@ final readonly class PvaluesController extends Controller
             );
         }
 
-        return new RedirectResponse('/module/pvalues');
+        return new RedirectResponse('/values');
     }
 
     public function delete(string $id): Response
     {
         $this->values->delete((int)$id);
 
-        return new RedirectResponse('/module/pvalues');
+        return new RedirectResponse('/values');
     }
 }

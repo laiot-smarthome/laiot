@@ -17,7 +17,9 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Свойства классов: CRUD. Значения свойств — следующий слой.
+ * Свойства классов: каталог с поиском и фильтром по классу.
+ *
+ * 2026-10-26 — добавлены поиск, фильтр, типы данных и OnChange в списке.
  */
 final readonly class PropertiesController extends Controller
 {
@@ -30,31 +32,41 @@ final readonly class PropertiesController extends Controller
     ) {
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $classes = [];
-        foreach ($this->classes->all() as $class) {
-            $classes[$class['id']] = $class['title'];
+        $search = trim((string)$request->query->get('q', ''));
+        $classId = max(0, (int)$request->query->get('class_id', 0));
+        $classes = $this->classes->all();
+
+        $names = [0 => 'Глобальные'];
+        foreach ($classes as $class) {
+            $names[$class['id']] = $class['title'];
         }
 
         $content = $this->view->make('pages.properties.index', [
-            'properties' => $this->properties->all(),
+            'properties' => $this->properties->all($search, $classId),
             'classes' => $classes,
+            'classNames' => $names,
+            'search' => $search,
+            'classId' => $classId,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
         return $this->panel->render(new PanelPage('Свойства', $content, 'properties'));
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return $this->form(null);
+        // Класс можно передать ссылкой из карточки класса: селект уже заполнен.
+        $classId = max(0, (int)$request->query->get('class_id', 0));
+
+        return $this->form(null, null, $classId > 0 ? ['class_id' => $classId] : null);
     }
 
     public function store(Request $request): Response
     {
         try {
-            $this->properties->create(
+            $id = $this->properties->create(
                 (int)$request->request->get('class_id', 0),
                 (string)$request->request->get('title', ''),
                 (string)$request->request->get('description', ''),
@@ -66,7 +78,7 @@ final readonly class PropertiesController extends Controller
             return $this->form(null, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse('/module/properties');
+        return new RedirectResponse('/properties/' . $id . '/edit');
     }
 
     public function edit(string $id): Response
@@ -74,7 +86,7 @@ final readonly class PropertiesController extends Controller
         $property = $this->properties->find((int)$id);
 
         return $property === null
-            ? $this->panel->render(new PanelPage('Свойства', '<p class="md-alert md-alert--danger">Свойство не найдено.</p>', 'properties'), 404)
+            ? $this->panel->render(new PanelPage('Свойство не найдено', '<p class="md-alert md-alert--danger">Свойство не найдено.</p>', 'properties'), 404)
             : $this->form($property);
     }
 
@@ -82,7 +94,7 @@ final readonly class PropertiesController extends Controller
     {
         $property = $this->properties->find((int)$id);
         if ($property === null) {
-            return new RedirectResponse('/module/properties');
+            return new RedirectResponse('/properties');
         }
 
         try {
@@ -99,14 +111,14 @@ final readonly class PropertiesController extends Controller
             return $this->form($property, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse('/module/properties');
+        return new RedirectResponse('/properties');
     }
 
     public function delete(string $id): Response
     {
         $this->properties->delete((int)$id);
 
-        return new RedirectResponse('/module/properties');
+        return new RedirectResponse('/properties');
     }
 
     /**
@@ -123,6 +135,9 @@ final readonly class PropertiesController extends Controller
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
-        return $this->panel->render(new PanelPage($property === null ? 'Новое свойство' : 'Свойство', $content, 'properties'), $status);
+        return $this->panel->render(
+            new PanelPage($property === null ? 'Новое свойство' : 'Свойство: ' . (string)$property['title'], $content, 'properties'),
+            $status
+        );
     }
 }

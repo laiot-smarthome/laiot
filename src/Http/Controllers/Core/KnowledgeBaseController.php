@@ -66,6 +66,6 @@ final readonly class KnowledgeBaseController extends Controller
 
     private static function url(string $id): string
     {
-        return '/module/knowledge_base/' . implode('/', array_map('rawurlencode', explode('/', $id)));
+        return '/knowledge-base/' . implode('/', array_map('rawurlencode', explode('/', $id)));
     }
 }

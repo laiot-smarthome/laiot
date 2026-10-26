@@ -2,6 +2,7 @@
     'id' => null,
     'title' => '',
     'footer' => null,
+    'actions' => null,
     'size' => null,
 ])
 
@@ -35,8 +36,8 @@
                         <button type="button" class="btn-close" @click="$store.mdModal.close()" aria-label="Закрыть"></button>
                     </div>
                     <div class="modal-body">{{ $slot }}</div>
-                    @if ($footer !== null)
-                        <div class="modal-footer">{!! $footer !!}</div>
+                    @if ($footer !== null || trim((string)($actions ?? '')) !== '')
+                        <div class="modal-footer">{!! $footer !!}{{ $actions ?? '' }}</div>
                     @endif
                 </div>
             </div>

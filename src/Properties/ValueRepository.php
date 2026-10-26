@@ -37,12 +37,15 @@ final readonly class ValueRepository
     /**
      * @return list<array{id:int,object_id:int,object_title:string,property_id:int,property_title:string,value:string,updated_at:string}>
      */
-    public function all(string $search = ''): array
+    public function all(string $search = '', int $objectId = 0): array
     {
         $query = $this->database->connection()->table('property_values')
             ->join('objects', 'objects.id', '=', 'property_values.object_id')
             ->join('properties', 'properties.id', '=', 'property_values.property_id')
             ->whereNull('property_values.deleted_at');
+        if ($objectId > 0) {
+            $query->where('property_values.object_id', $objectId);
+        }
         if ($search !== '') {
             $query->where(static function ($query) use ($search): void {
                 $query->where('objects.title', 'like', '%' . $search . '%')

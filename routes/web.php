@@ -45,6 +45,12 @@ return static function (Router $router): void {
         $router->get('/admin/modules', ModulesPageController::class)
             ->middleware(['auth'])
             ->name('admin.modules');
+        foreach (['enable', 'disable', 'install', 'remove'] as $moduleAction) {
+            $router->post('/admin/modules/{id}/' . $moduleAction, [ModulesPageController::class, $moduleAction])
+                ->where('id', '[a-z0-9_]+')
+                ->middleware(['auth', 'can:settings.manage', 'csrf'])
+                ->name('admin.modules.' . $moduleAction);
+        }
         $router->get('/admin/api', ApiDocsController::class)
             ->middleware(['auth'])
             ->name('admin.api');
@@ -133,6 +139,22 @@ return static function (Router $router): void {
             $router->post('/locations/{id}/delete', [LocationsController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('locations.delete');
 
             $router->get('/scripts', [ScriptsController::class, 'index'])->name('scripts.index');
+            $router->get('/scripts/export', [ScriptsController::class, 'export'])->name('scripts.export');
+            $router->get('/scripts/import', [ScriptsController::class, 'importForm'])->name('scripts.import');
+            $router->post('/scripts/import', [ScriptsController::class, 'import'])
+                ->middleware('csrf')
+                ->name('scripts.import.store');
+            $router->post('/scripts/categories', [ScriptsController::class, 'storeCategory'])
+                ->middleware('csrf')
+                ->name('scripts.categories.store');
+            $router->post('/scripts/categories/{id}', [ScriptsController::class, 'renameCategory'])
+                ->whereNumber('id')
+                ->middleware('csrf')
+                ->name('scripts.categories.rename');
+            $router->post('/scripts/categories/{id}/delete', [ScriptsController::class, 'deleteCategory'])
+                ->whereNumber('id')
+                ->middleware('csrf')
+                ->name('scripts.categories.delete');
             $router->get('/scripts/create', [ScriptsController::class, 'create'])->name('scripts.create');
             $router->post('/scripts/create', [ScriptsController::class, 'store'])->middleware('csrf')->name('scripts.store');
             $router->get('/scripts/{id}/edit', [ScriptsController::class, 'edit'])->whereNumber('id')->name('scripts.edit');
@@ -163,6 +185,9 @@ return static function (Router $router): void {
             $router->post('/journal/{id}/delete', [ActionsLogController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('actions_log.delete');
 
             $router->get('/errors', [SystemErrorsController::class, 'index'])->name('system_errors.index');
+            $router->post('/errors/group-delete', [SystemErrorsController::class, 'deleteGroup'])
+                ->middleware('csrf')
+                ->name('system_errors.delete_group');
             $router->post('/errors/{id}/delete', [SystemErrorsController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('system_errors.delete');
 
             $router->get('/ui-kit', [UiKitController::class, 'index'])->name('ui_kit.index');

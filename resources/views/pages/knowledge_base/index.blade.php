@@ -1,67 +1,57 @@
 <div class="md-ui-page md-ui-page--stack">
-    <section class="md-ui-hero">
-        <div>
-            <div class="md-ui-hero__eyebrow"><x-md.icon name="book" /> core · knowledge_base</div>
-            <h1 class="md-ui-hero__title">База знаний</h1>
-            <p class="md-ui-hero__lede">Те же Markdown-файлы, что читают агенты: категории, аудитория и поиск по тексту.</p>
-        </div>
-    </section>
+    <x-md.page-hero
+        eyebrow="Автоматизация"
+        icon="book"
+        title="База знаний"
+        lede="Документация проекта из docs/** читается напрямую: одна и та же для людей и агентов."
+        :meta="[
+            ['icon' => 'files', 'label' => 'Материалов', 'value' => count($documents)],
+            ['icon' => 'folder', 'label' => 'Категорий', 'value' => count($categories)],
+        ]" />
 
-    <x-md.card title="Поиск">
-        <form method="get" action="/module/knowledge_base" class="md-form md-form--inline">
-            <x-md.input name="q" label="Название, описание, метка или текст" :value="$search" />
-            <x-md.select name="category" label="Категория">
+    <div class="md-ui-card-grid">
+        <form class="md-ui-search" method="get" action="/knowledge-base" role="search">
+            <input class="md-input" type="search" name="q" value="{{ $search }}"
+                   placeholder="Поиск по документации: заголовок, теги, текст" aria-label="Поиск по базе знаний" autocomplete="off">
+            <select class="md-table__filter" name="category" aria-label="Категория" onchange="this.form.submit()">
                 <option value="">Все категории</option>
                 @foreach ($categories as $key => $item)
                     <option value="{{ $key }}" @selected($category === $key)>{{ $item['label'] }} ({{ $item['count'] }})</option>
                 @endforeach
-            </x-md.select>
-            <x-md.button type="submit" variant="secondary" icon="search">Найти</x-md.button>
-            <x-md.button href="/module/knowledge_base" variant="ghost">Сбросить</x-md.button>
+            </select>
+            <button class="md-btn md-btn--secondary" type="submit">
+                <i class="ti ti-search" aria-hidden="true"></i><span class="md-btn__label">Найти</span>
+            </button>
+            @if ($search !== '' || $category !== '')
+                <a class="md-btn md-btn--ghost" href="/knowledge-base">Сбросить</a>
+            @endif
         </form>
-    </x-md.card>
+    </div>
 
-    <x-md.card title="Материалы" :subtitle="'Найдено: ' . count($documents)">
-        @if ($documents === [])
-            <x-md.empty-state
-                title="Материалов нет"
-                text="Измените запрос или категорию. Новый файл docs/**/*.md появляется здесь сразу."
-                icon="book"
-            />
-        @else
-            <div class="md-table-wrap">
-                <table class="md-table">
-                    <thead>
-                    <tr>
-                        <th>Материал</th>
-                        <th>Категория</th>
-                        <th>Аудитория</th>
-                        <th>Обновлён</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @foreach ($documents as $document)
-                        <tr>
-                            <td>
-                                <a href="{{ $document['url'] }}"><strong>{{ $document['title'] }}</strong></a>
-                                @if ($document['description'] !== '')
-                                    <div class="md-table__muted">{{ $document['description'] }}</div>
-                                @endif
-                            </td>
-                            <td><x-md.badge tone="neutral">{{ $document['category_label'] }}</x-md.badge></td>
-                            <td>
-                                @foreach ($document['audience'] as $audience)
-                                    <x-md.badge :tone="$audience === 'user' ? 'info' : 'neutral'">
-                                        {{ $audience === 'user' ? 'Пользователь' : 'Агент' }}
-                                    </x-md.badge>
-                                @endforeach
-                            </td>
-                            <td class="md-table__muted">{{ $document['updated_at'] }}</td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
-    </x-md.card>
+    @if ($documents === [])
+        <x-md.empty-state icon="book" title="Материалов нет"
+                          :text="$search !== '' || $category !== ''
+                            ? 'Измените запрос или сбросьте фильтр.'
+                            : 'В docs/ пока нет Markdown-документов с front matter.'" />
+    @else
+        <div class="md-ui-card-grid">
+            @foreach ($documents as $document)
+                <a class="md-card md-card--interactive" href="{{ $document['url'] }}">
+                    <div class="md-card__body">
+                        <div class="md-card__eyebrow">{{ $document['category_label'] }}</div>
+                        <h2 class="md-card__title">{{ $document['title'] }}</h2>
+                        @if ($document['description'] !== '')
+                            <p class="md-card__subtitle">{{ $document['description'] }}</p>
+                        @endif
+                        <div class="md-ui-actions">
+                            @foreach (array_slice($document['tags'], 0, 3) as $tag)
+                                <x-md.badge tone="outline">#{{ $tag }}</x-md.badge>
+                            @endforeach
+                            <span class="md-table__muted">{{ $document['updated_at'] }}</span>
+                        </div>
+                    </div>
+                </a>
+            @endforeach
+        </div>
+    @endif
 </div>

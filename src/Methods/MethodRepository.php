@@ -17,13 +17,24 @@ final readonly class MethodRepository
     }
 
     /**
+     * Методы с поиском и фильтром по классу.
+     *
      * @return list<array{id:int,class_id:int,title:string,description:string}>
      */
-    public function all(): array
+    public function all(string $search = '', int $classId = 0): array
     {
-        return $this->database->connection()->table('methods')
-            ->whereNull('deleted_at')
-            ->orderBy('class_id')
+        $query = $this->database->connection()->table('methods')->whereNull('deleted_at');
+        if ($classId !== 0) {
+            $query->where('class_id', $classId);
+        }
+        if ($search !== '') {
+            $query->where(static function ($query) use ($search): void {
+                $query->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
+        return $query->orderBy('class_id')
             ->orderBy('title')
             ->get()
             ->map(static fn (object $row): array => [
@@ -33,6 +44,27 @@ final readonly class MethodRepository
                 'description' => (string)($row->description ?? ''),
             ])
             ->all();
+    }
+
+    /**
+     * Количество методов по классам для страницы классов.
+     *
+     * @return array<int,int>
+     */
+    public function countsByClass(): array
+    {
+        $counts = [];
+        $rows = $this->database->connection()->table('methods')
+            ->whereNull('deleted_at')
+            ->select('class_id')
+            ->selectRaw('COUNT(*) AS aggregate')
+            ->groupBy('class_id')
+            ->get();
+        foreach ($rows as $row) {
+            $counts[(int)$row->class_id] = (int)$row->aggregate;
+        }
+
+        return $counts;
     }
 
     /**

@@ -1,381 +1,184 @@
 ---
-title: MyDoMo — функции, обёртки и CLI
+title: MyDoMo — функции и пользовательские обёртки
 audience: user, agent
 category: core
-tags: mydomo, функции, обёртки, cli, cache, queue, модули
-description: Публичные API нового ядра MyDoMo, правила использования и статус пользовательских обёрток.
-order: 3
+tags: mydomo, функции, обёртки, сценарии, свойства, сервисы
+description: Реальные сигнатуры пользовательских функций, возвращаемые значения, ошибки и доступ к сервисам нового ядра.
+order: 12
 ---
 
-# Функции, обёртки и CLI MyDoMo
+# Функции MyDoMo
 
-## 1. Правило
+Здесь описаны существующие обёртки `src/Support/helpers`, а не полный
+справочник функций alpha. CLI вынесен в [console.md](console.md), HTTP —
+в [api.md](api.md), SDK — в [sdk.md](sdk.md).
 
-В новом коде используются **только** сервисы и обёртки из этого документа.
-`$db`, `SQLSelect*`, `mysqli_*`, `PDO`, `eval`, shell и прямые файловые пути
-ядра запрещены. Старый API `alpha` не является контрактом MyDoMo и не
-подключается к новому коду.
+Прямой SQL, shell, подключение старых loader и обход доменных сервисов
+запрещены правилами нового кода. Технической PHP-песочницы и CodeGuard
+пока нет; доверенность пользовательского кода остаётся существенным
+ограничением, см. [limitations.md](limitations.md).
 
-## 2. Application
+## Приложение и сервисы
 
-```php
-$app = require __DIR__ . '/bootstrap/app.php'; // уже booted
-
-$app->config('version', 'dev');
-$app->clock();      // CarbonImmutable, таймзона из APP_TIMEZONE
-$app->router();
-$app->logger();
-$app->database();
-$app->cache();
-$app->queue();
-$app->jobs();
-$app->modules();
-```
-
-`Application::handle(Request $request): Response` — HTTP-граница для тестов
-и CLI-сценариев. В вебе её вызывает `public/index.php`.
-
-`APP_DEBUG` — булева настройка из `.env`/окружения через `Config`.
-По умолчанию `false`: HTTP-ошибки скрывают подробности исключений;
-явное `APP_DEBUG=true` включает текст ошибки без stack trace.
-
-## 3. Кэш
+В готовом запросе приложение уже загружено. В самостоятельном коде
+bootstrap запускают один раз, только для нужной установки:
 
 ```php
+$app = require __DIR__ . '/bootstrap/app.php';
+$container = $app->container();
+$clock = $app->clock();
 $cache = $app->cache();
-
-$cache->put('settings.main', ['theme' => 'dark'], 300);
-$value = $cache->get('settings.main', null);
-$value = $cache->remember('settings.main', 300, fn () => loadSettings());
-$cache->forget('settings.main');
-$cache->has('settings.main');
-$cache->clear(); // только namespace mydomo., Redis — через SCAN
+$queue = $app->queue();
+$jobs = $app->jobs();
+$modules = $app->modules();
 ```
 
-- ключ: `[A-Za-z0-9_.-]`, до 180 символов;
-- TTL: секунды, `DateInterval` или `null`;
-- драйверы: `array` (тесты), `file`, `database`, `redis`;
-- Redis настраивается `CACHE_DRIVER=redis` + `REDIS_*`.
+Дополнительно доступны `root()`, `config($key, $default)`, `database()`,
+`router()`, `logger()`, `session()`, `yoyo()`. `config()` принимает точечный
+путь, например `queue.max_attempts`; это конфигурация Application, а не
+прямое чтение произвольной переменной `.env`.
 
-## 4. Очередь
+`handle(Request): Response` — HTTP-граница. Для тестов Application собирают
+с отдельным массивом, ArraySession и SQLite, без рабочего bootstrap.
+Контроллер/сервис получает зависимости через конструктор; новые глобалы
+не нужны для доступа к репозиторию.
+
+## Свойства
+
+| Функция | Возврат и назначение |
+| --- | --- |
+| `getObject(string $name)` | Массив `id/title/class_id/location_id/description` или null |
+| `gg(string $name)` | Сохранённая строка значения или null |
+| `getGlobal(string $name)` | Алиас gg |
+| `sg(string $name, $value, $noLinked = 0, string $source = 'sg')` | bool, запись через цепочку свойства |
+| `setGlobal(string $name, $value, $noLinked = 0, string $source = '')` | Алиас sg; пустой source становится `setGlobal` |
+| `getHistory(string $name, int $limit = 50)` | Массив последних `value/created_at` |
+
+Имя `Объект.Свойство` разбивается по последней точке. Объект должен
+существовать. Свойство ищется в его классе, затем среди глобальных
+`class_id = 0`. Автосоздания объектов/свойств нет.
 
 ```php
-$queue->push('default', 'demo.email', ['to' => 'a@b.c'], 0);
-$queue->pushJob(new SendEmailJob('a@b.c', 'hello'));
-
-$job = $queue->pop('default');
-if ($job !== null) {
-    $queue->ack($job);        // успех
-    $queue->fail($job, $e);   // retry/dead-letter
-}
-
-$queue->stats('default');   // pending/reserved/failed
-$queue->failed('default');  // список
-$queue->pending('default'); // ожидают worker
-$queue->retry($id);
-$queue->forget($id);
+sg('Кухня.temperature', 23.5, 0, 'mqtt');
+$value = gg('Кухня.temperature');
+$history = getHistory('Кухня.temperature', 20);
 ```
 
-Если воркер упал, задание снова доступно после `queue.reservation_timeout`.
-При повторном резервировании проверяются тот же срок, отсутствие удаления
-и `failed_at`; просроченное задание не блокирует следующие задания очереди.
+Значение нормализуется: null → пустая строка, bool → `1`/`0`, скаляр →
+строка, массив → JSON. Неподдерживаемый объект или ненайденное свойство
+дают false при записи. Ошибки инфраструктуры не превращаются автоматически
+в false. `$noLinked` не отключает новый OnChange: параметр сохранён в
+сигнатуре, а старых LINKED_MODULES здесь нет.
 
-`Job` — типизированное задание:
+Если значение не изменилось, история не растёт, но OnChange может быть
+вызван снова. История хранится только при `keep_history`; лимит чтения
+нормализуется до 1–500. Функции агрегатов истории из старых планов пока
+не реализованы этими helpers.
+
+Сервис для ядровых форм:
 
 ```php
-final class SendEmailJob implements MajorDoMo\Queue\Job
-{
-    public function name(): string { return 'demo.email'; }
-    public function payload(): array { return ['to' => $this->to]; }
-}
+use MajorDoMo\Properties\PropertyValueService;
+
+$values = $app->container()->make(PropertyValueService::class);
+$ok = $values->setValue($objectId, $propertyId, '24', 'panel');
 ```
 
-Worker: `php bin/mydomo queue:work --once`.
+`setValue` отвергает чужой класс и отсутствующую/удалённую сущность, не
+создавая значение или событие. Обновление значения сохраняет его created_at.
+Подробный контракт транзакции, журнала и циклов — [events.md](events.md).
 
-## 5. ModuleDb
+## Методы объектов
+
+Поддерживаются две формы одного синхронного вызова:
 
 ```php
-final class NotesRepository
-{
-    public function __construct(private MajorDoMo\Modules\ModuleDb $db) {}
-
-    public function all(): array
-    {
-        return $this->db->table('notes')->orderByDesc('ID')->get()->all();
-    }
-}
+$result = callMethod('Кухня', 'double', ['x' => 5]);
+$result = callMethod('Кухня.double', ['x' => 5]);
+$result = cm('Кухня.double', ['x' => 5]);
 ```
 
-- логическое имя `notes` → физическое `module_<id>_notes`;
-- allowlist задаётся в `module.json` → `storage.tables`;
-- нет `raw()`, `join()`, `whereRaw()`, `selectRaw()`;
-- драйверы `mysql`/`sqlite`; SQLite-файл в `data/`.
+| Функция | Параметры |
+| --- | --- |
+| `callMethod(string $object, mixed $method = null, array $params = [])` | Раздельные имена либо составное имя и массив |
+| `callMethodSafe(string $object, mixed $method = null, array $params = [])` | Сейчас тот же callMethod |
+| `cm(string $method, mixed $params = 0)` | Составное имя; не-массив params становится пустым |
+| `runMethod(string $method, mixed $params = 0)` | Алиас cm |
 
-## 6. ModuleBus
+Метод ищется в классе выбранного объекта по названию. Наследование классов
+не добавляется этим поиском. В коде доступен `$params`; возвращается
+результат include/явного return, для пустого кода — null.
+
+Несуществующий объект/метод вызывает InvalidArgumentException.
+Некорректное составное имя без точки возвращает null на уровне helper.
+Суффикс Safe не означает sandbox, очередь или перехват исключения.
+`$this` внутри метода не привязан к объекту MajorDoMo в текущем MethodRunner.
+
+Пример тела метода без PHP-тегов:
 
 ```php
-$bus->publish('router.42.online', ['online' => true], 300);
-$event = $bus->latest('module.keenetic.router.42.online');
-$bus->subscribe('module.keenetic.router.*', $listener);
+return ($params['x'] ?? 0) * 2;
 ```
 
-- писать только в `module.<id>.*`;
-- `latest` возвращает последнее событие до истечения TTL;
-- подписки — в текущем процессе; фоновая доставка будет через очередь.
-
-## 7. Права
-
-```php
-$auth->can('panel.view');
-$auth->isAdmin();
-```
-
-Middleware: `->middleware('can:panel.view')`.
-
-`UserRepository::sessionUser(int $id): ?array` возвращает данные активного
-администратора (`id`, `username`, `name`, `is_admin`, `stamp`) либо `null`.
-`stamp` — SHA-256 хеша пароля, без самого хеша. Метод используется `auth`
-для проверки сессии и профилем для её обновления после смены пароля.
-Отсутствующий, неверный или нестроковый `stamp` прекращает сессию;
-удаление пользователя и снятие `is_admin` также закрывают доступ.
-
-Роли: `roles`, `permissions`, `role_permissions`, `user_roles`; миграция
-создаёт `admin`/`user` и переносит администраторов. Если БД/миграции ещё
-недоступны, используется сессионный `is_admin`.
-
-## 8. API v1
-
-```text
-GET /api/v1/health   — БД и кэш, 200/503
-GET /api/v1/about    — версия, PHP, число core-модулей
-GET /api/v1/modules  — список core-модулей
-GET /api/v1/me       — Bearer/X-API-Key, user_id + roles/permissions
-GET /api/v1/panel/search?q=<текст>&limit=<1..50> — поиск для админки
-GET /api/v1/panel/notifications?module=&offset= — непрочитанные и summary
-POST /api/v1/panel/notifications/dismiss        — прочитать (нужен CSRF)
-```
-
-`/api/v1/*` обслуживает новое ядро (`public/index.php`); legacy `/api/*`
-остаётся на `public/api.php` — это разные контракты. Nginx и
-`dev_server.php` различают префиксы.
-
-`panel/search` требует сессию администратора (без API-токена) и отдаёт
-конверт для `window.MDJAdminApi`:
-
-```json
-{
-  "ok": true,
-  "data": {
-    "query": "Датчик",
-    "total": 3,
-    "counts": {"Классы": 1, "Свойства": 1, "Методы": 1},
-    "sections": {
-      "Классы": [
-        {"type": "class", "title": "Датчик", "url": "/classes/1/edit", "description": "", "meta": ["Класс"], "action": ""}
-      ]
-    },
-    "message": ""
-  }
-}
-```
-
-Ищутся объекты, классы, свойства, методы, скрипты, пользователи, локации и
-core-модули. Запрос короче 3 символов возвращает пустой результат; `limit`
-ограничивает число элементов в каждом разделе, а не общий итог. Результаты
-выводятся в шапке (`MDJAdminApi.search`) и в полном drawer
-`#mdmGlobalSearchDrawer` из `layouts.alpha`.
-
-Уведомления: `GET /api/v1/panel/notifications` отдаёт `total`, `counts`,
-`levels`, `severity` и `items` (до 50); `POST .../dismiss` принимает `{id}` или
-`{module}` и требует `X-CSRF-Token`. Устройство, типы, лимиты и `notify()`
-описаны в [notifications.md](notifications.md).
-
-Токены: `api_tokens`, в БД только SHA-256. Выпуск:
-
-```bash
-php bin/mydomo api:token 1 "monitoring"
-```
-
-Токен показывается один раз. `Authorization: Bearer <token>` или
-`X-API-Key: <token>`.
-
-`/admin` (auth) — обзор веб-админки на Blade-компонентах и alpha-layout;
-в шапке работают поиск (`Ctrl K`), колокольчик уведомлений и полный drawer.
-`/users` — пользователи; роли назначаются в форме пользователя.
-`/admin/tokens` (auth + `can:users.manage`) — выпуск/отзыв API-токенов.
-`/admin/modules` (auth) — реестр core-модулей: версии, таблицы, helpers.
-`/admin/api` (auth) — живой список API-маршрутов.
-`/api` (auth) — входящие webhook: секрет, методы, сценарий/PHP,
-последний статус. Публичный вызов — `GET|POST|PUT|PATCH|DELETE
-/api/v1/webhooks/{secret}`; секрет 48 hex, хранится только SHA-256, при
-создании/ротации показывается один раз. Ошибки: 404/405 (`Allow`)/403/500.
-`/api/v1/panel/linked-object` (auth) — `?q=` поиск объектов, `?object=`
-свойства/методы класса для `x-md.linked-object`; старый модуль удалён.
-`/events` — журнал цепочки событий свойства (`property_events`).
-`/journal` — аудит: вход/выход и изменения пользователей пишутся
-в `action_log`.
-`/admin/profile` (auth) — имя и смена пароля текущего пользователя.
-`/admin/maintenance` (auth + `can:settings.manage`) — режим обслуживания;
-`/health` и `/login` остаются доступны.
-Страница `/status` (auth) показывает версию, PHP, БД/кэш и число модулей
-в alpha-layout. `/roles` (auth + `can:users.manage`) — роли и permissions.
-
-Ошибки — JSON с `error.code` и `request_id`. Пока это публичный срез без
-токенов; auth API — следующий этап.
-
-## 9. CLI
-
-```bash
-php bin/mydomo about
-php bin/mydomo doctor
-php bin/mydomo maintenance status
-php bin/mydomo maintenance on
-php bin/mydomo maintenance off
-php bin/mydomo timeout:run
-php bin/mydomo health
-php bin/mydomo route:list
-php bin/mydomo module:list
-php bin/mydomo module:install example_sdk
-php bin/mydomo module:disable example_sdk
-php bin/mydomo module:enable example_sdk
-php bin/mydomo module:remove example_sdk
-php bin/mydomo module:validate
-php bin/mydomo worker <module> --once
-php bin/mydomo core-worker queue --once
-php bin/mydomo core-worker timeouts --once
-php bin/mydomo-agent serve
-php bin/mydomo-agent install
-php bin/mydomo cache:clear
-php bin/mydomo queue:stats --queue=default
-php bin/mydomo queue:work --once
-php bin/mydomo queue:failed
-php bin/mydomo queue:retry <id>
-php bin/mydomo db:migrate
-php bin/mydomo db:status
-php bin/mydomo api:token 1 "monitoring"
-```
-
-`health` возвращает 0 только если БД и кэш доступны.
-
-## 10. Пользовательские обёртки и helpers
-
-### Автоподключение
-
-- core: `src/Support/helpers/*.php` — загружает `HelperLoader` при boot;
-- модуль: `module.json` → `"helpers": "helpers.php"` (или список) —
-  загружает `ModuleManager` при обнаружении модуля;
-- если `helpers` не указан, ищется `helpers.php` в корне модуля;
-- ручных `require` в bootstrap нет.
-
-Модульный helper — тонкий фасад над сервисом модуля:
-
-```php
-function kinetic_change_connection(string $connection): bool
-{
-    return app()
-        ->modules()
-        ->service('kinetic', KineticService::class)
-        ->changeConnection($connection);
-}
-```
-
-`ModuleManager::service()` проверяет, что класс принадлежит namespace модуля,
-и не даёт helper-функции создать произвольный core-сервис. Имя helper
-начинается с id модуля, чтобы не было коллизий.
-
-`shoutbox_latest()` — рабочий пример: helper → `ShoutboxService::latest()`.
-
-### `say()`
-
-`say()` уже работает в MyDoMo:
-
-```php
-say('Дверь открыта', 0, 0, 'script');
-```
-
-- пишет системное уведомление через `NotificationService` (центр оповещений);
-- сообщение обрезается до 255 символов;
-- `level` пока игнорируется;
-- при отсутствии таблицы/БД пишет warning в лог, не роняет сценарий.
-
-Уже работают в MyDoMo:
-
-```php
-gg('Кухня.temperature');       // значение свойства (string|null)
-sg('Кухня.temperature', 23.5); // true/false
-getGlobal('Кухня.temperature'); // alpha-имя для gg()
-setGlobal('Кухня.temperature', 23.5); // alpha-имя для sg()
-getObject('Кухня');            // array|null
-```
-
-`gg`/`sg` работают только с существующими объектом и свойством; значения
-хранятся в `property_values`. Свойство ищется в классе объекта, затем среди
-глобальных (`class_id = 0`): одноимённые свойства разных классов не
-перепутываются. `sg()` дополнительно принимает `$noLinked` (совместимость
-сигнатуры alpha, в MyDoMo не используется) и `$source`:
-
-```php
-sg('Кухня.temperature', 23.5, 0, 'zigbee');
-```
-
-Запись — это цепочка: значение, история (если включена), строка
-`property_events` и синхронный вызов OnChange-метода свойства
-(`properties.on_change`). Если значение не изменилось, история и
-`property.changed` не создаются, но обработчик всё равно вызывается.
-Повтор свойства в цепочке останавливает обработчик, значение при этом
-сохраняется. Подробно — [events.md](events.md); журнал — `/events`.
-
-`getHistory('Кухня.temperature', 50)` возвращает последние значения из
-`property_history`. Пишутся только реальные изменения и только у свойств с
-включённым `keep_history`.
-
-`callMethod('Кухня', 'double', ['x' => 5])` работает: находит объект, класс,
-метод и выполняет доверенный пользовательский PHP через временный файл
-(без eval). Поддерживается и alpha-форма с точкой:
-
-```php
-callMethod('Кухня', 'double', ['x' => 5]);
-callMethod('Кухня.double', ['x' => 5]); // alpha-форма
-cm('Кухня.double', ['x' => 5]);         // короткий алиас
-runMethod('Кухня.double', ['x' => 5]);  // алиас
-callMethodSafe('Кухня.double', ['x' => 5]); // в MyDoMo синхронный, как callMethod
-```
-
-Если объект или метод не найдены, выбрасывается `InvalidArgumentException`.
-
-`runScript($id, $params)` запускает сценарий по ID **или названию**. Код
-сценария — доверенный PHP без тегов, выполняется через `CodeRunner` (без
-eval); `$params` доступен внутри кода. Алиасы — `callScript()`,
-`runScriptSafe()`, `rs()`. В alpha `runScriptSafe` уходил в очередь, а
-`callScript` — в сценарий; в MyDoMo все три вызова синхронные и одинаковые,
-очередь для пользовательского кода пока не используется.
+## Сценарии
 
 ```php
 $result = runScript(5, ['x' => 2]);
 $result = runScript('Утренний сценарий', ['x' => 2]);
 ```
 
-`setTimeOut($title, $code, $seconds)` создаёт запись в `runtime_timeouts`;
-`clearTimeOut($title)` снимает её. Выполнение — только явно:
-`php bin/mydomo timeout:run` (без автоматических циклов).
+`runScript(int|string $id, mixed $params = [])` принимает ID или название.
+Числовая строка трактуется как ID. `callScript`, `runScriptSafe`, `rs` —
+синхронные алиасы; не-массив params становится пустым массивом.
 
-`notify($message, $type = 'info', $options = [])` оставляет системное
-уведомление в колокольчике админки (модуль `system`). Возвращает
-`['status' => bool, 'id' => int]` или `['status' => false, 'error' => '...']`.
-Типы — `info`, `success`, `warning`, `danger`; в `$options` можно передать
-`key`, `title`, `details`, `url` (только `/...`), `label`. Повтор с тем же
-`key` среди непрочитанных не создаёт дубль. Подробно —
-[notifications.md](notifications.md).
+ScriptRunner ищет существующий сценарий, CodeRunner исполняет его PHP
+через временный файл с `$params`, без eval. Пустой код возвращает null,
+отсутствующий сценарий — InvalidArgumentException. Ошибки самого кода
+передаются вызывающему. Safe не обещает фонового исполнения.
 
-`/events` — журнал цепочки: тип шага, объект и свойство, старое и новое
-значение, обработчик, статус (`changed`, `ok`, `error`, `missing`,
-`stopped`), глубина и цепочка. Фильтры — по типу и статусу, поиск — по
-объекту, свойству, обработчику и значению.
+## Таймеры
 
-## 11. Для агента
+`setTimeOut(string $title, string $commands, int $timeout = 0, int $expire = 0): int`
+создаёт запись; `clearTimeOut(string $title): bool` снимает ожидающие записи
+с этим именем. Отрицательная задержка становится нулевой; имя при записи
+обрезается/trim, поэтому caller должен использовать одно нормализованное
+имя для записи и очистки. Повторное имя не заменяет старый таймер.
+`$expire` не используется.
 
-- Сначала проверь, есть ли сервис в этом файле; не добавляй новый глобальный
-  хелпер без записи в документ.
-- Новый публичный метод — короткое описание, сигнатура, возврат, пример.
-- Ошибки — по `docs/agents/errors.md`; комментарии — по-русски.
-- После изменения API обнови этот файл и `architecture.md` в том же коммите.
+Выполнение: разовый `timeout:run` либо отдельный `core-worker timeouts`.
+Ограничения повторов и конкуренции — [queue.md](queue.md).
+
+## Уведомления и say
+
+`notify(string $message, string $type = 'info', array $options = []): array`
+делегирует в NotificationService от источника `system`. Возвращает
+`status`, при успехе/дубликате — ID, при ошибке — описание. В options
+доступны `key`, `title`, `details`, `url`, `label`.
+
+```php
+$result = notify('Датчик не отвечает', 'warning', [
+    'key' => 'sensor:kitchen',
+    'url' => '/objects',
+]);
+```
+
+`say($ph, $level = 0, $member_id = 0, $source = ''): void` теперь через
+AppContext отправляет информационное уведомление. Пустой source становится
+`say`; источник должен подходить правилам NotificationService. `level` и
+`member_id` не включают речь, громкость или выбор терминала. Результат
+сервиса не возвращается. Это изменение смысла относительно alpha; Shoutbox
+и `shoutbox_latest` больше не часть нового приложения.
+
+Лимит, дедупликация и прочтение — [notifications.md](notifications.md).
+
+## Helpers модулей и отсутствие контекста
+
+HelperLoader загружает core-файлы и helpers включённых SDK-модулей.
+Публичная функция модуля получает префикс его ID и делегирует сервису.
+Пример механизма — [modules.md](modules.md), структура пакета — [sdk.md](sdk.md).
+
+Глобальные обёртки получают Application через AppContext. Без загруженного
+приложения чтение объекта/значения/метода/сценария возвращает null,
+история — пустой массив, запись/очистка — false, setTimeOut — 0,
+notify — ошибку `status=false`. Эти результаты не означают, что функция
+самостоятельно загрузила или проверила рабочее окружение.

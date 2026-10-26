@@ -142,12 +142,18 @@ MD);
         self::assertSame(200, $index->getStatusCode());
         self::assertStringContainsString('База знаний', (string)$index->getContent());
 
-        $page = $app->handle(Request::create('/knowledge-base/mydomo/functions', 'GET'));
+        // Тест читает реальный docs/: заголовок берём из сервиса, иначе любая
+        // правка текста документа ломает проверку страницы, а не базу знаний.
+        $docs = new KnowledgeBase(dirname(__DIR__, 2) . '/docs');
+        $document = $docs->find('mydomo/functions') ?? ($docs->all()[0] ?? null);
+        self::assertNotNull($document, 'В docs/ нет ни одного Markdown-документа.');
+        $url = '/knowledge-base/' . implode('/', array_map('rawurlencode', explode('/', $document['id'])));
+
+        $page = $app->handle(Request::create($url, 'GET'));
         self::assertSame(200, $page->getStatusCode());
         $html = (string)$page->getContent();
-        self::assertStringContainsString('MyDoMo — функции, обёртки и CLI', $html);
+        self::assertStringContainsString($document['title'], $html);
         self::assertStringContainsString('md-prose', $html);
-        self::assertStringContainsString('/events', $html);
 
         $missing = $app->handle(Request::create('/knowledge-base/nope', 'GET'));
         self::assertSame(404, $missing->getStatusCode());

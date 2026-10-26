@@ -14,9 +14,12 @@ use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Locations\LocationRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
- * Локации: список, создание, редактирование, soft delete.
+ * Локации: помещения и их приоритет в интерфейсе.
+ *
+ * 2026-10-26 — добавлены поиск и количество объектов в помещении.
  */
 final readonly class LocationsController extends Controller
 {
@@ -28,10 +31,14 @@ final readonly class LocationsController extends Controller
     ) {
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = trim((string)$request->query->get('q', ''));
+
         $content = $this->view->make('pages.locations.index', [
-            'locations' => $this->locations->all(),
+            'locations' => $this->locations->all($search),
+            'objectCounts' => $this->safeCounts(),
+            'search' => $search,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
@@ -46,15 +53,15 @@ final readonly class LocationsController extends Controller
     public function store(Request $request): Response
     {
         try {
-            $this->locations->create(
+            $id = $this->locations->create(
                 (string)$request->request->get('title', ''),
                 (int)$request->request->get('priority', 0)
             );
         } catch (InvalidArgumentException $error) {
-            return $this->form(null, $error->getMessage(), (string)$request->request->get('title', ''), 422);
+            return $this->form(null, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse('/module/locations');
+        return new RedirectResponse('/locations/' . $id . '/edit');
     }
 
     public function edit(string $id): Response
@@ -62,7 +69,7 @@ final readonly class LocationsController extends Controller
         $location = $this->locations->find((int)$id);
 
         return $location === null
-            ? $this->panel->render(new PanelPage('Локации', '<p class="md-alert md-alert--danger">Локация не найдена.</p>', 'locations'), 404)
+            ? $this->panel->render(new PanelPage('Локация не найдена', '<p class="md-alert md-alert--danger">Локация не найдена.</p>', 'locations'), 404)
             : $this->form($location);
     }
 
@@ -70,7 +77,7 @@ final readonly class LocationsController extends Controller
     {
         $location = $this->locations->find((int)$id);
         if ($location === null) {
-            return new RedirectResponse('/module/locations');
+            return new RedirectResponse('/locations');
         }
 
         try {
@@ -80,32 +87,49 @@ final readonly class LocationsController extends Controller
                 (int)$request->request->get('priority', 0)
             );
         } catch (InvalidArgumentException $error) {
-            return $this->form($location, $error->getMessage(), (string)$request->request->get('title', ''), 422);
+            return $this->form($location, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse('/module/locations');
+        return new RedirectResponse('/locations');
     }
 
     public function delete(string $id): Response
     {
         $this->locations->delete((int)$id);
 
-        return new RedirectResponse('/module/locations');
+        return new RedirectResponse('/locations');
     }
 
     /**
      * @param array{id:int,title:string,priority:int}|null $location
+     * @param array<string, mixed>|null $draft
      */
-    private function form(?array $location, ?string $error = null, ?string $title = null, int $status = 200): Response
+    private function form(?array $location, ?string $error = null, ?array $draft = null, int $status = 200): Response
     {
         $content = $this->view->make('pages.locations.form', [
             'location' => $location,
-            'title' => $title ?? (string)($location['title'] ?? ''),
-            'priority' => (int)($location['priority'] ?? 0),
+            'draft' => $draft,
+            'title' => (string)($draft['title'] ?? $location['title'] ?? ''),
+            'priority' => (int)($draft['priority'] ?? $location['priority'] ?? 0),
             'error' => $error,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
-        return $this->panel->render(new PanelPage($location === null ? 'Новая локация' : 'Локация', $content, 'locations'), $status);
+        return $this->panel->render(
+            new PanelPage($location === null ? 'Новая локация' : 'Локация: ' . (string)$location['title'], $content, 'locations'),
+            $status
+        );
+    }
+
+    /**
+     * @return array<int,int>
+     */
+    private function safeCounts(): array
+    {
+        try {
+            return $this->locations->objectCounts();
+        } catch (Throwable) {
+            return [];
+        }
     }
 }

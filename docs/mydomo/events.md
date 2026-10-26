@@ -149,7 +149,7 @@ sg('Кухня.temperature', 'hot');
 ## 8. Проверка
 
 ```bash
-vendor/bin/phpunit --filter CoreEventsTest
+php vendor/phpunit/phpunit/phpunit --filter CoreEventsTest
 ```
 
 Тест поднимает SQLite в памяти, создаёт класс, объект, свойства и методы и
@@ -164,3 +164,5 @@ vendor/bin/phpunit --filter CoreEventsTest
 - [База и время](database.md)
 - [Модульная система](modules.md)
 - [Мастер-план](../todo/mydomo.md)
+- [Очередь и таймеры](queue.md)
+- [Различия журналов](logging.md)

@@ -5,17 +5,25 @@
   "description": "MajorDoMo admin panel asset build",
   "type": "module",
   "scripts": {
-    "build": "vite build --config vite.mydomo.config.js && node tools/check-admin-assets.mjs",
-    "build:mydomo": "vite build --config vite.mydomo.config.js && node tools/check-admin-assets.mjs",
+    "build": "vite build --config vite.mydomo.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && node tools/check-admin-assets.mjs",
+    "build:mydomo": "vite build --config vite.mydomo.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && node tools/check-admin-assets.mjs",
+    "build:codeeditor": "vite build --config vite.codeeditor.config.js",
+    "build:charts": "vite build --config vite.charts.config.js",
     "watch": "vite build --config vite.mydomo.config.js --watch",
+    "watch:editor": "vite build --config vite.codeeditor.config.js --watch",
+    "watch:charts": "vite build --config vite.charts.config.js --watch",
     "check": "node --check resources/js/app-mydomo.js",
     "icons": "node tools/generate-icon-catalog.mjs"
   },
   "dependencies": {
+    "@codemirror/lang-php": "^6.0.2",
+    "@codemirror/theme-one-dark": "^6.1.3",
     "@tabler/icons-webfont": "^3.49.0",
     "alpinejs": "^3.17.4",
+    "apexcharts": "^4.7.0",
     "bootstrap": "5.3.8",
-    "bootstrap-icons": "1.13.1"
+    "bootstrap-icons": "1.13.1",
+    "codemirror": "^6.0.2"
   },
   "devDependencies": {
     "vite": "^8.0.0"

@@ -35,8 +35,15 @@ final readonly class UsersController extends Controller
     public function index(Request $request): Response
     {
         $search = trim((string)$request->query->get('q', ''));
+        $users = $this->users->all($search);
+        $rolesByUser = [];
+        foreach ($users as $user) {
+            $rolesByUser[$user['id']] = $this->roles->rolesForUser($user['id']);
+        }
+
         $content = $this->view->make('pages.users.index', [
-            'users' => $this->users->all($search),
+            'users' => $users,
+            'rolesByUser' => $rolesByUser,
             'search' => $search,
             'csrf' => $this->session->csrfToken(),
         ])->render();
@@ -60,7 +67,7 @@ final readonly class UsersController extends Controller
             $id = $this->users->create($username, $name, $password, $isAdmin);
             $this->roles->syncUserRoles($id, $this->roleIds($request));
             $this->audit->log('user.create', 'Создан пользователь: ' . $username, (string)($this->session->user()['username'] ?? ''));
-            return new RedirectResponse('/module/users/' . $id . '/edit');
+            return new RedirectResponse('/users/' . $id . '/edit');
         } catch (InvalidArgumentException $error) {
             return $this->form(null, $error->getMessage(), [
                 'username' => $username,
@@ -83,7 +90,7 @@ final readonly class UsersController extends Controller
     {
         $user = $this->users->find((int)$id);
         if ($user === null) {
-            return new RedirectResponse('/module/users');
+            return new RedirectResponse('/users');
         }
 
         $username = (string)$request->request->get('username', '');
@@ -103,7 +110,7 @@ final readonly class UsersController extends Controller
             ], 422);
         }
 
-        return new RedirectResponse('/module/users');
+        return new RedirectResponse('/users');
     }
 
     public function delete(string $id): Response
@@ -111,7 +118,7 @@ final readonly class UsersController extends Controller
         $this->users->delete((int)$id);
         $this->audit->log('user.delete', 'Удалён пользователь #' . $id, (string)($this->session->user()['username'] ?? ''));
 
-        return new RedirectResponse('/module/users');
+        return new RedirectResponse('/users');
     }
 
     /**

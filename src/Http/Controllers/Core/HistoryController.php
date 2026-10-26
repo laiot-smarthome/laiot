@@ -11,6 +11,7 @@ use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Objects\ObjectRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -22,6 +23,7 @@ final readonly class HistoryController extends Controller
     public function __construct(
         private Factory $view,
         private HistoryRepository $history,
+        private ObjectRepository $objects,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -30,9 +32,12 @@ final readonly class HistoryController extends Controller
     public function index(Request $request): Response
     {
         $search = trim((string)$request->query->get('q', ''));
+        $objectId = max(0, (int)$request->query->get('object_id', 0));
         $content = $this->view->make('pages.history.index', [
-            'rows' => $this->history->all($search),
+            'rows' => $this->history->all($search, 200, $objectId),
+            'objects' => $this->objects->all(),
             'search' => $search,
+            'objectId' => $objectId,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
@@ -43,6 +48,6 @@ final readonly class HistoryController extends Controller
     {
         $this->history->delete((int)$id);
 
-        return new RedirectResponse('/module/history');
+        return new RedirectResponse('/history');
     }
 }

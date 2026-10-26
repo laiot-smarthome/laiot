@@ -50,6 +50,6 @@ final readonly class ActionsLogController extends Controller
     {
         $this->log->delete((int)$id);
 
-        return new RedirectResponse('/module/actions_log');
+        return new RedirectResponse('/journal');
     }
 }

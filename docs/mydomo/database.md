@@ -1,123 +1,117 @@
 ---
 title: MyDoMo — база данных и время
 audience: agent, user
-category: core
-tags: mydomo, база, таблицы, миграции, carbon, время, soft-delete
-description: Правила новых таблиц MyDoMo — lowercase snake_case, timestamps, soft deletes, Carbon/Clock и миграции.
-order: 7
+category: data
+tags: mydomo, база, миграции, время, soft-delete, carbon
+description: Новая схема, реальные правила репозиториев, исключения служебных таблиц и ограничения миграций и времени.
+order: 14
 ---
 
-# База данных и время MyDoMo
+# База данных и время
 
-## 1. Имена
+MyDoMo работает с новой lowercase snake_case схемой. Совпадающее имя
+`users` или `objects` не означает совместимости колонок с alpha: старые
+uppercase-поля не читаются через runtime-адаптер. Отдельный перенос данных
+не заменяется подключением старого SQL-слоя.
 
-Новые таблицы и колонки — **только lowercase snake_case**:
+## Соединение и доступ
 
-```text
-queue_jobs
-shared_events
-module_registry
-module_migrations
-api_webhooks
-api_tokens
-user_roles
-settings
-action_log
-users
-objects
-property_values
-property_history
-property_events
-notifications
-```
+`DatabaseManager` собирает Illuminate Capsule лениво, предоставляет
+`connection()`, `schema()`, `transaction()` и `ping()`. Основной bootstrap
+настраивает MySQL; тесты явно передают SQLite. `ping()` проверяет `SELECT 1`,
+но не существование всех прикладных таблиц.
 
-Никаких `ID`, `QUEUE`, `CREATED_AT`. Таблицы alpha (`users`, `objects`)
-остаются в архивной ветке; MyDoMo создаёт только новую lowercase-схему и не
-читает старые таблицы.
+Репозитории ядра обращаются к своему домену через Query Builder/Eloquent.
+Модуль использует ModuleDb для своих таблиц и публичные сервисы для
+действий ядра. SQL в сценарии не становится поддерживаемым контрактом
+только потому, что PHP-код технически может его исполнить.
 
-## 2. Стандартные колонки
+## Карта схемы
 
-Каждая новая таблица имеет:
+| Область | Таблицы |
+| --- | --- |
+| Пользователи и доступ | users, roles, permissions, user_roles, role_permissions, api_tokens |
+| Модель дома | classes, objects, properties, methods, locations |
+| Значения | property_values, property_history, property_events |
+| Сценарии | scripts, script_categories, runtime_timeouts |
+| Диагностика | action_log, system_errors, notifications |
+| Задания | queue_jobs |
+| SDK | module_registry, module_migrations, shared_events |
+| Входящие webhook | api_webhooks |
+| Настройки и миграции | settings, migrations |
 
-```text
-id           bigint unsigned / increments
-created_at   datetime
-updated_at   datetime
-deleted_at   datetime null
-```
+Справочник актуальных имён — миграции `database/migrations`.
+При переносе ядровых разделов миграция 000024 переименовывает прежнюю
+`module_api_webhooks`, 000025 удаляет таблицу Shoutbox, 000026
+переименовывает `module_shared_events` в `shared_events`.
+Это разовые преобразования pre-release-схемы, не чтение двух схем в runtime.
 
-- `id` — первичный ключ;
-- `created_at`/`updated_at` — через `$table->timestamps()`;
-- `deleted_at` — через `$table->softDeletes()`;
-- выборки по умолчанию исключают `deleted_at is not null`;
-- физическое удаление — только для пивот-таблиц/очереди, если это осознанно.
+## Колонки и soft delete
 
-Пивот-таблицы (`user_roles`, `role_permissions`) тоже получают `id`,
-timestamps и `deleted_at`.
+Для новых прикладных таблиц приняты `id`, `created_at`, `updated_at`,
+`deleted_at`; timestamps и softDeletes добавляются в миграции. Индексы,
+уникальность и внешние ключи нужно проверять по конкретной таблице,
+а не выводить из одинаковых названий колонок.
 
-`property_events` — журнал цепочки событий свойства. Строки создаёт только
-`PropertyValueService`: шаг «значение изменилось» и шаг «вызван
-OnChange-метод». Исключение из правила append-only — финализация статуса
-обработчика (`running` → `ok`/`error`/`missing`): строка создаётся до запуска
-пользовательского кода, чтобы вложенные записи получили родителя. Retention
-пока нет; журнал не удаляется автоматически. Устройство — [events.md](events.md).
+Есть служебные исключения: `module_migrations` содержит `applied_at`,
+но не стандартную тройку timestamps/soft delete. Очередь физически
+удаляет ack и удалённые failed, назначения ролей могут заменяться
+физическим удалением строк. Нельзя обещать универсальное восстановление
+любого удаления.
 
-`notifications` — уведомления модулей для админки. Вместо булева `is_read`
-используется `read_at`: время прочтения полезно для истории, а непрочитанные
-выбираются по `read_at is null`. Повторы отсекаются по `notification_key`
-(или тексту и типу), у модуля не больше 10 непрочитанных. Подробно —
-[notifications.md](notifications.md).
+Наличие `deleted_at` не вводит автоматический global scope Query Builder.
+Репозитории сами добавляют whereNull; для raw Query Builder этот фильтр
+не появляется. Базовая Model использует `id`, int/incrementing и timestamps,
+но сама не добавляет SoftDeletes. У неё guarded=[], поэтому серверная
+валидация и явные поля записи остаются обязательными.
 
-`shared_events` — retained-события `ModuleBus`; `module_registry` и
-`module_migrations` — SDK сторонних модулей (install/enabled/version и
-применённые миграции). Core-модули в реестре не нуждаются.
+`property_values` хранит одну пару object_id/property_id. Низкоуровневый
+ValueRepository.write восстанавливает её при новой записи, сохраняя
+created_at. Рабочая запись идёт через PropertyValueService с проверками,
+историей и OnChange: [events.md](events.md).
 
-`knowledge_base` собственных таблиц не создаёт: источник — файлы
-`docs/**/*.md`, индекс строится на запрос. Подробно —
-[knowledge_base.md](knowledge_base.md).
+## Миграции ядра
 
-## 3. Carbon и Clock
-
-Время — только через `MajorDoMo\Support\Clock`:
+Файл `database/migrations/*.php` возвращает callable, принимающий
+Illuminate Database Connection. Migrator сортирует имена, пропускает
+записанные в `migrations`, назначает batch и регистрирует успешный файл.
 
 ```php
-$clock = $app->clock();
-$clock->now();        // CarbonImmutable
-$clock->nowString();  // Y-m-d H:i:s
-$clock->timezone();   // Europe/Moscow
+return static function (\Illuminate\Database\Connection $connection): void {
+    $schema = $connection->getSchemaBuilder();
+    // Проверка/изменение схемы одной законченной миграцией.
+};
 ```
 
-- часовой пояс — `APP_TIMEZONE`, по умолчанию `Europe/Moscow`;
-- `Application::boot()` вызывает `date_default_timezone_set()`;
-- в тестах время замораживается `CarbonImmutable::setTestNow()`;
-- не использовать `date()`/`time()` в новом коде, кроме низкоуровневых
-  адаптеров, где Clock ещё не прокинут.
+`db:status` показывает состояние, `db:migrate` применяет изменения.
+У нового Migrator нет публичного rollback/down-контракта и общей
+транзакции вокруг всех файлов. Ошибка после части DDL может оставить
+частично изменённую схему; исправление требует анализа этого состояния,
+а не обещания автоматического отката.
 
-## 4. Миграции
+Не редактируйте уже применённую миграцию, рассчитывая на повтор: новая
+операция требует нового файла. Для нескольких зависимых записей данных
+используется явная DatabaseManager.transaction. DDL и ограничения
+транзакций проверяются на рабочем драйвере, SQLite не доказывает всё
+поведение MariaDB.
 
-- файлы — `database/migrations/*.php`;
-- файл возвращает `callable(Connection)`;
-- журнал — таблица `migrations` (`id`, `migration`, `batch`,
-  `created_at`, `updated_at`, `deleted_at`);
-- применённые миграции не выполняются повторно;
-- для новой таблицы сразу задаются timestamps и soft deletes;
-- **pre-release:** имена уже созданных тестовых таблиц менялись, поэтому
-  локальную dev-БД нужно пересоздать; production-данных MyDoMo ещё нет.
+Миграции SDK имеют отдельный журнал module_migrations и выполняются
+установщиком: [sdk.md](sdk.md). Документация не предписывает очищать рабочую
+БД при расхождении схемы. Сброс только выделенного тестового стенда —
+отдельное осознанное действие.
 
-Пример:
+## Время
 
-```php
-$schema->create('notes', static function (Blueprint $table): void {
-    $table->increments('id');
-    $table->string('title');
-    $table->text('body')->nullable();
-    $table->timestamps();
-    $table->softDeletes();
-});
-```
+Clock возвращает CarbonImmutable и строку Y-m-d H:i:s в timezone
+приложения. В тесте Clock можно заморозить CarbonImmutable::setTestNow(),
+после теста заморозку обязательно убрать.
 
-## 5. Только новая схема
+Application устанавливает date_default_timezone_set. Однако многие
+репозитории/очередь/worker пока напрямую используют date/time/microtime;
+одна заморозка Carbon не управляет всем runtime. Для очереди и ModuleBus
+предусмотрены отдельные внедряемые часы. В новых сервисах предпочтителен
+Clock, но наличие этого класса не доказывает завершённую миграцию времени.
 
-MyDoMo **не читает старые таблицы** и не содержит адаптеров под uppercase.
-`alpha` — отдельная архивная ветка. Если нужен перенос данных, это отдельный
-импорт в новую схему, а не runtime-совместимость.
+Подключение APP_TIMEZONE через .env имеет известное расхождение со схемой
+Config: [configuration.md](configuration.md). Не меняйте TIMEZONE и
+APP_TIMEZONE вслепую, предполагая, что новый bootstrap их отождествляет.

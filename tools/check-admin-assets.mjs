@@ -3,6 +3,10 @@ import { existsSync, statSync } from 'node:fs';
 const required = [
   'public/assets/admin/mydomo.js',
   'public/assets/admin/mydomo.css',
+  'public/assets/admin/mydomo-codeeditor.js',
+  'public/assets/admin/mydomo-codeeditor.css',
+  'public/assets/admin/mydomo-charts.js',
+  'public/assets/admin/mydomo-charts.css',
 ];
 
 const missing = required.filter((file) => !existsSync(file) || statSync(file).size === 0);

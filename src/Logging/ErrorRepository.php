@@ -80,4 +80,21 @@ final readonly class ErrorRepository
             ->whereNull('deleted_at')
             ->update(['deleted_at' => $now, 'updated_at' => $now]);
     }
+
+    /**
+     * Удаление всех записей одной группы (level + message).
+     *
+     * Группировка в UI не хранится отдельной таблицей: одинаковые сообщения
+     * считаются одной ошибкой, поэтому чистить журнал удобнее группой.
+     */
+    public function deleteGroup(string $level, string $message): int
+    {
+        $now = date('Y-m-d H:i:s');
+
+        return (int)$this->database->connection()->table('system_errors')
+            ->where('level', $level)
+            ->where('message', $message)
+            ->whereNull('deleted_at')
+            ->update(['deleted_at' => $now, 'updated_at' => $now]);
+    }
 }

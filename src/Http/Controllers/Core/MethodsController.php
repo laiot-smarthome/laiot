@@ -17,7 +17,12 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Методы классов: CRUD без запуска кода.
+ * Методы классов: каталог и редактор кода.
+ *
+ * Метод выполняется только пользовательским кодом через `callMethod`, из этой
+ * страницы запуска нет: редактор не должен исполнять код при сохранении.
+ *
+ * 2026-10-26 — добавлены поиск и фильтр по классу, форма собрана на md-ui-form.
  */
 final readonly class MethodsController extends Controller
 {
@@ -30,31 +35,42 @@ final readonly class MethodsController extends Controller
     ) {
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $classes = [];
-        foreach ($this->classes->all() as $class) {
-            $classes[$class['id']] = $class['title'];
+        $search = trim((string)$request->query->get('q', ''));
+        $classId = max(0, (int)$request->query->get('class_id', 0));
+        $classes = $this->classes->all();
+
+        $names = [0 => 'Без класса'];
+        foreach ($classes as $class) {
+            $names[$class['id']] = $class['title'];
         }
 
         $content = $this->view->make('pages.methods.index', [
-            'methods' => $this->methods->all(),
+            'methods' => $this->methods->all($search, $classId),
             'classes' => $classes,
+            'classNames' => $names,
+            'search' => $search,
+            'classId' => $classId,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
         return $this->panel->render(new PanelPage('Методы', $content, 'methods'));
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return $this->form(null);
+        // Класс можно передать ссылкой из карточки класса: тогда селект уже
+        // заполнен и пользователь не выбирает класс повторно.
+        $classId = max(0, (int)$request->query->get('class_id', 0));
+
+        return $this->form(null, null, $classId > 0 ? ['class_id' => $classId] : null);
     }
 
     public function store(Request $request): Response
     {
         try {
-            $this->methods->create(
+            $id = $this->methods->create(
                 (int)$request->request->get('class_id', 0),
                 (string)$request->request->get('title', ''),
                 (string)$request->request->get('description', ''),
@@ -64,7 +80,7 @@ final readonly class MethodsController extends Controller
             return $this->form(null, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse('/module/methods');
+        return new RedirectResponse('/methods/' . $id . '/edit');
     }
 
     public function edit(string $id): Response
@@ -72,7 +88,7 @@ final readonly class MethodsController extends Controller
         $method = $this->methods->find((int)$id);
 
         return $method === null
-            ? $this->panel->render(new PanelPage('Методы', '<p class="md-alert md-alert--danger">Метод не найден.</p>', 'methods'), 404)
+            ? $this->panel->render(new PanelPage('Метод не найден', '<p class="md-alert md-alert--danger">Метод не найден.</p>', 'methods'), 404)
             : $this->form($method);
     }
 
@@ -80,7 +96,7 @@ final readonly class MethodsController extends Controller
     {
         $method = $this->methods->find((int)$id);
         if ($method === null) {
-            return new RedirectResponse('/module/methods');
+            return new RedirectResponse('/methods');
         }
 
         try {
@@ -95,14 +111,14 @@ final readonly class MethodsController extends Controller
             return $this->form($method, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse('/module/methods');
+        return new RedirectResponse('/methods');
     }
 
     public function delete(string $id): Response
     {
         $this->methods->delete((int)$id);
 
-        return new RedirectResponse('/module/methods');
+        return new RedirectResponse('/methods');
     }
 
     /**
@@ -119,6 +135,9 @@ final readonly class MethodsController extends Controller
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
-        return $this->panel->render(new PanelPage($method === null ? 'Новый метод' : 'Метод', $content, 'methods'), $status);
+        return $this->panel->render(
+            new PanelPage($method === null ? 'Новый метод' : 'Метод: ' . (string)$method['title'], $content, 'methods'),
+            $status
+        );
     }
 }

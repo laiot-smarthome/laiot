@@ -1,0 +1,67 @@
+/*
+ * Стили CodeMirror-редактора MyDoMo.
+ *
+ * Чанк подключается вместе с JS только на страницах с редактором. Цвета —
+ * токены дизайн-системы; тёмную палитру кода даёт oneDark.
+ */
+
+.md-code-editor--cm {
+    display: block;
+    overflow: hidden;
+    background: var(--md-ui-surface);
+    border: 1px solid var(--md-ui-border);
+    border-radius: var(--md-ui-radius-sm);
+}
+
+.md-code-editor--cm .cm-editor {
+    width: 100%;
+    min-height: 12rem;
+    color: var(--md-ui-text);
+    background: transparent;
+    font-family: var(--md-ui-font-mono);
+    font-size: .82rem;
+}
+
+.md-code-editor--cm .cm-editor.cm-focused {
+    outline: none;
+}
+
+.md-code-editor--cm .cm-scroller {
+    max-height: 70vh;
+    overflow: auto;
+    line-height: 1.55;
+}
+
+.md-code-editor--cm .cm-content {
+    padding: 10px 0;
+}
+
+.md-code-editor--cm .cm-gutters {
+    color: var(--md-ui-muted);
+    background: var(--md-ui-surface-2);
+    border-right: 1px solid var(--md-ui-border);
+}
+
+.md-code-editor--cm .cm-activeLine,
+.md-code-editor--cm .cm-activeLineGutter {
+    background: var(--md-ui-surface-2);
+}
+
+.md-code-editor--cm .cm-selectionBackground,
+.md-code-editor--cm .cm-focused .cm-selectionBackground {
+    background: var(--md-ui-primary-soft) !important;
+}
+
+.md-code-editor--cm .cm-panels {
+    color: var(--md-ui-text);
+    background: var(--md-ui-surface-2);
+    border-color: var(--md-ui-border);
+}
+
+.md-code-editor--cm .cm-searchMatch {
+    background: var(--md-ui-warning-soft);
+}
+
+.md-code-editor--cm .cm-searchMatch.cm-searchMatch-selected {
+    background: var(--md-ui-primary-soft);
+}

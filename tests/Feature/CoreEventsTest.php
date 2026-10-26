@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Tests\Feature;
 
+use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use MajorDoMo\Foundation\Application;
@@ -163,6 +164,37 @@ final class CoreEventsTest extends TestCase
         self::assertNotNull($event);
         self::assertSame('property.changed', $event->type);
         self::assertSame('21', $event->new_value);
+    }
+
+    public function testEventsTableFiltersViaYoyoAction(): void
+    {
+        $app = $this->boot()[0];
+        self::assertTrue(sg('Кухня.temperature', '23.5'));
+        self::assertTrue(sg('Кухня.alarm', '0'));
+
+        Yoyo::request()->reset();
+        $_REQUEST = [
+            'component' => 'events-table/render',
+            'yoyo-id' => 'test-events',
+            'search' => 'alarm',
+            'type' => '',
+            'status' => '',
+        ];
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_HX_REQUEST'] = 'true';
+        Yoyo::request()->mock($_REQUEST, $_SERVER);
+
+        try {
+            $response = $app->handle(Request::create('/yoyo', 'GET', $_REQUEST));
+            self::assertSame(200, $response->getStatusCode());
+            $html = (string)$response->getContent();
+            self::assertStringContainsString('alarm', $html);
+            self::assertStringNotContainsString('onTemperature', $html);
+        } finally {
+            Yoyo::request()->reset();
+            unset($_SERVER['HTTP_HX_REQUEST'], $_SERVER['REQUEST_METHOD']);
+            $_REQUEST = [];
+        }
     }
 
     /**

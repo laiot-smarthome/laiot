@@ -105,11 +105,20 @@ final readonly class ModuleInstaller
         $rows = [];
         foreach ($this->modules->discovered() as $id => $module) {
             $row = $this->modules->registryRow($id);
+            $manifest = is_array($module['manifest'] ?? null) ? $module['manifest'] : [];
+            $storage = is_array($manifest['storage'] ?? null) ? $manifest['storage'] : [];
+            $tasks = is_array($manifest['tasks'] ?? null) ? $manifest['tasks'] : [];
             $rows[] = [
                 'id' => $id,
                 'name' => (string)($module['name'] ?? $id),
                 'type' => (string)($module['type'] ?? 'module'),
                 'version' => (string)($module['version'] ?? '0.0.0'),
+                'description' => (string)($manifest['description'] ?? ''),
+                'tables' => array_values(array_filter(
+                    is_array($storage['tables'] ?? null) ? $storage['tables'] : [],
+                    static fn (mixed $table): bool => is_string($table) && $table !== ''
+                )),
+                'tasks' => array_keys($tasks),
                 'core' => (bool)($module['core'] ?? false),
                 'installed' => (bool)($module['core'] ?? false) || $row !== null,
                 'enabled' => (bool)($module['core'] ?? false) || ($row !== null && (int)$row['enabled'] === 1),

@@ -17,11 +17,19 @@ final readonly class ObjectRepository
     }
 
     /**
-     * @return list<array{id:int,title:string,class_id:int,location_id:int,description:string}>
+     * Объекты с поиском и фильтрами по классу и локации.
+     *
+     * @return list<array{id:int,title:string,class_id:int,location_id:int,description:string,updated_at:string}>
      */
-    public function all(string $search = ''): array
+    public function all(string $search = '', int $classId = 0, int $locationId = 0): array
     {
         $query = $this->database->connection()->table('objects')->whereNull('deleted_at');
+        if ($classId > 0) {
+            $query->where('class_id', $classId);
+        }
+        if ($locationId > 0) {
+            $query->where('location_id', $locationId);
+        }
         if ($search !== '') {
             $query->where(static function ($query) use ($search): void {
                 $query->where('title', 'like', '%' . $search . '%')
@@ -37,8 +45,52 @@ final readonly class ObjectRepository
                 'class_id' => (int)$row->class_id,
                 'location_id' => (int)$row->location_id,
                 'description' => (string)($row->description ?? ''),
+                'updated_at' => (string)($row->updated_at ?? ''),
             ])
             ->all();
+    }
+
+    /**
+     * Количество объектов по классам: один запрос на страницу классов.
+     *
+     * @return array<int,int>
+     */
+    public function countsByClass(): array
+    {
+        $counts = [];
+        $rows = $this->database->connection()->table('objects')
+            ->whereNull('deleted_at')
+            ->select('class_id')
+            ->selectRaw('COUNT(*) AS aggregate')
+            ->groupBy('class_id')
+            ->get();
+        foreach ($rows as $row) {
+            $counts[(int)$row->class_id] = (int)$row->aggregate;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Объекты, разложенные по классам, для дерева классов.
+     *
+     * @return array<int,list<array{id:int,title:string}>>
+     */
+    public function groupedByClass(): array
+    {
+        $grouped = [];
+        $rows = $this->database->connection()->table('objects')
+            ->whereNull('deleted_at')
+            ->orderBy('title')
+            ->get(['id', 'title', 'class_id']);
+        foreach ($rows as $row) {
+            $grouped[(int)$row->class_id][] = [
+                'id' => (int)$row->id,
+                'title' => (string)$row->title,
+            ];
+        }
+
+        return $grouped;
     }
 
     /**

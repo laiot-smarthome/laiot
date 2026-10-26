@@ -45,13 +45,13 @@ final readonly class JobsController extends Controller
     {
         $this->queue->retry((int)$id);
 
-        return new RedirectResponse('/module/jobs');
+        return new RedirectResponse('/jobs');
     }
 
     public function forget(string $id): Response
     {
         $this->queue->forget((int)$id);
 
-        return new RedirectResponse('/module/jobs');
+        return new RedirectResponse('/jobs');
     }
 }

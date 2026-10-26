@@ -13,23 +13,44 @@ order: 1
 # Документация
 
 Документация — часть репозитория. Это же содержимое показывает раздел
-**«База знаний»** в админке (`/panel/knowledge_base.html`), поэтому тексты
+**«База знаний»** MyDoMo в админке (`/knowledge-base`), поэтому тексты
 пишутся один раз здесь и не дублируются в шаблонах или базе данных.
+
+## Актуальная документация MyDoMo
+
+Начните с [карты нового ядра](mydomo/README.md). MyDoMo и alpha имеют
+разные runtime, URL и CLI; инструкции из старых agents/user/deploy не
+следует применять к новому приложению без проверки.
+
+| Задача MyDoMo | Документ |
+| --- | --- |
+| Архитектура и карта страниц | [Архитектура](mydomo/architecture.md), [разделы панели](mydomo/core-sections.md) |
+| Настройки и подключение сервисов | [Конфигурация](mydomo/configuration.md), [кэш](mydomo/cache.md) |
+| Вход, роли, токены и HTTP | [Доступ](mydomo/authentication.md), [API](mydomo/api.md) |
+| Автоматизации | [Функции](mydomo/functions.md), [события](mydomo/events.md), [очередь](mydomo/queue.md) |
+| Интеграционный модуль | [Границы модулей](mydomo/modules.md), [SDK](mydomo/sdk.md) |
+| Запуск и поиск ошибки | [CLI](mydomo/console.md), [runtime](mydomo/runtime.md), [диагностика](mydomo/logging.md) |
+| Проверки и состояние реализации | [Тестирование](mydomo/testing.md), [ограничения](mydomo/limitations.md) |
+| Правила для агента | [MyDoMo AGENTS](mydomo/AGENTS.md), [мастер-план](todo/mydomo.md) |
 
 ## Как пользоваться
 
-- **Пользователю** — начните с [`user/README.md`](user/README.md), затем
+- **Пользователю alpha** — начните с [`user/README.md`](user/README.md), затем
   [`user/commands.md`](user/commands.md) и [`user/modes.md`](user/modes.md).
 - **Агенту MyDoMo** — сначала [`mydomo/README.md`](mydomo/README.md) и
   [`mydomo/AGENTS.md`](mydomo/AGENTS.md): новое ядро, core-gate и правила.
   [`agents/AGENTS.md`](agents/AGENTS.md) остаётся правилами `alpha`.
-  Перед переписыванием старого модуля —
-  [`agents/legacy-module-migration.md`](agents/legacy-module-migration.md).
+  Для новой интеграции — [SDK MyDoMo](mydomo/sdk.md);
+  `legacy-module-migration` ниже описывает прежний alpha-процесс.
 - **Перед изменением интерфейса** — [`agents/DESIGN_SYSTEM.md`](agents/DESIGN_SYSTEM.md)
   и [`agents/admin-module-ui-guidelines.md`](agents/admin-module-ui-guidelines.md).
 - **В админке** — тот же материал с категориями, поиском и оглавлением.
 
-## Категории
+## Общий каталог и исторические материалы alpha
+
+Следующая таблица сохраняет навигацию по старым материалам. Исключение —
+строка MyDoMo и явно новые ссылки: остальной каталог в основном описывает
+alpha и не является дополнительным контрактом нового ядра.
 
 | Категория | Что внутри | Ключевые документы |
 | --- | --- | --- |
@@ -49,7 +70,7 @@ order: 1
 являются инструкциями: актуальное поведение описано в профильных документах
 категорий.
 
-## Быстрые маршруты
+## Быстрые маршруты alpha
 
 | Задача | Что читать |
 | --- | --- |
@@ -79,8 +100,9 @@ order: 1
   в `agents/` лежат документы разных категорий.
 - Пути указываются от корня репозитория (`public/assets/...`, `lib/core/...`).
 - Ссылки — относительные, чтобы работали и на GitHub, и в админке.
-- Документация конкретного модуля живёт в `modules/<name>/docs/` и видна в
-  «Базе знаний» только у установленного модуля.
+- Документация SDK-модуля может жить в `modules/<name>/docs/`, но текущий
+  индекс MyDoMo читает `docs/**` и пока не подключает эти каталоги
+  автоматически. Не обещайте их видимость без реализации индексации.
 - Не дублируйте один и тот же текст в двух документах: дайте ссылку.
 - Проверяйте изменения командой `php tests/docs_quality_smoke.php`: она ловит
   отсутствующий front matter, неизвестную категорию, битые относительные ссылки

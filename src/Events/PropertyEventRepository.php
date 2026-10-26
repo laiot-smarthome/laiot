@@ -179,6 +179,37 @@ final readonly class PropertyEventRepository
     }
 
     /**
+     * Журнал цепочки одного объекта.
+     *
+     * @return list<array{id:int,type:string,status:string,property_title:string,old_value:string,new_value:string,handler:string,message:string,created_at:string}>
+     */
+    public function forObject(int $objectId, int $limit = 100): array
+    {
+        if (!$this->hasTable()) {
+            return [];
+        }
+
+        return $this->database->connection()->table('property_events')
+            ->where('object_id', $objectId)
+            ->whereNull('deleted_at')
+            ->orderByDesc('id')
+            ->limit(max(1, min(500, $limit)))
+            ->get()
+            ->map(static fn (object $row): array => [
+                'id' => (int)$row->id,
+                'type' => (string)$row->type,
+                'status' => (string)$row->status,
+                'property_title' => (string)$row->property_title,
+                'old_value' => (string)($row->old_value ?? ''),
+                'new_value' => (string)($row->new_value ?? ''),
+                'handler' => (string)$row->handler,
+                'message' => (string)($row->message ?? ''),
+                'created_at' => (string)$row->created_at,
+            ])
+            ->all();
+    }
+
+    /**
      * @return list<string>
      */
     public function types(): array

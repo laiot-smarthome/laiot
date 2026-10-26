@@ -1,34 +1,63 @@
 # AGENTS.md
 
-> **Ветка MyDoMo (2026-10-26):** действует мастер-план
-> [`docs/todo/mydomo.md`](docs/todo/mydomo.md). Пункты о совместимости старых
-> модулей, PHP 8.1 и legacy-роутинге относятся к `alpha`; в `MyDoMo` они не
-> применяются до переписывания этого файла.
+Обязательная точка входа для работы с репозиторием. Активная ветка —
+**MyDoMo**, отдельное приложение без обратной совместимости с alpha.
 
-Этот файл — обязательный вход для агентов, которые работают с репозиторием.
-
-**MyDoMo:** перед изменениями нового ядра читайте
-[`docs/mydomo/README.md`](docs/mydomo/README.md) и
-[`docs/mydomo/AGENTS.md`](docs/mydomo/AGENTS.md). MyDoMo — чистый лист:
-никаких редиректов со старых URL, legacy-таблиц/адаптеров и старых
-`.inc.php`/шаблонов после переноса модуля. Полная версия старых
-правил — `docs/agents/AGENTS.md` (alpha/legacy).
+Перед изменениями читать [docs/mydomo/README.md](docs/mydomo/README.md),
+[правила MyDoMo](docs/mydomo/AGENTS.md),
+[архитектуру](docs/mydomo/architecture.md) и
+[мастер-план](docs/todo/mydomo.md). Старые инструкции
+[docs/agents/AGENTS.md](docs/agents/AGENTS.md) относятся к alpha.
 
 Коротко, что нельзя нарушать:
 
-- Рабочая платформа — только Linux/Ubuntu. Windows — локальная разработка и доступные проверки; обходы её ограничений в рабочий код не добавлять. Процессы и Linux-механизмы проверять в Linux-контейнере.
-- Docker (`docker-compose.yml`, `docker/`) — **только локальная отладка и тестирование**, не production и не инструкция по развёртыванию. Стенд публикует только HTTP-порт, поднимает MariaDB/Redis/Mosquitto внутри и защищает базу от `DROP DATABASE` (`DB_PROTECT_DROP=1`). Подробно — `docs/agents/docker-debug.md`; боевая установка — `docs/deploy/`.
-- Проект — MajorDoMo: ветка `alpha` — PHP 8.1+, ветка `MyDoMo` — PHP 8.2+ (см. мастер-план), локальное окружение PHP 8.4. Новый код и Composer-зависимости MyDoMo — под PHP 8.2+.
-- Перед любым UI-изменением читать `docs/agents/DESIGN_SYSTEM.md`; новые компоненты — только `MDJUI` + `md-*`.
-- Перед переписыванием старого модуля читать `docs/agents/legacy-module-migration.md`: приоритеты, новый формат, чек-лист.
-- Модуль остаётся модулем: его код живёт в `modules/<name>/`, ставится и удаляется штатно и не переносится в ядро. В `lib/core/` — только универсальные операции, нужные нескольким модулям.
-- Комментарии в коде — по-русски и для человека: объясняйте смысл и причину, а не синтаксис. Меняете класс — добавьте в его заголовок запись `ГГГГ-ММ-ДД — что изменилось` (`docs/agents/code-comments.md`).
-- В `alpha` старые модули должны продолжать работать: не ломать URL, формат данных, глобалы jQuery/Bootstrap, `partLoad`. В `MyDoMo` совместимость модульного API не требуется — базовые модули переписываются по мастер-плану.
-- Системные PHP-функции — `lib/core/Helpers/`, справочник — `docs/user/system-functions.md`. Используйте их и сервисы `Core::*` вместо прямой работы с системными таблицами. Недостающие операции добавляйте в общий слой; сохраняйте старые имена и сигнатуры, синхронные обёртки должны возвращать результат выполнения.
-- Конфигурация — только `.env` + `MajorDoMo\Core\Config`; не добавлять `define()` и не читать `getenv()` в модулях. Подробно: `docs/agents/configuration.md`.
-- CLI — `php majordomo`: каждая новая команда отдельным классом в `lib/core/Console/Commands/`, регистрация в `Console\Application`. Для функций, которым нужно управление из терминала, добавляйте команду вместе с реализацией; сначала читайте `docs/agents/console.md`. Не создавайте новые самостоятельные CLI-скрипты в корне или `tools/`. Исключение — `deploy.sh`: это только обёртка оформления и запуска `deploy:update`, логики обновления в ней нет.
-- Статика — только в `public/assets/`, исходники бандла — в `resources/js/` и `resources/css/`; сборка `npm run build`.
-- Никаких новых `<script>`/`<link>` на библиотеки в шаблонах: только npm + бандл.
-- Проверка перед сдачей: `php -l`, `node --check`, `npm run build`, `php tests/routing_smoke.php`, `php tests/config_smoke.php`. Для изменений защиты базы — `php tests/db_guard_smoke.php`; для docker-стенда — `docker compose config --quiet` и подъём стека.
+- Рабочая платформа — Linux/Ubuntu. Windows — локальная разработка и
+  доступные проверки; обходы её ограничений в рабочий код не добавлять.
+  Процессы, pcntl и systemd проверяются в Linux.
+- PHP MyDoMo — 8.2+, Illuminate 12 components. Это не полный Laravel;
+  фактические версии/возможности проверять по файлам текущей задачи.
+- Ядровые страницы объектов, пользователей, журналов, API и настроек живут
+  в `src/Http/Controllers/Core`, `src/Api`, `resources/views/pages`.
+  Они не являются модулями, не получают module.json и ModuleDb.
+- Интеграции MQTT/Zigbee и сторонние расширения остаются SDK-модулями в
+  `modules/core/<id>` или `modules/<id>`; их код не растворяется в ядре.
+  Правила — [modules.md](docs/mydomo/modules.md) и [sdk.md](docs/mydomo/sdk.md).
+- Сохраняется дизайн MDJUI/alpha, а не его старый PHP/JS runtime.
+  Перед UI-изменениями читать визуальные правила
+  [DESIGN_SYSTEM.md](docs/agents/DESIGN_SYSTEM.md); реализация — Blade,
+  Alpine, `x-md.*` и `md-*`, без JTemplate, jQuery и старой панели.
+- Интерактив внутри страницы — Yoyo-компонент (`src/Yoyo`, действие через
+  `/yoyo`), а не новый JSON-эндпоинт. Имя `kebab-case` само разрешается в
+  класс `MajorDoMo\Yoyo\StudlyCase`; ручная регистрация не нужна.
+  `/api/v1/panel/*` — только виджеты оболочки (поиск в шапке, уведомления)
+  и внешний API.
+- Статика — `public/assets`, исходники — `resources/js` и `resources/css`;
+  сборка `npm run build`. Библиотеки локально через npm, без CDN и новых
+  script/link на библиотеки в шаблоне.
+- Конфигурация — `.env` + Config со схемой; не добавлять define/getenv в
+  модули. Текущие параметры — [configuration.md](docs/mydomo/configuration.md).
+- Пользовательские обёртки нового ядра — `src/Support/helpers`, справочник
+  [functions.md](docs/mydomo/functions.md). Значения менять через
+  PropertyValueService, сохраняя историю и цепочку событий.
+- CLI — `php bin/mydomo`, классы `src/Console`, регистрация `bin/mydomo`.
+  Старые `php majordomo` и `lib/core/Console` не образец нового ядра.
+  Не создавать самостоятельные CLI-скрипты для отдельных операций.
+- Комментарии по-русски, с объяснением причины. При изменении класса в
+  заголовке добавлять `ГГГГ-ММ-ДД — что изменилось`; правило оформления —
+  [code-comments.md](docs/agents/code-comments.md).
+- Не возвращать старые URL, legacy-таблицы, адаптеры и удалённые шаблоны.
+  Alpha остаётся отдельной веткой; импорт данных — отдельная операция.
+- Docker — только локальная отладка. Документы старого deploy не являются
+  готовой production-инструкцией MyDoMo. Начало —
+  [docker.md](docs/mydomo/docker.md), фоновая работа —
+  [runtime.md](docs/mydomo/runtime.md).
+- Тесты — изолированно, без рабочего .env/БД и внешних сервисов. Для кода
+  `composer check`, для документации `php tests/docs_quality_smoke.php`;
+  остальные проверки по [testing.md](docs/mydomo/testing.md).
+  `tests/routing_smoke.php` в текущей ветке отсутствует.
 
-Остальная документация: `docs/README.md`.
+Рабочие файлы могут сразу отправляться на сервер через PhpStorm:
+вносить только законченные изменения, не экспериментировать записями.
+Не менять production .env/секреты и не запускать команды против рабочих
+сервисов без явного разрешения. Детали статуса и известных ограничений —
+[docs/mydomo/limitations.md](docs/mydomo/limitations.md).

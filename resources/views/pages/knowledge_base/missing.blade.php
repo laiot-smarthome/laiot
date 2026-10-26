@@ -1,19 +1,15 @@
 <div class="md-ui-page md-ui-page--stack">
-    <section class="md-ui-hero">
-        <div>
-            <div class="md-ui-hero__eyebrow"><x-md.icon name="book" /> База знаний</div>
-            <h1 class="md-ui-hero__title">Материал не найден</h1>
-        </div>
-    </section>
+    <x-md.page-hero
+        eyebrow="База знаний"
+        icon="book"
+        title="Материал не найден"
+        lede="Документ мог быть переименован или удалён из docs/."
+        :meta="[['icon' => 'file-text', 'label' => 'Запрошен', 'value' => $doc]]">
+        <x-slot:actions>
+            <x-md.button href="/knowledge-base" variant="secondary" icon="arrow-left">К базе знаний</x-md.button>
+        </x-slot:actions>
+    </x-md.page-hero>
 
-    <x-md.card>
-        <x-md.empty-state
-            title="Нет такого материала"
-            :text="'Документ «' . $doc . '» не найден в docs/.'"
-            icon="book"
-        />
-        <div class="md-ui-actions">
-            <x-md.button href="/module/knowledge_base" variant="secondary" icon="arrow-left">К списку</x-md.button>
-        </div>
-    </x-md.card>
+    <x-md.empty-state icon="search" title="Такого документа нет"
+                      text="Проверьте адрес или вернитесь к списку материалов." />
 </div>

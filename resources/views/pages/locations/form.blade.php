@@ -1,24 +1,42 @@
 <div class="md-ui-page md-ui-page--stack">
-    <section class="md-ui-hero">
-        <div>
-            <div class="md-ui-hero__eyebrow"><x-md.icon name="map-pin" /> {{ $location === null ? 'новая' : 'редактирование' }}</div>
-            <h1 class="md-ui-hero__title">{{ $location === null ? 'Новая локация' : $location['title'] }}</h1>
-        </div>
-    </section>
+    <x-md.page-hero
+        :eyebrow="$location === null ? 'Новая локация' : 'Карточка локации'"
+        icon="map-pin"
+        :title="$location === null ? 'Новая локация' : $location['title']"
+        :lede="$location === null ? 'Локация объединяет объекты одного помещения или зоны.' : 'Приоритет задаёт порядок помещения в списках и на панели.'">
+        <x-slot:actions>
+            <x-md.button href="/locations" variant="secondary" icon="arrow-left">К локациям</x-md.button>
+            @if ($location !== null)
+                <form method="post" action="/locations/{{ $location['id'] }}/delete" class="md-inline-form"
+                      data-md-confirm="Удалить локацию «{{ $location['title'] }}»?">
+                    <input type="hidden" name="_token" value="{{ $csrf }}">
+                    <x-md.button type="submit" variant="danger" icon="trash">Удалить</x-md.button>
+                </form>
+            @endif
+        </x-slot:actions>
+    </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" :text="$error" />
+        <x-md.alert type="danger" title="Не удалось сохранить локацию" :text="$error" />
     @endif
 
-    <x-md.card title="Данные">
-        <form method="post" action="{{ $location === null ? '/module/locations/create' : '/module/locations/' . $location['id'] . '/edit' }}" class="md-form">
-            <input type="hidden" name="_token" value="{{ $csrf }}">
-            <x-md.input name="title" label="Название" :value="$title" required />
-            <x-md.input name="priority" type="number" label="Приоритет" :value="(string)$priority" />
-            <div class="md-ui-actions">
-                <x-md.button type="submit" icon="check">Сохранить</x-md.button>
-                <x-md.button href="/module/locations" variant="ghost">Отмена</x-md.button>
+    <form method="post" action="{{ $location === null ? '/locations/create' : '/locations/' . $location['id'] . '/edit' }}" class="md-ui-form">
+        <input type="hidden" name="_token" value="{{ $csrf }}">
+
+        <x-md.card title="Параметры локации">
+            <div class="md-ui-form-stack">
+                <div class="md-ui-form-grid">
+                    <x-md.input name="title" label="Название" :value="$title" required
+                                hint="Например: «Кухня», «Гостиная», «Улица»." />
+                    <x-md.input name="priority" type="number" label="Приоритет" :value="(string)$priority"
+                                hint="Чем больше число, тем выше локация в списках." />
+                </div>
             </div>
-        </form>
-    </x-md.card>
+        </x-md.card>
+
+        <div class="md-ui-form-actions">
+            <x-md.button type="submit" icon="check">{{ $location === null ? 'Создать локацию' : 'Сохранить' }}</x-md.button>
+            <x-md.button href="/locations" variant="ghost">Отмена</x-md.button>
+        </div>
+    </form>
 </div>

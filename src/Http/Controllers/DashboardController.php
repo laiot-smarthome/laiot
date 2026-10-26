@@ -9,20 +9,26 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
+use MajorDoMo\Panel\DashboardStats;
+use MajorDoMo\Support\MaintenanceMode;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
- * Новая веб-админка: обзор на Blade-компонентах внутри alpha-layout.
+ * Веб-админка: обзор состояния дома на Blade-компонентах внутри alpha-layout.
  *
- * Циклы и фоновые процессы здесь не запускаются — только чтение состояния.
+ * 2026-10-26 — данные собирает DashboardStats, страница показывает реальные
+ * счётчики, журнал изменений свойств, очередь и ошибки. Циклы и фоновые
+ * процессы здесь не запускаются: обзор только читает состояние.
  */
 final readonly class DashboardController extends Controller
 {
     public function __construct(
         private Factory $view,
         private Application $app,
-        private PanelRenderer $panel
+        private PanelRenderer $panel,
+        private DashboardStats $stats,
+        private MaintenanceMode $maintenance
     ) {
     }
 
@@ -41,8 +47,14 @@ final readonly class DashboardController extends Controller
             'php' => PHP_VERSION,
             'databaseOk' => $databaseOk,
             'cacheOk' => $cacheOk,
-            'modules' => $this->app->modules()->all(),
+            'maintenance' => $this->maintenance->enabled(),
             'timezone' => $this->app->clock()->timezone(),
+            'now' => $this->app->clock()->now(),
+            'counts' => $this->stats->counts(),
+            'queue' => $this->stats->queue(),
+            'events' => $this->stats->recentEvents(8),
+            'errors' => $this->stats->recentErrors(5),
+            'actions' => $this->stats->recentActions(6),
         ])->render();
 
         return $this->panel->render(new PanelPage('Обзор', $content, 'dashboard'));

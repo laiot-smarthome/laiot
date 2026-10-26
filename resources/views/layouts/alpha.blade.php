@@ -7,6 +7,7 @@
     <meta name="csrf-token" content="{{ $csrf }}">
     <title>{{ $title }} — MyDoMo</title>
     <link rel="stylesheet" href="/assets/admin/mydomo.css">
+    @yoyo_scripts
     <script>
         (function () {
             var match = document.cookie.match(/(?:^|;\s*)theme=([^;]+)/);
@@ -33,12 +34,12 @@
                 </div>
             </div>
             <div class="md-admin-topbar__actions">
-                <a class="md-topbar-action" href="/api/v1/health" aria-label="Health">
-                    <i class="ti ti-heartbeat" aria-hidden="true"></i><span>Health</span>
+                <a class="md-topbar-action" href="/status" aria-label="Состояние системы">
+                    <i class="ti ti-heartbeat" aria-hidden="true"></i><span>Состояние</span>
                 </a>
                 <button type="button" class="md-topbar-action md-notifications-bell" data-md-notifications-open
                         aria-label="Уведомления" title="Уведомления">
-                    <i class="ti ti-bell" aria-hidden="true"></i><span>Уведомления</span>
+                    <i class="ti ti-bell" aria-hidden="true"></i>
                     <span class="md-badge md-badge--danger md-notifications-bell__count"
                           data-md-notifications-count hidden aria-hidden="true">0</span>
                 </button>
@@ -60,7 +61,7 @@
         <aside class="col-lg-2 col-md-3 col-sm-4 col-xs-12 md-admin-sidebar" id="left_block" aria-label="Admin navigation">
             <div class="md-admin-sidebar__inner">
                 <div class="md-admin-sidebar__brand-shell">
-                    <a class="md-admin-sidebar__brand" href="/" aria-label="MyDoMo">MyDoMo</a>
+                    <a class="md-admin-sidebar__brand" href="/admin" aria-label="MyDoMo — обзор">MyDoMo</a>
                 </div>
                 <div class="md-admin-sidebar__scroll">
                     <nav class="md-admin-sidebar__nav" aria-label="Admin modules">
@@ -82,17 +83,17 @@
                     </nav>
                 </div>
                 <div class="md-admin-sidebar__profile">
-                    <div class="md-admin-sidebar__account">
+                    <a class="md-admin-sidebar__account" href="/admin/profile" title="Профиль и смена пароля">
                         <span class="md-admin-sidebar__avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr((string)($user['name'] ?? '?'), 0, 1)) }}</span>
                         <span class="md-admin-sidebar__account-text">
                             <span class="md-admin-sidebar__account-name">{{ $user['name'] ?? $user['username'] ?? 'Гость' }}</span>
                             <span class="md-admin-sidebar__account-role">{{ ($user['is_admin'] ?? false) ? 'Администратор' : 'Пользователь' }}</span>
                         </span>
-                    </div>
-                    <form method="post" action="/logout">
+                    </a>
+                    <form method="post" action="/logout" class="md-inline-form">
                         <input type="hidden" name="_token" value="{{ $csrf }}">
-                        <button type="submit" class="dropdown-item md-admin-sidebar__profile-logout">
-                            <i class="ti ti-logout" aria-hidden="true"></i><span>Выйти</span>
+                        <button type="submit" class="md-admin-sidebar__logout" aria-label="Выйти" title="Выйти">
+                            <i class="ti ti-logout" aria-hidden="true"></i>
                         </button>
                     </form>
                 </div>
@@ -104,8 +105,8 @@
         <main class="col-lg-10 col-md-9 col-sm-8 col-xs-12 md-admin-main" id="main-content">
             <div class="md-admin-contextbar">
                 <ol class="breadcrumb md-admin-breadcrumb">
-                    <li><a href="/">Панель</a></li>
-                    <li class="active">{{ $title }}</li>
+                    <li><a href="/admin">Панель</a></li>
+                    <li class="active" aria-current="page">{{ $title }}</li>
                 </ol>
             </div>
             {!! $content !!}
@@ -168,6 +169,14 @@
         <div id="filter_add" class="md-admin-search-results" aria-live="polite"></div>
     </div>
 </aside>
+
+<x-md.modal id="mdConfirmDialog" title="Подтвердите действие" size="sm">
+    <p class="mb-0" x-text="$store.mdConfirm.message"></p>
+    <x-slot:actions>
+        <button type="button" class="md-btn md-btn--secondary" @click="$store.mdConfirm.cancel()">Отмена</button>
+        <button type="button" class="md-btn md-btn--danger" @click="$store.mdConfirm.ok()">Подтвердить</button>
+    </x-slot:actions>
+</x-md.modal>
 
 <script src="/assets/admin/mydomo.js" defer></script>
 @stack('scripts')

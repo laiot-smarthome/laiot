@@ -32,6 +32,7 @@
                   spellcheck="false"
                   autocapitalize="off"
                   autocomplete="off"
+                  data-code-editor
                   data-language="{{ $language }}"
                   x-model="code"
                   @if ($required) required @endif>{{ $value }}</textarea>

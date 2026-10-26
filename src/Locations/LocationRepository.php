@@ -19,11 +19,14 @@ final readonly class LocationRepository
     /**
      * @return list<array{id:int,title:string,priority:int}>
      */
-    public function all(): array
+    public function all(string $search = ''): array
     {
-        return $this->database->connection()->table('locations')
-            ->whereNull('deleted_at')
-            ->orderByDesc('priority')
+        $query = $this->database->connection()->table('locations')->whereNull('deleted_at');
+        if ($search !== '') {
+            $query->where('title', 'like', '%' . $search . '%');
+        }
+
+        return $query->orderByDesc('priority')
             ->orderBy('title')
             ->get()
             ->map(static fn (object $row): array => [
@@ -32,6 +35,27 @@ final readonly class LocationRepository
                 'priority' => (int)$row->priority,
             ])
             ->all();
+    }
+
+    /**
+     * Количество объектов в каждой локации.
+     *
+     * @return array<int,int>
+     */
+    public function objectCounts(): array
+    {
+        $counts = [];
+        $rows = $this->database->connection()->table('objects')
+            ->whereNull('deleted_at')
+            ->select('location_id')
+            ->selectRaw('COUNT(*) AS aggregate')
+            ->groupBy('location_id')
+            ->get();
+        foreach ($rows as $row) {
+            $counts[(int)$row->location_id] = (int)$row->aggregate;
+        }
+
+        return $counts;
     }
 
     /**

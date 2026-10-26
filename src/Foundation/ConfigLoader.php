@@ -8,7 +8,10 @@ namespace MajorDoMo\Foundation;
  * Сборка конфигурации из config/*.php.
  *
  * app.php остаётся базой; отдельные файлы добавляют namespace-ключи
- * (`cache`, `queue`, `logging`), чтобы не держать всё в одном массиве.
+ * (`cache`, `queue`, `logging`, `providers`), чтобы не держать всё в одном массиве.
+ *
+ * Изменения:
+ * 2026-10-26 — список сервис-провайдеров загружается из config/providers.php.
  */
 final class ConfigLoader
 {
@@ -22,7 +25,7 @@ final class ConfigLoader
             return [];
         }
 
-        foreach (['cache', 'queue', 'logging'] as $section) {
+        foreach (['cache', 'queue', 'logging', 'providers'] as $section) {
             $file = $root . '/config/' . $section . '.php';
             if (is_file($file)) {
                 $value = require $file;

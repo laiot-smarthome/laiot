@@ -31,12 +31,15 @@ final readonly class HistoryRepository
     /**
      * @return list<array{id:int,object_id:int,object_title:string,property_id:int,property_title:string,value:string,created_at:string}>
      */
-    public function all(string $search = '', int $limit = 200): array
+    public function all(string $search = '', int $limit = 200, int $objectId = 0): array
     {
         $query = $this->database->connection()->table('property_history')
             ->join('objects', 'objects.id', '=', 'property_history.object_id')
             ->join('properties', 'properties.id', '=', 'property_history.property_id')
             ->whereNull('property_history.deleted_at');
+        if ($objectId > 0) {
+            $query->where('property_history.object_id', $objectId);
+        }
         if ($search !== '') {
             $query->where(static function ($query) use ($search): void {
                 $query->where('objects.title', 'like', '%' . $search . '%')
@@ -77,6 +80,36 @@ final readonly class HistoryRepository
             ->limit(max(1, min(500, $limit)))
             ->get()
             ->map(static fn (object $row): array => [
+                'value' => (string)($row->value ?? ''),
+                'created_at' => (string)$row->created_at,
+            ])
+            ->all();
+    }
+
+    /**
+     * История одного объекта: все свойства, новые записи сверху.
+     *
+     * @return list<array{id:int,property_id:int,property_title:string,value:string,created_at:string}>
+     */
+    public function forObject(int $objectId, int $limit = 100): array
+    {
+        return $this->database->connection()->table('property_history')
+            ->leftJoin('properties', 'properties.id', '=', 'property_history.property_id')
+            ->where('property_history.object_id', $objectId)
+            ->whereNull('property_history.deleted_at')
+            ->orderByDesc('property_history.id')
+            ->limit(max(1, min(500, $limit)))
+            ->get([
+                'property_history.id',
+                'property_history.property_id',
+                'property_history.value',
+                'property_history.created_at',
+                'properties.title as property_title',
+            ])
+            ->map(static fn (object $row): array => [
+                'id' => (int)$row->id,
+                'property_id' => (int)$row->property_id,
+                'property_title' => (string)($row->property_title ?? ''),
                 'value' => (string)($row->value ?? ''),
                 'created_at' => (string)$row->created_at,
             ])

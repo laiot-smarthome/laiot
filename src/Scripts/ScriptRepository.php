@@ -17,11 +17,14 @@ final readonly class ScriptRepository
     }
 
     /**
-     * @return list<array{id:int,title:string,category_id:int,description:string}>
+     * @return list<array{id:int,title:string,category_id:int,description:string,run_periodically:bool}>
      */
-    public function all(string $search = ''): array
+    public function all(string $search = '', int $categoryId = 0): array
     {
         $query = $this->database->connection()->table('scripts')->whereNull('deleted_at');
+        if ($categoryId !== 0) {
+            $query->where('category_id', $categoryId);
+        }
         if ($search !== '') {
             $query->where(static function ($query) use ($search): void {
                 $query->where('title', 'like', '%' . $search . '%')
@@ -36,6 +39,7 @@ final readonly class ScriptRepository
                 'title' => (string)$row->title,
                 'category_id' => (int)$row->category_id,
                 'description' => (string)($row->description ?? ''),
+                'run_periodically' => (int)($row->run_periodically ?? 0) === 1,
             ])
             ->all();
     }
@@ -133,6 +137,76 @@ final readonly class ScriptRepository
             ->get()
             ->map(static fn (object $row): array => ['id' => (int)$row->id, 'title' => (string)$row->title])
             ->all();
+    }
+
+    /**
+     * Количество сценариев в каждой категории.
+     *
+     * @return array<int,int>
+     */
+    public function categoryCounts(): array
+    {
+        $counts = [];
+        $rows = $this->database->connection()->table('scripts')
+            ->whereNull('deleted_at')
+            ->select('category_id')
+            ->selectRaw('COUNT(*) AS aggregate')
+            ->groupBy('category_id')
+            ->get();
+        foreach ($rows as $row) {
+            $counts[(int)$row->category_id] = (int)$row->aggregate;
+        }
+
+        return $counts;
+    }
+
+    public function createCategory(string $title): int
+    {
+        $now = date('Y-m-d H:i:s');
+
+        return (int)$this->database->connection()->table('script_categories')->insertGetId([
+            'title' => $this->categoryTitle($title),
+            'created_at' => $now,
+            'updated_at' => $now,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function renameCategory(int $id, string $title): void
+    {
+        $this->database->connection()->table('script_categories')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->update(['title' => $this->categoryTitle($title), 'updated_at' => date('Y-m-d H:i:s')]);
+    }
+
+    /**
+     * Мягкое удаление категории: сценарии остаются, но теряют категорию.
+     */
+    public function deleteCategory(int $id): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $connection = $this->database->connection();
+        $connection->transaction(static function () use ($connection, $id, $now): void {
+            $connection->table('scripts')
+                ->where('category_id', $id)
+                ->whereNull('deleted_at')
+                ->update(['category_id' => 0, 'updated_at' => $now]);
+            $connection->table('script_categories')
+                ->where('id', $id)
+                ->whereNull('deleted_at')
+                ->update(['deleted_at' => $now, 'updated_at' => $now]);
+        });
+    }
+
+    private function categoryTitle(string $title): string
+    {
+        $title = trim($title);
+        if ($title === '' || mb_strlen($title) > 191) {
+            throw new InvalidArgumentException('Название категории обязательно, до 191 символа.');
+        }
+
+        return $title;
     }
 
     private function title(string $title): string

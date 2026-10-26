@@ -1,37 +1,77 @@
 <div class="md-ui-page md-ui-page--stack">
-    <section class="md-ui-hero">
-        <div>
-            <div class="md-ui-hero__eyebrow"><x-md.icon name="map-pin" /> core · locations</div>
-            <h1 class="md-ui-hero__title">Локации</h1>
-            <p class="md-ui-hero__lede">Новая таблица `locations`, без legacy-полей.</p>
-        </div>
-        <x-md.button href="/module/locations/create" icon="plus">Добавить</x-md.button>
-    </section>
+    <x-md.page-hero
+        eyebrow="Дом"
+        icon="map-pin"
+        title="Локации"
+        lede="Помещения и зоны: используются для группировки объектов и сцен. Приоритет задаёт порядок в списках."
+        :meta="[
+            ['icon' => 'map-pin', 'label' => 'Локаций', 'value' => count($locations)],
+        ]">
+        <x-slot:actions>
+            <x-md.button href="/locations/create" icon="plus">Новая локация</x-md.button>
+        </x-slot:actions>
+    </x-md.page-hero>
 
-    <x-md.card title="Список" :subtitle="'Всего: ' . count($locations)">
+    <x-md.table label="Локации">
+        <x-slot:toolbar>
+            <form class="md-ui-search" method="get" action="/locations" role="search">
+                <input class="md-input" type="search" name="q" value="{{ $search }}"
+                       placeholder="Поиск локации" aria-label="Поиск локации" autocomplete="off">
+                <button class="md-btn md-btn--secondary" type="submit">
+                    <i class="ti ti-search" aria-hidden="true"></i><span class="md-btn__label">Найти</span>
+                </button>
+                @if ($search !== '')
+                    <a class="md-btn md-btn--ghost" href="/locations">Сбросить</a>
+                @endif
+            </form>
+            <div class="md-table__meta">Найдено: {{ count($locations) }}</div>
+        </x-slot:toolbar>
+
         @if ($locations === [])
-            <x-md.empty-state title="Локаций нет" text="Добавьте первую локацию." icon="map-pin" />
+            <x-slot:empty>
+                <div class="md-empty">
+                    <span class="md-empty__icon"><i class="ti ti-map-pin" aria-hidden="true"></i></span>
+                    <div class="md-empty__title">{{ $search !== '' ? 'Локации не найдены' : 'Локаций пока нет' }}</div>
+                    <p class="md-empty__text">{{ $search !== '' ? 'Измените запрос или сбросьте поиск.' : 'Добавьте помещения: кухню, гостиную, спальню.' }}</p>
+                    <div class="md-empty__actions">
+                        <a class="md-btn md-btn--primary" href="/locations/create">
+                            <i class="ti ti-plus" aria-hidden="true"></i><span class="md-btn__label">Новая локация</span>
+                        </a>
+                    </div>
+                </div>
+            </x-slot:empty>
         @else
-            <div class="md-table-wrap">
-                <table class="md-table">
-                    <thead><tr><th>Название</th><th>Приоритет</th><th></th></tr></thead>
-                    <tbody>
-                    @foreach ($locations as $location)
-                        <tr>
-                            <td>{{ $location['title'] }}</td>
-                            <td>{{ $location['priority'] }}</td>
-                            <td>
-                                <x-md.button href="/module/locations/{{ $location['id'] }}/edit" variant="secondary" size="sm" icon="edit">Изменить</x-md.button>
-                                <form method="post" action="/module/locations/{{ $location['id'] }}/delete" class="md-inline-form">
+            <x-slot:head>
+                <th scope="col">Локация</th>
+                <th scope="col">Объектов</th>
+                <th scope="col">Приоритет</th>
+                <th scope="col" class="text-end"><span class="visually-hidden">Действия</span></th>
+            </x-slot:head>
+
+            <x-slot:body>
+                @foreach ($locations as $location)
+                    <tr>
+                        <td>
+                            <div class="md-table__name">
+                                <span class="md-table__icon"><i class="ti ti-map-pin" aria-hidden="true"></i></span>
+                                <div><a href="/locations/{{ $location['id'] }}/edit"><strong>{{ $location['title'] }}</strong></a></div>
+                            </div>
+                        </td>
+                        <td><a href="/objects?location_id={{ $location['id'] }}">{{ $objectCounts[$location['id']] ?? 0 }}</a></td>
+                        <td><x-md.badge tone="neutral">{{ $location['priority'] }}</x-md.badge></td>
+                        <td>
+                            <div class="md-table__actions">
+                                <x-md.icon-button href="/locations/{{ $location['id'] }}/edit" icon="pencil" label="Открыть локацию" size="sm" />
+                                <form method="post" action="/locations/{{ $location['id'] }}/delete" class="md-inline-form"
+                                      data-md-confirm="Удалить локацию «{{ $location['title'] }}»? Объекты останутся без расположения.">
                                     <input type="hidden" name="_token" value="{{ $csrf }}">
-                                    <x-md.button type="submit" variant="danger" size="sm" icon="trash">Удалить</x-md.button>
+                                    <x-md.icon-button type="submit" icon="trash" label="Удалить локацию" variant="danger" size="sm" />
                                 </form>
-                            </td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
+                            </div>
+                        </td>
+                    </tr>
+                @endforeach
+            </x-slot:body>
         @endif
-    </x-md.card>
+    </x-md.table>
 </div>

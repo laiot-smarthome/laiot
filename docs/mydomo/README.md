@@ -2,104 +2,91 @@
 title: MyDoMo — документация нового ядра
 audience: user, agent
 category: core
-tags: mydomo, ядро, документация, архитектура, функции, модули
-description: Точка входа в документацию MyDoMo: что уже работает, что ещё в alpha, как читать и обновлять новые инструкции.
+tags: mydomo, ядро, документация, архитектура, справочник
+description: Карта документации нового приложения, реализованные механизмы и отдельные руководства для пользователя и разработчика.
 order: 1
 ---
 
-# MyDoMo — документация нового ядра
+# MyDoMo
 
-Эта папка — **только для MyDoMo**. Старые инструкции `docs/agents/`,
-`docs/user/` и `docs/deploy/` описывают `alpha` и остаются источником по
-legacy-коду. Если документ относится к новому ядру, он живёт здесь.
+MyDoMo — новая ветка приложения на PHP 8.2+ и компонентах Illuminate 12.
+Это не полный Laravel: используются собственные Application, kernel,
+сессии, очередь и модульный SDK. Внешний вид панели сохраняет дизайн alpha,
+реализация — Blade, Alpine и локальный бандл.
 
-## Статус
+Справочник сверяется с текущим кодом; дорожная карта описывает будущую
+работу. Зелёный исторический чекбокс не заменяет проверку сегодняшней сборки.
+Актуальные границы сведены в [limitations.md](limitations.md).
 
-**База ядра и веб-админка готовы.** Ядровые разделы перенесены из
-`modules/core` в `src/Http/Controllers/Core` и `resources/views/pages`.
-Старая alpha-панель и её бандл удалены из MyDoMo.
+## Как читать
 
-Уже работает в новом ядре:
+| Задача | Руководство |
+| --- | --- |
+| Понять устройство приложения и путь запроса | [Архитектура](architecture.md) |
+| Зарегистрировать сервис или расширить загрузку | [Сервис-провайдеры](providers.md) |
+| Найти страницу, контроллер или представление | [Ядровые разделы](core-sections.md) |
+| Разобрать новые компоненты и поведение веб-панели | [Админка MyDoMo](admin-ui.md) |
+| Настроить БД, Redis и debug | [Конфигурация](configuration.md) |
+| Разобрать вход, CSRF, роли и токены | [Авторизация](authentication.md) |
+| Написать сценарий или вызвать сервис | [Функции и обёртки](functions.md) |
+| Сохранить значение и разобрать OnChange | [События свойства](events.md) |
+| Оставить или прочитать уведомление | [Уведомления](notifications.md) |
+| Использовать HTTP API или webhook | [API](api.md) |
+| Работать с прикладным кэшем | [Кэш и Redis](cache.md) |
+| Поставить задание, повторить ошибку, запустить таймер | [Очередь](queue.md) |
+| Запустить команду и понять её эффект | [CLI](console.md) |
+| Сделать интеграционный модуль | [Границы модулей](modules.md) → [SDK](sdk.md) |
+| Запустить фоновые задачи и systemd-агент | [Фоновый runtime](runtime.md) |
+| Проверить схему и время | [База данных](database.md) |
+| Найти ошибку или отличить журналы | [Диагностика](logging.md) |
+| Запустить изолированные проверки | [Тестирование](testing.md) |
+| Поднять локальный Linux-стенд | [Docker](docker.md) |
+| Дополнить базу знаний | [Правила базы знаний](knowledge_base.md) |
+| Работать агентом в репозитории | [AGENTS](AGENTS.md) |
 
-- `public/index.php` → `Application` → `Kernel` → Illuminate Router;
-- сессия `mydomo`, вход/выход, CSRF, rate limit входа;
-- `Authorization`/`can:`, таблицы `roles`/`permissions`/`user_roles`,
-  `/roles`, назначение ролей в users;
-- API-токены (`api_tokens`, Bearer/X-API-Key, `/api/v1/me` с правами,
-  `/admin/tokens`); `/api/v1/*` обслуживает новое ядро, legacy `/api/*` —
-  старый `api.php`;
-- поиск в шапке админки и полный drawer `/api/v1/panel/search`
-  (объекты, классы, свойства, методы, скрипты, пользователи, локации, модули);
-- центр уведомлений: `notifications`, `NotificationService`, `notify()`,
-  колокольчик и drawer `/api/v1/panel/notifications`;
-- входящие webhook `/api`: секрет в URL, методы, сценарий/PHP и журнал
-  последнего вызова; публичный вход `/api/v1/webhooks/{secret}`;
-- фоновый runtime: `worker <module>` (SDK-модули, один процесс на модуль,
-  задачи из `module.json`, Redis-lock/heartbeat), отдельные
-  `core-worker queue|timeouts` и root-агент `mydomo-agent` для systemd
-  start/stop/restart без доступа PHP к `/etc`; Redis для runtime обязателен;
-- linked object — ядровой `LinkedObjectService`, API
-  `/api/v1/panel/linked-object` и Alpine-компонент `x-md.linked-object`;
-- база знаний `/knowledge-base`: `docs/**`, front matter, поиск, безопасный
-  Markdown и оглавление;
-- единые 404/405/500, `request_id`, security headers, maintenance mode;
-- `ModuleManager`/`ModuleDb`/`ModuleBus` — только для MQTT, Zigbee и
-  сторонних SDK-модулей;
-- кэш `array`/`file`/`database`/`redis`;
-- очередь `DatabaseQueue`, worker, failed/retry/pending, typed jobs;
-- CLI: `about`, `doctor`, `health`, `route:list`, `queue:*`, `db:*`,
-  `module:*`, `worker`, `core-worker`, `api:token`, `maintenance`;
-- `/health` (БД+кэш), `/status`, `/admin` (Blade-админка);
-- `PanelRenderer` + `layouts.alpha` на `mydomo.css`/`mydomo.js`, меню из
-  `CoreSections` + модулей; старая панель `/panel/` и alpha-бандл удалены;
-- вход, UI Kit `/ui-kit`, профиль, API-маршруты, реестр модулей;
-- пользовательские обёртки: `say`, `gg`/`sg`, `getGlobal`/`setGlobal`,
-  `getObject`, `getHistory`, `callMethod`/`cm`/`runMethod`/
-  `callMethodSafe`, `runScript`/`callScript`/`runScriptSafe`/`rs`,
-  `setTimeOut`, `clearTimeOut`, `notify`;
-- цепочка события свойства: запись → история → `property_events` →
-  OnChange-метод, защита от циклов и журнал `/events`;
-- Carbon/Clock, `APP_TIMEZONE`, lowercase-схема + timestamps + soft deletes.
+## Что уже реализовано
 
-Ядровые разделы: `objects`, `classes`, `properties`, `methods`, `pvalues`,
-`history`, `locations`, `scripts`, `events`, `jobs`, `knowledge_base`,
-`users`, `settings`, `actions_log`, `system_errors`, `api`, `notifications`,
-`ui_kit`. Они не являются модулями.
+- HTTP-вход `public/index.php`, контейнер, роутер, обработка ошибок,
+  request ID, security headers и режим обслуживания.
+- Вход администратора, проверка действующих сессий, CSRF, роли,
+  API-токены и лимит попыток входа.
+- Ядровые страницы объектов, классов, свойств, методов, сценариев,
+  пользователей, локаций, настроек, истории, событий, очереди, журналов,
+  webhook, уведомлений и UI Kit.
+- Репозитории новой lowercase-схемы, история значений, синхронный OnChange
+  с защитой от повторения свойства в цепочке.
+- CacheStore, долговечная очередь, именованные обработчики и таймеры.
+- SDK-модули: манифест, ModuleDb/ModuleBus, lifecycle, миграции, helpers,
+  маршруты и фоновые задачи; локальный пример `modules/example_sdk`.
+- Worker модуля, отдельные процессы очереди/таймеров и systemd-контроллер
+  с административным Unix-socket агентом. Linux и live Redis проверяются
+  отдельно от тестов на SQLite/array.
 
-Ещё не закрыто:
+Ядровые страницы живут в `src/Http/Controllers/Core` и
+`resources/views/pages`, меню — в `CoreSections`. Они не являются
+`modules/core`, не устанавливаются и не отключаются через SDK.
+MQTT/Zigbee и внешние интеграции — отдельные модули; их полный перенос
+ещё не завершён. Шаблонный каталог `modules/core` остаётся для SDK-модулей
+типа core, а не для CRUD-страниц приложения.
 
-- старый backend-код `modes`, `pinghosts`, `xray`, `control_modules`,
-  `market`, `saverestore`, `ai_assistant` — переносится в ядровые сервисы
-  по одному; `mqtt` и `zigbee` станут core-модулями SDK;
-- UI Kit: Alpine-компоненты и Yoyo-счётчик работают; остались Yoyo-обёртки;
-- установка/обновление ядра (ручная кнопка), полный API v2;
-- live Redis-проверка;
-- systemd-юниты не устанавливаются автоматически: `mydomo-agent install` и
-  `systemctl` — этап deploy.
+## Что не следует считать готовым
 
-## Что читать
+Полный перенос оставшегося backend-кода, установка/обновление нового ядра,
+API v2/OpenAPI, доставка OnChange через outbox, sandbox пользовательского
+PHP, автоматическая выдача разрешений SDK и полная совместимость сценариев
+alpha. `say()` теперь пишет информационное уведомление вместо старого
+Shoutbox; это не реализация речевого вывода. Конкретные ограничения —
+[здесь](limitations.md).
 
-1. [Архитектура](architecture.md) — слои, boot, запрос, сервисы.
-2. [Функции и обёртки](functions.md) — публичные API, CLI, будущие
-   пользовательские функции.
-3. [Цепочка событий свойства](events.md) — запись, история, OnChange,
-   `property_events` и защита от циклов.
-4. [Центр уведомлений](notifications.md) — `notifications`, `notify()`, API,
-   колокольчик и правила прочтения.
-5. [База знаний](knowledge_base.md) — `docs/**` в админке, front matter и
-   безопасный Markdown.
-6. [Правила для агентов](AGENTS.md) — как читать, менять и проверять.
-7. [Тестирование](testing.md) — укрупнённые тесты, dev server, Docker.
-8. [Модульная система](modules.md) — core/third-party, `ModuleDb`, `ModuleBus`.
-9. [SDK модулей](sdk.md) — `module.json`, lifecycle, миграции, CLI.
-10. [Фоновый runtime](runtime.md) — worker, Redis-состояния, systemd-агент
-    и ручное обновление.
-11. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
-12. [Docker-стенд](docker.md) — локальная отладка и проверки.
-13. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
+Старые `docs/agents`, `docs/user`, `docs/deploy` в основном описывают alpha.
+Они могут объяснять происхождение дизайна или старый runtime, но не служат
+готовой инструкцией развёртывания MyDoMo. Старый API-вход пока физически
+сосуществует с новым; это не разрешение добавлять новые legacy-адаптеры.
 
-## Правило обновления
+[Мастер-план](../todo/mydomo.md) хранит этапы и принятые решения.
+[Журнал аудита кода](core-audit.md) — датированный снимок проверки,
+а не руководство по запуску. При изменении публичного поведения обновляйте
+профильный документ и ссылки этого индекса вместе с кодом.
 
-Меняешь публичный API, обёртку, команду или контракт — обнови
-`functions.md`/`architecture.md` в том же коммите. Не оставляй «сделано» без
-проверки и не описывай alpha-поведение как новое.
+Объём и проверка последней переработки справочника —
+[аудит документации](documentation-audit.md).

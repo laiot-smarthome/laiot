@@ -1,52 +1,78 @@
 <div class="md-ui-page md-ui-page--stack">
-    <section class="md-ui-hero">
-        <div>
-            <div class="md-ui-hero__eyebrow"><x-md.icon name="history" /> core · audit</div>
-            <h1 class="md-ui-hero__title">Журнал действий</h1>
-            <p class="md-ui-hero__lede">Legacy-таблица `actions_log` через адаптер, без SQL в шаблоне.</p>
-        </div>
-    </section>
+    <x-md.page-hero
+        eyebrow="Система"
+        icon="list-details"
+        title="Журнал действий"
+        lede="Кто и что менял в панели: вход, правка справочников, удаление записей."
+        :meta="[
+            ['icon' => 'list', 'label' => 'Записей', 'value' => count($entries)],
+            ['icon' => 'category', 'label' => 'Типов', 'value' => count($types)],
+        ]" />
 
-    <x-md.card title="Фильтр">
-        <form method="get" action="/module/actions_log" class="md-form md-form--inline">
-            <x-md.select name="type" label="Тип">
-                <option value="">Все</option>
-                @foreach ($types as $item)
-                    <option value="{{ $item }}" @selected($type === $item)>{{ $item }}</option>
-                @endforeach
-            </x-md.select>
-            <x-md.input name="q" label="Поиск" :value="$search" placeholder="Заголовок, пользователь, IP" />
-            <x-md.button type="submit" variant="secondary" icon="search">Показать</x-md.button>
-        </form>
-    </x-md.card>
-
-    <x-md.card title="Записи" :subtitle="'Найдено: ' . count($entries)">
-        @if ($entries === [])
-            <x-md.empty-state title="Записей нет" text="Журнал пуст или фильтр ничего не нашёл." icon="history" />
-        @else
-            <div class="md-table-wrap">
-                <table class="md-table">
-                    <thead><tr><th>ID</th><th>Дата</th><th>Тип</th><th>Событие</th><th>Пользователь</th><th>IP</th><th></th></tr></thead>
-                    <tbody>
-                    @foreach ($entries as $entry)
-                        <tr>
-                            <td>{{ $entry['id'] }}</td>
-                            <td class="md-table__muted">{{ $entry['added'] }}</td>
-                            <td><code>{{ $entry['type'] }}</code></td>
-                            <td>{{ $entry['title'] }}</td>
-                            <td>{{ $entry['user'] }}</td>
-                            <td>{{ $entry['ip'] }}</td>
-                            <td>
-                                <form method="post" action="/module/actions_log/{{ $entry['id'] }}/delete">
-                                    <input type="hidden" name="_token" value="{{ $csrf }}">
-                                    <x-md.button type="submit" variant="danger" size="sm" icon="trash">Удалить</x-md.button>
-                                </form>
-                            </td>
-                        </tr>
+    <x-md.table label="Журнал действий">
+        <x-slot:toolbar>
+            <form class="md-ui-search" method="get" action="/journal" role="search">
+                <input class="md-input" type="search" name="q" value="{{ $search }}"
+                       placeholder="Поиск по событию и пользователю" aria-label="Поиск по журналу" autocomplete="off">
+                <select class="md-table__filter" name="type" aria-label="Тип события" onchange="this.form.submit()">
+                    <option value="">Все типы</option>
+                    @foreach ($types as $typeName)
+                        <option value="{{ $typeName }}" @selected($type === $typeName)>{{ $typeName }}</option>
                     @endforeach
-                    </tbody>
-                </table>
-            </div>
+                </select>
+                <button class="md-btn md-btn--secondary" type="submit">
+                    <i class="ti ti-search" aria-hidden="true"></i><span class="md-btn__label">Найти</span>
+                </button>
+                @if ($search !== '' || $type !== '')
+                    <a class="md-btn md-btn--ghost" href="/journal">Сбросить</a>
+                @endif
+            </form>
+            <div class="md-table__meta">Найдено: {{ count($entries) }}</div>
+        </x-slot:toolbar>
+
+        @if ($entries === [])
+            <x-slot:empty>
+                <div class="md-empty">
+                    <span class="md-empty__icon"><i class="ti ti-list-details" aria-hidden="true"></i></span>
+                    <div class="md-empty__title">{{ $search !== '' || $type !== '' ? 'Записей не найдено' : 'Журнал пуст' }}</div>
+                    <p class="md-empty__text">{{ $search !== '' || $type !== '' ? 'Измените фильтры или сбросьте поиск.' : 'Записи появятся после входа и изменений в панели.' }}</p>
+                </div>
+            </x-slot:empty>
+        @else
+            <x-slot:head>
+                <th scope="col">Когда</th>
+                <th scope="col">Тип</th>
+                <th scope="col">Событие</th>
+                <th scope="col">Пользователь</th>
+                <th scope="col">Терминал</th>
+                <th scope="col" class="text-end"><span class="visually-hidden">Действия</span></th>
+            </x-slot:head>
+
+            <x-slot:body>
+                @foreach ($entries as $entry)
+                    <tr>
+                        <td><span class="md-table__muted">{{ $entry['added'] ?? '' }}</span></td>
+                        <td><x-md.badge tone="outline">{{ $entry['type'] ?? '' }}</x-md.badge></td>
+                        <td>{{ $entry['title'] ?? '' }}</td>
+                        <td>{{ ($entry['user'] ?? '') !== '' ? $entry['user'] : '—' }}</td>
+                        <td>
+                            <span class="md-table__muted">
+                                {{ ($entry['terminal'] ?? '') !== '' ? $entry['terminal'] : 'web' }}
+                                @if (($entry['ip'] ?? '') !== '') · {{ $entry['ip'] }} @endif
+                            </span>
+                        </td>
+                        <td>
+                            <div class="md-table__actions">
+                                <form method="post" action="/journal/{{ $entry['id'] }}/delete" class="md-inline-form"
+                                      data-md-confirm="Удалить запись журнала?">
+                                    <input type="hidden" name="_token" value="{{ $csrf }}">
+                                    <x-md.icon-button type="submit" icon="trash" label="Удалить запись" variant="danger" size="sm" />
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                @endforeach
+            </x-slot:body>
         @endif
-    </x-md.card>
+    </x-md.table>
 </div>
