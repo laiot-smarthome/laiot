@@ -43,7 +43,10 @@ order: 5
 - [x] `/yoyo` закрыт auth + CSRF; Yoyo-страница передаёт токен в htmx.
 - [x] Docker-образ пересобран после Stage 2: `/`, `/health`, `/login`,
   вход `admin/majordomo` и `/yoyo-demo` проверены.
+- [x] ModuleManager + эталонный модуль `modules/welcome`: манифест, routes,
+  Blade-namespace, auth и тест без правки ядра.
 - [ ] Этап 2: панель и полноценный глобальный middleware-стек.
+- [ ] Module SDK: lifecycle, реестр, меню, миграции, настройки, CLI.
 
 ### 0.1. Как ведём дорожную карту
 
@@ -663,11 +666,16 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 
 ### 6.6. Модульный SDK
 
-- [ ] `module.json`: id, name, version, requires, provider, routes,
-  migrations, views, assets, menu, permissions, settings, docs, ai.
-- [ ] Валидация манифеста и запрет установки без обязательных полей.
-- [ ] `ModuleManager`: discover, install, enable, disable, upgrade, remove.
+- [x] Базовый `module.json`: id, name, version, namespace, src, routes, views.
+- [ ] Расширить манифест: requires, provider, migrations, assets, menu,
+  permissions, settings, docs, ai.
+- [x] Валидация id/namespace/путей и запрет выхода за каталог модуля.
+- [x] `ModuleManager`: discover и register; `modules/welcome` — эталон.
+- [ ] `ModuleManager`: install, enable, disable, upgrade, remove.
 - [ ] `ModuleServiceProvider`: register, boot, routes, migrations, menu.
+- [x] Маршруты модуля получают prefix `/module/<id>`, auth и request-id.
+- [x] Blade-namespace модуля (`welcome::index`) регистрируется динамически.
+- [x] Тест `ModuleTest`: манифест, страница, параметр, auth.
 - [ ] Реестр модулей в БД (`modules`), миграция из `project_modules`.
 - [ ] Маршруты модуля загружаются только для включённого модуля; кэш
   инвалидируется при lifecycle.

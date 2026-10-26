@@ -33,6 +33,7 @@ use MajorDoMo\Http\Middleware\RequestIdMiddleware;
 use MajorDoMo\Http\Middleware\VerifyCsrfToken;
 use MajorDoMo\Http\Session\NativeSession;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\View\BladeView;
 use MajorDoMo\Yoyo\Counter;
 use Monolog\Handler\StreamHandler;
@@ -56,6 +57,7 @@ final class Application
     private LoggerInterface $logger;
     private DatabaseManager $database;
     private SessionStore $session;
+    private ModuleManager $modules;
     private Yoyo $yoyo;
 
     /** @var array<string, mixed> */
@@ -125,11 +127,15 @@ final class Application
         $this->router->aliasMiddleware('csrf', VerifyCsrfToken::class);
         $this->container->instance(Router::class, $this->router);
 
+        $this->modules = new ModuleManager($this->root);
+        $this->container->instance(ModuleManager::class, $this->modules);
+
         $this->kernel = new Kernel($this->router, $this->logger, (bool)($this->config['debug'] ?? false));
         $this->container->instance(Kernel::class, $this->kernel);
 
         $routes = require $this->root . '/routes/web.php';
         $routes($this->router);
+        $this->modules->register($this->router, $view);
 
         // Имена задаются после добавления маршрута, поэтому справочники
         // нужно обновить явно: иначе getByName() не найдёт маршрут.
@@ -199,6 +205,13 @@ final class Application
         $this->ensureBooted();
 
         return $this->session;
+    }
+
+    public function modules(): ModuleManager
+    {
+        $this->ensureBooted();
+
+        return $this->modules;
     }
 
     public function config(string $key, mixed $default = null): mixed
