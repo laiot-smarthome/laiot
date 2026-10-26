@@ -65,6 +65,7 @@ order: 5
   ack/fail, ошибки в лог; 2 теста worker и CLI-тест.
 - [x] Dead-letter: `queue:failed`, `queue:retry`, `forget`; список/повтор/
   удаление упавших заданий.
+- [x] `ErrorResponse`: 404/405/500 в JSON или тексте, request_id, без trace.
 - **UI:** новый дизайн админки не делаем. Внешний вид alpha сохраняем,
   представления переносим на Blade/Yoyo; используем `admin.css`,
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
@@ -765,7 +766,8 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [ ] Остальные каналы (`api`, `db`, `queue`, `module`), ротация и уровень
   из `.env`.
 - [ ] Сохранить `DebMes` как фасад; новые логи — только через PSR-3.
-- [ ] Единый error handler: HTML/JSON, error id, без stack trace в production.
+- [x] Единый `ErrorResponse`: JSON для API/htmx и текст для браузера,
+  `request_id`, без stack trace даже в debug.
 - [x] `RequestId` в HTTP-ответе и в `extra` каждой записи Monolog.
 - [x] Пароли: `Passwords`/`password_hash`, перехеширование при входе.
 - [x] Сессии: `HttpOnly`, `Secure`, `SameSite=Strict`, regenerate при входе.

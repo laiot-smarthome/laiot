@@ -71,6 +71,34 @@ final class HttpKernelTest extends TestCase
         self::assertStringContainsString('POST', (string)$response->headers->get('Allow'));
     }
 
+    public function testNotFoundReturnsJsonForApiRequest(): void
+    {
+        $response = $this->app->handle(Request::create('/missing', 'GET', [], [], [], [
+            'HTTP_ACCEPT' => 'application/json',
+        ]));
+
+        self::assertSame(404, $response->getStatusCode());
+        $payload = json_decode((string)$response->getContent(), true);
+        self::assertIsArray($payload);
+        self::assertFalse($payload['ok']);
+        self::assertSame('not_found', $payload['error']['code']);
+        self::assertNotEmpty($payload['request_id']);
+    }
+
+    public function testInternalErrorDoesNotExposeTrace(): void
+    {
+        $this->app->router()->get('/boom', static function (): never {
+            throw new \RuntimeException('boom detail');
+        });
+
+        $response = $this->app->handle(Request::create('/boom', 'GET'));
+
+        self::assertSame(500, $response->getStatusCode());
+        self::assertStringContainsString('boom detail', (string)$response->getContent());
+        self::assertStringNotContainsString('#0', (string)$response->getContent());
+        self::assertStringNotContainsString(__FILE__, (string)$response->getContent());
+    }
+
     public function testNamedRouteIsRegistered(): void
     {
         $route = $this->app->router()->getRoutes()->getByName('health');

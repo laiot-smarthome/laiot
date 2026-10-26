@@ -39,23 +39,24 @@ final readonly class Kernel
         try {
             $response = $this->router->dispatch($request);
         } catch (NotFoundHttpException) {
-            $response = new Response('Not Found', 404, ['Content-Type' => 'text/html; charset=UTF-8']);
+            $response = ErrorResponse::make($request, 404, 'not_found', 'Not Found', $requestId);
         } catch (MethodNotAllowedHttpException $error) {
-            $response = new Response(
-                'Method Not Allowed',
-                405,
-                $error->getHeaders() + ['Content-Type' => 'text/html; charset=UTF-8']
-            );
+            $response = ErrorResponse::make($request, 405, 'method_not_allowed', 'Method Not Allowed', $requestId);
+            $response->headers->add($error->getHeaders());
         } catch (Throwable $error) {
             $this->logger->error('Unhandled request error', [
                 'exception' => $error,
                 'request_id' => $requestId,
                 'path' => $request->getPathInfo(),
             ]);
-            $response = new Response(
-                $this->debug ? $error->getMessage() : 'Internal Server Error',
+            $response = ErrorResponse::make(
+                $request,
                 500,
-                ['Content-Type' => 'text/plain; charset=UTF-8']
+                'server_error',
+                'Internal Server Error',
+                $requestId,
+                $this->debug,
+                $error
             );
         }
 
