@@ -69,7 +69,9 @@ MyDoMo. Пользовательские обёртки работают.
   ai_assistant, control_modules, market, saverestore;
 - UI Kit: Alpine-компоненты (`modal`, `drawer`, alerts) и Yoyo-счётчик
   работают; остались Yoyo-обёртки для остальных блоков;
-- установка/обновление, полный API v2;
+- SDK модулей: `module.json`, реестр, install/enable/disable/remove,
+  миграции и `ModuleDb`; пример `modules/example_sdk`;
+- установка/обновление ядра, полный API v2;
 - live Redis-проверка;
 - автоматический запуск timeout/queue — только явные команды, циклы не трогаем.
 
@@ -87,9 +89,10 @@ MyDoMo. Пользовательские обёртки работают.
 6. [Правила для агентов](AGENTS.md) — как читать, менять и проверять.
 7. [Тестирование](testing.md) — укрупнённые тесты, dev server, Docker.
 8. [Модульная система](modules.md) — core/third-party, `ModuleDb`, `ModuleBus`.
-9. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
-10. [Docker-стенд](docker.md) — локальная отладка и проверки.
-11. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
+9. [SDK модулей](sdk.md) — `module.json`, lifecycle, миграции, CLI.
+10. [База и время](database.md) — lowercase, timestamps, soft deletes, Carbon.
+11. [Docker-стенд](docker.md) — локальная отладка и проверки.
+12. [Мастер-план](../todo/mydomo.md) — этапы и текущий прогресс.
 
 ## Правило обновления
 

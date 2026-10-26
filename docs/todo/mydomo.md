@@ -22,6 +22,10 @@ order: 5
 
 ## 0. Текущий прогресс
 
+- [x] Аудит записи значений (2026-10-26): `setValue()` отклоняет свойство
+  чужого класса; обновление/восстановление сохраняет `created_at`.
+  Проверено 19 тестов / 131 assertion на SQLite; детали и отложенный
+  HTTP/auth-аудит — [core-audit.md](../mydomo/core-audit.md).
 - [x] Ветка `MyDoMo` создана от `alpha` (`0bc4c355`), `alpha` не тронута.
 - [x] Мастер-план и границы ветки зафиксированы в документации.
 - [x] Composer-стек разрешён dry-run на PHP 8.2; `roave/security-advisories`
@@ -93,6 +97,9 @@ order: 5
 - [x] linked object вынесен в ядро: `LinkedObjectService`,
   `/api/v1/panel/linked-object`, `x-md.linked-object` на Alpine; старый
   `modules/linkedobject` удалён; 3 теста.
+- [x] SDK модулей: `ModuleManifest`, `ModuleRegistry`/`ModuleMigrations`,
+  `ModuleInstaller`, `ModuleContext`/`Module`, install/enable/disable/remove,
+  CLI `module:*`, пример `modules/example_sdk`; 3 теста.
 - [x] Blade-компоненты `x-md.button/icon/badge/card/section-heading/alert/
   avatar/empty-state/kpi/progress/status/field/input/textarea/select/
   checkbox/switch/disclosure/drawer/modal/skeleton/activity-feed/hint` и
@@ -422,6 +429,7 @@ project/
 | 2026-10-26 | `modules/api`, `templates/api/*`, `public/assets/modules/api/*` | `modules/core/api` на `module_api_webhooks`; legacy `public/api.php` и `lib/core/Api/*` оставлены только как вход alpha |
 | 2026-10-26 | `modules/blockly_code`, `templates/blockly_code/*` | `x-md.code` (Alpine) в формах скриптов/методов; CodeMirror/alpha-редактор не переносим |
 | 2026-10-26 | `modules/linkedobject`, `templates/linkedobject/*`, `public/assets/modules/linkedobject/*` | `src/LinkedObject/LinkedObjectService`, `/api/v1/panel/linked-object`, `x-md.linked-object` на Alpine |
+| 2026-10-26 | старый `project_modules` и ad-hoc установка модулей | `module_registry`, `module_migrations`, `ModuleManifest`/`ModuleInstaller`, CLI `module:*`; пример `modules/example_sdk` |
 
 ## 4. Стек и Composer
 

@@ -55,6 +55,7 @@ use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Logging\RequestContext;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Methods\MethodRunner;
+use MajorDoMo\Modules\ModuleInstaller;
 use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Notifications\NotificationService;
 use MajorDoMo\Objects\ObjectRepository;
@@ -259,6 +260,10 @@ final class Application
 
         $this->modules = new ModuleManager($this->root, $this->database, $this->container, $this->helperLoader);
         $this->container->instance(ModuleManager::class, $this->modules);
+        $this->container->instance(
+            ModuleInstaller::class,
+            new ModuleInstaller($this->modules, (string)($this->config['version'] ?? '0.0.0'))
+        );
         $this->container->instance(PanelSearch::class, new PanelSearch($this->database, $this->modules));
         $this->container->instance(
             NotificationService::class,

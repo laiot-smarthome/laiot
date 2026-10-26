@@ -86,7 +86,9 @@ final class ConsoleCommandsTest extends TestCase
 
     public function testModuleListWithoutModules(): void
     {
-        $tester = new CommandTester(new ModuleListCommand($this->app));
+        $tester = new CommandTester(new ModuleListCommand(
+            $this->app->container()->make(\MajorDoMo\Modules\ModuleInstaller::class)
+        ));
         $tester->execute([]);
 
         self::assertSame(0, $tester->getStatusCode());

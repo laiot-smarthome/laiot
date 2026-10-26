@@ -169,11 +169,15 @@ Core:
 - `module:remove`/`module:disable` для core запрещены на уровне менеджера;
 - код и данные обновляются только вместе с ядром.
 
-Third-party (позже):
+Third-party:
 
-- install/update/disable/remove;
-- свои `data/`, vendor, миграции;
-- удаление снимает меню, routes, jobs, shared-топики и ассеты.
+- discover из `modules/*/module.json`; установка `module:install`;
+- состояние в `module_registry`, только `enabled=1` попадает в runtime;
+- свои `storage.tables` с префиксом `module_<id>_`, миграции из
+  `migrations/`, `ModuleDb`/`ModuleBus`;
+- `module:disable` снимает routes/меню/helpers; `module:remove` убирает
+  запись реестра, файлы и таблицы остаются;
+- install/update marketplace — отдельный этап, см. [sdk.md](sdk.md).
 
 ## 7. Порядок портирования core-модулей
 
@@ -192,7 +196,9 @@ Third-party (позже):
 
 ## 8. Текущее состояние
 
-- `ModuleManager` сканирует только `modules/core`;
+- `ModuleManager` сканирует `modules/core` и `modules/*` с `module.json`;
+- сторонние подключаются только после `module:install` и `enabled=1`;
+- `module_registry`/`module_migrations` — состояние и миграции;
 - `modules/welcome` удалён;
 - `ModuleDb`/`ModuleBus` готовы;
 - `shoutbox` перенесён полностью: `modules/core/shoutbox`, `ModuleDb`, Blade,

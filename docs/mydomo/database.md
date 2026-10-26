@@ -16,6 +16,8 @@ order: 7
 ```text
 queue_jobs
 module_shared_events
+module_registry
+module_migrations
 api_tokens
 user_roles
 settings
@@ -64,6 +66,10 @@ OnChange-метод». Исключение из правила append-only — 
 выбираются по `read_at is null`. Повторы отсекаются по `notification_key`
 (или тексту и типу), у модуля не больше 10 непрочитанных. Подробно —
 [notifications.md](notifications.md).
+
+`module_shared_events` — retained-события `ModuleBus`; `module_registry` и
+`module_migrations` — SDK сторонних модулей (install/enabled/version и
+применённые миграции). Core-модули в реестре не нуждаются.
 
 `knowledge_base` собственных таблиц не создаёт: источник — файлы
 `docs/**/*.md`, индекс строится на запрос. Подробно —

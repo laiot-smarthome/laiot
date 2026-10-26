@@ -1,0 +1,25 @@
+{
+    "id": "example_sdk",
+    "type": "module",
+    "name": "SDK Example",
+    "version": "1.0.0",
+    "description": "Минимальный модуль MyDoMo SDK: миграция, ModuleDb, маршрут и Blade-страница.",
+    "namespace": "Example\\Sdk\\",
+    "entrypoint": "Module",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "migrations": "migrations",
+    "storage": {
+        "driver": "mysql",
+        "tables": ["notes"]
+    },
+    "menu": {
+        "title": "SDK Example",
+        "order": 200
+    },
+    "requires": {
+        "mydomo": ">=2.0.0-dev",
+        "php": ">=8.2"
+    }
+}

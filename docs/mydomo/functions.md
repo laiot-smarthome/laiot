@@ -220,6 +220,11 @@ php bin/mydomo timeout:run
 php bin/mydomo health
 php bin/mydomo route:list
 php bin/mydomo module:list
+php bin/mydomo module:install example_sdk
+php bin/mydomo module:disable example_sdk
+php bin/mydomo module:enable example_sdk
+php bin/mydomo module:remove example_sdk
+php bin/mydomo module:validate
 php bin/mydomo cache:clear
 php bin/mydomo queue:stats --queue=default
 php bin/mydomo queue:work --once

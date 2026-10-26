@@ -94,6 +94,8 @@ legacy API и возвращал 503 «install_required».
 | `KnowledgeBase` | индекс `docs/**`, категории, поиск и страницы базы знаний |
 | `MarkdownRenderer` | безопасный GFM-рендер, ссылки и оглавление |
 | `LinkedObjectService` | поиск объектов и свойства/методы класса для `x-md.linked-object` |
+| `ModuleManifest` | валидация `module.json`, semver/requires/dependencies |
+| `ModuleRegistry` / `ModuleInstaller` | реестр сторонних модулей, миграции и lifecycle |
 
 Запись значения свойства — не просто `UPDATE property_values`. Сервис
 `PropertyValueService` сохраняет значение, пишет историю (если включена),
@@ -107,9 +109,11 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 Маршруты получают префикс `/module/<id>`, auth и `request-id`; на время
 запроса контейнер получает `ModuleDb`/`ModuleBus` этого модуля.
 
-`modules/` зарезервирован под будущие third-party-модули. Старые модули в
-`modules/<id>/` — старые модули, которые ещё не перенесены; после переноса
-удаляются, без редиректов и runtime-совместимости.
+`modules/<id>/` — сторонние модули SDK. Они находятся по `module.json`,
+устанавливаются `module:install`, хранят состояние в `module_registry` и
+подключаются только при `enabled=1`. Старые модули без `module.json`
+игнорируются; после переноса удаляются, без редиректов и runtime-совместимости.
+Lifecycle и формат манифеста — [sdk.md](sdk.md).
 
 ## 6. UI
 
