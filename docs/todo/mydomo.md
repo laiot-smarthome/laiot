@@ -663,6 +663,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   `VerifyCsrf`, `Throttle`, `SetLocale`, `RequestId`, `SecurityHeaders`.
 - [x] API-срез: `/api/v1/health`, `/api/v1/about`, `/api/v1/modules` в
   `routes/api.php`.
+- [x] `layouts.alpha`: alpha topbar/sidebar на Blade; 1 тест.
 - [ ] Остальные роуты ядра: `/panel/...`, `/api/v2/...`, `/install`, `/ws`.
 - [ ] Роуты модулей: `/panel/<id>/...`, `/api/v2/modules/<id>/...`;
   автоматический префикс и проверка владельца.
@@ -779,8 +780,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   переноса shell на новый kernel.
 - [ ] Перенести остальные `MDJUI`-компоненты на Blade; не держать две
   разметки.
-- [ ] Перенести alpha-layout `templates/panel.html` на Blade/Yoyo без
-  изменения дизайна; новый layout не создавать.
+- [x] `layouts.alpha` — перенос topbar/sidebar/меню на Blade с alpha-классами.
+- [ ] Подключить `layouts.alpha` ко всем новым страницам и перенести
+  остальные части `templates/panel.html` без изменения дизайна.
 - [ ] Сохранить `md-*`, Bootstrap 5, тёмную тему, токены и мобильную вёрстку.
 - [ ] Yoyo spike: Blade-страница + компонент + `/yoyo` update endpoint;
   Yoyo остаётся UI-слоем, а не роутером (см. 4.7).

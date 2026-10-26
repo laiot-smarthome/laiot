@@ -89,6 +89,8 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
 - `resources/views/components/md/*` — Blade-компоненты с alpha-классами;
 - `resources/views/ui-kit/blade.blade.php` — демо в существующем UI Kit;
 - `src/View/BladeRenderer.php` — временный мост для alpha-shell;
+- `resources/views/layouts/alpha.blade.php` — перенос alpha-shell на Blade
+  (topbar/sidebar/меню), пока не подключён ко всем страницам;
 - `resources/views/pages/shoutbox.blade.php` — промежуточная страница.
 
 Новый layout/CSS не создаём. Alpha-shell и `MDJUI` остаются эталоном, пока
