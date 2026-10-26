@@ -43,8 +43,10 @@ legacy-коду. Если документ относится к новому я
 - `/health` (БД+кэш), `/status`, `/admin` (Blade-админка);
 - `PanelRenderer` + `layouts.alpha`, меню из core-модулей;
 - вход, UI Kit, профиль, API-маршруты, реестр модулей;
-- пользовательские обёртки: `say`, `gg`, `sg`, `getObject`, `getHistory`,
-  `callMethod`, `setTimeOut`, `clearTimeOut`;
+- пользовательские обёртки: `say`, `gg`/`sg`, `getGlobal`/`setGlobal`,
+  `getObject`, `getHistory`, `callMethod`/`cm`/`runMethod`/
+  `callMethodSafe`, `runScript`/`callScript`/`runScriptSafe`/`rs`,
+  `setTimeOut`, `clearTimeOut`, `notify`;
 - цепочка события свойства: запись → история → `property_events` →
   OnChange-метод, защита от циклов и журнал `/module/events`;
 - Carbon/Clock, `APP_TIMEZONE`, lowercase-схема + timestamps + soft deletes.

@@ -65,6 +65,7 @@ use MajorDoMo\Queue\Queue;
 use MajorDoMo\Runtime\CodeRunner;
 use MajorDoMo\Runtime\TimeoutRepository;
 use MajorDoMo\Scripts\ScriptRepository;
+use MajorDoMo\Scripts\ScriptRunner;
 use MajorDoMo\Search\PanelSearch;
 use MajorDoMo\Support\AppContext;
 use MajorDoMo\Support\Clock;
@@ -179,7 +180,8 @@ final class Application
         $this->container->instance(ErrorRepository::class, new ErrorRepository($this->database));
         $this->container->instance(MaintenanceMode::class, new MaintenanceMode($this->root));
         $this->container->instance(LocationRepository::class, new LocationRepository($this->database));
-        $this->container->instance(ScriptRepository::class, new ScriptRepository($this->database));
+        $scripts = new ScriptRepository($this->database);
+        $this->container->instance(ScriptRepository::class, $scripts);
         $this->container->instance(ClassRepository::class, new ClassRepository($this->database));
         $properties = new PropertyRepository($this->database);
         $this->container->instance(PropertyRepository::class, $properties);
@@ -190,7 +192,9 @@ final class Application
         $methodRunner = new MethodRunner($objectRepository, $methods);
         $this->container->instance(MethodRunner::class, $methodRunner);
         $this->container->instance(TimeoutRepository::class, new TimeoutRepository($this->database));
-        $this->container->instance(CodeRunner::class, new CodeRunner());
+        $codeRunner = new CodeRunner();
+        $this->container->instance(CodeRunner::class, $codeRunner);
+        $this->container->instance(ScriptRunner::class, new ScriptRunner($scripts, $codeRunner));
         $history = new HistoryRepository($this->database);
         $this->container->instance(HistoryRepository::class, $history);
         $values = new ValueRepository($this->database, $history);

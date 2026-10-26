@@ -7,6 +7,7 @@ use MajorDoMo\Notifications\NotificationService;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyValueService;
 use MajorDoMo\Runtime\TimeoutRepository;
+use MajorDoMo\Scripts\ScriptRunner;
 use MajorDoMo\Support\AppContext;
 
 if (!function_exists('getObject')) {
@@ -40,6 +41,16 @@ if (!function_exists('gg')) {
     }
 }
 
+if (!function_exists('getGlobal')) {
+    /**
+     * `getGlobal('Object.Property')` — alpha-имя для `gg()`.
+     */
+    function getGlobal(string $name): ?string
+    {
+        return gg($name);
+    }
+}
+
 if (!function_exists('sg')) {
     /**
      * `sg('Object.Property', $value, $noLinked, $source)` — записать значение.
@@ -67,6 +78,19 @@ if (!function_exists('sg')) {
     }
 }
 
+if (!function_exists('setGlobal')) {
+    /**
+     * `setGlobal()` — alpha-имя для `sg()`.
+     *
+     * @param mixed $value Скаляр, null или массив (массив сохраняется как JSON).
+     * @param int|array<string, int> $noLinked Не используется; сохранён для alpha-совместимости.
+     */
+    function setGlobal(string $name, $value, $noLinked = 0, string $source = ''): bool
+    {
+        return sg($name, $value, $noLinked, $source !== '' ? $source : 'setGlobal');
+    }
+}
+
 if (!function_exists('notify')) {
     /**
      * `notify()` — системное уведомление в колокольчике админки.
@@ -88,16 +112,123 @@ if (!function_exists('notify')) {
 
 if (!function_exists('callMethod')) {
     /**
+     * Вызвать метод объекта.
+     *
+     * Поддерживаются обе формы:
+     *   callMethod('Кухня', 'double', ['x' => 5]); // MyDoMo
+     *   callMethod('Кухня.double', ['x' => 5]);    // alpha
+     *
+     * @param mixed $method Имя метода или массив параметров для формы «Объект.метод».
      * @param array<string, mixed> $params
      */
-    function callMethod(string $object, string $method, array $params = []): mixed
+    function callMethod(string $object, mixed $method = null, array $params = []): mixed
     {
         $app = AppContext::get();
         if ($app === null) {
             return null;
         }
 
-        return $app->container()->make(MethodRunner::class)->run($object, $method, $params);
+        if (is_array($method) && $params === []) {
+            $params = $method;
+            $method = null;
+        }
+        if (!is_string($method) || trim($method) === '') {
+            [$objectName, $methodName] = split_object_property($object);
+            if ($objectName === '' || $methodName === '') {
+                return null;
+            }
+            $object = $objectName;
+            $method = $methodName;
+        }
+
+        return $app->container()->make(MethodRunner::class)->run(trim($object), trim($method), $params);
+    }
+}
+
+if (!function_exists('cm')) {
+    /**
+     * `cm('Объект.метод', $params)` — короткое имя `callMethod`.
+     *
+     * @param mixed $params Массив параметров; не-массив приводится к пустому.
+     */
+    function cm(string $method, mixed $params = 0): mixed
+    {
+        return callMethod($method, is_array($params) ? $params : []);
+    }
+}
+
+if (!function_exists('runMethod')) {
+    /**
+     * @param mixed $params Массив параметров; не-массив приводится к пустому.
+     */
+    function runMethod(string $method, mixed $params = 0): mixed
+    {
+        return cm($method, $params);
+    }
+}
+
+if (!function_exists('callMethodSafe')) {
+    /**
+     * В alpha «safe» означал отдельный режим; в MyDoMo вызов синхронный и
+     * совпадает с `callMethod`.
+     *
+     * @param mixed $method Имя метода или массив параметров для формы «Объект.метод».
+     * @param array<string, mixed> $params
+     */
+    function callMethodSafe(string $object, mixed $method = null, array $params = []): mixed
+    {
+        return callMethod($object, $method, $params);
+    }
+}
+
+if (!function_exists('runScript')) {
+    /**
+     * Запустить сценарий по ID или названию.
+     *
+     * @param int|string $id ID сценария или его название.
+     * @param mixed $params Массив параметров; не-массив приводится к пустому.
+     */
+    function runScript(int|string $id, mixed $params = []): mixed
+    {
+        $app = AppContext::get();
+        if ($app === null) {
+            return null;
+        }
+
+        return $app->container()->make(ScriptRunner::class)->run($id, $params);
+    }
+}
+
+if (!function_exists('callScript')) {
+    /**
+     * @param mixed $params Массив параметров; не-массив приводится к пустому.
+     */
+    function callScript(int|string $id, mixed $params = ''): mixed
+    {
+        return runScript($id, $params);
+    }
+}
+
+if (!function_exists('runScriptSafe')) {
+    /**
+     * В alpha запускал сценарий через безопасную очередь; в MyDoMo вызов
+     * синхронный и совпадает с `runScript`.
+     *
+     * @param mixed $params Массив параметров; не-массив приводится к пустому.
+     */
+    function runScriptSafe(int|string $id, mixed $params = 0): mixed
+    {
+        return runScript($id, $params);
+    }
+}
+
+if (!function_exists('rs')) {
+    /**
+     * @param mixed $params Массив параметров; не-массив приводится к пустому.
+     */
+    function rs(int|string $id, mixed $params = 0): mixed
+    {
+        return runScript($id, $params);
     }
 }
 

@@ -90,6 +90,7 @@ legacy API и возвращал 503 «install_required».
 | `PropertyEventChain` | контекст цепочки и предел вложенности |
 | `PanelSearch` | поиск по core-сущностям для шапки админки |
 | `NotificationService` | уведомления модулей/сценариев, прочтение и summary |
+| `ScriptRunner` | запуск сценария по ID/названию с `$params` (без eval) |
 
 Запись значения свойства — не просто `UPDATE property_values`. Сервис
 `PropertyValueService` сохраняет значение, пишет историю (если включена),

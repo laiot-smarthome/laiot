@@ -272,6 +272,8 @@ say('Дверь открыта', 0, 0, 'script');
 ```php
 gg('Кухня.temperature');       // значение свойства (string|null)
 sg('Кухня.temperature', 23.5); // true/false
+getGlobal('Кухня.temperature'); // alpha-имя для gg()
+setGlobal('Кухня.temperature', 23.5); // alpha-имя для sg()
 getObject('Кухня');            // array|null
 ```
 
@@ -298,7 +300,29 @@ sg('Кухня.temperature', 23.5, 0, 'zigbee');
 
 `callMethod('Кухня', 'double', ['x' => 5])` работает: находит объект, класс,
 метод и выполняет доверенный пользовательский PHP через временный файл
-(без eval). Код методов — как в alpha, доверенный.
+(без eval). Поддерживается и alpha-форма с точкой:
+
+```php
+callMethod('Кухня', 'double', ['x' => 5]);
+callMethod('Кухня.double', ['x' => 5]); // alpha-форма
+cm('Кухня.double', ['x' => 5]);         // короткий алиас
+runMethod('Кухня.double', ['x' => 5]);  // алиас
+callMethodSafe('Кухня.double', ['x' => 5]); // в MyDoMo синхронный, как callMethod
+```
+
+Если объект или метод не найдены, выбрасывается `InvalidArgumentException`.
+
+`runScript($id, $params)` запускает сценарий по ID **или названию**. Код
+сценария — доверенный PHP без тегов, выполняется через `CodeRunner` (без
+eval); `$params` доступен внутри кода. Алиасы — `callScript()`,
+`runScriptSafe()`, `rs()`. В alpha `runScriptSafe` уходил в очередь, а
+`callScript` — в сценарий; в MyDoMo все три вызова синхронные и одинаковые,
+очередь для пользовательского кода пока не используется.
+
+```php
+$result = runScript(5, ['x' => 2]);
+$result = runScript('Утренний сценарий', ['x' => 2]);
+```
 
 `setTimeOut($title, $code, $seconds)` создаёт запись в `runtime_timeouts`;
 `clearTimeOut($title)` снимает её. Выполнение — только явно:

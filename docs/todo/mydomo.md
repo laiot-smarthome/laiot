@@ -865,6 +865,9 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] `history`: `property_history`, запись при `sg`, страница и `getHistory`.
 - [x] users: назначение ролей в форме, `syncUserRoles`; 1 тест.
 - [x] `callMethod`: поиск объекта/класса/метода и выполнение без eval; 1 тест.
+- [x] Функции сценариев: `getGlobal`/`setGlobal`, `cm`/`runMethod`/
+  `callMethodSafe`, `runScript`/`callScript`/`runScriptSafe`/`rs`;
+  `ScriptRunner` по ID или названию, без eval; 5 тестов.
 - [x] `setTimeOut`/`clearTimeOut`: `runtime_timeouts`, явный `timeout:run`;
   1 тест.
 - [x] Цепочка события свойства: `PropertyValueService` — единая запись,

@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MajorDoMo\Scripts;
+
+use InvalidArgumentException;
+use MajorDoMo\Runtime\CodeRunner;
+
+/**
+ * Запуск пользовательского сценария.
+ *
+ * Сценарий — доверенный PHP без тегов, как в alpha. Код выполняется через
+ * `CodeRunner` (временный файл, без eval), параметры доступны как `$params`.
+ * ID или название принимаются оба: старые сценарии вызывают `runScript()`
+ * и так, и так.
+ *
+ * 2026-10-26 — сервис создан для alpha-совместимых runScript/callScript/rs.
+ */
+final readonly class ScriptRunner
+{
+    public function __construct(
+        private ScriptRepository $scripts,
+        private CodeRunner $runner
+    ) {
+    }
+
+    /**
+     * @param int|string $id ID сценария или его название.
+     * @param mixed $params Массив параметров; не-массив приводится к пустому.
+     */
+    public function run(int|string $id, mixed $params = []): mixed
+    {
+        $script = $this->find($id);
+        if ($script === null) {
+            throw new InvalidArgumentException('Сценарий не найден: ' . $id);
+        }
+
+        return $this->runner->run((string)$script['code'], is_array($params) ? $params : []);
+    }
+
+    /**
+     * @return array{id:int,title:string,code:string,description:string,category_id:int,run_periodically:bool}|null
+     */
+    private function find(int|string $id): ?array
+    {
+        if (is_int($id) || ctype_digit((string)$id)) {
+            return $this->scripts->find((int)$id);
+        }
+
+        return $this->scripts->findByTitle((string)$id);
+    }
+}

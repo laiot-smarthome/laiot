@@ -60,6 +60,28 @@ final readonly class ScriptRepository
         ];
     }
 
+    /**
+     * Поиск по названию: alpha `runScript()` принимал и ID, и заголовок.
+     *
+     * @return array{id:int,title:string,code:string,description:string,category_id:int,run_periodically:bool}|null
+     */
+    public function findByTitle(string $title): ?array
+    {
+        $row = $this->database->connection()->table('scripts')
+            ->where('title', trim($title))
+            ->whereNull('deleted_at')
+            ->first();
+
+        return $row === null ? null : [
+            'id' => (int)$row->id,
+            'title' => (string)$row->title,
+            'code' => (string)($row->code ?? ''),
+            'description' => (string)($row->description ?? ''),
+            'category_id' => (int)$row->category_id,
+            'run_periodically' => (int)$row->run_periodically === 1,
+        ];
+    }
+
     public function create(string $title, string $code, string $description, int $categoryId, bool $runPeriodically): int
     {
         $now = date('Y-m-d H:i:s');
