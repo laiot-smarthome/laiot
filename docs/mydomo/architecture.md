@@ -122,6 +122,9 @@ Core-модули лежат в `modules/core/<id>/` и не удаляются/
   меню строится из `ModuleManager::menuItems()`;
 - `resources/views/layouts/alpha.blade.php` — перенос alpha-shell на Blade
   (topbar/sidebar/меню, поиск в шапке и полный drawer результатов);
+- `resources/views/components/md/code.blade.php` — редактор кода на Alpine
+  с нумерацией строк (`x-md.code`), без CodeMirror; используется в формах
+  скриптов и методов;
 - `public/assets/admin/mydomo.js` и `mydomo.css` — единственный бандл нового
   ядра: Bootstrap CSS, Alpine и собственные vanilla-модули (тема, меню,
   поиск, уведомления, drawer). jQuery, `admin.js` и alpha-плагины в MyDoMo не

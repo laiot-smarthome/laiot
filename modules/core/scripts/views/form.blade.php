@@ -27,7 +27,7 @@
                 @endforeach
             </x-md.select>
             <x-md.checkbox name="run_periodically" value="1" label="Запускать периодически" :checked="$run" />
-            <x-md.textarea name="code" label="PHP-код" :value="$value('code')" rows="18" />
+            <x-md.code name="code" label="PHP-код" :value="$value('code')" rows="18" hint="Без тегов PHP; выполняется через CodeRunner." />
             <div class="md-ui-actions">
                 <x-md.button type="submit" icon="check">Сохранить</x-md.button>
                 <x-md.button href="/module/scripts" variant="ghost">Отмена</x-md.button>

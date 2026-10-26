@@ -25,7 +25,7 @@
             </x-md.select>
             <x-md.input name="title" label="Название" :value="$value('title')" required />
             <x-md.textarea name="description" label="Описание" :value="$value('description')" rows="3" />
-            <x-md.textarea name="code" label="PHP-код" :value="$value('code')" rows="16" />
+            <x-md.code name="code" label="PHP-код" :value="$value('code')" rows="16" hint="Без тегов PHP; выполняется через CodeRunner." />
             <div class="md-ui-actions">
                 <x-md.button type="submit" icon="check">Сохранить</x-md.button>
                 <x-md.button href="/module/methods" variant="ghost">Отмена</x-md.button>

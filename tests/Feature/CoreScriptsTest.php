@@ -43,6 +43,10 @@ final class CoreScriptsTest extends TestCase
         $page = $app->handle(Request::create('/module/scripts', 'GET'));
         self::assertSame(200, $page->getStatusCode());
 
+        $form = $app->handle(Request::create('/module/scripts/create', 'GET'));
+        self::assertSame(200, $form->getStatusCode());
+        self::assertStringContainsString('md-code-editor', (string)$form->getContent());
+
         $create = $app->handle(Request::create('/module/scripts/create', 'POST', [
             '_token' => $session->csrfToken(),
             'title' => 'Тестовый скрипт',

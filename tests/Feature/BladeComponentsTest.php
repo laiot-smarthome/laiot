@@ -26,6 +26,8 @@ final class BladeComponentsTest extends TestCase
         self::assertStringContainsString('md-input', $html);
         self::assertStringContainsString('md-select', $html);
         self::assertStringContainsString('md-textarea', $html);
+        self::assertStringContainsString('md-code-editor', $html);
+        self::assertStringContainsString('x-model="code"', $html);
         self::assertStringContainsString('md-check', $html);
         self::assertStringContainsString('md-switch', $html);
         self::assertStringContainsString('md-disclosure', $html);

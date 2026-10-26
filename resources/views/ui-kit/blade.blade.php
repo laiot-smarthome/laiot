@@ -65,6 +65,7 @@
             selected="living"
         />
         <x-md.textarea name="comment" label="Комментарий" placeholder="Текст" />
+        <x-md.code name="demo_code" label="PHP-код" value="echo 'Hello';" rows="4" hint="Нумерация строк на Alpine, без CodeMirror." />
         <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.75rem;">
             <x-md.checkbox name="enabled" label="Включено" checked />
             <x-md.switch name="notify" label="Уведомления" />

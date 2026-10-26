@@ -16,7 +16,7 @@ legacy-коду. Если документ относится к новому я
 ## Статус
 
 **База ядра и веб-админка готовы.** Перенесено **18 core-модулей**;
-остались 11 старых модулей. Старая alpha-панель и её бандл удалены из
+осталось 10 старых модулей. Старая alpha-панель и её бандл удалены из
 MyDoMo. Пользовательские обёртки работают.
 
 Уже работает в новом ядре:
@@ -62,9 +62,8 @@ MyDoMo. Пользовательские обёртки работают.
 
 Ещё не закрыто:
 
-- 11 старых модулей: modes, pinghosts, mqtt, zigbee, xray,
-  blockly_code, ai_assistant, control_modules, linkedobject, market,
-  saverestore;
+- 10 старых модулей: modes, pinghosts, mqtt, zigbee, xray,
+  ai_assistant, control_modules, linkedobject, market, saverestore;
 - UI Kit: Alpine-компоненты (`modal`, `drawer`, alerts) и Yoyo-счётчик
   работают; остались Yoyo-обёртки для остальных блоков;
 - установка/обновление, полный API v2;

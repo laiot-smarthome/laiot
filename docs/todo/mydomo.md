@@ -88,6 +88,8 @@ order: 5
 - [x] `api`: входящие webhook на `module_api_webhooks`, секрет SHA-256,
   методы, сценарий/PHP, `/api/v1/webhooks/{secret}`; старый `modules/api`
   удалён; 4 теста, документация.
+- [x] `blockly_code` заменён `x-md.code` (Alpine, нумерация строк) в формах
+  скриптов/методов; старый модуль и шаблон удалены.
 - [x] Blade-компоненты `x-md.button/icon/badge/card/section-heading/alert/
   avatar/empty-state/kpi/progress/status/field/input/textarea/select/
   checkbox/switch/disclosure/drawer/modal/skeleton/activity-feed/hint` и
@@ -415,6 +417,7 @@ project/
 | 2026-10-26 | `public/admin.php`, `public/nf.php`, `modules/panel.class.php`, `modules/apps.php`, `modules/first_start.php`, `modules/inc_panel_ajax.php`, `templates/panel*`, `common_header_admin.html`, `lib/admin_router.php`, `lib/core/AdminApplication.php`, `lib/core/Api/Panel*`, `lib/dashboard_data.php` | новый `layouts.alpha` + `PanelRenderer`; alpha-панель остаётся в ветке `alpha` |
 | 2026-10-26 | `resources/js/app.js`, `bootstrap.js`, `modules/admin_panel/*`, `vite*.config.js`, `public/assets/admin/admin.js|admin.css|charts|codeeditor|codehighlight` | `resources/js/mydomo/*`, `vite.mydomo.config.js`, `mydomo.js`/`mydomo.css` без jQuery и alpha-модулей |
 | 2026-10-26 | `modules/api`, `templates/api/*`, `public/assets/modules/api/*` | `modules/core/api` на `module_api_webhooks`; legacy `public/api.php` и `lib/core/Api/*` оставлены только как вход alpha |
+| 2026-10-26 | `modules/blockly_code`, `templates/blockly_code/*` | `x-md.code` (Alpine) в формах скриптов/методов; CodeMirror/alpha-редактор не переносим |
 
 ## 4. Стек и Composer
 

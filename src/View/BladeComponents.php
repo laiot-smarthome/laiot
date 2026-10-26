@@ -23,6 +23,7 @@ final class BladeComponents
         'button',
         'card',
         'checkbox',
+        'code',
         'disclosure',
         'drawer',
         'empty-state',
