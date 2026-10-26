@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Routing\Router;
+use MajorDoMo\Http\Controllers\ApiDocsController;
 use MajorDoMo\Http\Controllers\DashboardController;
 use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\LoginController;
@@ -22,6 +23,9 @@ return static function (Router $router): void {
         $router->get('/admin', DashboardController::class)
             ->middleware(['auth'])
             ->name('admin.dashboard');
+        $router->get('/admin/api', ApiDocsController::class)
+            ->middleware(['auth'])
+            ->name('admin.api');
         $router->get('/admin/maintenance', [MaintenanceController::class, 'show'])
             ->middleware(['auth', 'can:settings.manage'])
             ->name('admin.maintenance');
