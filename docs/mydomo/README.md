@@ -15,30 +15,37 @@ legacy-коду. Если документ относится к новому я
 
 ## Статус
 
-Идёт **core-gate**: сначала закрываем ядро, затем переносим модули по одному.
-Первый вертикальный срез `shoutbox` уже перенесён полностью; остальные модули
-ждут закрытия оставшегося ядра.
+**Core-gate закрыт по базовым слоям**, но не по всей alpha-совместимости:
+два модуля уже перенесены, пользовательские обёртки — частично.
 
 Уже работает в новом ядре:
 
 - `public/index.php` → `Application` → `Kernel` → Illuminate Router;
-- сессия `mydomo`, вход/выход, CSRF, `Authorization`/`can:`;
+- сессия `mydomo`, вход/выход, CSRF, rate limit входа;
+- `Authorization`/`can:`, таблицы `roles`/`permissions`/`user_roles`,
+  страница `/roles`;
+- API-токены (`api_tokens`, Bearer/X-API-Key, `/api/v1/me` с правами);
 - единые 404/405/500, `request_id`, security headers;
 - `ModuleManager`, `ModuleDb` (MySQL/SQLite), `ModuleBus` (retained events);
 - кэш `array`/`file`/`database`/`redis`;
-- очередь `DatabaseQueue`, worker, failed/retry, typed jobs;
-- CLI `bin/mydomo`: `about`, `health`, `route:list`, `queue:*`, `db:*`,
-  `module:list`;
-- API v1: `/api/v1/health`, `/api/v1/about`;
-- Blade-компоненты `x-md.*` с alpha-разметкой и alpha UI Kit.
+- очередь `DatabaseQueue`, worker, failed/retry/pending, typed jobs;
+- CLI `bin/mydomo`: `about`, `doctor`, `health`, `route:list`, `queue:*`,
+  `db:*`, `module:list`, `api:token`;
+- `/health` проверяет БД и кэш, `/status` — версия/БД/кэш/модули;
+- `PanelRenderer` + `layouts.alpha`, меню из core-модулей;
+- пользовательская `say()` пишет в Shoutbox;
+- модули `shoutbox` и `jobs` перенесены полностью, старый код удалён;
+- Blade-компоненты `x-md.*` с alpha-разметкой;
+- Carbon/Clock, `APP_TIMEZONE`, lowercase-схема + timestamps + soft deletes.
 
 Ещё не закрыто:
 
-- alpha-layout целиком на Blade/Yoyo (сейчас alpha-shell остаётся);
-- таблица ролей/разрешений (сейчас роль в сессии);
-- полный API и установка/обновление;
-- пользовательские обёртки нового ядра;
-- перенос core-модулей.
+- пользовательские `gg`, `sg`, `setTimeOut`, `callMethod`, `getObject`,
+  `getHistory` — нужны объекты/свойства/методы как core-сервисы;
+- полная alpha-shell (notifications/console/search parity);
+- установка/обновление, полный API v2;
+- остальные core-модули;
+- live Redis-проверка.
 
 ## Что читать
 

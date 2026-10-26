@@ -114,16 +114,22 @@ order: 5
 
 Core-gate:
 
-1. HTTP, ошибки, middleware, security headers — закрыть остатки.
-2. Config + `.env`, типизированные значения.
-3. БД: PDO/Capsule, `Model`, `Migrator`, миграции, транзакции.
-4. Кэш: Redis, `clearPrefix`, CLI, health.
-5. Очередь: typed jobs, worker lifecycle, scheduler-совместимость.
-6. Логи: каналы, ротация, уровни.
-7. Auth/роли/права.
-8. Alpha-layout на Blade/Yoyo без изменения дизайна.
-9. API-слой и health.
-10. Тесты, docs, Docker.
+1. [x] HTTP, ошибки, middleware, security headers — базово закрыто.
+2. [x] Config + `.env`, типизированные значения.
+3. [x] БД: PDO/Capsule, `Model`, `Migrator`, миграции, транзакции.
+4. [x] Кэш: Redis, `clearPrefix`, CLI, health (live Redis не проверялся).
+5. [~] Очередь: typed jobs, worker, failed/retry/pending; scheduler-совместимость
+   ещё нет.
+6. [x] Логи: каналы, request_id, уровни.
+7. [x] Auth/роли/права: таблицы, `can:`, `/roles`, API-токены.
+8. [~] Alpha-layout: `layouts.alpha` + `PanelRenderer` + меню; полная parity
+   (notifications/console) ещё нет.
+9. [x] API-слой и health: v1 health/about/modules/me + токены.
+10. [x] Тесты, docs, Docker-инструкция.
+
+Остаток после 20 раундов: `gg`/`sg`/`setTimeOut`/`callMethod`/`getObject`/
+`getHistory` (нужны объекты/свойства), полная alpha-shell parity и остальные
+core-модули. Это не блокер для уже перенесённых `shoutbox` и `jobs`.
 
 После gate: один модуль = новый контроллер, `modules/core/<id>`, `ModuleDb`,
 Blade-страница в alpha-shell, удаление старого кода, тесты, ручная проверка.
