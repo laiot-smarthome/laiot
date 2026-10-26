@@ -179,6 +179,10 @@ modules/<id>/               модуль как пакет
 }
 ```
 
+`platform.php=8.2.0` — минимум для разрешения зависимостей, а не разрешение
+работать на устаревшем патче. Production обязан быть на актуальном патче PHP;
+`doctor` и deploy проверяют версию и предупреждают об устаревшей ветке.
+
 CI проверяет 8.2 и 8.3; локальная 8.4 не должна давать новых предупреждений.
 
 ### 4.2. Рекомендуемый стек
@@ -242,14 +246,17 @@ MIT/BSD, отсутствие известных уязвимостей, раз�
 | `friendsofphp/php-cs-fixer` | `^3.95` | Единый стиль |
 | `ergebnis/composer-normalize` | `^2.54` | Порядок в composer.json |
 | `php-parallel-lint/php-parallel-lint` | `^1.4` | Быстрый lint |
-| `roave/security-advisories` | `dev-latest` | Запрет уязвимых версий |
 | `symfony/var-dumper` | `^7.4` | Отладка в dev |
 | `symfony/browser-kit` | `^7.4` | HTTP-тесты, если понадобятся |
 | `symfony/dom-crawler` | `^7.4` | Разбор HTML в тестах |
 | `symfony/css-selector` | `^7.4` | CSS-селекторы в тестах |
 
-Не берём `pestphp/pest` (достаточно PHPUnit), `infection/infection` (позже),
-`phpbench/phpbench` (после стабилизации), `filp/whoops` (свой error handler).
+Не берём `roave/security-advisories` в основной набор: при фиксированном
+`platform.php=8.2.0` он требует последний патч PHP и ломает установку на
+минимальной версии. Вместо него — `composer audit`; подробности в 4.5.
+Также не берём `pestphp/pest` (достаточно PHPUnit), `infection/infection`
+(позже), `phpbench/phpbench` (после стабилизации), `filp/whoops` (свой error
+handler).
 
 ### 4.4. Команды установки (spike)
 
@@ -267,13 +274,28 @@ composer require --dev phpunit/phpunit:^11.5 mockery/mockery:^1.6 \
   phpstan/phpstan-strict-rules:^2.0 phpstan/phpstan-deprecation-rules:^2.0 \
   rector/rector:^2.7 friendsofphp/php-cs-fixer:^3.95 \
   ergebnis/composer-normalize:^2.54 php-parallel-lint/php-parallel-lint:^1.4 \
-  roave/security-advisories:dev-latest symfony/var-dumper:^7.4
+  symfony/var-dumper:^7.4
 ```
 
 Spike считается успешным, если одновременно работают: контейнер, один
 маршрут, Blade-шаблон, Eloquent-модель, кэш, логгер, тест и `composer
 check-platform-reqs` на PHP 8.2. Если склейка занимает больше двух недель,
 возвращаемся к решению о полном Laravel или Symfony 7.4.
+
+### 4.5. Проверка разрешения зависимостей
+
+2026-10-26 сделан `composer update --dry-run` на `platform.php=8.2.0`.
+Результат: набор Illuminate 12 + Symfony 7.4 + Monolog + Predis разрешается
+без конфликтов (Illuminate 12.70.1, Symfony 7.4.21, Monolog 3.12.1,
+Predis 2.4.1; 38 пакетов). Dev-набор без `roave/security-advisories` тоже
+разрешается: PHPUnit 11.5.57, Rector 2.8.0, PHPStan 2.x.
+
+`roave/security-advisories` в основной `composer.json` не добавляем: при
+фиксированном `platform.php=8.2.0` он требует как минимум 8.2.35 (а для
+8.3/8.4 — свои последние патчи) и ломает установку на минимальной версии.
+Вместо него — `composer audit` в CI и обновление PHP-патча по регламенту.
+Если нужен дополнительный барьер, вынести `roave` в отдельный nightly-job
+с актуальным патчем PHP, но не в общую матрицу сборки.
 
 ## 5. Этапы
 
@@ -336,6 +358,8 @@ feature flag, а не через вечную двойную поддержку.
 - [ ] Кэш маршрутов: `php majordomo route:cache`, `route:clear`, проверка
   конфликтов и запрет замыканий в кэшируемых маршрутах.
 - [ ] 404/405/500: единый HTML для панели и JSON для API; `Allow` для 405.
+- [ ] Обновить `docs/deploy/nginx.conf.sample`: фронт-контроллер
+  `public/index.php`, статика/`cms`/`docs`, без старого `nf.php`.
 - [ ] Запретить GET-мутации; CSRF для `POST/PUT/PATCH/DELETE`.
 - [ ] Удалить `pd`, `view_mode`, `?action=...` из нового ядра.
 - [ ] Добавить тонкий слой редиректов только для самых популярных старых
@@ -463,7 +487,8 @@ feature flag, а не через вечную двойную поддержку.
 - [ ] Токены API — только хеш в БД, ротация, отзыв, срок.
 - [ ] Секреты модулей — шифрование sodium, ключ вне БД.
 - [ ] Валидация загрузок, путей, JSON, размеров тела; запрет `..` и null-byte.
-- [ ] `composer audit` и `roave/security-advisories` в CI.
+- [ ] `composer audit` в CI; `roave/security-advisories` — только отдельным
+  nightly с актуальным патчем PHP, если понадобится.
 - [ ] Политика прав: роли/разрешения, проверка на сервере, а не в UI.
 
 ### 6.10. Конфигурация, установка, обновление
@@ -472,7 +497,9 @@ feature flag, а не через вечную двойную поддержку.
   валидацию обязательных ключей.
 - [ ] `config/app.php`, `config/database.php`, `config/cache.php`,
   `config/queue.php`, `config/logging.php`, `config/modules.php`.
-- [ ] Установщик: PDO, проверка PHP 8.2/расширений, utf8mb4, Redis optional.
+- [ ] Установщик: PDO, проверка PHP 8.2/расширений (`pdo_mysql`, `mbstring`,
+  `intl`, `curl`, `json`, `openssl`, `fileinfo`, `sockets`; `redis` —
+  опционально), utf8mb4, Redis optional.
 - [ ] `mydomo:install` для CLI; `public/install.php` для браузера.
 - [ ] `mydomo:upgrade <backup>`: проверка версии alpha, backup, миграции,
   пересборка кэша, проверка здоровья.
@@ -501,7 +528,7 @@ feature flag, а не через вечную двойную поддержку.
 
 | Волна | Модули | Почему |
 | --- | --- | --- |
-| 1 | `panel`, `control_modules`, `users`, `settings` | Каркас, вход, права, конфиг |
+| 1 | `panel` (shell, сейчас `modules/panel.class.php`), `control_modules`, `users`, `settings` | Каркас, вход, права, конфиг |
 | 2 | `classes`, `objects`, `properties`, `methods` | Основа доменной модели |
 | 3 | `scripts`, `events`, `history`, `pvalues`, `locations`, `pinghosts` | Автоматизация и данные |
 | 4 | `system_errors`, `actions_log`, `jobs`, `linkedobject`, `ui_kit`, `shoutbox` | Поддержка UI и диагностики |
@@ -539,6 +566,8 @@ feature flag, а не через вечную двойную поддержку.
   и предупреждения о старых вызовах.
 - `xray`, `mqtt`, `saverestore`, `market` — самые большие; их нельзя
   переписывать «заодно» с ядром, только отдельными этапами.
+- `api` — HTTP API переезжает в ядро; модуль остаётся экраном токенов,
+  webhook и диагностики, а не реализацией роутера.
 - `ai_assistant` уже имеет `src/` и документацию; его можно взять как образец
   нового модуля, но API ядра всё равно изменится.
 
@@ -674,8 +703,8 @@ php tests/config_smoke.php
   пользователи, настройки, ошибки, задания работают на новом ядре.
 - [ ] Все базовые модули переписаны; `module.class.php`, `view_mode`, `pd`,
   `jTemplate`, `admin_router.php`, `nf.php` не используются.
-- [ ] `lib/*.php` и `lib/core/` либо удалены, либо оставлены только как
-  compatibility runtime для пользовательских сценариев.
+- [ ] `lib/*.php` удалены; `lib/core/` перенесён в `src/`; в `src/Compat`
+  остаётся только runtime пользовательских сценариев.
 - [ ] Публичный API v1 проходит контрактные тесты; v2 документирован.
 - [ ] PHPUnit, PHPStan, Rector, PHP-CS-Fixer, smoke-тесты и `npm run build`
   зелёные в CI на PHP 8.2 и 8.3.
