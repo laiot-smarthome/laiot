@@ -32,6 +32,8 @@ final class BladeComponentsTest extends TestCase
         self::assertStringContainsString('md-skeleton', $html);
         self::assertStringContainsString('md-modal', $html);
         self::assertStringContainsString('md-admin-drawer', $html);
+        self::assertStringContainsString('md-activity', $html);
+        self::assertStringContainsString('Лента событий', $html);
         self::assertStringNotContainsString('component not found', $html);
     }
 }

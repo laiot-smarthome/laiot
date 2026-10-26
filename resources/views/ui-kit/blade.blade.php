@@ -72,9 +72,20 @@
     </div>
 
     <div class="md-ui-demo__canvas" style="display:block;">
-        <x-md.disclosure title="Disclosure" description="Раскрывающийся блок на details/summary." badge="Blade">
+        <x-md.activity-feed
+            title="Лента событий"
+            subtitle="Blade-версия activity feed"
+            eyebrow="Blade"
+            :items="[
+                ['title' => 'Объект обновлён', 'text' => 'Гостиная · температура 23°C', 'time' => '12:40', 'date' => 'Сегодня', 'tone' => 'success', 'actor' => 'Сценарий'],
+                ['title' => 'Ошибка устройства', 'text' => 'Кухня · нет связи', 'time' => '12:35', 'date' => 'Сегодня', 'tone' => 'danger', 'badge' => 'важно', 'badge_tone' => 'danger'],
+            ]"
+        />
+        <div style="margin-top:1rem;">
+            <x-md.disclosure title="Disclosure" description="Раскрывающийся блок на details/summary." badge="Blade">
             <p>Содержимое раскрывается без нового JavaScript и без изменения вида.</p>
         </x-md.disclosure>
+        </div>
         <div style="margin-top:1rem;">
             <x-md.skeleton :lines="3" />
         </div>

@@ -70,8 +70,8 @@ order: 5
   `ui-system.css`, `MDJUI` и UI Kit, без нового layout/CSS.
 - [x] Blade-компоненты `x-md.button/icon/badge/card/section-heading/alert/
   avatar/empty-state/kpi/progress/status/field/input/textarea/select/
-  checkbox/switch/disclosure/drawer/modal/skeleton` и секция «Blade/Yoyo»
-  в alpha UI Kit; `BladeRenderer` — временный мост.
+  checkbox/switch/disclosure/drawer/modal/skeleton/activity-feed` и секция
+  «Blade/Yoyo» в alpha UI Kit; `BladeRenderer` — временный мост.
 - [ ] Core-модули: интегрировать страницу в alpha-оболочку, затем `ui_kit`
   и `shoutbox`.
 - [ ] Ядро параллельно: кэш, очереди/события, логирование, CLI и панель.
@@ -727,7 +727,7 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
 - [x] Blade-компоненты на alpha-классах: button, icon, badge, card,
   section-heading, alert, avatar, empty-state, kpi, progress, status, field,
   input, textarea, select, checkbox, switch, disclosure, drawer, modal,
-  skeleton; секция в UI Kit. Внешний вид не менялся.
+  skeleton, activity-feed; секция в UI Kit. Внешний вид не менялся.
 - [x] `BladeRenderer` — временный мост для alpha-shell; удалить после
   переноса shell на новый kernel.
 - [ ] Перенести остальные `MDJUI`-компоненты на Blade; не держать две
