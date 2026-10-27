@@ -1,111 +1,56 @@
 ---
-title: Документация
+title: Документация MyDoMo
 audience: user, agent
 category: general
-category_label: Общее
-category_icon: book-2
-category_order: 10
-tags: документация, карта, навигация, категории
-description: Карта документации MajorDoMo по категориям — что читать человеку, что агенту и что менять при доработках.
+tags: документация, навигация, mydomo
+description: Карта актуальной документации ветки MyDoMo; alpha-документация удалена и доступна только в ветке alpha.
 order: 1
 ---
 
-# Документация
+# Документация MyDoMo
 
-Документация — часть репозитория. Это же содержимое показывает раздел
-**«База знаний»** MyDoMo в админке (`/knowledge-base`), поэтому тексты
-пишутся один раз здесь и не дублируются в шаблонах или базе данных.
+В ветке осталась только документация нового ядра. Alpha-runtime и его
+руководства (`agents/`, `user/`, `deploy/`, `archive/`) удалены; при
+необходимости смотрите ветку `alpha` на GitHub.
 
-## Актуальная документация MyDoMo
+## С чего начать
 
-Начните с [карты нового ядра](mydomo/README.md). MyDoMo и alpha имеют
-разные runtime, URL и CLI; инструкции из старых agents/user/deploy не
-следует применять к новому приложению без проверки.
+- [MyDoMo: карта ядра](mydomo/README.md) — что реализовано и что читать.
+- [Архитектура](mydomo/architecture.md) — путь запроса и границы слоёв.
+- [Мастер-план](todo/mydomo.md) — этапы, решения и журнал изменений.
+- [Правила для агентов](mydomo/AGENTS.md) — как менять код и документацию.
 
-| Задача MyDoMo | Документ |
+## Разделы
+
+| Задача | Документ |
 | --- | --- |
-| Архитектура и карта страниц | [Архитектура](mydomo/architecture.md), [разделы панели](mydomo/core-sections.md) |
-| Настройки и подключение сервисов | [Конфигурация](mydomo/configuration.md), [кэш](mydomo/cache.md) |
-| Вход, роли, токены и HTTP | [Доступ](mydomo/authentication.md), [API](mydomo/api.md) |
-| Автоматизации | [Функции](mydomo/functions.md), [события](mydomo/events.md), [очередь](mydomo/queue.md) |
-| Интеграционный модуль | [Границы модулей](mydomo/modules.md), [SDK](mydomo/sdk.md) |
-| Запуск и поиск ошибки | [CLI](mydomo/console.md), [runtime](mydomo/runtime.md), [диагностика](mydomo/logging.md) |
-| Проверки и состояние реализации | [Тестирование](mydomo/testing.md), [ограничения](mydomo/limitations.md) |
-| Правила для агента | [MyDoMo AGENTS](mydomo/AGENTS.md), [мастер-план](todo/mydomo.md) |
-
-## Как пользоваться
-
-- **Пользователю alpha** — начните с [`user/README.md`](user/README.md), затем
-  [`user/commands.md`](user/commands.md) и [`user/modes.md`](user/modes.md).
-- **Агенту MyDoMo** — сначала [`mydomo/README.md`](mydomo/README.md) и
-  [`mydomo/AGENTS.md`](mydomo/AGENTS.md): новое ядро, core-gate и правила.
-  [`agents/AGENTS.md`](agents/AGENTS.md) остаётся правилами `alpha`.
-  Для новой интеграции — [SDK MyDoMo](mydomo/sdk.md);
-  `legacy-module-migration` ниже описывает прежний alpha-процесс.
-- **Перед изменением интерфейса** — [`agents/DESIGN_SYSTEM.md`](agents/DESIGN_SYSTEM.md)
-  и [`agents/admin-module-ui-guidelines.md`](agents/admin-module-ui-guidelines.md).
-- **В админке** — тот же материал с категориями, поиском и оглавлением.
-
-## Общий каталог и исторические материалы alpha
-
-Следующая таблица сохраняет навигацию по старым материалам. Исключение —
-строка MyDoMo и явно новые ссылки: остальной каталог в основном описывает
-alpha и не является дополнительным контрактом нового ядра.
-
-| Категория | Что внутри | Ключевые документы |
-| --- | --- | --- |
-| **Общее** | Обзор проекта, структура каталогов, установка | [`README`](README.md), [`project-structure`](agents/project-structure.md), [`install`](agents/install.md), [`AGENTS`](agents/AGENTS.md), [`docker-debug`](agents/docker-debug.md) |
-| **MyDoMo** | Новое ядро: архитектура, функции, модули, тесты, правила | [`README`](mydomo/README.md), [`architecture`](mydomo/architecture.md), [`functions`](mydomo/functions.md), [`AGENTS`](mydomo/AGENTS.md), [`modules`](mydomo/modules.md), [`database`](mydomo/database.md), [`docker`](mydomo/docker.md), [`testing`](mydomo/testing.md) |
-| **TODO** | Заметки обсуждений и требования для будущих отдельных задач | [Порядок работы и список заметок](todo/README.md), [MyDoMo](todo/mydomo.md), [ORM](todo/eloquent-orm.md), [коллекции](todo/collections.md), [Redis](todo/redis-facade.md), [Cache](todo/cache-facade.md), [маршрутизация модулей](todo/routing.md) |
-| **Ядро** | Точки входа, конфигурация, авторизация, сервисы, ошибки, состояние БД, комментарии в коде | [`core-runtime`](agents/core-runtime.md), [`entrypoints`](agents/entrypoints.md), [`modules`](mydomo/modules.md), [`configuration`](agents/configuration.md), [`authentication`](agents/authentication.md), [`errors`](agents/errors.md), [`code-comments`](agents/code-comments.md), [`db-lib-analysis`](agents/db-lib-analysis.md) |
-| **Свойства и данные** | Запись свойств, `ONCHANGE`, привязки, журнал изменений, справочник функций | [`property-bindings`](agents/property-bindings.md), [`property-audit`](agents/property-audit.md), [`system-functions`](user/system-functions.md) |
-| **Автоматизация** | Циклы, супервизор, события, режимы | [`cycles`](agents/cycles.md), [`cycle-components`](agents/cycle-components.md), [`events`](agents/events.md), [`modes`](user/modes.md) |
-| **Интерфейс** | Дизайн-система, UI-правила модулей, сборка статики, настройки, база знаний, WebSocket, редактор кода | [`DESIGN_SYSTEM`](agents/DESIGN_SYSTEM.md), [`admin-module-ui-guidelines`](agents/admin-module-ui-guidelines.md), [`admin-assets`](agents/admin-assets.md), [`settings`](agents/settings.md), [`knowledge-base`](agents/knowledge-base.md), [`websocket-ui-migration`](agents/websocket-ui-migration.md), [`codemirror-module-integration`](agents/codemirror-module-integration.md) |
-| **API и маршруты** | REST API, токены, чистые URL, 404 | [`api`](agents/api.md), [`api-client`](agents/api-client.md), [`admin-routing`](agents/admin-routing.md), [`user/api`](user/api.md) |
-| **Интеграции** | Сторонние библиотеки, Zigbee, сеть и память MQTT/WebSocket | [`third-party`](agents/third-party.md), [`zigbee`](agents/zigbee.md), [`user/zigbee`](user/zigbee.md), [`network-memory`](user/network-memory.md) |
-| **Переписывание модулей** | Пошаговый порядок перевода legacy-модуля на новый формат | [`legacy-module-migration`](agents/legacy-module-migration.md) |
-| **Пользователю** | Команды, журналы, режимы, вход в панель, инструкции | [`user/README`](user/README.md), [`commands`](user/commands.md), [`logs`](user/logs.md), [`modes`](user/modes.md), [`authentication`](user/authentication.md), [`docker-debug`](user/docker-debug.md) |
-
-Исторические разборы и разовые отчёты лежат в [`archive/`](archive/) и не
-являются инструкциями: актуальное поведение описано в профильных документах
-категорий.
-
-## Быстрые маршруты alpha
-
-| Задача | Что читать |
-| --- | --- |
-| Первый запуск и настройка | [`install`](agents/install.md) → [`configuration`](agents/configuration.md) |
-| Вход в панель и сессии | [`user/authentication`](user/authentication.md) → [`agents/authentication`](agents/authentication.md) |
-| Понять, где что лежит | [`project-structure`](agents/project-structure.md) |
-| Поменять свойство, `ONCHANGE` или привязку | [`property-bindings`](agents/property-bindings.md) |
-| Разобрать цепочку изменения свойства | [`property-audit`](agents/property-audit.md) |
-| Добавить или разобрать ошибку | [`errors`](agents/errors.md) |
-| Переписать старый модуль | [`legacy-module-migration`](agents/legacy-module-migration.md) |
-| Сделать страницу в админке | [`DESIGN_SYSTEM`](agents/DESIGN_SYSTEM.md) → [`admin-module-ui-guidelines`](agents/admin-module-ui-guidelines.md) |
-| Добавить маршрут или 404 | [`admin-routing`](agents/admin-routing.md) |
-| Фоновый цикл или событие | [`cycles`](agents/cycles.md) → [`events`](agents/events.md) |
-| CLI-команда | [`console`](agents/console.md) → [`user/commands`](user/commands.md) |
-| API-клиент | [`api`](agents/api.md) → [`api-client`](agents/api-client.md) |
-| Внедрение ИИ-агентов, чата и помощи в редакторе | [`ai-agents-todo`](agents/ai-agents-todo.md) |
-| Деплой и nginx | [`deploy/`](deploy/) |
-| Поднять стенд для отладки (Docker) | [`user/docker-debug`](user/docker-debug.md) → [`agents/docker-debug`](agents/docker-debug.md) |
+| Запуск, установка, локальный сервер | README репозитория в корне |
+| Конфигурация и `.env` | [configuration.md](mydomo/configuration.md) |
+| Вход, сессии, роли, токены | [authentication.md](mydomo/authentication.md) |
+| Страницы и контроллеры ядра | [core-sections.md](mydomo/core-sections.md) |
+| Интерфейс и компоненты | [admin-ui.md](mydomo/admin-ui.md) |
+| Свойства, история, OnChange | [events.md](mydomo/events.md) |
+| Функции и обёртки | [functions.md](mydomo/functions.md) |
+| Уведомления | [notifications.md](mydomo/notifications.md) |
+| API и webhook | [api.md](mydomo/api.md) |
+| Кэш | [cache.md](mydomo/cache.md) |
+| Очередь и задания | [queue.md](mydomo/queue.md) |
+| CLI | [console.md](mydomo/console.md) |
+| Модули и SDK | [modules.md](mydomo/modules.md), [sdk.md](mydomo/sdk.md) |
+| Фоновый runtime и systemd | [runtime.md](mydomo/runtime.md) |
+| База данных и миграции | [database.md](mydomo/database.md) |
+| Логи и диагностика | [logging.md](mydomo/logging.md) |
+| Тесты | [testing.md](mydomo/testing.md) |
+| Локальный Docker-стенд | [docker.md](mydomo/docker.md) |
+| База знаний | [knowledge_base.md](mydomo/knowledge_base.md) |
+| Комментарии в коде | [code-comments.md](mydomo/code-comments.md) |
+| Ограничения | [limitations.md](mydomo/limitations.md) |
 
 ## Правила
 
-- Документация меняется в том же коммите, что и код.
-- Весь текст — на русском. Технические имена файлов, классов, функций и
-  ключей остаются как есть; английские куски переводятся.
-- У каждого файла — front matter: `title`, `audience`, `category`,
-  `description`, `tags`, `order`. Категория задаётся явно, а не по каталогу:
-  в `agents/` лежат документы разных категорий.
-- Пути указываются от корня репозитория (`public/assets/...`, `lib/core/...`).
-- Ссылки — относительные, чтобы работали и на GitHub, и в админке.
-- Документация SDK-модуля может жить в `modules/<name>/docs/`, но текущий
-  индекс MyDoMo читает `docs/**` и пока не подключает эти каталоги
-  автоматически. Не обещайте их видимость без реализации индексации.
-- Не дублируйте один и тот же текст в двух документах: дайте ссылку.
-- Проверяйте изменения командой `php tests/docs_quality_smoke.php`: она ловит
-  отсутствующий front matter, неизвестную категорию, битые относительные ссылки
-  и английский текст.
-
-Правила разметки и метаданных — [`agents/knowledge-base.md`](agents/knowledge-base.md).
+- Текст на русском; технические имена остаются как есть.
+- У файла — front matter (`title`, `audience`, `category`, `description`,
+  `tags`, `order`).
+- Ссылки относительные, пути — от корня репозитория.
+- Документация меняется в том же изменении, что и код.
+- Проверка: `php tests/docs_quality_smoke.php`.

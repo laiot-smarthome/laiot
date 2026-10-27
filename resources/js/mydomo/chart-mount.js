@@ -9,7 +9,8 @@
 import { loadCharts } from './charts.js';
 
 async function init(root) {
-    const nodes = root.querySelectorAll('[data-md-chart]:not([data-md-chart-ready])');
+    const selector = '[data-md-chart]:not([data-md-chart-ready])';
+    const nodes = [...(root instanceof Element && root.matches(selector) ? [root] : []), ...root.querySelectorAll(selector)];
     for (const element of nodes) {
         let points = [];
         try {
@@ -25,7 +26,7 @@ async function init(root) {
         try {
             const charts = await loadCharts();
             if (!element.isConnected) continue;
-            charts.render(element, points, { name: element.dataset.mdChartName || '', unit: element.dataset.mdChartUnit || '' });
+            charts.render(element, points, { name: element.dataset.mdChartName || '', unit: element.dataset.mdChartUnit || '', compact: element.dataset.mdChartCompact === 'true' });
         } catch (error) {
             delete element.dataset.mdChartReady;
             element.classList.add('md-history-chart__empty');

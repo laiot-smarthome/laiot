@@ -13,6 +13,9 @@
     'disabled' => false,
     'readonly' => false,
     'passwordToggle' => false,
+    'icon' => null,
+    'prefix' => null,
+    'suffix' => null,
     'size' => 'md',
     'wrap' => null,
 ])
@@ -56,6 +59,12 @@
     if ($passwordToggle && $type === 'password') {
         $control = '<span class="md-kit-password" x-data="{revealed: false}">' . $control
             . '<button type="button" class="md-icon-btn" @click="revealed = !revealed" :aria-label="revealed ? \'Скрыть пароль\' : \'Показать пароль\'" :aria-pressed="revealed.toString()"><i class="ti ti-eye" aria-hidden="true"></i></button></span>';
+    }
+    if ($icon !== null || $prefix !== null || $suffix !== null) {
+        $leading = $icon !== null ? '<i class="ti ti-' . e($icon) . '" aria-hidden="true"></i>' : '';
+        $leading .= $prefix !== null ? '<span>' . e($prefix) . '</span>' : '';
+        $trailing = $suffix !== null ? '<span>' . e($suffix) . '</span>' : '';
+        $control = '<span class="md-kit-input-shell">' . $leading . $control . $trailing . '</span>';
     }
 @endphp
 

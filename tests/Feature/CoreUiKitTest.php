@@ -39,7 +39,7 @@ final class CoreUiKitTest extends TestCase
         self::assertStringContainsString('hx-get="increment"', $html);
         self::assertStringContainsString('yoyo:name="counter"', $html);
         self::assertStringContainsString('/assets/vendor/yoyo/yoyo.js', $html);
-        self::assertStringContainsString('blade-demo-modal', $html);
+        self::assertStringContainsString('kit-dialog', $html);
         self::assertStringContainsString('$store.mdModal', $html);
         self::assertStringContainsString('x-data="mdSearchSelect"', $html);
         self::assertStringContainsString('name="demo_multi[]"', $html);

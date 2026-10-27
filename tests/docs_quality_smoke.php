@@ -97,7 +97,7 @@ foreach ($files as $file) {
     check($cyrillic >= $latin * 0.5, $relative . ': Russian prose must dominate over English');
 }
 
-foreach (array('general', 'core', 'data', 'automation', 'ui', 'api', 'integration', 'migration', 'user') as $category) {
+foreach (array('general', 'core', 'data', 'ui', 'api', 'automation', 'dev', 'agents', 'todo') as $category) {
     check(isset($categories[$category]), 'Category "' . $category . '" must contain at least one document');
 }
 

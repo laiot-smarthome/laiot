@@ -73,7 +73,7 @@ PHPStan, `php -l`, PHP-CS-Fixer dry-run для двух классов и нов
 
 ### Изменённые файлы этого этапа
 
-Код: `bootstrap/app.php`, `config/app.php`, `lib/core/ConfigSchema.php`,
+Код: `bootstrap/app.php`, `config/app.php`, `src/Foundation/Config.php`,
 `src/Auth/UserRepository.php`, `src/Http/Middleware/AuthenticateAdmin.php`,
 `src/Http/Middleware/ThrottleLogin.php`, `src/Http/Kernel.php`,
 `src/Http/Controllers/ProfileController.php`, `src/Queue/DatabaseQueue.php`,

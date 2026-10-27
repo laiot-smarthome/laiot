@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "de61c991b42bbc8e6d98c12f484d5e08",
+    "content-hash": "0f84fb47c3c081636f572126bd807983",
     "packages": [
         {
             "name": "brick/math",
@@ -2233,32 +2233,6 @@
                 }
             ],
             "time": "2022-12-11T20:36:23+00:00"
-        },
-        {
-            "name": "majordomo/phpmqtt",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "packages/phpmqtt",
-                "reference": "956c2bda47248d73da86f12d61bde3c406b0d6a6"
-            },
-            "require": {
-                "php": ">=8.1"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Bluerhinos\\": "src/"
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "Локальная версия BlueRhinos phpMQTT с ограниченным приёмом пакетов",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
         },
         {
             "name": "monolog/monolog",

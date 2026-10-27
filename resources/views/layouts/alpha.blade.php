@@ -17,11 +17,12 @@
     </script>
 </head>
 <body class="md-admin-shell">
+<a class="md-shell-skip" href="#main-content">Перейти к содержимому</a>
 <div id="partLoadContent" class="md-admin-page">
     <div class="row md-admin-layout" id="content">
-        <section class="md-admin-topbar" aria-label="Верхняя панель">
+        <header class="md-admin-topbar" aria-label="Верхняя панель">
             <div class="md-admin-topbar__left">
-                <button type="button" class="md-admin-topbar__menu-toggle md-topbar-action" data-md-admin-sidebar-toggle aria-label="Открыть меню">
+                <button type="button" class="md-admin-topbar__menu-toggle md-topbar-action" data-md-admin-sidebar-toggle aria-label="Открыть меню" aria-controls="left_block" aria-expanded="false">
                     <i class="ti ti-list" aria-hidden="true"></i>
                 </button>
                 <div class="md-admin-topbar__search" data-md-header-search>
@@ -56,22 +57,22 @@
                     </button>
                 </form>
             </div>
-        </section>
+        </header>
 
-        <aside class="col-lg-2 col-md-3 col-sm-4 col-xs-12 md-admin-sidebar" id="left_block" aria-label="Admin navigation">
+        <aside class="col-lg-2 col-md-3 col-sm-4 col-xs-12 md-admin-sidebar" id="left_block" aria-label="Боковая панель">
             <div class="md-admin-sidebar__inner">
                 <div class="md-admin-sidebar__brand-shell">
-                    <a class="md-admin-sidebar__brand" href="/admin" aria-label="MyDoMo — обзор">MyDoMo</a>
+                    <a class="md-admin-sidebar__brand" href="/admin" aria-label="MyDoMo — обзор"><i class="ti ti-smart-home" aria-hidden="true"></i><span>MyDoMo</span></a>
                 </div>
                 <div class="md-admin-sidebar__scroll">
-                    <nav class="md-admin-sidebar__nav" aria-label="Admin modules">
+                    <nav class="md-admin-sidebar__nav" aria-label="Разделы панели">
                         @foreach ($menu ?? [] as $group)
                             <section class="md-admin-sidebar__group">
                                 @if (!empty($group['label']))<div class="md-admin-sidebar__group-title">{{ $group['label'] }}</div>@endif
                                 <ul class="md-admin-sidebar__list">
                                     @foreach ($group['items'] ?? [] as $item)
                                         <li @class(['md-admin-sidebar__item', 'active' => ($active ?? '') === ($item['id'] ?? '')])>
-                                            <a class="md-admin-sidebar__link leftmenutab" href="{{ $item['href'] }}">
+                                            <a class="md-admin-sidebar__link leftmenutab" href="{{ $item['href'] }}" @if (($active ?? '') === ($item['id'] ?? '')) aria-current="page" @endif>
                                                 <i class="md-admin-sidebar__icon-bi ti {{ $item['icon'] ?? 'ti-point' }}" aria-hidden="true"></i>
                                                 <span class="md-admin-sidebar__label">{{ $item['label'] }}</span>
                                             </a>
@@ -102,13 +103,14 @@
 
         <div class="md-admin-sidebar-backdrop" data-md-sidebar-close></div>
 
-        <main class="col-lg-10 col-md-9 col-sm-8 col-xs-12 md-admin-main" id="main-content">
+        <main class="col-lg-10 col-md-9 col-sm-8 col-xs-12 md-admin-main" id="main-content" tabindex="-1">
             <div class="md-admin-contextbar">
                 <ol class="breadcrumb md-admin-breadcrumb">
                     <li><a href="/admin">Панель</a></li>
                     <li class="active" aria-current="page">{{ $title }}</li>
                 </ol>
             </div>
+            {{-- Содержимое раздела или SDK-модуля: общие header и меню уже созданы оболочкой. --}}
             {!! $content !!}
         </main>
     </div>

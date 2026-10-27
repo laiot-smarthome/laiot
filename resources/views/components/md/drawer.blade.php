@@ -19,22 +19,26 @@
     $titleId = $titleId ?? $id . '-title';
 @endphp
 
-<div x-data>
+<div x-data="mdDialog(@js($id), 'mdDrawer')">
     @if ($overlay)
         <div class="md-admin-drawer-backdrop"
              :class="{'is-open': $store.mdDrawer.open === @js($id)}"
+             x-cloak
              x-show="$store.mdDrawer.open === @js($id)"
              @click="$store.mdDrawer.close()"></div>
     @endif
 
     <aside {{ $attributes->class(['md-admin-drawer', 'md-drawer']) }}
            id="{{ $id }}"
+           x-ref="dialog"
            aria-labelledby="{{ $titleId }}"
            :aria-hidden="$store.mdDrawer.open === @js($id) ? 'false' : 'true'"
            :class="{'is-open': $store.mdDrawer.open === @js($id)}"
            x-show="$store.mdDrawer.open === @js($id)"
+           x-cloak
            tabindex="-1"
            @keydown.escape.window="$store.mdDrawer.close()"
+           @keydown.tab="trap($event)"
            @if ($overlay) role="dialog" aria-modal="true" @endif
            @if ($width !== null) style="--md-admin-drawer-width: {{ $width }}" @endif>
         <div class="md-admin-drawer__header md-drawer__header">

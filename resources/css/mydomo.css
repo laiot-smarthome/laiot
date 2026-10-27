@@ -13,13 +13,32 @@
 @import 'ui-system.css';
 @import 'admin_panel.css';
 
+/* Оболочка общая для ядра и модулей: отступы и фокус задаются один раз. */
+body.md-admin-shell { --md-shell-nav-text: #f8fafc; --md-shell-nav-accent: #9ccbf0; --md-shell-nav-muted: rgba(226, 232, 240, .68); --md-shell-nav-accent-bg: rgba(108, 178, 232, .16); font-family: var(--md-ui-font); line-height: 1.5; letter-spacing: 0; }
+.md-shell-skip { position: fixed; z-index: 2000; top: 8px; left: 8px; padding: 10px 14px; transform: translateY(-160%); border-radius: var(--md-ui-radius-sm); background: var(--md-ui-surface); color: var(--md-ui-text); box-shadow: var(--md-ui-shadow-pop); }
+.md-shell-skip:focus { transform: translateY(0); }
+body.md-admin-shell .md-admin-topbar { border-radius: var(--md-ui-radius-md); background: var(--md-ui-surface); box-shadow: var(--md-ui-shadow); }
+@supports (backdrop-filter: blur(14px)) and (background: color-mix(in srgb, white 85%, transparent)) {
+    body.md-admin-shell .md-admin-topbar { background: color-mix(in srgb, var(--md-ui-surface) 90%, transparent); backdrop-filter: blur(14px); }
+}
+body.md-admin-shell .md-admin-sidebar { background: var(--md-shell-sidebar-bg); }
+body.md-admin-shell .md-admin-sidebar__brand-shell { align-items: stretch; padding: 18px 18px 16px; }
+body.md-admin-shell .md-admin-sidebar__brand { justify-content: flex-start; gap: 10px; color: var(--md-shell-nav-text); font-size: 1.12rem; font-weight: 650; letter-spacing: -.015em; text-decoration: none; }
+body.md-admin-shell .md-admin-sidebar__brand i { display: grid; place-items: center; width: 34px; height: 34px; border-radius: var(--md-ui-radius-sm); background: var(--md-shell-nav-accent-bg); color: var(--md-shell-nav-accent); font-size: 20px; }
+body.md-admin-shell .md-admin-sidebar__group-title { color: var(--md-shell-nav-muted); letter-spacing: .075em; }
+body.md-admin-shell .md-admin-sidebar__link { line-height: 1.4; }
+body.md-admin-shell .md-admin-sidebar__link:focus-visible, body.md-admin-shell .md-admin-sidebar__brand:focus-visible { outline: 2px solid var(--md-shell-nav-accent); outline-offset: 2px; }
+body.md-admin-shell .md-admin-contextbar { margin-bottom: 16px; }
+body.md-admin-shell .md-admin-main { min-width: 0; padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
+@media (prefers-reduced-motion: reduce) { body.md-admin-shell .md-admin-sidebar, body.md-admin-shell .md-admin-sidebar-backdrop { transition: none; } }
+
 /* Общие плавающие элементы используют те же токены, что и остальные контролы. */
 [x-cloak] { display: none !important; }
 .md-kit-nav { display: flex; flex-wrap: wrap; gap: 8px; }
 .md-kit-nav a {
     padding: 7px 12px;
     border: 1px solid var(--md-ui-border);
-    border-radius: 999px;
+    border-radius: var(--md-ui-radius-pill);
     background: var(--md-ui-surface);
     color: var(--md-ui-text);
     text-decoration: none;
@@ -29,6 +48,13 @@
 .md-kit-section .md-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
 .md-kit-password { display: flex; align-items: center; gap: 4px; }
 .md-kit-password .md-input { flex: 1; min-width: 0; }
+.md-kit-input-shell { display: flex; align-items: center; gap: 8px; }
+.md-kit-input-shell .md-input { flex: 1; min-width: 0; }
+.md-kit-input-shell > span, .md-kit-input-shell > i { color: var(--md-ui-muted); }
+.md-kit-upload { padding: 20px; border: 1px dashed var(--md-ui-border); border-radius: 12px; background: var(--md-ui-surface-2); }
+.md-kit-upload.is-dragging { border-color: var(--md-ui-primary); background: var(--md-ui-selected); }
+.md-kit-upload p { margin: 6px 0; }
+.md-kit-upload ul { margin: 8px 0 0; padding-inline-start: 20px; }
 .md-kit-icons__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin: 12px 0; }
 .md-kit-icons__item { display: grid; justify-items: center; gap: 5px; min-width: 0; padding: 12px 4px; border: 1px solid var(--md-ui-border); border-radius: 10px; background: var(--md-ui-surface); color: var(--md-ui-text); }
 .md-kit-icons__item:hover, .md-kit-icons__item:focus-visible { background: var(--md-ui-selected); }
@@ -46,11 +72,16 @@
 .md-kit-meter__value { color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); }
 .md-kit-flow { display: grid; gap: 10px; padding-inline-start: 24px; }
 .md-kit-flow p { margin: 4px 0; color: var(--md-ui-muted); }
+.md-kit-flow__branch { margin: 8px 0; padding: 8px 12px; border-inline-start: 2px solid var(--md-ui-border); }
 .md-kit-code-sample { overflow: hidden; border: 1px solid var(--md-ui-border); border-radius: 10px; background: var(--md-ui-surface-2); }
 .md-kit-code-sample__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; }
 .md-kit-code-sample pre { overflow: auto; margin: 0; padding: 12px; }
+.md-kit-folder { display: grid; gap: 12px; margin-top: 12px; padding: 12px; border: 1px solid var(--md-ui-border); border-radius: 10px; }
+.md-kit-folder__list { display: grid; gap: 4px; max-height: 240px; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+.md-kit-folder__list button { width: 100%; padding: 8px; border: 0; border-radius: 8px; background: transparent; color: var(--md-ui-text); text-align: start; }
+.md-kit-folder__list button:hover, .md-kit-folder__list button:focus-visible { background: var(--md-ui-selected); }
 .md-kit-toasts { position: fixed; z-index: 1200; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 8px; width: min(360px, calc(100vw - 32px)); }
-.md-kit-toast { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid var(--md-ui-border); border-radius: 12px; background: var(--md-ui-surface); color: var(--md-ui-text); box-shadow: 0 12px 30px rgba(0, 0, 0, .14); }
+.md-kit-toast { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid var(--md-ui-border); border-radius: 12px; background: var(--md-ui-surface); color: var(--md-ui-text); box-shadow: var(--md-ui-shadow-pop); }
 .md-kit-toast p { margin: 4px 0 0; }
 .md-kit-toast--success { border-inline-start: 3px solid var(--md-ui-success); }
 .md-kit-toast--warning { border-inline-start: 3px solid var(--md-ui-warning); }
@@ -79,7 +110,7 @@ body.md-admin-shell .tabulator .tabulator-footer .tabulator-page { color: var(--
     border: 1px solid var(--md-ui-border);
     border-radius: 12px;
     background: var(--md-ui-surface);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, .14);
+    box-shadow: var(--md-ui-shadow-pop);
 }
 .md-kit-dropdown__panel a, .md-kit-dropdown__panel button {
     display: block;
@@ -109,7 +140,7 @@ body.md-admin-shell .tabulator .tabulator-footer .tabulator-page { color: var(--
     border-radius: 8px;
     background: var(--md-ui-surface);
     color: var(--md-ui-text);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, .14);
+    box-shadow: var(--md-ui-shadow-pop);
     font-size: var(--md-ui-fs-xs);
     pointer-events: none;
 }

@@ -19,7 +19,7 @@ function token(name, fallback) {
 /**
  * @param {HTMLElement} element
  * @param {Array<{t:number,v:number}>} points
- * @param {{name?:string, unit?:string}} options
+ * @param {{name?:string, unit?:string, compact?:boolean}} options
  */
 export function render(element, points, options = {}) {
     destroy(element);
@@ -32,7 +32,8 @@ export function render(element, points, options = {}) {
     const chart = new ApexCharts(element, {
         chart: {
             type: 'area',
-            height: 220,
+            height: options.compact ? 70 : 220,
+            sparkline: { enabled: !!options.compact },
             toolbar: { show: false },
             zoom: { enabled: false },
             animations: { enabled: !window.matchMedia('(prefers-reduced-motion: reduce)').matches },

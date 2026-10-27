@@ -16,7 +16,6 @@
         "illuminate/routing": "^12.0",
         "illuminate/view": "^12.0",
         "league/commonmark": "^2.10",
-        "majordomo/phpmqtt": "^1.0",
         "monolog/monolog": "^3.9",
         "nesbot/carbon": "^3.8.4",
         "neuron-core/neuron-ai": "~4.1.13",
@@ -41,23 +40,9 @@
         "rector/rector": "^2.7",
         "symfony/var-dumper": "^7.4"
     },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "packages/phpmqtt",
-            "options": {
-                "symlink": true,
-                "versions": {
-                    "majordomo/phpmqtt": "1.0.0"
-                }
-            }
-        }
-    ],
     "autoload": {
         "psr-4": {
-            "MajorDoMo\\": "src/",
-            "MajorDoMo\\Core\\": "lib/core/",
-            "MajorDoMo\\Modules\\AiAssistant\\": "modules/ai_assistant/src/"
+            "MajorDoMo\\": "src/"
         }
     },
     "scripts": {

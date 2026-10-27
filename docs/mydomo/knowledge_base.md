@@ -28,16 +28,15 @@ order: 10
 | --- | --- |
 | `title` | заголовок карточки и статьи |
 | `description` | описание в списке |
-| `category` | ключ категории (`core`, `user`, `agents`, …) |
+| `category` | ключ категории (`core`, `dev`, `todo`, …) |
 | `category_label` | человеческое имя категории |
 | `audience` | `user`, `agent` или `user, agent` |
 | `tags` | метки через запятую, участвуют в поиске |
 | `order` | порядок внутри категории |
 
 Если ключа нет, заголовок берётся из первого `#`, описание — из первого
-абзаца, категория — из первого каталога, аудитория — по пути
-(`user/**` — пользователь; `agents/**`, `deploy/**`, `dev/**`,
-`archive/**` — агент; остальное — оба).
+абзаца, категория — из первого каталога (`mydomo`, `todo`), аудитория —
+из front matter, иначе считается общей.
 
 ## 2. Поиск и категории
 
@@ -69,9 +68,8 @@ order: 10
 | Ядровой раздел | `src/Http/Controllers/Core/KnowledgeBaseController.php` + `resources/views/pages/knowledge_base/` |
 
 Собственных таблиц нет; старые `modules/knowledge_base`,
-`templates/knowledge_base` и page-ассеты удалены.
-`lib/knowledge_base.php` и `lib/markdown.php` пока остаются только для ещё не
-перенесённого `ai_assistant` и alpha-тестов; новый код их не использует.
+`templates/knowledge_base` и page-ассеты удалены вместе с alpha-runtime.
+Ветка `alpha` хранит прежнюю реализацию; новый код её не использует.
 
 ## 5. Ограничения
 

@@ -52,7 +52,7 @@ Blade-страницы. Источники: routes, CoreSections, bootstrap/Conf
 ## Обновлённые файлы
 
 В docs/mydomo: README.md, AGENTS.md, architecture.md, functions.md,
-modules.md, sdk.md, runtime.md, database.md, docker.md, testing.md,
+modules.md, sdk.md, runtime.md, database.md, testing.md,
 events.md, notifications.md, knowledge_base.md, core-audit.md и этот журнал.
 
 Входные точки: корневой AGENTS.md, docs/README.md, docs/todo/README.md и

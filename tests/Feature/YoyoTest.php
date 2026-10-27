@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * 2026-10-26 — Yoyo проверяется с действующим пользователем SQLite.
+ * 2026-10-27 — проверена серверная фильтрация примера UI Kit.
  */
 final class YoyoTest extends TestCase
 {
@@ -84,6 +85,57 @@ final class YoyoTest extends TestCase
 
         self::assertSame(403, $response->getStatusCode());
         self::assertStringContainsString('csrf_failed', (string)$response->getContent());
+    }
+
+    public function testUiKitDeviceFilterUpdatesOnServer(): void
+    {
+        $_REQUEST = ['component' => 'ui-kit-devices/render', 'yoyo-id' => 'test-devices', 'search' => 'Термостат'];
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['HTTP_HX_REQUEST'] = 'true';
+        Yoyo::request()->mock($_REQUEST, $_SERVER);
+
+        $response = $this->app->handle(Request::create('/yoyo', 'POST', [], [], [], [
+            'HTTP_X_CSRF_TOKEN' => $this->session->csrfToken(),
+        ]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('Термостат', (string)$response->getContent());
+        self::assertStringNotContainsString('Основной свет', (string)$response->getContent());
+    }
+
+    public function testFolderPickerRejectsTraversal(): void
+    {
+        $_REQUEST = ['component' => 'folder-picker/show', 'yoyo-id' => 'test-folders', 'path' => '../', 'name' => 'demo_folder'];
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['HTTP_HX_REQUEST'] = 'true';
+        Yoyo::request()->mock($_REQUEST, $_SERVER);
+
+        $response = $this->app->handle(Request::create('/yoyo', 'POST', [], [], [], [
+            'HTTP_X_CSRF_TOKEN' => $this->session->csrfToken(),
+        ]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('Каталог недоступен', (string)$response->getContent());
+        self::assertStringContainsString('name="demo_folder"', (string)$response->getContent());
+    }
+
+    public function testFolderPickerRequiresSettingsPermission(): void
+    {
+        $viewer = $this->session->user();
+        self::assertNotNull($viewer);
+        $viewer['is_admin'] = false;
+        $this->session->login($viewer);
+        $_REQUEST = ['component' => 'folder-picker/show', 'yoyo-id' => 'test-folders'];
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['HTTP_HX_REQUEST'] = 'true';
+        Yoyo::request()->mock($_REQUEST, $_SERVER);
+
+        $response = $this->app->handle(Request::create('/yoyo', 'POST', [], [], [], [
+            'HTTP_X_CSRF_TOKEN' => $this->session->csrfToken(),
+        ]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('требуется право управления настройками', (string)$response->getContent());
     }
 
     public function testYoyoUpdateRequiresAuthentication(): void

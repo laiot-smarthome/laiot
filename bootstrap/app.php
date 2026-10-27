@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use MajorDoMo\Core\Config;
+use MajorDoMo\Foundation\Config;
 use MajorDoMo\Foundation\Application;
 
 require dirname(__DIR__) . '/vendor/autoload.php';

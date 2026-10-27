@@ -12,23 +12,28 @@ export function initSidebar() {
     const open = () => {
         document.body.classList.add('md-admin-sidebar-open');
         toggle.setAttribute('aria-expanded', 'true');
+        toggle.setAttribute('aria-label', 'Закрыть меню');
+        sidebar.querySelector('a[href], button:not(:disabled)')?.focus();
     };
-    const close = () => {
+    const close = (restoreFocus = false) => {
+        const wasOpen = document.body.classList.contains('md-admin-sidebar-open');
         document.body.classList.remove('md-admin-sidebar-open');
         toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', 'Открыть меню');
+        if (restoreFocus && wasOpen) toggle.focus();
     };
 
     toggle.setAttribute('aria-expanded', 'false');
     toggle.addEventListener('click', () => {
         if (document.body.classList.contains('md-admin-sidebar-open')) {
-            close();
+            close(true);
         } else {
             open();
         }
     });
 
     document.querySelectorAll('[data-md-sidebar-close]').forEach((element) => {
-        element.addEventListener('click', close);
+        element.addEventListener('click', () => close(true));
     });
     sidebar.querySelectorAll('a[href]').forEach((link) => {
         link.addEventListener('click', () => {
@@ -38,8 +43,13 @@ export function initSidebar() {
         });
     });
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') {
-            close();
+        if (event.key === 'Escape' && document.body.classList.contains('md-admin-sidebar-open')) {
+            close(true);
+        } else if (event.key === 'Tab' && document.body.classList.contains('md-admin-sidebar-open')) {
+            const items = [...sidebar.querySelectorAll('a[href], button:not(:disabled)')].filter(item => item.getClientRects().length);
+            if (!items.length) return;
+            if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items[items.length - 1].focus(); }
+            else if (!event.shiftKey && document.activeElement === items[items.length - 1]) { event.preventDefault(); items[0].focus(); }
         }
     });
 }

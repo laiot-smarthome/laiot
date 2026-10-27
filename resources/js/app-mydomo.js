@@ -65,10 +65,10 @@ Alpine.data('mdDataTable', (columns, rows, pageSize) => ({
     },
 }));
 
-Alpine.data('mdDialog', id => ({
+Alpine.data('mdDialog', (id, storeName = 'mdModal') => ({
     previous: null,
     init() {
-        this.$watch('$store.mdModal.open', open => {
+        this.$watch('$store.' + storeName + '.open', open => {
             if (open === id) {
                 this.previous = document.activeElement;
                 this.$nextTick(() => this.$refs.dialog.querySelector('button, input, select, textarea, a[href], [tabindex="0"]')?.focus());
@@ -79,7 +79,7 @@ Alpine.data('mdDialog', id => ({
         });
     },
     trap(event) {
-        if (this.$store.mdModal.open !== id) return;
+        if (this.$store[storeName].open !== id) return;
         const items = [...this.$refs.dialog.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')].filter(item => item.getClientRects().length);
         if (!items.length) { event.preventDefault(); this.$refs.dialog.focus(); return; }
         if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items[items.length - 1].focus(); }
