@@ -25,6 +25,7 @@ use Throwable;
  * а не события свойств и не другие модули.
  *
  * 2026-10-27 — worker обслуживает очередь доставки модуля.
+ * 2026-10-27 — блокировка процесса удерживается при длительных обработчиках.
  */
 final class Worker
 {
@@ -38,7 +39,8 @@ final class Worker
         private readonly Queue $queue,
         private readonly JobRegistry $jobs,
         private readonly PropertyEventQueue $eventQueues,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly ProcessLock $processLock
     ) {
     }
 
@@ -84,10 +86,15 @@ final class Worker
 
         $this->installSignals();
         $pid = getmypid() ?: 0;
-        if (!$this->state->acquire($moduleId, $pid)) {
+        if (!$this->processLock->acquire(['module.' . $moduleId])) {
             throw new RuntimeException('Worker уже запущен для модуля: ' . $moduleId);
         }
+        $stateAcquired = false;
         try {
+            $stateAcquired = $this->state->acquire($moduleId, $pid);
+            if (!$stateAcquired) {
+                throw new RuntimeException('Worker уже запущен для модуля: ' . $moduleId);
+            }
             $next = [];
             $now = microtime(true);
             foreach ($tasks as $name => $task) {
@@ -125,7 +132,13 @@ final class Worker
                 }
             }
         } finally {
-            $this->state->release($moduleId, $pid);
+            try {
+                if ($stateAcquired) {
+                    $this->state->release($moduleId, $pid);
+                }
+            } finally {
+                $this->processLock->release();
+            }
         }
 
         return 0;

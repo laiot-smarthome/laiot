@@ -27,6 +27,7 @@ use Throwable;
  *              выполняются в запросе, который записал значение.
  * 2026-10-27 — полосы событий: один процесс на полосу для параллельной работы.
  * 2026-10-27 — лог-каналы queue/events вместо общего app.
+ * 2026-10-27 — блокировки полос удерживаются всё время жизни worker.
  */
 final class CoreWorker
 {
@@ -41,7 +42,8 @@ final class CoreWorker
         private readonly CodeRunner $runner,
         private readonly BackgroundTaskState $state,
         private readonly PropertyEventQueue $events,
-        private readonly LoggerFactory $loggers
+        private readonly LoggerFactory $loggers,
+        private readonly ProcessLock $processLock
     ) {
     }
 
@@ -49,25 +51,38 @@ final class CoreWorker
     {
         $lane = $this->eventLane($task);
         $pid = getmypid() ?: 0;
-        if (!$this->state->acquireTask('core', $task, $pid)) {
+        $keys = str_starts_with($task, 'events')
+            ? array_map(static fn (string $queue): string => 'queue.' . $queue, $lane === null
+                ? $this->events->queueNames() : [$this->events->queueName($lane)])
+            : ['core.' . $task];
+        if (!$this->processLock->acquire($keys)) {
             throw new RuntimeException('Core-worker уже запущен: ' . $task);
         }
-        $this->installSignals();
-        $this->state->start('core', $task, $pid, date('Y-m-d H:i:s'));
         try {
-            if ($task === 'queue') {
-                $this->runQueue('default', 'queue', $once, $pid);
-            } elseif ($task === 'timeouts') {
-                $this->runTimeouts($once, $pid);
-            } else {
-                $this->runEvents($lane, $task, $once, $pid);
+            if (!$this->state->acquireTask('core', $task, $pid)) {
+                throw new RuntimeException('Core-worker уже запущен: ' . $task);
             }
-            $this->state->finish('core', $task, 'ok', null, date('Y-m-d H:i:s'));
-        } catch (Throwable $error) {
-            $this->state->finish('core', $task, 'error', $error->getMessage(), date('Y-m-d H:i:s'));
-            throw $error;
+            try {
+                $this->installSignals();
+                $this->state->start('core', $task, $pid, date('Y-m-d H:i:s'));
+                try {
+                    if ($task === 'queue') {
+                        $this->runQueue('default', 'queue', $once, $pid);
+                    } elseif ($task === 'timeouts') {
+                        $this->runTimeouts($once, $pid);
+                    } else {
+                        $this->runEvents($lane, $task, $once, $pid);
+                    }
+                    $this->state->finish('core', $task, 'ok', null, date('Y-m-d H:i:s'));
+                } catch (Throwable $error) {
+                    $this->state->finish('core', $task, 'error', $error->getMessage(), date('Y-m-d H:i:s'));
+                    throw $error;
+                }
+            } finally {
+                $this->state->releaseTask('core', $task, $pid);
+            }
         } finally {
-            $this->state->releaseTask('core', $task, $pid);
+            $this->processLock->release();
         }
 
         return 0;
