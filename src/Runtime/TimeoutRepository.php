@@ -14,6 +14,7 @@ use MajorDoMo\Database\DatabaseManager;
  * доступна — так падение процесса не «замораживает» запись навсегда.
  *
  * 2026-10-27 — claim/markExecuted/release с токеном аренды.
+ * 2026-10-27 — неуспешные таймеры откладываются, чтобы не блокировать остальные.
  */
 final readonly class TimeoutRepository
 {
@@ -139,14 +140,14 @@ final readonly class TimeoutRepository
             ]);
     }
 
-    /** Снимает аренду после ошибки: запись станет доступной следующему проходу. */
+    /** Откладывает повтор после ошибки на срок аренды. */
     public function release(int $id, string $token): void
     {
         $this->database->connection()->table('runtime_timeouts')
             ->where('id', $id)
             ->where('claim_token', $token)
             ->update([
-                'claimed_at' => null,
+                'claimed_at' => date('Y-m-d H:i:s'),
                 'claim_token' => null,
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);

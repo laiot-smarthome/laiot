@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
  * Аренда таймера: два процесса не выполняют одну запись, ошибка освобождает.
  *
  * 2026-10-27 — тест создан вместе с claim для runtime_timeouts.
+ * 2026-10-27 — ошибки не вытесняют следующие таймеры из выборки.
  */
 final class TimeoutClaimTest extends TestCase
 {
@@ -57,14 +58,20 @@ final class TimeoutClaimTest extends TestCase
         self::assertSame([], $this->timeouts->claim());
     }
 
-    public function testReleaseMakesTimerAvailableAgain(): void
+    public function testReleaseDelaysRetryAndDoesNotBlockFollowingTimer(): void
     {
         $id = $this->timeouts->set('once', 'return 1;', 0);
         $claimed = $this->claimOne();
 
         $this->timeouts->release($id, $claimed['token']);
+        self::assertSame([], $this->timeouts->claim());
+        $nextId = $this->timeouts->set('next', 'return 2;', 0);
+        self::assertSame($nextId, $this->claimOne()['id']);
+        $this->database->connection()->table('runtime_timeouts')
+            ->where('id', $id)
+            ->update(['claimed_at' => date('Y-m-d H:i:s', time() - 301)]);
         $retried = $this->claimOne();
-
+        self::assertSame($id, $retried['id']);
         self::assertNotSame($claimed['token'], $retried['token']);
     }
 

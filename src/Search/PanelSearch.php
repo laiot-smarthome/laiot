@@ -19,6 +19,7 @@ use MajorDoMo\Panel\CoreSections;
  * названия получает больший вес.
  *
  * 2026-10-26 — сервис создан для alpha-shell parity: поиск в шапке и drawer.
+ * 2026-10-27 — релевантность считается до ограничения числа результатов.
  */
 final readonly class PanelSearch
 {
@@ -27,7 +28,6 @@ final readonly class PanelSearch
     public const MAX_LIMIT = 50;
     private const MAX_QUERY = 100;
     private const MAX_TOKENS = 8;
-    private const PRE_LIMIT_FACTOR = 6;
 
     public function __construct(
         private DatabaseManager $database,
@@ -93,12 +93,11 @@ final readonly class PanelSearch
      */
     private function objects(array $tokens, string $query, int $limit): array
     {
-        $rows = $this->likeQuery('objects as o', ['o.title', 'o.description'], $tokens)
+        $rows = $this->likeQuery('objects as o', ['o.title', 'o.description', 'c.title'], $tokens)
             ->leftJoin('classes as c', 'c.id', '=', 'o.class_id')
             ->whereNull('o.deleted_at')
             ->orderBy('o.title')
-            ->limit($this->preLimit($limit))
-            ->get(['o.id', 'o.title', 'o.description', 'c.title as class_title']);
+            ->select(['o.id', 'o.title', 'o.description', 'c.title as class_title'])->cursor();
 
         return $this->collect($rows, $tokens, $query, static function (object $row): array {
             $title = (string)$row->title;
@@ -123,8 +122,7 @@ final readonly class PanelSearch
         $rows = $this->likeQuery('classes', ['title'], $tokens)
             ->whereNull('deleted_at')
             ->orderBy('title')
-            ->limit($this->preLimit($limit))
-            ->get(['id', 'title']);
+            ->select(['id', 'title'])->cursor();
 
         return $this->collect($rows, $tokens, $query, static fn (object $row): array => [
             'type' => 'class',
@@ -142,13 +140,12 @@ final readonly class PanelSearch
      */
     private function properties(array $tokens, string $query, int $limit): array
     {
-        $rows = $this->likeQuery('properties as p', ['p.title', 'p.description'], $tokens)
+        $rows = $this->likeQuery('properties as p', ['p.title', 'p.description', 'c.title', 'o.title'], $tokens)
             ->leftJoin('classes as c', 'c.id', '=', 'p.class_id')
             ->leftJoin('objects as o', 'o.id', '=', 'p.object_id')
             ->whereNull('p.deleted_at')
             ->orderBy('p.title')
-            ->limit($this->preLimit($limit))
-            ->get([
+            ->select([
                 'p.id',
                 'p.class_id',
                 'p.object_id',
@@ -156,7 +153,7 @@ final readonly class PanelSearch
                 'p.description',
                 'c.title as class_title',
                 'o.title as object_title',
-            ]);
+            ])->cursor();
 
         return $this->collect($rows, $tokens, $query, static function (object $row): array {
             $objectId = (int)($row->object_id ?? 0);
@@ -186,13 +183,12 @@ final readonly class PanelSearch
      */
     private function methods(array $tokens, string $query, int $limit): array
     {
-        $rows = $this->likeQuery('methods as m', ['m.title', 'm.description'], $tokens)
+        $rows = $this->likeQuery('methods as m', ['m.title', 'm.description', 'c.title', 'o.title'], $tokens)
             ->leftJoin('classes as c', 'c.id', '=', 'm.class_id')
             ->leftJoin('objects as o', 'o.id', '=', 'm.object_id')
             ->whereNull('m.deleted_at')
             ->orderBy('m.title')
-            ->limit($this->preLimit($limit))
-            ->get([
+            ->select([
                 'm.id',
                 'm.class_id',
                 'm.object_id',
@@ -200,7 +196,7 @@ final readonly class PanelSearch
                 'm.description',
                 'c.title as class_title',
                 'o.title as object_title',
-            ]);
+            ])->cursor();
 
         return $this->collect($rows, $tokens, $query, static function (object $row): array {
             $objectId = (int)($row->object_id ?? 0);
@@ -233,8 +229,7 @@ final readonly class PanelSearch
         $rows = $this->likeQuery('scripts', ['title', 'description'], $tokens)
             ->whereNull('deleted_at')
             ->orderBy('title')
-            ->limit($this->preLimit($limit))
-            ->get(['id', 'title', 'description']);
+            ->select(['id', 'title', 'description'])->cursor();
 
         return $this->collect($rows, $tokens, $query, static fn (object $row): array => [
             'type' => 'script',
@@ -255,8 +250,7 @@ final readonly class PanelSearch
         $rows = $this->likeQuery('users', ['username', 'name'], $tokens)
             ->whereNull('deleted_at')
             ->orderBy('name')
-            ->limit($this->preLimit($limit))
-            ->get(['id', 'username', 'name', 'is_admin']);
+            ->select(['id', 'username', 'name', 'is_admin'])->cursor();
 
         return $this->collect($rows, $tokens, $query, static function (object $row): array {
             $username = (string)$row->username;
@@ -282,8 +276,7 @@ final readonly class PanelSearch
         $rows = $this->likeQuery('locations', ['title'], $tokens)
             ->whereNull('deleted_at')
             ->orderBy('title')
-            ->limit($this->preLimit($limit))
-            ->get(['id', 'title']);
+            ->select(['id', 'title'])->cursor();
 
         return $this->collect($rows, $tokens, $query, static fn (object $row): array => [
             'type' => 'location',
@@ -320,7 +313,7 @@ final readonly class PanelSearch
             ];
         }
 
-        return array_slice($items, 0, $this->preLimit($limit));
+        return $items;
     }
 
     /**
@@ -350,7 +343,7 @@ final readonly class PanelSearch
             ];
         }
 
-        return array_slice($items, 0, $this->preLimit($limit));
+        return $items;
     }
 
     /**
@@ -481,11 +474,6 @@ final readonly class PanelSearch
         )));
 
         return array_slice($tokens, 0, self::MAX_TOKENS);
-    }
-
-    private function preLimit(int $limit): int
-    {
-        return max(50, $limit * self::PRE_LIMIT_FACTOR);
     }
 
     /**

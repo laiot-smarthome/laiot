@@ -11,6 +11,7 @@ use MajorDoMo\Database\DatabaseManager;
 /**
  * Свойства классов и объектов MyDoMo.
  *
+ * 2026-10-27 — наследуемое свойство ищется одним запросом по всей цепочке.
  * 2026-10-27 — удаление свойства снимает его подписки на доставку.
  * 2026-10-27 — свойства ищутся по цепочке наследования классов; добавлены
  * объектные свойства (`object_id`), которые переопределяют классовое свойство
@@ -290,13 +291,20 @@ final readonly class PropertyRepository
             return null;
         }
 
-        foreach ($this->classes->lineage($classId) as $class) {
-            $row = $this->database->connection()->table('properties')
-                ->where('class_id', (int)$class['id'])
-                ->where('object_id', 0)
-                ->where('title', $title)
-                ->whereNull('deleted_at')
-                ->first();
+        $lineage = $this->classes->lineage($classId);
+        $ids = array_map(static fn (array $class): int => (int)$class['id'], $lineage);
+        if ($ids === []) {
+            return null;
+        }
+        $rows = $this->database->connection()->table('properties')
+            ->whereIn('class_id', $ids)
+            ->where('object_id', 0)
+            ->where('title', $title)
+            ->whereNull('deleted_at')
+            ->orderBy('id')
+            ->get()->groupBy('class_id');
+        foreach ($ids as $id) {
+            $row = $rows->get($id)?->first();
             if ($row !== null) {
                 return $this->hydrate($row);
             }

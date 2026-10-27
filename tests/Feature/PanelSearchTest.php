@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
  * Поиск по новому ядру: сервис, API `/api/v1/panel/search` и drawer в alpha-layout.
  *
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ * 2026-10-27 — точное совпадение не теряется за предварительным лимитом.
  */
 final class PanelSearchTest extends TestCase
 {
@@ -64,6 +65,27 @@ final class PanelSearchTest extends TestCase
         self::assertGreaterThan(0, $result['total']);
 
         self::assertSame(0, $search->search('Датчик холодильник')['total']);
+    }
+
+    public function testSearchRanksAllCandidatesAndIncludesClassMetadata(): void
+    {
+        $app = $this->boot()[0];
+        $connection = $app->database()->connection();
+        for ($i = 0; $i < 70; $i++) {
+            $connection->table('scripts')->insert([
+                'title' => sprintf('AAA %03d', $i), 'description' => 'датчик',
+            ]);
+        }
+        $connection->table('scripts')->insert(['title' => 'Датчик температуры', 'description' => '']);
+        $search = $app->container()->make(PanelSearch::class);
+        $result = $search->search('датчик температуры', 1);
+        self::assertSame('Датчик температуры', $result['sections']['Скрипты'][0]['title']);
+
+        $connection->table('properties')->insert([
+            'class_id' => 1, 'title' => 'humidity', 'description' => '',
+        ]);
+        $result = $search->search('датчик humidity');
+        self::assertSame('humidity', $result['sections']['Свойства'][0]['title']);
     }
 
     public function testShortQueryAndLimit(): void
