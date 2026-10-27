@@ -32,7 +32,7 @@ uppercase-поля не читаются через runtime-адаптер. От
 | --- | --- |
 | Пользователи и доступ | users, roles, permissions, user_roles, role_permissions, api_tokens |
 | Модель дома | classes, objects, properties, methods, locations |
-| Значения | property_values, property_history, property_events |
+| Значения | property_values, property_history, property_events, property_subscriptions |
 | Сценарии | scripts, script_categories, runtime_timeouts |
 | Диагностика | action_log, system_errors, notifications |
 | Задания | queue_jobs |
@@ -45,7 +45,8 @@ uppercase-поля не читаются через runtime-адаптер. От
 `module_api_webhooks`, 000025 удаляет таблицу Shoutbox, 000026
 переименовывает `module_shared_events` в `shared_events`, а
 `2026_10_27_000001` добавляет `classes.parent_id`,
-`properties.object_id` и `methods.object_id`.
+`properties.object_id` и `methods.object_id`, а `2026_10_27_000002` —
+таблицу подписок модулей `property_subscriptions`.
 Это разовые преобразования pre-release-схемы, не чтение двух схем в runtime.
 
 ## Колонки и soft delete

@@ -9,6 +9,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
@@ -23,14 +24,21 @@ final class ModuleRemoveCommand extends Command
     protected function configure(): void
     {
         $this->addArgument('id', InputArgument::REQUIRED, 'ID модуля');
-        $this->setHelp('Файлы модуля и его таблицы не удаляются: это отдельное решение владельца.');
+        $this->addOption('purge', null, InputOption::VALUE_NONE, 'Удалить таблицы модуля и SQLite-данные');
+        $this->setHelp('По умолчанию данные модуля сохраняются. --purge удаляет объявленные таблицы и data-каталог; код модуля остаётся.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $this->installer->remove((string)$input->getArgument('id'));
+            $this->installer->remove(
+                (string)$input->getArgument('id'),
+                (bool)$input->getOption('purge')
+            );
             $output->writeln('<info>Модуль удалён из реестра.</info>');
+            if ((bool)$input->getOption('purge')) {
+                $output->writeln('<info>Таблицы и данные модуля удалены.</info>');
+            }
 
             return Command::SUCCESS;
         } catch (Throwable $error) {

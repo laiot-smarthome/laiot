@@ -21,9 +21,9 @@ use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\NativeSession;
 use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Logging\ErrorRepository;
+use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Logging\RequestContext;
 use MajorDoMo\Support\MaintenanceMode;
-use Psr\Log\LoggerInterface;
 
 /**
  * Сессия, HTTP-kernel, middleware и ядровые маршруты.
@@ -59,7 +59,7 @@ final class HttpServiceProvider extends ServiceProvider
         });
         $this->container->singleton(Kernel::class, fn (Container $container): Kernel => new Kernel(
             $container->make(Router::class),
-            $container->make(LoggerInterface::class),
+            $container->make(LoggerFactory::class)->channel('http'),
             (bool)$this->app->config('debug', false),
             $container->make(RequestContext::class),
             $container->make(ErrorRepository::class),

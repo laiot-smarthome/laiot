@@ -51,6 +51,7 @@ modules/weather/
   "description": "Прогноз для объектов",
   "namespace": "Vendor\\Weather\\",
   "entrypoint": "Module",
+  "property_subscriber": "PropertySubscriber",
   "src": "src",
   "routes": "routes.php",
   "views": "views",
@@ -82,6 +83,10 @@ modules/weather/
 модулей. Не указывайте ещё не перенесённый MQTT как обязательную зависимость
 учебного примера: установщик потребует его включения. Пути относительные,
 без `..`. ID — 2–64 символа `[a-z][a-z0-9_]`; дефис в ID не разрешён.
+
+`property_subscriber` — необязательный класс в namespace модуля, который
+принимает изменения свойств (см. раздел 5). Какие именно свойства обслуживает
+модуль, манифест не задаёт: это выбор пользователя.
 
 ## 3. Entrypoint
 
@@ -147,22 +152,64 @@ context.db() в install-hook либо предварительно дораба�
 миграций. Не обещайте, что переключение storage.driver само переносит
 все DDL в другое соединение. Незавершённый файл не откатывается автоматически.
 
-## 5. Lifecycle
+## 5. Изменения свойств
+
+Подписку на свойство выбирает пользователь в интерфейсе модуля: модуль
+показывает список доступных объектов/свойств, пользователь отмечает нужные.
+Хранит выбор ядро — таблица `property_subscriptions`, поэтому один и тот же
+модуль в разных установках обслуживает разные устройства.
+
+Манифест объявляет только обработчик:
+
+```json
+"property_subscriber": "PropertySubscriber"
+```
+
+```php
+use MajorDoMo\Events\PropertyChange;
+use MajorDoMo\Modules\PropertySubscriber;
+
+final class PropertySubscriber implements PropertySubscriber
+{
+    public function onPropertyChanged(PropertyChange $change): void
+    {
+        // отправить значение в устройство; ошибка попадёт в журнал
+    }
+}
+```
+
+Контракт: `objectTitle`, `propertyTitle`, `oldValue`, `newValue`, `source`,
+`changed`, `chain`, `depth`. Запись значения не ждёт подписчика: изменение
+уходит в очередь `module.<id>`, а обработчик вызывает worker модуля. Ошибка не
+откатывает значение и не мешает другим модулям и OnChange. Повторная запись
+того же свойства внутри обработчика останавливается цепочкой, а собственное
+эхо модуль не получает: сервис записи не возвращает автору его же изменение.
+Подробности — [events.md](events.md).
+
+Подписку ставит и снимает `PropertySubscriptionRepository` (`attach`,
+`detach`, `modulesFor`, `forObject`); прямые `INSERT` в таблицу из модуля
+запрещены. Страница выбора в модуле появится вместе с переносом MQTT/Zigbee.
+
+## 6. Lifecycle
 
 ```bash
 php bin/mydomo db:migrate          # создаёт module_registry/module_migrations
 php bin/mydomo module:validate      # проверить все module.json
+php bin/mydomo module:check [id]    # найти legacy-вызовы в коде модуля
 php bin/mydomo module:list          # core + сторонние, installed/enabled
 php bin/mydomo module:install weather
 php bin/mydomo module:disable weather
 php bin/mydomo module:enable weather
-php bin/mydomo module:remove weather
+php bin/mydomo module:remove weather [--purge]
 ```
 
 `module:install` проверяет semver, зависимости, выполняет миграции, вызывает
-`install`/`enabled` и включает модуль. `module:remove` вызывает `uninstall`
-и убирает запись из реестра; файлы и таблицы не удаляются — это отдельное
-решение владельца. Core-модули нельзя disable/remove.
+`install`/`enabled`, регистрирует разрешения из манифеста и публикует ассеты
+в `public/assets/modules/<id>`. `module:enable` повторяет регистрацию прав и
+публикацию. `module:remove` вызывает `uninstall`, убирает реестр, права
+модуля (если они не выданы роли) и опубликованные ассеты. С `--purge` он
+дополнительно удаляет объявленные таблицы и SQLite-данные; код модуля
+остаётся. Core-модули нельзя disable/remove.
 
 disable вызывает hook disabled и затем записывает enabled=0;
 enable повторно проверяет совместимость/зависимости и вызывает enabled.
@@ -175,25 +222,30 @@ enable повторно проверяет совместимость/завис
 `enabled` сторонние модули. Выключенный модуль не регистрирует маршруты,
 меню и helpers.
 
-## 6. Безопасность и границы
+## 7. Безопасность и границы
 
 - нет `eval`, `$db`, `SQLSelect*`, `mysqli_*`, `PDO` и глобальных путей ядра;
+- `module:check` ищет эти вызовы в `src`, `routes` и `helpers` модуля и
+  возвращает ненулевой код, если что-то найдено;
 - только `ModuleDb`/`ModuleBus` и сервисы, полученные через контейнер;
 - пользовательский ввод — через `Request`, CSRF на изменяющих маршрутах;
-- `permissions` — декларация для будущего UI прав, сейчас не автоприменяется;
-- поле assets не включает автоматическую публикацию/сборку. Подключение
-  локальных ресурсов нужно согласовать с бандлом; новые библиотеки идут
-  через npm, без CDN и отдельных script/link на библиотеку в шаблоне.
+- `permissions` из манифеста регистрируются в таблице `permissions` с
+  владельцем `module_id`; автоматически они не выдаются никому, кроме роли
+  admin (у неё `*`). Остальным роль назначается вручную;
+- ассеты публикуются при install/enable; сборка JS/CSS остаётся общей
+  `npm run build`, библиотеки — через npm, без CDN и отдельных script/link.
 
 Пункт «нет PDO/eval» — правило поддерживаемого кода, а не техническая
-изоляция от произвольного PHP. Автоматического CodeGuard пока нет.
+изоляция от произвольного PHP. `module:check` — сканер, а не sandbox;
+автоматического CodeGuard пока нет.
 
-## 7. Ограничения текущего этапа
+## 8. Ограничения текущего этапа
 
 - установка только из локального `modules/<id>/`, marketplace позже;
-- `module:remove` не удаляет таблицы и файлы;
+- `module:remove --purge` удаляет данные и таблицы, но не код модуля:
+  версия кода живёт в пакете/каталоге `modules/`;
 - миграции не откатываются;
-- `permissions` пока не связаны с `roles`/`permissions` автоматически;
+- `permissions` регистрируются, но автоматической выдачи ролям нет;
 - установка во время HTTP-запроса не поддерживается — только CLI.
 
 ## Связанные документы

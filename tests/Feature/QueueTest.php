@@ -11,6 +11,7 @@ use RuntimeException;
 
 /**
  * 2026-10-26 — проверка возврата задания после просроченной резервации.
+ * 2026-10-27 — проверка защиты от старого владельца резервации.
  */
 final class QueueTest extends TestCase
 {
@@ -143,5 +144,21 @@ final class QueueTest extends TestCase
         self::assertNotNull($second);
         self::assertSame($secondId, $second->id);
         self::assertNull($recovery->pop('default'));
+    }
+
+    public function testExpiredOwnerCannotAcknowledgeOrFailNewReservation(): void
+    {
+        $this->queue->push('default', 'demo.job');
+        $old = $this->queue->pop('default');
+        self::assertNotNull($old);
+        $this->now += 300;
+        $current = $this->queue->pop('default');
+        self::assertNotNull($current);
+
+        $this->queue->ack($old);
+        $this->queue->fail($old, new RuntimeException('late failure'));
+        self::assertSame(['pending' => 0, 'reserved' => 1, 'failed' => 0], $this->queue->stats('default'));
+        $this->queue->ack($current);
+        self::assertSame(['pending' => 0, 'reserved' => 0, 'failed' => 0], $this->queue->stats('default'));
     }
 }

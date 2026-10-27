@@ -50,9 +50,13 @@ $modules = $app->modules();
 | `getObject(string $name)` | Массив `id/title/class_id/location_id/description` или null |
 | `gg(string $name)` | Сохранённая строка значения или null |
 | `getGlobal(string $name)` | Алиас gg |
-| `sg(string $name, $value, $noLinked = 0, string $source = 'sg')` | bool, запись через цепочку свойства |
-| `setGlobal(string $name, $value, $noLinked = 0, string $source = '')` | Алиас sg; пустой source становится `setGlobal` |
+| `sg(string $name, $value, string $source = 'sg')` | bool, запись через цепочку свойства |
+| `setGlobal(string $name, $value, string $source = '')` | Алиас sg; пустой source становится `setGlobal` |
 | `getHistory(string $name, int $limit = 50)` | Массив последних `value/created_at` |
+| `history(string $name)` | Построитель выборки истории или null |
+| `getHistoryRange(string $name, $from = null, $to = null, int $limit = 500)` | Записи за период |
+| `getHistoryAvg/Min/Max/Sum(string $name, $from = null, $to = null)` | Числовой агрегат или null |
+| `getHistoryCount(string $name, $from = null, $to = null)` | Число записей |
 
 Имя `Объект.Свойство` разбивается по последней точке. Объект должен
 существовать. Свойство ищется среди объектных свойств объекта, затем в его
@@ -60,21 +64,52 @@ $modules = $app->modules();
 выигрывает. Автосоздания объектов/свойств нет.
 
 ```php
-sg('Кухня.temperature', 23.5, 0, 'mqtt');
+sg('Кухня.temperature', 23.5, 'mqtt');
 $value = gg('Кухня.temperature');
 $history = getHistory('Кухня.temperature', 20);
+$avg = history('Кухня.temperature')->from('-1 day')->avg();
+$week = getHistoryRange('Кухня.temperature', '-7 days', 'now', 200);
 ```
 
 Значение нормализуется: null → пустая строка, bool → `1`/`0`, скаляр →
 строка, массив → JSON. Неподдерживаемый объект или ненайденное свойство
 дают false при записи. Ошибки инфраструктуры не превращаются автоматически
-в false. `$noLinked` не отключает новый OnChange: параметр сохранён в
-сигнатуре, а старых LINKED_MODULES здесь нет.
+в false.
+
+`sg()` асинхронен: `true` означает «значение сохранено и событие поставлено
+в очередь», а не «метод уже выполнился». Журнал и история появятся после
+обработки задания `core-worker events`. Значение `gg()` доступно сразу.
+
+Своего эха модуль не получает: пока он обрабатывает изменение, его записи
+не возвращаются ему как новое событие; другие подписчики и OnChange
+получают их как обычно. Отдельного параметра управления доставкой нет —
+alpha-совместимые `$noLinked` в новое API не переносятся. Запись значения
+без истории, доставки и OnChange — только низкоуровневый `ValueRepository`
+для импорта, а не пользовательский путь. Правила доставки —
+[events.md](events.md).
 
 Если значение не изменилось, история не растёт, но OnChange может быть
-вызван снова. История хранится только при `keep_history`; лимит чтения
-нормализуется до 1–500. Функции агрегатов истории из старых планов пока
-не реализованы этими helpers.
+вызван снова. История хранится только при `keep_history`.
+
+## История и выборки
+
+`history($name)` возвращает построитель `HistoryQuery`: период, лимит,
+значения и агрегаты. Период принимает дату, `DateTimeInterface` или
+относительную строку (`-1 day`, `today`). Агрегаты считает один SQL по
+индексу `(object_id, property_id, created_at)`, а не PHP по всем строкам.
+
+```php
+use MajorDoMo\History\HistoryQuery;
+
+$day = history('Кухня.temperature')->from('-24 hours');
+$stats = $day->stats();     // count, min, max, avg, sum, last
+$top = history('Кухня.temperature')->last(10)->oldestFirst()->values();
+```
+
+Значения в истории — строки. В `min/max/avg/sum` входят только непустые
+значения, приведённые к числу; `count()` считает все записи. Для строковых
+свойств используйте `count()`, `values()` и `lastValue()`, а не числовые
+агрегаты. Тот же построитель доступен в методе как `$this->history()`.
 
 Сервис для ядровых форм:
 
@@ -115,7 +150,31 @@ $result = cm('Кухня.double', ['x' => 5]);
 Несуществующий объект/метод вызывает InvalidArgumentException.
 Некорректное составное имя без точки возвращает null на уровне helper.
 Суффикс Safe не означает sandbox, очередь или перехват исключения.
-`$this` внутри метода не привязан к объекту MajorDoMo в текущем MethodRunner.
+
+### `$this` в методе
+
+Тело метода выполняется с контекстом объекта `MethodContext`, поэтому
+`$this` — не пустой указатель, а короткий доступ к объекту:
+
+```php
+$this->set('state', $this->param('x'));
+$average = $this->history('temperature')->from('-1 day')->avg();
+
+return [$this->title(), $this->get('state'), $average];
+```
+
+| Метод контекста | Назначение |
+| --- | --- |
+| `title()`, `id()`, `method()` | Название/ID объекта и имя метода |
+| `params()`, `param($name, $default = null)` | Параметры вызова |
+| `get($property)` | Значение свойства этого объекта |
+| `set($property, $value, $source = 'method')` | Запись через общий конвейер значения и событий |
+| `history($property)` | `HistoryQuery` этого свойства |
+| `call($method, $params = [])` | Вызвать другой метод того же объекта |
+| `notify($message, $type = 'info', $options = [])` | Уведомление в админке |
+
+Имена свойств и методов — короткие, без склейки `Объект.Свойство`. Старый
+`$params` остаётся доступен: контекст его не заменяет.
 
 Пример тела метода без PHP-тегов:
 

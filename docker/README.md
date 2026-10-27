@@ -352,5 +352,5 @@ docker compose exec -u www-data app php majordomo config:clear
   повторяет production-топологию.
 - База защищена только приложением. `docker compose down -v` и root-доступ к
   MariaDB по-прежнему удаляют данные.
-- Docker-стенд не проверяет обновление системы через `deploy.sh` и не
+- Docker-стенд не проверяет обновление ядра (оно ещё проектируется) и не
   заменяет проверки на Ubuntu.

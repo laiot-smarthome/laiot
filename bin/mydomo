@@ -30,6 +30,10 @@ $console->add(new MajorDoMo\Console\ModuleEnableCommand($installer));
 $console->add(new MajorDoMo\Console\ModuleDisableCommand($installer));
 $console->add(new MajorDoMo\Console\ModuleRemoveCommand($installer));
 $console->add(new MajorDoMo\Console\ModuleValidateCommand($app->root()));
+$console->add(new MajorDoMo\Console\ModuleCheckCommand(
+    $app->container()->make(MajorDoMo\Modules\ModuleManager::class),
+    $app->container()->make(MajorDoMo\Modules\ModuleChecker::class)
+));
 $console->add(new MajorDoMo\Console\WorkerCommand($app->container()->make(MajorDoMo\Worker\Worker::class)));
 $console->add(new MajorDoMo\Console\CoreWorkerCommand($app->container()->make(MajorDoMo\Worker\CoreWorker::class)));
 $console->add(new MajorDoMo\Console\RouteListCommand($app));

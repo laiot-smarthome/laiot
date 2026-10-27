@@ -44,4 +44,46 @@ final class LoggingTest extends TestCase
         self::assertStringContainsString('security.WARNING', $contents);
         self::assertStringContainsString('req-123', $contents);
     }
+
+    public function testChannelsWriteSeparateRotatingFiles(): void
+    {
+        $context = new RequestContext();
+        $factory = new LoggerFactory([
+            'directory' => $this->directory,
+            'level' => 'info',
+            'max_files' => 2,
+        ], $context);
+
+        $factory->channel('http')->info('request handled');
+        $factory->channel('security')->warning('login rejected');
+        $factory->channel('queue')->error('job failed');
+
+        $http = glob($this->directory . '/http-*.log') ?: [];
+        $security = glob($this->directory . '/security-*.log') ?: [];
+        $queue = glob($this->directory . '/queue-*.log') ?: [];
+
+        self::assertCount(1, $http);
+        self::assertCount(1, $security);
+        self::assertCount(1, $queue);
+        self::assertStringContainsString('request handled', (string)file_get_contents($http[0]));
+        self::assertStringContainsString('login rejected', (string)file_get_contents($security[0]));
+        self::assertStringContainsString('job failed', (string)file_get_contents($queue[0]));
+        self::assertStringNotContainsString('login rejected', (string)file_get_contents($http[0]));
+    }
+
+    public function testStreamPathKeepsSingleOutput(): void
+    {
+        $factory = new LoggerFactory([
+            'path' => $this->directory . '/all.log',
+            'debug' => true,
+        ], new RequestContext());
+
+        $factory->channel('http')->info('a');
+        $factory->channel('security')->info('b');
+
+        $contents = (string)file_get_contents($this->directory . '/all.log');
+        self::assertStringContainsString('http.INFO', $contents);
+        self::assertStringContainsString('security.INFO', $contents);
+        self::assertSame([], glob($this->directory . '/http-*.log') ?: []);
+    }
 }

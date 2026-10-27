@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MajorDoMo\Console;
 
 use MajorDoMo\Foundation\Application;
+use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Queue\QueueWorker;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -31,7 +32,11 @@ final class QueueWorkCommand extends Command
     {
         $queueName = (string)$input->getOption('queue');
         $maxJobs = (bool)$input->getOption('once') ? 1 : max(0, (int)$input->getOption('max-jobs'));
-        $worker = new QueueWorker($this->app->queue(), $this->app->jobs(), $this->app->logger());
+        $worker = new QueueWorker(
+            $this->app->queue(),
+            $this->app->jobs(),
+            $this->app->container()->make(LoggerFactory::class)->channel('queue')
+        );
         $processed = 0;
 
         while ($maxJobs === 0 || $processed < $maxJobs) {

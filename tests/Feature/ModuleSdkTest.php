@@ -88,6 +88,27 @@ final class ModuleSdkTest extends TestCase
         }
     }
 
+    public function testRemoveWithPurgeDropsModuleTables(): void
+    {
+        $database = $this->databaseFile();
+        try {
+            $app = $this->boot($database);
+            $installer = $app->container()->make(ModuleInstaller::class);
+            $installer->install('example_sdk');
+            self::assertTrue($app->database()->schema()->hasTable('module_example_sdk_notes'));
+
+            $installer->remove('example_sdk', true);
+
+            self::assertFalse($app->database()->schema()->hasTable('module_example_sdk_notes'));
+            self::assertNull($app->database()->connection()->table('module_registry')
+                ->where('module_id', 'example_sdk')
+                ->whereNull('deleted_at')
+                ->first());
+        } finally {
+            @unlink($database);
+        }
+    }
+
     public function testInstalledModuleRoutesAreRegistered(): void
     {
         $database = $this->databaseFile();

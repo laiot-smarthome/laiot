@@ -70,6 +70,7 @@ final readonly class Kernel
                 'file' => $error->getFile(),
                 'line' => $error->getLine(),
                 'path' => $request->getPathInfo(),
+                'exception' => $error,
             ], $requestId);
             $response = ErrorResponse::make(
                 $request,

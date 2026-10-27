@@ -15,3 +15,4 @@ if (getenv('APP_ENV') !== 'testing' || getenv('DB_CONNECTION') !== 'sqlite'
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 require __DIR__ . '/Feature/SessionFixture.php';
+require __DIR__ . '/Feature/DrainsEvents.php';

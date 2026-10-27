@@ -64,12 +64,14 @@ $port = Config::int('REDIS_PORT', 6379);
 провайдеров в изолированной сборке. Контракт — [providers.md](providers.md).
 
 - `views`, `view_cache`, `log` — пути и журнал из конфигурации приложения.
-- `queue.table/max_attempts/retry_delay/reservation_timeout` — параметры
-  очереди из `config/queue.php`, а не произвольные `QUEUE_*` из окружения.
+- `queue.table/max_attempts/retry_delay/reservation_timeout/events_lanes` —
+  параметры очереди из `config/queue.php`, а не произвольные `QUEUE_*` из
+  окружения. `events_lanes` задаёт число полос очереди событий.
 - `cache.path` — каталог файлового кэша; `cache.table` нужен драйверу БД.
-- `logging` загружается отдельной секцией, но сборка `LoggerFactory`
-  сейчас использует верхнеуровневые `log` и `debug`. Не обещайте, что
-  изменение `config/logging.php` меняет фактический обработчик логов.
+- `logging.directory/max_files/level/error_directory` — каналы и файлы ошибок
+  из `config/logging.php`; `log` перекрывает путь (поток `php://stderr` в
+  тестах и CLI), `debug` включает уровень Debug. Каналы пишут отдельные
+  файлы с суточной ротацией.
 
 ## Часовой пояс и существующее расхождение
 

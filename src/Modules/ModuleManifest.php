@@ -106,6 +106,16 @@ final readonly class ModuleManifest
             }
         }
 
+        // Класс, принимающий изменения свойств. Какие именно свойства
+        // обслуживает модуль, в манифесте не задаётся: это выбор пользователя
+        // в интерфейсе модуля и хранится в `property_subscriptions`.
+        $propertySubscriber = $data['property_subscriber'] ?? null;
+        if ($propertySubscriber !== null) {
+            if (!is_string($propertySubscriber) || !preg_match('/^[A-Z][A-Za-z0-9_]*$/D', $propertySubscriber)) {
+                throw new InvalidArgumentException('property_subscriber модуля — имя класса в namespace модуля.');
+            }
+        }
+
         $storage = $data['storage'] ?? null;
         if ($storage !== null) {
             if (!is_array($storage)) {
@@ -193,6 +203,7 @@ final readonly class ModuleManifest
             'description' => self::string($data, 'description', ''),
             'namespace' => $namespace,
             'entrypoint' => $entrypoint,
+            'property_subscriber' => $propertySubscriber,
             'path' => $path,
             'storage' => $storage,
             'menu' => $menu,

@@ -33,7 +33,9 @@ final readonly class QueueWorker
         try {
             $this->handlers->handle($job->job, $job->payload);
             $this->queue->ack($job);
-            $this->logger->info('Queue job handled', [
+            // Успешная обработка не пишется в info: очередь событий обрабатывает
+            // тысячи заданий, а журнал нужен для ошибок и диагностики.
+            $this->logger->debug('Queue job handled', [
                 'job' => $job->job,
                 'queue' => $queue,
                 'id' => $job->id,

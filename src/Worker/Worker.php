@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Worker;
 
+use MajorDoMo\Events\PropertyEventQueue;
 use MajorDoMo\Modules\ModuleManager;
+use MajorDoMo\Queue\JobRegistry;
+use MajorDoMo\Queue\Queue;
+use MajorDoMo\Queue\QueueWorker;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Throwable;
@@ -15,14 +19,25 @@ use Throwable;
  * Один процесс на модуль. Задачи берутся из `module.json`, выполняются
  * последовательно; каждая — один вызов метода без собственного цикла.
  * Таймаут задачи enforced через fork, если pcntl доступен.
+ *
+ * В том же процессе обслуживается очередь `module.<id>`: доставка изменений
+ * свойств этому модулю. Медленный подписчик задерживает только свой worker,
+ * а не события свойств и не другие модули.
+ *
+ * 2026-10-27 — worker обслуживает очередь доставки модуля.
  */
 final class Worker
 {
     private bool $stop = false;
 
+    private ?QueueWorker $queueWorker = null;
+
     public function __construct(
         private readonly ModuleManager $modules,
         private readonly BackgroundTaskState $state,
+        private readonly Queue $queue,
+        private readonly JobRegistry $jobs,
+        private readonly PropertyEventQueue $eventQueues,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -52,21 +67,18 @@ final class Worker
         }
         $tasks = $this->tasks($moduleId);
         $tasks = array_filter($tasks, static fn (array $task): bool => $task['enabled'] === true);
-        if ($tasks === []) {
-            $this->logger->info('Worker: у модуля нет включённых задач', ['module' => $moduleId]);
-
-            return 0;
-        }
-
-        $entrypoint = $module['entrypoint'] ?? null;
-        if (!is_string($entrypoint) || $entrypoint === '') {
-            throw new RuntimeException('Для tasks нужен entrypoint модуля: ' . $moduleId);
-        }
-        $class = (string)$module['namespace'] . $entrypoint;
-        $instance = $this->modules->context($moduleId)->container()->make($class);
-        foreach ($tasks as $name => $task) {
-            if (!is_callable([$instance, $task['method']])) {
-                throw new RuntimeException('Метод задачи не найден: ' . $moduleId . '.' . $task['method']);
+        $instance = null;
+        if ($tasks !== []) {
+            $entrypoint = $module['entrypoint'] ?? null;
+            if (!is_string($entrypoint) || $entrypoint === '') {
+                throw new RuntimeException('Для tasks нужен entrypoint модуля: ' . $moduleId);
+            }
+            $class = (string)$module['namespace'] . $entrypoint;
+            $instance = $this->modules->context($moduleId)->container()->make($class);
+            foreach ($tasks as $name => $task) {
+                if (!is_callable([$instance, $task['method']])) {
+                    throw new RuntimeException('Метод задачи не найден: ' . $moduleId . '.' . $task['method']);
+                }
             }
         }
 
@@ -92,15 +104,22 @@ final class Worker
                     }
                 }
                 foreach ($due as $name) {
+                    if ($instance === null) {
+                        break;
+                    }
                     $task = $tasks[$name];
                     $this->runTask($moduleId, $name, $task, $instance);
                     $next[$name] = microtime(true) + $task['interval'];
                 }
+                $worked = $this->drainDeliveries($moduleId) > 0;
                 if ($once) {
+                    while ($this->drainDeliveries($moduleId) > 0) {
+                        // Догружаем всё, что уже накопилось для модуля.
+                    }
                     break;
                 }
-                if ($due === []) {
-                    $closest = min($next);
+                if ($due === [] && !$worked) {
+                    $closest = $next === [] ? microtime(true) + 1.0 : min($next);
                     $sleep = max(0.2, min(1.0, $closest - microtime(true)));
                     usleep((int)($sleep * 1_000_000));
                 }
@@ -110,6 +129,23 @@ final class Worker
         }
 
         return 0;
+    }
+
+    /**
+     * Обслуживает очередь доставки свойств этого модуля.
+     *
+     * @return int Сколько заданий выполнено за проход.
+     */
+    private function drainDeliveries(string $moduleId): int
+    {
+        $worker = $this->queueWorker ??= new QueueWorker($this->queue, $this->jobs, $this->logger);
+        $queue = $this->eventQueues->moduleQueueName($moduleId);
+        $handled = 0;
+        while ($handled < 100 && $worker->work($queue)) {
+            $handled++;
+        }
+
+        return $handled;
     }
 
     /**

@@ -18,6 +18,9 @@ use Throwable;
  * это удобно для диагностики.
  *
  * Изменения:
+ * 2026-10-27 — подтверждение и ошибка относятся к конкретной резервации.
+ * 2026-10-27 — проверка таблицы кэшируется: очередь событий вызывает её на
+ *              каждом задании.
  * 2026-10-26 — просроченная резервация снова доступна после падения воркера.
  */
 final class DatabaseQueue implements Queue
@@ -32,6 +35,9 @@ final class DatabaseQueue implements Queue
 
     /** @var Closure(): int */
     private readonly Closure $clock;
+
+    /** Таблица проверяется один раз на процесс: лишний запрос к схеме на каждой операции не нужен. */
+    private bool $tableReady = false;
 
     /**
      * @param array<string, mixed> $config
@@ -102,6 +108,7 @@ final class DatabaseQueue implements Queue
                 return null;
             }
 
+            $reservationToken = bin2hex(random_bytes(16));
             $reserved = $connection->table($this->table)
                 ->where('id', (int)$row->id)
                 ->whereNull('deleted_at')
@@ -113,6 +120,7 @@ final class DatabaseQueue implements Queue
                 })
                 ->update([
                     'reserved_at' => date('Y-m-d H:i:s', $now),
+                    'reservation_token' => $reservationToken,
                     'updated_at' => date('Y-m-d H:i:s', $now),
                 ]);
 
@@ -124,7 +132,8 @@ final class DatabaseQueue implements Queue
                     (string)$row->queue,
                     (string)$row->job,
                     is_array($payload) ? $payload : [],
-                    (int)$row->attempts
+                    (int)$row->attempts,
+                    $reservationToken
                 );
             }
         }
@@ -134,7 +143,8 @@ final class DatabaseQueue implements Queue
 
     public function ack(QueueJob $job): void
     {
-        $this->database->connection()->table($this->table)->where('id', $job->id)->delete();
+        $this->database->connection()->table($this->table)->where('id', $job->id)
+            ->where('reservation_token', $job->reservationToken)->delete();
     }
 
     public function fail(QueueJob $job, Throwable $error): void
@@ -144,6 +154,7 @@ final class DatabaseQueue implements Queue
         $values = [
             'attempts' => $attempts,
             'reserved_at' => null,
+            'reservation_token' => null,
             'error' => mb_substr($error->getMessage(), 0, 2000),
             'updated_at' => date('Y-m-d H:i:s', $now),
         ];
@@ -154,7 +165,8 @@ final class DatabaseQueue implements Queue
             $values['available_at'] = date('Y-m-d H:i:s', $now + $this->retryDelay);
         }
 
-        $this->database->connection()->table($this->table)->where('id', $job->id)->update($values);
+        $this->database->connection()->table($this->table)->where('id', $job->id)
+            ->where('reservation_token', $job->reservationToken)->update($values);
     }
 
     public function stats(string $queue): array
@@ -252,6 +264,7 @@ final class DatabaseQueue implements Queue
                 'failed_at' => null,
                 'error' => null,
                 'reserved_at' => null,
+                'reservation_token' => null,
                 'available_at' => date('Y-m-d H:i:s', $now),
                 'updated_at' => date('Y-m-d H:i:s', $now),
             ]) > 0;
@@ -270,8 +283,14 @@ final class DatabaseQueue implements Queue
 
     private function ensureTable(): void
     {
+        if ($this->tableReady) {
+            return;
+        }
+
         $schema = $this->database->connection()->getSchemaBuilder();
         if ($schema->hasTable($this->table)) {
+            $this->tableReady = true;
+
             return;
         }
 
@@ -283,12 +302,14 @@ final class DatabaseQueue implements Queue
             $table->integer('attempts')->default(0);
             $table->dateTime('available_at');
             $table->dateTime('reserved_at')->nullable();
+            $table->string('reservation_token', 32)->nullable();
             $table->dateTime('failed_at')->nullable();
             $table->text('error')->nullable();
             $table->timestamps();
             $table->softDeletes();
             $table->index(['queue', 'failed_at', 'available_at']);
         });
+        $this->tableReady = true;
     }
 
     private function assertName(string $value, string $label): void

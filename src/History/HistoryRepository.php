@@ -8,6 +8,9 @@ use MajorDoMo\Database\DatabaseManager;
 
 /**
  * История значений свойств.
+ *
+ * 2026-10-27 — время записи можно передать явно: строка истории пишется после
+ *              OnChange, но должна нести время самого изменения.
  */
 final readonly class HistoryRepository
 {
@@ -15,9 +18,22 @@ final readonly class HistoryRepository
     {
     }
 
-    public function record(int $objectId, int $propertyId, string $value): void
+    /**
+     * @param string|null $at Время фактической записи значения; null — сейчас.
+     *                        Нужен, потому что строка пишется после OnChange,
+     *                        а время должно остаться временем изменения.
+     */
+    /**
+     * Построитель выборки по истории одного свойства.
+     */
+    public function query(int $objectId, int $propertyId): HistoryQuery
     {
-        $now = date('Y-m-d H:i:s');
+        return new HistoryQuery($this->database, $objectId, $propertyId);
+    }
+
+    public function record(int $objectId, int $propertyId, string $value, ?string $at = null): void
+    {
+        $now = $at ?? date('Y-m-d H:i:s');
         $this->database->connection()->table('property_history')->insert([
             'object_id' => $objectId,
             'property_id' => $propertyId,

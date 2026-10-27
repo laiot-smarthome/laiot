@@ -11,6 +11,7 @@ use MajorDoMo\Database\DatabaseManager;
 /**
  * Свойства классов и объектов MyDoMo.
  *
+ * 2026-10-27 — удаление свойства снимает его подписки на доставку.
  * 2026-10-27 — свойства ищутся по цепочке наследования классов; добавлены
  * объектные свойства (`object_id`), которые переопределяют классовое свойство
  * с тем же названием только у одного объекта.
@@ -19,7 +20,8 @@ final readonly class PropertyRepository
 {
     public function __construct(
         private DatabaseManager $database,
-        private ClassRepository $classes
+        private ClassRepository $classes,
+        private ?PropertySubscriptionRepository $subscriptions = null
     ) {
     }
 
@@ -386,6 +388,9 @@ final readonly class PropertyRepository
             ->where('id', $id)
             ->whereNull('deleted_at')
             ->update(['deleted_at' => $now, 'updated_at' => $now]);
+        // Подписка на удалённое свойство больше не имеет смысла и не должна
+        // оставаться в таблице доставки.
+        $this->subscriptions?->deleteForProperty($id);
     }
 
     /**

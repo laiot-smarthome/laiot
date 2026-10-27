@@ -6,17 +6,15 @@ namespace MajorDoMo\Tests\Feature;
 
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Events\PropertyEventRepository;
+use MajorDoMo\Events\PropertyEventContext;
+use MajorDoMo\Events\PropertyEventQueue;
 use MajorDoMo\History\HistoryRepository;
-use MajorDoMo\Methods\MethodRepository;
-use MajorDoMo\Methods\MethodRunner;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
 use MajorDoMo\Properties\PropertyValueService;
 use MajorDoMo\Properties\ValueRepository;
-use MajorDoMo\Support\Clock;
+use MajorDoMo\Queue\DatabaseQueue;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\NullLogger;
 
 /**
  * Целостность записи значений независимо от HTTP и модульного SDK.
@@ -45,6 +43,7 @@ final class PropertyValueIntegrityTest extends TestCase
             '2026_10_26_000017_create_property_history.php',
             '2026_10_26_000019_create_property_events.php',
             '2026_10_27_000001_add_class_hierarchy_and_object_members.php',
+            '2026_10_27_000002_create_property_subscriptions.php',
         ] as $name) {
             $migration = require dirname(__DIR__, 2) . '/database/migrations/' . $name;
             $migration($this->database->connection());
@@ -53,7 +52,6 @@ final class PropertyValueIntegrityTest extends TestCase
         $objects = new ObjectRepository($this->database, $this->classes);
         $this->properties = new PropertyRepository($this->database, $this->classes);
         $history = new HistoryRepository($this->database);
-        $methods = new MethodRepository($this->database, $this->classes);
         $this->values = new ValueRepository($this->database);
         $this->service = new PropertyValueService(
             $this->database,
@@ -61,10 +59,8 @@ final class PropertyValueIntegrityTest extends TestCase
             $this->properties,
             $this->values,
             $history,
-            $methods,
-            new MethodRunner($objects, $methods),
-            new PropertyEventRepository($this->database, new Clock()),
-            new NullLogger()
+            new PropertyEventContext(),
+            new PropertyEventQueue(new DatabaseQueue($this->database), ['events_lanes' => 1])
         );
 
         $this->classes->create('Датчик');

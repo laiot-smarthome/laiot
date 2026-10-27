@@ -20,11 +20,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class CoreEventsTest extends TestCase
 {
+    use DrainsEvents;
+
     public function testChangeRunsOnChangeAndAppearsInJournal(): void
     {
         [$app] = $this->boot();
 
         self::assertTrue(sg('Кухня.temperature', '23.5'));
+        $this->drainEvents($app);
 
         self::assertSame('23.5', gg('Кухня.temperature'));
         self::assertSame(1, $this->rowCount($app, 'property_history'));
@@ -53,12 +56,32 @@ final class CoreEventsTest extends TestCase
         self::assertStringContainsString('<option value="handler.method"', $html);
     }
 
+    public function testWriteIsProcessedByEventsWorkerNotInRequest(): void
+    {
+        [$app] = $this->boot();
+
+        self::assertTrue(sg('Кухня.temperature', '23.5'));
+
+        // Запись только сохранила значение и задание: код и история ещё не
+        // выполнялись, в очередях events лежит одно задание.
+        self::assertSame(1, $this->pendingEvents($app));
+        self::assertSame(0, $app->database()->connection()->table('property_events')->count());
+        self::assertSame(0, $app->database()->connection()->table('property_history')->count());
+
+        $this->drainEvents($app);
+
+        self::assertSame(0, $this->pendingEvents($app));
+        self::assertGreaterThan(0, $app->database()->connection()->table('property_events')->count());
+        self::assertSame(1, $app->database()->connection()->table('property_history')->count());
+    }
+
     public function testRepeatedValueRunsHandlerWithoutSecondHistoryRow(): void
     {
         $app = $this->boot()[0];
 
         self::assertTrue(sg('Кухня.temperature', '23.5'));
         self::assertTrue(sg('Кухня.temperature', '23.5'));
+        $this->drainEvents($app);
 
         self::assertSame(1, $this->rowCount($app, 'property_history'));
         self::assertSame(1, $this->rowsWhereCount($app, 'property_events', 'type', 'property.changed'));
@@ -70,6 +93,7 @@ final class CoreEventsTest extends TestCase
         $app = $this->boot()[0];
 
         self::assertTrue(sg('Кухня.alarm', '0'));
+        $this->drainEvents($app);
 
         self::assertSame('1', gg('Кухня.alarm'));
         self::assertSame('hot', gg('Кухня.temperature'));
@@ -94,6 +118,7 @@ final class CoreEventsTest extends TestCase
         $app = $this->boot()[0];
 
         self::assertTrue(sg('Кухня.broken', 'x'));
+        $this->drainEvents($app);
 
         self::assertSame('x', gg('Кухня.broken'));
         $handler = $this->firstRowWhere($app, 'property_events', 'handler', 'onBroken');
@@ -107,6 +132,7 @@ final class CoreEventsTest extends TestCase
         $app = $this->boot()[0];
 
         self::assertTrue(sg('Кухня.ghost', '1'));
+        $this->drainEvents($app);
 
         $handler = $this->firstRowWhere($app, 'property_events', 'handler', 'missingMethod');
         self::assertNotNull($handler);
@@ -122,6 +148,7 @@ final class CoreEventsTest extends TestCase
         self::assertTrue(sg('Глобальный.global', '3'));
         self::assertFalse(sg('Лампа.unknown', '2'));
         self::assertFalse(sg('НетОбъекта.temperature', '1'));
+        $this->drainEvents($app);
 
         $rows = $app->database()->connection()->table('property_values')
             ->orderBy('object_id')
@@ -137,6 +164,7 @@ final class CoreEventsTest extends TestCase
         $app = $this->boot()[0];
 
         self::assertTrue(sg('Кухня.alarm', '1'));
+        $this->drainEvents($app);
 
         // У alarm история выключена; вложенная запись temperature её не включает
         // для самого alarm.
@@ -150,12 +178,14 @@ final class CoreEventsTest extends TestCase
         [$app, $session] = $this->boot();
 
         self::assertTrue(sg('Кухня.temperature', '20'));
+        $this->drainEvents($app);
 
         $response = $app->handle(Request::create('/objects/1/values', 'POST', [
             '_token' => $session->csrfToken(),
             'values' => [1 => '21'],
         ]));
         self::assertSame(302, $response->getStatusCode());
+        $this->drainEvents($app);
         self::assertSame('21', gg('Кухня.temperature'));
         self::assertSame(2, $this->rowCount($app, 'property_history'));
 
@@ -170,6 +200,7 @@ final class CoreEventsTest extends TestCase
         $app = $this->boot()[0];
         self::assertTrue(sg('Кухня.temperature', '23.5'));
         self::assertTrue(sg('Кухня.alarm', '0'));
+        $this->drainEvents($app);
 
         Yoyo::request()->reset();
         $_REQUEST = [

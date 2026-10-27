@@ -5,46 +5,45 @@ declare(strict_types=1);
 namespace MajorDoMo\Properties;
 
 use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Events\PropertyEventChain;
-use MajorDoMo\Events\PropertyEventRepository;
+use MajorDoMo\Events\PropertyChangedJob;
+use MajorDoMo\Events\PropertyEventContext;
+use MajorDoMo\Events\PropertyEventQueue;
+use MajorDoMo\History\HistoryQuery;
 use MajorDoMo\History\HistoryRepository;
-use MajorDoMo\Methods\MethodRepository;
-use MajorDoMo\Methods\MethodRunner;
 use MajorDoMo\Objects\ObjectRepository;
-use Psr\Log\LoggerInterface;
-use Throwable;
 
 /**
  * Единственный путь записи значения свойства в новом ядре.
  *
- * Цепочка: запись значения → история (если включена) → строка журнала →
- * OnChange-метод свойства. Метод выполняется синхронно в текущем процессе:
- * фоновые циклы и очередь для этого не нужны. Ошибка пользовательского кода
- * не откатывает значение — она попадает в журнал `property_events` и в лог.
+ * Запись максимально короткая: сохранить значение и в той же транзакции
+ * положить задание `property.changed` в очередь событий. Журнал, история,
+ * OnChange-метод и доставка модулям выполняются отдельным процессом
+ * `core-worker events` — тысяча одновременных изменений не запускает тысячу
+ * пользовательских методов внутри запроса датчика.
  *
+ * Задание несёт цепочку свойства, глубину, родителя журнала и модуль-автора,
+ * поэтому обработчик продолжает ту же цепочку и не возвращает модулю его
+ * собственное эхо. Полоса очереди выбирается по объекту и свойству, поэтому
+ * порядок изменений одного свойства сохраняется при нескольких процессах.
+ *
+ * 2026-10-27 — запись переведена на асинхронный конвейер: значение + задание,
+ *              без синхронных OnChange, истории и доставки.
+ * 2026-10-27 — параллельные записи объекта согласуют старое значение и событие.
  * 2026-10-27 — поиск свойства идёт по объектным переопределениям и цепочке
  *              наследования классов; чужое/перекрытое свойство не пишется.
  * 2026-10-26 — запись по ID проверяет принадлежность свойства классу объекта.
- * 2026-10-26 — сервис создан для нового ядра MyDoMo: единая запись вместо
- *              `ValueRepository::updateValue()` и `sg()` в обход истории.
  */
 final class PropertyValueService
 {
-    private readonly PropertyEventChain $chain;
-    private int $parentEventId = 0;
-
     public function __construct(
         private readonly DatabaseManager $database,
         private readonly ObjectRepository $objects,
         private readonly PropertyRepository $properties,
         private readonly ValueRepository $values,
         private readonly HistoryRepository $history,
-        private readonly MethodRepository $methods,
-        private readonly MethodRunner $methodRunner,
-        private readonly PropertyEventRepository $events,
-        private readonly LoggerInterface $logger
+        private readonly PropertyEventContext $context,
+        private readonly PropertyEventQueue $events
     ) {
-        $this->chain = new PropertyEventChain();
     }
 
     /**
@@ -92,6 +91,22 @@ final class PropertyValueService
     }
 
     /**
+     * Построитель выборки истории: период, лимит, значения и агрегаты.
+     */
+    public function query(string $objectTitle, string $propertyTitle): ?HistoryQuery
+    {
+        $resolved = $this->resolve($objectTitle, $propertyTitle);
+        if ($resolved === null) {
+            return null;
+        }
+
+        return $this->history->query(
+            (int)$resolved['object']['id'],
+            (int)$resolved['property']['id']
+        );
+    }
+
+    /**
      * `sg()`-совместимая запись по названиям «Объект.Свойство».
      *
      * @param mixed $value Скаляр, null или массив (массив сохраняется как JSON).
@@ -103,7 +118,7 @@ final class PropertyValueService
             return false;
         }
 
-        return $this->apply($resolved['object'], $resolved['property'], $value, $source);
+        return $this->write($resolved['object'], $resolved['property'], $value, $source);
     }
 
     /**
@@ -118,14 +133,14 @@ final class PropertyValueService
             return false;
         }
 
-        return $this->apply($object, $property, $value, $source);
+        return $this->write($object, $property, $value, $source);
     }
 
     /**
      * @param array{id:int,title:string,class_id:int,location_id:int,description:string} $object
      * @param array{id:int,class_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string} $property
      */
-    private function apply(array $object, array $property, mixed $value, string $source): bool
+    private function write(array $object, array $property, mixed $value, string $source): bool
     {
         $newValue = $this->normalize($value);
         if ($newValue === null) {
@@ -138,201 +153,39 @@ final class PropertyValueService
         $propertyTitle = (string)$property['title'];
         $source = mb_substr(trim($source), 0, 191);
 
-        $oldValue = (string)($this->values->get($objectId, $propertyId) ?? '');
-        $changed = $oldValue !== $newValue;
-        $token = $this->chain->token($objectTitle, $propertyTitle);
-        $loop = $this->chain->contains($token);
-        $tooDeep = $this->chain->depth() >= PropertyEventChain::MAX_DEPTH;
-        $stopped = $loop || $tooDeep;
-        $depth = $this->chain->depth();
-        $chain = $this->nextChain($token);
+        $token = $this->context->token($objectTitle, $propertyTitle);
+        $loop = $this->context->contains($token);
+        $tooDeep = $this->context->depth() >= PropertyEventContext::MAX_DEPTH;
 
-        // Значение, история и шаг журнала фиксируются одной транзакцией.
-        // Пользовательский метод выполняется уже после commit: его ошибка не
-        // откатывает сохранённое значение.
-        $eventId = $this->database->transaction(function () use (
-            $objectId,
-            $propertyId,
-            $objectTitle,
-            $propertyTitle,
-            $newValue,
-            $oldValue,
-            $changed,
-            $stopped,
-            $loop,
-            $source,
-            $chain,
-            $depth,
-            $property
-        ): int {
-            $this->values->write($objectId, $propertyId, $newValue);
-            if ($changed && $property['keep_history']) {
-                $this->history->record($objectId, $propertyId, $newValue);
-            }
-            if (!$changed) {
-                return 0;
-            }
-
-            return $this->events->record([
-                'parent_id' => $this->parentEventId,
-                'type' => 'property.changed',
-                'status' => $stopped ? 'stopped' : 'changed',
-                'source' => $source,
+        // Значение и задание — одна транзакция: событие не потеряется, если
+        // запись упадёт, и не появится без сохранённого значения.
+        $this->database->transaction(function () use ($objectId, $propertyId, $objectTitle, $propertyTitle, $newValue, $source, $token, $loop, $tooDeep): void {
+            // Строка объекта существует и до первого значения свойства, поэтому
+            // защищает также одновременное создание отсутствующего значения.
+            $this->database->connection()->table('objects')->where('id', $objectId)->lockForUpdate()->first();
+            $oldValue = (string)($this->values->get($objectId, $propertyId) ?? '');
+            $job = new PropertyChangedJob([
                 'object_id' => $objectId,
                 'property_id' => $propertyId,
                 'object_title' => $objectTitle,
                 'property_title' => $propertyTitle,
                 'old_value' => $oldValue,
                 'new_value' => $newValue,
-                'message' => $stopped ? $this->stopMessage($loop) : null,
-                'chain' => $chain,
-                'depth' => $depth,
+                'source' => $source,
+                'changed' => $oldValue !== $newValue,
+                'chain' => $this->context->nextChain($token),
+                'depth' => $this->context->depth(),
+                'stopped' => $loop || $tooDeep,
+                'loop' => $loop,
+                'parent_id' => $this->context->parentEventId(),
+                'module' => $this->context->module(),
+                'occurred_at' => date('Y-m-d H:i:s'),
             ]);
+            $this->values->write($objectId, $propertyId, $newValue);
+            $this->events->push($job, $objectId, $propertyId);
         });
 
-        $handler = trim((string)$property['on_change']);
-        if ($handler === '') {
-            return true;
-        }
-
-        // Обработчик не вызывается, но шаг остаётся видимым: иначе «свойство
-        // записалось, а код не сработал» выглядит как потеря события.
-        if ($stopped) {
-            $this->events->record([
-                'parent_id' => $eventId > 0 ? $eventId : $this->parentEventId,
-                'type' => 'handler.method',
-                'status' => 'skipped',
-                'source' => $source,
-                'object_id' => $objectId,
-                'property_id' => $propertyId,
-                'object_title' => $objectTitle,
-                'property_title' => $propertyTitle,
-                'old_value' => $oldValue,
-                'new_value' => $newValue,
-                'handler' => $handler,
-                'message' => $this->stopMessage($loop),
-                'chain' => $chain,
-                'depth' => $depth + 1,
-            ]);
-
-            return true;
-        }
-
-        $this->runHandler(
-            $object,
-            $property,
-            $handler,
-            $oldValue,
-            $newValue,
-            $source,
-            $token,
-            $chain,
-            $depth,
-            $eventId > 0 ? $eventId : $this->parentEventId
-        );
-
         return true;
-    }
-
-    /**
-     * @param array{id:int,title:string,class_id:int,location_id:int,description:string} $object
-     * @param array{id:int,class_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string} $property
-     * @param list<string> $chain
-     */
-    private function runHandler(
-        array $object,
-        array $property,
-        string $handler,
-        string $oldValue,
-        string $newValue,
-        string $source,
-        string $token,
-        array $chain,
-        int $depth,
-        int $parentId
-    ): void {
-        $objectTitle = (string)$object['title'];
-        $propertyTitle = (string)$property['title'];
-
-        // Строка создаётся до запуска кода: вложенные записи должны видеть
-        // родителя в журнале, а «зависший» обработчик остаётся заметным.
-        $handlerEventId = $this->events->record([
-            'parent_id' => $parentId,
-            'type' => 'handler.method',
-            'status' => 'running',
-            'source' => $source,
-            'object_id' => (int)$object['id'],
-            'property_id' => (int)$property['id'],
-            'object_title' => $objectTitle,
-            'property_title' => $propertyTitle,
-            'old_value' => $oldValue,
-            'new_value' => $newValue,
-            'handler' => $handler,
-            'chain' => $chain,
-            'depth' => $depth + 1,
-        ]);
-
-        $previousParent = $this->parentEventId;
-        $this->parentEventId = $handlerEventId;
-        $this->chain->push($token);
-
-        try {
-            if ($this->methods->findForObject((int)$object['id'], (int)$object['class_id'], $handler) === null) {
-                $this->events->finish($handlerEventId, 'missing', 'Метод не найден: ' . $handler);
-                $this->logger->warning('OnChange-метод свойства не найден', [
-                    'object' => $objectTitle,
-                    'property' => $propertyTitle,
-                    'handler' => $handler,
-                ]);
-
-                return;
-            }
-
-            $this->methodRunner->run($objectTitle, $handler, [
-                'OBJECT' => $objectTitle,
-                'PROPERTY' => $propertyTitle,
-                'OLD_VALUE' => $oldValue,
-                'NEW_VALUE' => $newValue,
-                'SOURCE' => $source,
-                'DEPTH' => $depth + 1,
-                'CHAIN' => $chain,
-            ]);
-            $this->events->finish($handlerEventId, 'ok');
-        } catch (Throwable $error) {
-            $this->events->finish($handlerEventId, 'error', $error->getMessage());
-            $this->logger->warning('OnChange-обработчик свойства завершился ошибкой', [
-                'object' => $objectTitle,
-                'property' => $propertyTitle,
-                'handler' => $handler,
-                'error' => $error->getMessage(),
-            ]);
-        } finally {
-            $this->parentEventId = $previousParent;
-            $this->chain->pop();
-        }
-    }
-
-    /**
-     * Цепочка с текущим свойством: она же попадает в журнал как «где мы».
-     *
-     * @return list<string>
-     */
-    private function nextChain(string $token): array
-    {
-        $chain = $this->chain->tokens();
-        if (!in_array($token, $chain, true)) {
-            $chain[] = $token;
-        }
-
-        return $chain;
-    }
-
-    private function stopMessage(bool $loop): string
-    {
-        return $loop
-            ? 'Свойство уже встречалось в цепочке: обработчик не вызван, значение сохранено.'
-            : 'Цепочка достигла предела ' . PropertyEventChain::MAX_DEPTH
-                . ' шагов: обработчик не вызван, значение сохранено.';
     }
 
     /**

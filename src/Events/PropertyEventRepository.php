@@ -16,23 +16,39 @@ use Throwable;
  * источником данных для автоматизации, поэтому его недоступность не должна
  * ломать запись свойства.
  *
+ * 2026-10-27 — проверка наличия таблицы кэшируется на процесс: журнал пишется
+ *              на каждое событие.
  * 2026-10-26 — таблица и репозиторий созданы для нового ядра MyDoMo.
  */
-final readonly class PropertyEventRepository
+final class PropertyEventRepository
 {
     private const MAX_MESSAGE = 2000;
 
-    public function __construct(private DatabaseManager $database, private Clock $clock)
-    {
+    /**
+     * Проверка таблицы запоминается: журнал пишется на каждое событие, а
+     * лишний запрос к схеме на горячем пути не нужен.
+     */
+    private ?bool $tableExists = null;
+
+    public function __construct(
+        private readonly DatabaseManager $database,
+        private readonly Clock $clock
+    ) {
     }
 
     public function hasTable(): bool
     {
-        try {
-            return $this->database->connection()->getSchemaBuilder()->hasTable('property_events');
-        } catch (Throwable) {
-            return false;
+        if ($this->tableExists !== null) {
+            return $this->tableExists;
         }
+
+        try {
+            $this->tableExists = $this->database->connection()->getSchemaBuilder()->hasTable('property_events');
+        } catch (Throwable) {
+            $this->tableExists = false;
+        }
+
+        return $this->tableExists;
     }
 
     /**

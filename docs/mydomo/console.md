@@ -10,9 +10,9 @@ order: 8
 # CLI MyDoMo
 
 Основной вход — `php bin/mydomo`, Symfony Console. Команды зарегистрированы
-в `bin/mydomo`, классы лежат в `src/Console`. Старый `php majordomo` и
-`lib/core/Console` относятся к alpha и не являются инструкцией для нового
-ядра. `bin/mydomo-agent` — отдельный административный вход для systemd.
+в `bin/mydomo`, классы лежат в `src/Console`. Старый `php majordomo`,
+`lib/core/Console` и `deploy.sh` удалены из ветки; обновление ядра ещё
+проектируется. `bin/mydomo-agent` — отдельный административный вход для systemd.
 
 ## Проверки и просмотр
 
@@ -22,6 +22,7 @@ order: 8
 | `route:list [--json]` | Реестр маршрутов нового kernel |
 | `module:list` | Обнаруженные SDK-модули, installed/enabled; не ядровые страницы |
 | `module:validate` | Манифесты и совместимость SDK |
+| `module:check [id] [--json]` | Legacy-вызовы в коде модулей; код 1 при находках |
 | `db:status` | Применённые и ожидающие миграции |
 | `health` | Доступность БД и кэша; код 0 только при успехе |
 | `doctor` | PHP-расширения, timezone, доступность каталогов, БД и кэша |
@@ -45,7 +46,7 @@ order: 8
 | `queue:retry <id>` | Возвращает failed-задание к обработке |
 | `module:install <id>` | Реестр, миграции и install/enabled hooks |
 | `module:disable <id>` / `module:enable <id>` | Меняет состояние SDK-модуля |
-| `module:remove <id>` | Uninstall hook и удаление из активного реестра |
+| `module:remove <id> [--purge]` | Uninstall hook, реестр, права и ассеты; `--purge` — таблицы и данные |
 
 Не запускайте эту таблицу как готовый скрипт на рабочей установке.
 Для первого пользователя сначала должна существовать новая таблица `users`.
@@ -67,6 +68,8 @@ order: 8
 | `worker <id> --once` | После прохода включённых задач SDK-модуля |
 | `worker <id>` | Постоянный цикл задач модуля до сигнала/ошибки |
 | `core-worker queue [--once]` | Постоянная очередь default либо один шаг |
+| `core-worker events [--once]` | Постоянная очередь событий свойства либо один шаг |
+| `core-worker events.<n> [--once]` | Одна полоса очереди событий (например, `events.2`) |
 | `core-worker timeouts [--once]` | Постоянные таймеры либо один проход |
 
 Эти команды выполняют пользовательский или модульный код и могут иметь

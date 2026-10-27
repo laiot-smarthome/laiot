@@ -108,9 +108,9 @@ SDK регистрирует `/module/<id>` с auth и контекстом Modu
 | База | DatabaseManager, Model, Migrator, SettingsRepository |
 | Доступ | UserRepository, AdminAuthenticator, Authorization, RoleRepository, ApiTokenRepository |
 | Дом | ClassRepository, ObjectRepository, PropertyRepository, MethodRepository |
-| Значения | ValueRepository, PropertyValueService, HistoryRepository |
-| Пользовательский код | MethodRunner, ScriptRunner, CodeRunner, TimeoutRepository |
-| События | PropertyEventChain, PropertyEventRepository, ModuleBus |
+| Значения | ValueRepository, PropertyValueService, HistoryRepository, HistoryQuery |
+| Пользовательский код | MethodRunner, MethodContext, ScriptRunner, CodeRunner, TimeoutRepository |
+| События | PropertyValueService, PropertyEventContext, PropertyEventHandler, PropertyEventRepository, ModuleBus |
 | Задания | Queue/DatabaseQueue, QueueWorker, JobRegistry |
 | Панель | CoreSections, PanelRenderer, PanelPage, PanelSearch, LinkedObjectService |
 | Диагностика | LoggerFactory, RequestContext, ErrorRepository, ActionLogger |
@@ -120,8 +120,12 @@ SDK регистрирует `/module/<id>` с auth и контекстом Modu
 Классы образуют дерево (`parent_id`), а свойства/методы ищутся по цепочке
 наследования: объектный член перекрывает классовый, ближайший подкласс —
 родительский. Запись свойства проходит PropertyValueService: проверка
-объекта/свойства, транзакция значения и истории, запись события, затем
-синхронный OnChange.
+объекта/свойства, сохранение значения и постановка задания `property.changed`
+в очередь `events` одной транзакцией. OnChange, историю и доставку модулям
+выполняет отдельный процесс `core-worker events` (`PropertyEventHandler`).
+Поэтому запись датчика не ждёт пользовательского PHP, а тысячи изменений
+обрабатываются в своём процессе.
+
 Ошибка обработчика не отменяет уже сохранённое значение. ModuleBus — другая
 шина: retained-данные интеграций с TTL и подписки текущего процесса.
 Нельзя описывать эти механизмы как один общий event dispatcher с фоновой
@@ -144,8 +148,10 @@ BladeRenderer остаётся автономным адаптером ренд�
 
 ## Фоновые процессы
 
-- `worker <id>` выполняет tasks SDK-модуля.
+- `worker <id>` выполняет tasks SDK-модуля и очередь доставки `module.<id>`.
 - `core-worker queue` обслуживает очередь default.
+- `core-worker events` выполняет OnChange, историю и доставку свойства;
+  `core-worker events.<n>` — одну полосу очереди, для параллельной работы.
 - `core-worker timeouts` выполняет созревший пользовательский код.
 - `mydomo-agent` принимает ограниченные команды systemd через Unix socket.
 

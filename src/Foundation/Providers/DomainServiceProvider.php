@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Foundation\Providers;
 
+use Illuminate\Container\Container;
 use MajorDoMo\Api\Webhooks\WebhookRepository;
 use MajorDoMo\Api\Webhooks\WebhookService;
 use MajorDoMo\Audit\ActionLogger;
@@ -16,6 +17,10 @@ use MajorDoMo\Auth\UserRepository;
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\SettingsRepository;
 use MajorDoMo\Docs\KnowledgeBase;
+use MajorDoMo\Events\ModulePropertyHandler;
+use MajorDoMo\Events\PropertyEventContext;
+use MajorDoMo\Events\PropertyEventHandler;
+use MajorDoMo\Events\PropertyEventQueue;
 use MajorDoMo\Events\PropertyEventRepository;
 use MajorDoMo\Foundation\ServiceProvider;
 use MajorDoMo\History\HistoryRepository;
@@ -29,8 +34,11 @@ use MajorDoMo\Notifications\NotificationService;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Panel\DashboardStats;
 use MajorDoMo\Properties\PropertyRepository;
+use MajorDoMo\Properties\PropertySubscriptionRepository;
 use MajorDoMo\Properties\PropertyValueService;
 use MajorDoMo\Properties\ValueRepository;
+use MajorDoMo\Queue\JobRegistry;
+use MajorDoMo\Queue\Queue;
 use MajorDoMo\Runtime\CodeRunner;
 use MajorDoMo\Runtime\TimeoutRepository;
 use MajorDoMo\Scripts\ScriptRepository;
@@ -41,6 +49,7 @@ use MajorDoMo\Search\PanelSearch;
  * Репозитории и доменные операции ядра; зависимости собирает контейнер.
  *
  * Изменения:
+ * 2026-10-27 — обработчик `property.changed` регистрируется для core-worker events.
  * 2026-10-26 — общие экземпляры сервисов сохранены при переходе на провайдеры.
  */
 final class DomainServiceProvider extends ServiceProvider
@@ -58,6 +67,7 @@ final class DomainServiceProvider extends ServiceProvider
             ScriptRepository::class,
             ClassRepository::class,
             PropertyRepository::class,
+            PropertySubscriptionRepository::class,
             MethodRepository::class,
             ObjectRepository::class,
             LinkedObjectService::class,
@@ -71,7 +81,10 @@ final class DomainServiceProvider extends ServiceProvider
             PropertyHistoryService::class,
             ValueRepository::class,
             PropertyEventRepository::class,
-            // Цепочка OnChange хранит глубину/родителя между вложенными sg().
+            // Контекст события: цепочка, родитель журнала и модуль-автор
+            // для вложенных записей внутри обработчика.
+            PropertyEventContext::class,
+            PropertyEventHandler::class,
             PropertyValueService::class,
             Authorization::class,
             UserRepository::class,
@@ -83,5 +96,30 @@ final class DomainServiceProvider extends ServiceProvider
             $this->container->singleton($service);
         }
         $this->container->singleton(KnowledgeBase::class, fn (): KnowledgeBase => new KnowledgeBase($this->app->root() . '/docs'));
+        $this->container->singleton(
+            PropertyEventQueue::class,
+            fn (Container $container): PropertyEventQueue => new PropertyEventQueue(
+                $container->make(Queue::class),
+                (array)$this->app->config('queue', [])
+            )
+        );
+    }
+
+    /**
+     * Регистрирует обработчик очереди событий свойства.
+     *
+     * Само задание выполняет `core-worker events`; в HTTP-запросе обработчик
+     * только лежит в реестре и не запускает пользовательский код.
+     */
+    public function boot(): void
+    {
+        $this->container->make(JobRegistry::class)->register(
+            'property.changed',
+            $this->container->make(PropertyEventHandler::class)
+        );
+        $this->container->make(JobRegistry::class)->register(
+            'module.property.changed',
+            $this->container->make(ModulePropertyHandler::class)
+        );
     }
 }

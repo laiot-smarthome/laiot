@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Modules;
 
+use Illuminate\Filesystem\Filesystem;
 use InvalidArgumentException;
 use Throwable;
 
@@ -12,12 +13,20 @@ use Throwable;
  *
  * Core-модули неизменяемы. Миграции модуля лежат в его `migrations/` и
  * выполняются один раз; entrypoint (если есть) получает ModuleContext.
+ *
+ * При установке и включении регистрируются разрешения из манифеста и
+ * публикуются ассеты; при удалении они убираются. `--purge` дополнительно
+ * удаляет объявленные таблицы модуля и его SQLite-данные.
+ *
+ * 2026-10-27 — permissions/assets из манифеста и purge данных при удалении.
  */
 final readonly class ModuleInstaller
 {
     public function __construct(
         private ModuleManager $modules,
-        private string $mydomoVersion
+        private string $mydomoVersion,
+        private ModulePermissions $permissions,
+        private ModuleAssets $assets
     ) {
     }
 
@@ -42,11 +51,14 @@ final readonly class ModuleInstaller
         try {
             $migrations = $this->modules->runMigrations($id);
             $this->entrypoint($id, 'install');
+            $this->sync($id, $manifest, $module);
             $registry->setEnabled($id, true);
             $this->entrypoint($id, 'enabled');
 
             return ['id' => $id, 'migrations' => $migrations];
         } catch (Throwable $error) {
+            $this->permissions->forget($id, (array)$manifest->data['permissions']);
+            $this->assets->remove($id);
             $registry->remove($id);
             throw $error;
         }
@@ -65,6 +77,7 @@ final readonly class ModuleInstaller
         }
         $this->assertCompatible($manifest);
         $this->assertDependencies($manifest);
+        $this->sync($id, $manifest, $module);
         $row->setEnabled($id, true);
         $this->entrypoint($id, 'enabled');
     }
@@ -83,7 +96,7 @@ final readonly class ModuleInstaller
         $registry->setEnabled($id, false);
     }
 
-    public function remove(string $id): void
+    public function remove(string $id, bool $purge = false): void
     {
         $module = $this->requireAvailable($id);
         if ((bool)($module['core'] ?? false)) {
@@ -93,8 +106,47 @@ final readonly class ModuleInstaller
         if ($registry->find($id) === null) {
             throw new InvalidArgumentException('Модуль не установлен.');
         }
+        $manifest = $this->manifest($module);
         $this->entrypoint($id, 'uninstall');
         $registry->remove($id);
+        $this->permissions->forget($id, (array)$manifest->data['permissions']);
+        $this->assets->remove($id);
+        if ($purge) {
+            $this->purgeData($module);
+        }
+    }
+
+    /**
+     * Удаляет только данные модуля: объявленные таблицы и SQLite-файл.
+     * Код модуля остаётся — его версия живёт в пакете/каталоге modules/.
+     *
+     * @param array<string, mixed> $module
+     */
+    private function purgeData(array $module): void
+    {
+        $id = (string)$module['id'];
+        $storage = is_array($module['storage'] ?? null) ? $module['storage'] : [];
+        $tables = is_array($storage['tables'] ?? null) ? $storage['tables'] : [];
+        $db = $module['db'] ?? null;
+
+        if ($db instanceof ModuleDb) {
+            foreach ($tables as $table) {
+                if (is_string($table) && $table !== '') {
+                    try {
+                        $db->dropTable($table);
+                    } catch (Throwable) {
+                        // Таблица могла быть не создана; остальные всё равно чистим.
+                    }
+                }
+            }
+        }
+
+        if (($storage['driver'] ?? 'mysql') === 'sqlite') {
+            $directory = (string)$module['path'] . '/data';
+            if (is_dir($directory)) {
+                (new Filesystem())->deleteDirectory($directory);
+            }
+        }
     }
 
     /**
@@ -163,6 +215,21 @@ final readonly class ModuleInstaller
     private function assertCompatible(ModuleManifest $manifest): void
     {
         $manifest->assertCompatible($this->mydomoVersion, PHP_VERSION);
+    }
+
+    /**
+     * Регистрирует разрешения и публикует ассеты модуля.
+     *
+     * @param array<string, mixed> $module
+     */
+    private function sync(string $id, ModuleManifest $manifest, array $module): void
+    {
+        $this->permissions->register($id, (array)$manifest->data['permissions']);
+        $this->assets->publish(
+            $id,
+            (string)$module['path'],
+            (string)($manifest->data['assets'] ?? 'assets')
+        );
     }
 
     private function assertDependencies(ModuleManifest $manifest): void

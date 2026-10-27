@@ -11,6 +11,7 @@ use MajorDoMo\Cache\CacheFactory;
 use MajorDoMo\Cache\CacheStore;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Foundation\ServiceProvider;
+use MajorDoMo\Logging\ErrorFileWriter;
 use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Logging\RequestContext;
 use MajorDoMo\Queue\DatabaseQueue;
@@ -41,10 +42,20 @@ final class InfrastructureServiceProvider extends ServiceProvider
             $this->app->root() . '/src/Support/helpers'
         ));
         $this->container->singleton(RequestContext::class);
-        $this->container->singleton(LoggerFactory::class, fn (Container $container): LoggerFactory => new LoggerFactory([
-            'path' => $this->app->config('log', 'php://stderr'),
-            'debug' => (bool)$this->app->config('debug', false),
-        ], $container->make(RequestContext::class)));
+        $this->container->singleton(LoggerFactory::class, function (Container $container): LoggerFactory {
+            $logging = (array)$this->app->config('logging', []);
+
+            return new LoggerFactory([
+                'path' => (string)$this->app->config('log', $logging['path'] ?? 'php://stderr'),
+                'directory' => (string)($logging['directory'] ?? ''),
+                'max_files' => (int)($logging['max_files'] ?? 14),
+                'level' => (string)($logging['level'] ?? 'info'),
+                'debug' => (bool)$this->app->config('debug', false),
+            ], $container->make(RequestContext::class));
+        });
+        $this->container->singleton(ErrorFileWriter::class, fn (): ErrorFileWriter => new ErrorFileWriter(
+            (string)$this->app->config('logging.error_directory', $this->app->root() . '/var/log/errors')
+        ));
         $this->container->singleton(LoggerInterface::class, static fn (Container $container): LoggerInterface => $container
             ->make(LoggerFactory::class)->channel('app'));
         $this->container->singleton(DatabaseManager::class, fn (): DatabaseManager => new DatabaseManager(

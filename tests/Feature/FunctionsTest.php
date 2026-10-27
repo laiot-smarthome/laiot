@@ -31,7 +31,7 @@ final class FunctionsTest extends TestCase
     {
         $app = $this->boot();
 
-        self::assertTrue(setGlobal('Кухня.temperature', '23.5', 0, 'test'));
+        self::assertTrue(setGlobal('Кухня.temperature', '23.5', 'test'));
         self::assertSame('23.5', getGlobal('Кухня.temperature'));
         self::assertSame('23.5', gg('Кухня.temperature'));
         self::assertFalse(setGlobal('Кухня.unknown', 'x'));

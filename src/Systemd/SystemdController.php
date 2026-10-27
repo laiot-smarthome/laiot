@@ -14,7 +14,7 @@ use RuntimeException;
  */
 final readonly class SystemdController
 {
-    public const CORE_TASKS = ['queue', 'timeouts'];
+    public const CORE_TASKS = ['queue', 'events', 'timeouts'];
 
     public function __construct(
         private ProcessRunner $runner,
@@ -148,10 +148,10 @@ final readonly class SystemdController
             throw new RuntimeException('systemctl list-units core не удался: ' . trim($list->stderr));
         }
         foreach (preg_split('/\R/', $list->stdout) ?: [] as $line) {
-            if (!preg_match('/mydomo-core@([a-z][a-z0-9_]{1,63})\.service/', $line, $match)) {
+            if (!preg_match('/mydomo-core@([a-z][a-z0-9_.-]{1,63})\.service/', $line, $match)) {
                 continue;
             }
-            if (!isset($desired[$match[1]]) && in_array($match[1], self::CORE_TASKS, true)) {
+            if (!isset($desired[$match[1]]) && $this->isCoreTask($match[1])) {
                 if ($this->coreStop($match[1])->successful()) {
                     $stopped[] = $match[1];
                 }
@@ -235,9 +235,16 @@ final readonly class SystemdController
 
     private function assertCoreTask(string $task): void
     {
-        if (!in_array($task, self::CORE_TASKS, true)) {
+        if (!$this->isCoreTask($task)) {
             throw new RuntimeException('Недопустимый core-worker: ' . $task);
         }
+    }
+
+    /** Базовые процессы и полосы очереди событий (`events.<n>`). */
+    private function isCoreTask(string $task): bool
+    {
+        return in_array($task, self::CORE_TASKS, true)
+            || preg_match('/^events\.(0|[1-9][0-9]?)$/D', $task) === 1;
     }
 
     private function action(string $action, string $module): ProcessResult

@@ -44,6 +44,55 @@ order: 5
 
 ## 0. Текущий прогресс
 
+- [x] Изоляция модульных очередей (2026-10-27): доставка изменений свойства
+  уходит заданием в `module.<id>` и выполняется `worker <id>`; медленный или
+  упавший подписчик не задерживает events и другие модули. Проверено
+  `PropertyDeliveryTest` (11 тестов), `ModuleSdkTest`; документы —
+  [queue.md](../mydomo/queue.md), [runtime.md](../mydomo/runtime.md),
+  [events.md](../mydomo/events.md).
+- [x] SDK перед MQTT/Zigbee (2026-10-27): `permissions` манифеста
+  регистрируются в таблице с владельцем `module_id`, ассеты модуля
+  публикуются в `public/assets/modules/<id>`, `module:remove --purge`
+  удаляет таблицы и SQLite-данные, `module:check` ищет legacy-вызовы.
+  Проверено `ModulePermissionsTest`, `ModuleAssetsTest`, `ModuleCheckerTest`,
+  `ModuleSdkTest`; документы — [sdk.md](../mydomo/sdk.md),
+  [modules.md](../mydomo/modules.md), [console.md](../mydomo/console.md).
+- [x] Логи и файлы ошибок (2026-10-27): каналы `app/http/security/queue/events`
+  пишут отдельные файлы с суточной ротацией (`logging.directory/max_files`);
+  каждая запись `system_errors` получает свой файл с контекстом и trace
+  (`log_file`), удаление записи или группы удаляет файл. Проверено
+  `LoggingTest` (3), `ErrorFileWriterTest` (2), `ErrorRepositoryTest` (2);
+  документы — [logging.md](../mydomo/logging.md),
+  [configuration.md](../mydomo/configuration.md). Остаток: показ файла в
+  админке и retention таблицы.
+- [x] Рантайм пользовательского кода (2026-10-27): `MethodContext` даёт методу
+  `$this` с `get/set/history/call/notify` и короткими именами свойств;
+  `HistoryQuery` и обёртки `history()`, `getHistoryRange`,
+  `getHistoryAvg/Min/Max/Sum/Count` считают период и агрегаты одним SQL по
+  индексу истории. Сценарии остаются без объекта (`$params` и обёртки).
+  Проверено `MethodContextTest` (4 теста) и `HistoryQueryTest` (5 тестов);
+  документы — [functions.md](../mydomo/functions.md),
+  [architecture.md](../mydomo/architecture.md),
+  [limitations.md](../mydomo/limitations.md).
+- [x] Асинхронный конвейер свойств (2026-10-27): запись значения и задание
+  `property.changed` в `queue_jobs` — одна транзакция; `core-worker events`
+  выполняет OnChange → историю → доставку модулям. Цепочка, родитель журнала
+  и модуль-автор едут в payload (`PropertyChangedJob`,
+  `PropertyEventContext`, `PropertyEventHandler`). Тесты Feature дренят
+  очередь через `DrainsEvents`; события разложены по полосам
+  `events.<n>` (свойство всегда в одной полосе), несколько процессов
+  `core-worker events.<n>` обрабатывают их параллельно. Документы —
+  [events.md](../mydomo/events.md), [queue.md](../mydomo/queue.md),
+  [runtime.md](../mydomo/runtime.md). Остаток блока: метрики очередей.
+- [x] Доставка изменений свойства модулям (2026-10-27): таблица
+  `property_subscriptions` вместо `pvalues.LINKED_MODULES`, интерфейс
+  `PropertySubscriber` + реестр, шаг журнала `module.delivery` со статусами
+  ok/error/missing; эхо гасится контекстом обработчика, без alpha-параметра
+  `$noLinked`. Подписку выбирает пользователь, а не манифест; страница
+  выбора появится с MQTT/Zigbee. Проверено `PropertyDeliveryTest` (9 тестов),
+  `CoreEventsTest`, `PropertyValueIntegrityTest`; документы —
+  [events.md](../mydomo/events.md), [sdk.md](../mydomo/sdk.md),
+  [modules.md](../mydomo/modules.md), [database.md](../mydomo/database.md).
 - [x] Модель дома сведена в единый раздел «Классы» (2026-10-27): объекты,
   свойства, методы, значения и история больше не отдельные пункты меню.
   Класс получил `parent_id` и неограниченную глубину подклассов; свойства и
@@ -524,6 +573,10 @@ project/
 | 2026-10-26 | `modules/linkedobject`, `templates/linkedobject/*`, `public/assets/modules/linkedobject/*` | `src/LinkedObject/LinkedObjectService`, `/api/v1/panel/linked-object`, `x-md.linked-object` на Alpine |
 | 2026-10-26 | старый `project_modules` и ad-hoc установка модулей | `module_registry`, `module_migrations`, `ModuleManifest`/`ModuleInstaller`, CLI `module:*`; пример `modules/example_sdk` |
 | 2026-10-26 | heartbeat/состояние циклов в MySQL | `Worker`/`BackgroundTaskState` в Redis (`worker.task.*`, `worker.lock.*`), systemd-шаблон и `mydomo-agent`; таблица `background_tasks` не создаётся |
+| 2026-10-27 | page-ассеты удалённых модулей (`public/assets/modules/panel`, `classes`, `users`, `settings`, `scripts`, `objects`, `properties`, `methods`, `jobs`, `locations`, `actions_log`, `shoutbox`, `system_errors`, `control_modules`), `templates/control_modules`, `tests/dashboard_browser_smoke.mjs` | страницы давно на Blade и общем `mydomo.js`/`mydomo.css`; alpha-ассеты грузились только удалённой панелью |
+| 2026-10-27 | демо-файлы `cms/images/sample.jpg`, `cms/saverestore/mqtt.tgz` | не ссылаются ни код, ни шаблоны; медиа установки не трогались |
+| 2026-10-27 | старый CLI `majordomo`, `lib/core/Console/*`, `tools/config.php`, `tools/install.php`, alpha-тесты `console_smoke`, `console_users_smoke` | `bin/mydomo` + `src/Console`; старый вход не является контрактом MyDoMo |
+| 2026-10-27 | alpha-обновление `deploy.sh`, `lib/core/Deploy/*`, тесты `deploy_smoke`, `update_source_smoke` | обновление MyDoMo ещё проектируется; alpha-ветка сохраняет свой deploy |
 
 ## 4. Стек и Composer
 
@@ -920,10 +973,16 @@ Yoyo остаётся UI-слоем: HTTP-роутинг, контроллеры
   удаляем после рабочей интеграции.
 - [ ] Миграции core-модулей при обновлении ядра (пока bootstrap-таблица).
 - [ ] `module:list` показывает `type=core`, `removable=false`, `enabled=true`.
-- [ ] `module:remove`/`module:disable` запрещены для core.
+- [x] `module:remove`/`module:disable` запрещены для core.
 - [ ] Следующий порт: `ui_kit`, затем остальные по порядку.
-- [ ] `module:check` — сканер старых вызовов для будущих third-party.
-- [ ] Third-party lifecycle (install/update/remove) — позже, не сейчас.
+- [x] `module:check` — сканер старых вызовов для future third-party.
+- [x] `permissions` манифеста регистрируются в таблице с владельцем; выдача
+  ролям — вручную, admin получает через `*`.
+- [x] Ассеты модуля публикуются в `public/assets/modules/<id>` при
+  install/enable.
+- [x] `module:remove --purge` удаляет объявленные таблицы и SQLite-данные;
+  код модуля остаётся.
+- [ ] Third-party lifecycle: обновление версии и миграции обновления.
 
 ### 6.7. Шаблоны и UI
 

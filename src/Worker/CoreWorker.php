@@ -4,24 +4,33 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Worker;
 
+use MajorDoMo\Events\PropertyEventQueue;
+use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
 use MajorDoMo\Queue\QueueWorker;
 use MajorDoMo\Runtime\CodeRunner;
 use MajorDoMo\Runtime\TimeoutRepository;
-use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Throwable;
 
 /**
- * Критичные ядровые процессы: очередь и setTimeOut.
+ * Критичные ядровые процессы: очередь, события свойств и setTimeOut.
  *
  * Они не делят процесс с модульными задачами и запускаются отдельными
- * systemd-юнитами `mydomo-core@queue`/`mydomo-core@timeouts`.
+ * systemd-юнитами `mydomo-core@queue`/`mydomo-core@events`/`mydomo-core@timeouts`.
+ * Очередь событий разбита на полосы: `core-worker events` обслуживает все,
+ * `core-worker events.<n>` — одну, чтобы несколько процессов обрабатывали
+ * независимые свойства параллельно, сохраняя порядок внутри свойства.
+ *
+ * 2026-10-27 — добавлен процесс events: OnChange и доставка свойства не
+ *              выполняются в запросе, который записал значение.
+ * 2026-10-27 — полосы событий: один процесс на полосу для параллельной работы.
+ * 2026-10-27 — лог-каналы queue/events вместо общего app.
  */
 final class CoreWorker
 {
-    public const TASKS = ['queue', 'timeouts'];
+    public const TASKS = ['queue', 'events', 'timeouts'];
 
     private bool $stop = false;
 
@@ -31,15 +40,14 @@ final class CoreWorker
         private readonly TimeoutRepository $timeouts,
         private readonly CodeRunner $runner,
         private readonly BackgroundTaskState $state,
-        private readonly LoggerInterface $logger
+        private readonly PropertyEventQueue $events,
+        private readonly LoggerFactory $loggers
     ) {
     }
 
     public function run(string $task, bool $once = false): int
     {
-        if (!in_array($task, self::TASKS, true)) {
-            throw new RuntimeException('Неизвестный core-worker: ' . $task);
-        }
+        $lane = $this->eventLane($task);
         $pid = getmypid() ?: 0;
         if (!$this->state->acquireTask('core', $task, $pid)) {
             throw new RuntimeException('Core-worker уже запущен: ' . $task);
@@ -48,9 +56,11 @@ final class CoreWorker
         $this->state->start('core', $task, $pid, date('Y-m-d H:i:s'));
         try {
             if ($task === 'queue') {
-                $this->runQueue($once, $pid);
-            } else {
+                $this->runQueue('default', 'queue', $once, $pid);
+            } elseif ($task === 'timeouts') {
                 $this->runTimeouts($once, $pid);
+            } else {
+                $this->runEvents($lane, $task, $once, $pid);
             }
             $this->state->finish('core', $task, 'ok', null, date('Y-m-d H:i:s'));
         } catch (Throwable $error) {
@@ -63,12 +73,70 @@ final class CoreWorker
         return 0;
     }
 
-    private function runQueue(bool $once, int $pid): void
+    /**
+     * Номер полосы для `events.<n>`, null для «все полосы».
+     */
+    private function eventLane(string $task): ?int
     {
-        $worker = new QueueWorker($this->queue, $this->jobs, $this->logger);
+        if ($task === 'events') {
+            return null;
+        }
+        if (preg_match('/^events\.(\d+)$/D', $task, $match) === 1) {
+            $lane = (int)$match[1];
+            if ($lane >= $this->events->lanes()) {
+                throw new RuntimeException('Полоса событий вне диапазона: ' . $task);
+            }
+
+            return $lane;
+        }
+        if (in_array($task, self::TASKS, true)) {
+            return null;
+        }
+
+        throw new RuntimeException('Неизвестный core-worker: ' . $task);
+    }
+
+    private function runQueue(string $queue, string $task, bool $once, int $pid): void
+    {
+        $worker = new QueueWorker($this->queue, $this->jobs, $this->loggers->channel('queue'));
         while (!$this->stop) {
-            $this->state->refreshTask('core', 'queue', $pid);
-            $worked = $worker->work('default');
+            $this->state->refreshTask('core', $task, $pid);
+            $worked = $worker->work($queue);
+            if ($once) {
+                return;
+            }
+            if (!$worked) {
+                usleep(100_000);
+            }
+        }
+    }
+
+    /**
+     * Обслуживание очередей событий.
+     *
+     * Без номера полосы процесс по кругу берёт по одному заданию из каждой
+     * очереди; с номером — только из своей. Внутри полосы порядок сохраняется,
+     * потому что её обслуживает один процесс.
+     */
+    private function runEvents(?int $lane, string $task, bool $once, int $pid): void
+    {
+        $queues = $lane === null
+            ? $this->events->queueNames()
+            : [$this->events->queueName($lane)];
+        $worker = new QueueWorker($this->queue, $this->jobs, $this->loggers->channel('events'));
+
+        while (!$this->stop) {
+            $this->state->refreshTask('core', $task, $pid);
+            $worked = false;
+            foreach ($queues as $queue) {
+                if (!$worker->work($queue)) {
+                    continue;
+                }
+                $worked = true;
+                if ($once) {
+                    return;
+                }
+            }
             if ($once) {
                 return;
             }
@@ -82,12 +150,13 @@ final class CoreWorker
     {
         while (!$this->stop) {
             $this->state->refreshTask('core', 'timeouts', $pid);
-            foreach ($this->timeouts->due() as $timeout) {
+            foreach ($this->timeouts->claim() as $timeout) {
                 try {
                     $this->runner->run($timeout['code']);
-                    $this->timeouts->markExecuted($timeout['id']);
+                    $this->timeouts->markExecuted($timeout['id'], $timeout['token']);
                 } catch (Throwable $error) {
-                    $this->logger->error('setTimeOut failed', [
+                    $this->timeouts->release($timeout['id'], $timeout['token']);
+                    $this->loggers->channel('queue')->error('setTimeOut failed', [
                         'id' => $timeout['id'],
                         'error' => $error->getMessage(),
                     ]);

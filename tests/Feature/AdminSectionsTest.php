@@ -22,6 +22,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class AdminSectionsTest extends TestCase
 {
+    use DrainsEvents;
+
     private function boot(): Application
     {
         $session = new ArraySession();
@@ -66,6 +68,7 @@ final class AdminSectionsTest extends TestCase
         $values->setValue(1, 1, '23.5', 'panel:test');
         $values->setValue(3, 1, '19', 'panel:test');
         $values->setValue(3, 3, '80', 'panel:test');
+        $this->drainEvents($app);
 
         return $app;
     }

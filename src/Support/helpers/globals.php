@@ -53,16 +53,16 @@ if (!function_exists('getGlobal')) {
 
 if (!function_exists('sg')) {
     /**
-     * `sg('Object.Property', $value, $noLinked, $source)` — записать значение.
+     * `sg('Object.Property', $value, $source)` — записать значение.
      *
-     * Значение сохраняется, пишется история (если свойство её хранит), а затем
-     * синхронно вызывается OnChange-метод свойства. `$noLinked` оставлен для
-     * совместимости сигнатуры alpha: в MyDoMo подписок `LINKED_MODULES` нет.
+     * Значение сохраняется, пишется история (если свойство её хранит), затем
+     * вызываются подписанные модули и OnChange-метод свойства. Модуль, который
+     * сам записал значение, уведомление о нём не получает — это эхо, а не
+     * событие.
      *
      * @param mixed $value Скаляр, null или массив (массив сохраняется как JSON).
-     * @param int|array<string, int> $noLinked Не используется; сохранён для alpha-совместимости.
      */
-    function sg(string $name, $value, $noLinked = 0, string $source = 'sg'): bool
+    function sg(string $name, $value, string $source = 'sg'): bool
     {
         $app = AppContext::get();
         if ($app === null) {
@@ -83,11 +83,10 @@ if (!function_exists('setGlobal')) {
      * `setGlobal()` — alpha-имя для `sg()`.
      *
      * @param mixed $value Скаляр, null или массив (массив сохраняется как JSON).
-     * @param int|array<string, int> $noLinked Не используется; сохранён для alpha-совместимости.
      */
-    function setGlobal(string $name, $value, $noLinked = 0, string $source = ''): bool
+    function setGlobal(string $name, $value, string $source = ''): bool
     {
-        return sg($name, $value, $noLinked, $source !== '' ? $source : 'setGlobal');
+        return sg($name, $value, $source !== '' ? $source : 'setGlobal');
     }
 }
 

@@ -7,10 +7,12 @@ namespace MajorDoMo\Objects;
 use InvalidArgumentException;
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Properties\PropertySubscriptionRepository;
 
 /**
  * Объекты MyDoMo.
  *
+ * 2026-10-27 — удаление объекта снимает подписки модулей на его свойства.
  * 2026-10-27 — выборка по классу учитывает подклассы: объект подкласса
  * остаётся экземпляром родительского класса, как в alpha.
  */
@@ -18,7 +20,8 @@ final readonly class ObjectRepository
 {
     public function __construct(
         private DatabaseManager $database,
-        private ClassRepository $classes
+        private ClassRepository $classes,
+        private ?PropertySubscriptionRepository $subscriptions = null
     ) {
     }
 
@@ -214,6 +217,9 @@ final readonly class ObjectRepository
             ->where('id', $id)
             ->whereNull('deleted_at')
             ->update(['deleted_at' => $now, 'updated_at' => $now]);
+        // Подписки на свойства удалённого объекта не должны оставаться
+        // в таблице доставки.
+        $this->subscriptions?->deleteForObject($id);
     }
 
     private function assertClass(int $classId): void
