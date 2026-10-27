@@ -2,16 +2,18 @@
 title: MyDoMo — локальный Docker-стенд
 audience: user, agent
 category: dev
-tags: mydomo, docker, локальный стенд, mariadb, отладка
-description: Как поднять текущую ветку MyDoMo в Docker и увидеть панель без ручной установки.
+tags: mydomo, docker, локальный стенд, mariadb, nginx, php-fpm, отладка
+description: Как поднять текущую ветку MyDoMo в Docker с nginx и PHP-FPM и увидеть панель без ручной установки.
 order: 26
 ---
 
 # Локальный Docker-стенд
 
 Стенд только для разработки и просмотра текущего состояния. Это не
-production-развёртывание: Apache и PHP-FPM в одном контейнере, MariaDB с
+production-развёртывание: nginx и PHP-FPM в отдельных контейнерах, MariaDB с
 простыми паролями, без TLS и внешнего reverse proxy.
+
+Стек совпадает с целевым: **nginx + PHP-FPM**, без Apache и mod_php.
 
 ## Запуск
 
@@ -35,18 +37,33 @@ docker compose up --build -d
 
 | Сервис | Что делает |
 | --- | --- |
-| `app` | `php:8.4-apache`, document root `public/`, исходники с хоста |
+| `web` | `nginx:1.27-alpine`, слушает `8080`, document root `public/`, PHP-запросы уходят в `app:9000` |
+| `app` | `php:8.4-fpm`, пул `www` на `9000`, исходники с хоста |
 | `db` | MariaDB 11, база `mydomo`, том `mydomo-db` |
 
-`docker/app/entrypoint.sh` ждёт БД, выполняет `php bin/mydomo db:migrate` и
-`user:create`, затем запускает Apache. Переменные процесса имеют приоритет
-над `.env` хоста, поэтому контейнер подключается к `db`, а не к
-`127.0.0.1` из локального `.env`.
+Конфиг nginx — `docker/nginx/default.conf`; пул FPM —
+`docker/app/php-fpm.d/zz-mydomo.conf`. `docker/app/entrypoint.sh` ждёт БД,
+выполняет `php bin/mydomo db:migrate` и `user:create`, затем запускает
+`php-fpm`. Переменные процесса имеют приоритет над `.env` хоста, поэтому
+контейнер подключается к `db`, а не к `127.0.0.1` из локального `.env`.
+
+## Пул PHP-FPM
+
+Локальный пул задан явно: `pm.max_children = 10`,
+`request_terminate_timeout = 60s`. Это те же ручки, что в production, но
+числа меньше. `pm.max_children` — сколько HTTP-запросов одновременно
+обслуживает PHP; синхронный запуск сценария занимает один процесс на всё
+время выполнения. `request_terminate_timeout` — внешний потолок запроса:
+сценарий с ядром не должен держать воркер бесконечно, а режим «без ядра»
+дополнительно ограничен в приложении (10 секунд).
+
+Production-пул живёт в `pool.d` на хосте (или в контейнере app), приложение
+его не читает: см. [фоновый runtime](runtime.md).
 
 ## Полезные команды
 
 ```bash
-docker compose logs -f app
+docker compose logs -f web app
 docker compose exec app php bin/mydomo about
 docker compose exec app php bin/mydomo db:status
 docker compose exec app php bin/mydomo queue:stats

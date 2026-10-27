@@ -193,6 +193,7 @@ final class ApiWebhooksTest extends TestCase
             $table->text('description')->nullable();
             $table->integer('category_id')->default(0);
             $table->string('event_name', 191)->default('');
+            $table->boolean('use_core')->default(true);
             $table->timestamps();
             $table->softDeletes();
         });

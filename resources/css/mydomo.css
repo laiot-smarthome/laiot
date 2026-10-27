@@ -116,6 +116,10 @@ body.md-admin-shell .md-app-dialog .md-ui-form-actions { margin-top: 0; padding-
 .md-app-dialog__toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .md-app-dialog__meta { color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); }
 .md-app-dialog__confirm-text { align-self: center; color: var(--md-ui-danger); font-size: var(--md-ui-fs-xs); }
+body.md-admin-shell .md-app-dialog .md-table__actions { gap: 6px; }
+
+/* Результат ручного запуска сценария: вывод и возвращённое значение. */
+.md-run-result { max-height: 260px; margin: 0; padding: 10px 12px; overflow: auto; border: 1px solid var(--md-ui-border); border-radius: 8px; background: var(--md-ui-surface-2); color: var(--md-ui-text); font-family: var(--md-ui-font-mono); font-size: var(--md-ui-fs-xs); line-height: 1.5; white-space: pre-wrap; }
 
 /* Yoyo-обёртка не должна ломать flex шапки: кнопка остаётся прямой flex-единицей. */
 body.md-admin-shell .md-ui-hero__actions > .yoyo-wrapper { display: contents; }

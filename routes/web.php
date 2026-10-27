@@ -151,6 +151,9 @@ return static function (Router $router): void {
             $router->post('/scripts/import', [ScriptsController::class, 'import'])
                 ->middleware('csrf')
                 ->name('scripts.import.store');
+            $router->post('/scripts/run', [ScriptsController::class, 'run'])
+                ->middleware('csrf')
+                ->name('scripts.run');
             // Категории сценариев управляются модальным Yoyo-компонентом
             // `script-categories`; отдельных POST-маршрутов раздела нет.
             $router->get('/scripts/create', [ScriptsController::class, 'create'])->name('scripts.create');

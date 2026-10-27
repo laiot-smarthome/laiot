@@ -9,6 +9,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
+use MajorDoMo\Scripts\ScriptExecutor;
 use MajorDoMo\Scripts\ScriptRepository;
 use PHPUnit\Framework\TestCase;
 
@@ -39,7 +40,11 @@ final class CoreScriptsTest extends TestCase
 
         $form = $app->handle(Request::create('/scripts/create', 'GET'));
         self::assertSame(200, $form->getStatusCode());
-        self::assertStringContainsString('md-code-editor', (string)$form->getContent());
+        $formHtml = (string)$form->getContent();
+        self::assertStringContainsString('md-code-editor', $formHtml);
+        self::assertStringContainsString('formaction="/scripts/run"', $formHtml);
+        self::assertStringContainsString('name="use_core"', $formHtml);
+        self::assertStringContainsString('Подключать ядро', $formHtml);
 
         $create = $app->handle(Request::create('/scripts/create', 'POST', [
             '_token' => $session->csrfToken(),
@@ -48,11 +53,13 @@ final class CoreScriptsTest extends TestCase
             'description' => 'demo',
             'category_id' => '0',
             'event_name' => 'system.minute',
+            'use_core' => '0',
         ]));
         self::assertSame(302, $create->getStatusCode());
         $row = $app->database()->connection()->table('scripts')->first();
         self::assertNotNull($row);
         self::assertSame('system.minute', (string)$row->event_name);
+        self::assertSame(0, (int)$row->use_core);
 
         $edit = $app->handle(Request::create('/scripts/' . $row->id . '/edit', 'POST', [
             '_token' => $session->csrfToken(),
@@ -61,10 +68,12 @@ final class CoreScriptsTest extends TestCase
             'description' => 'demo2',
             'category_id' => '0',
             'event_name' => '',
+            'use_core' => '1',
         ]));
         self::assertSame(302, $edit->getStatusCode());
         self::assertSame('Новый скрипт', $app->database()->connection()->table('scripts')->where('id', $row->id)->value('title'));
         self::assertSame('', (string)$app->database()->connection()->table('scripts')->where('id', $row->id)->value('event_name'));
+        self::assertSame(1, (int)$app->database()->connection()->table('scripts')->where('id', $row->id)->value('use_core'));
 
         $delete = $app->handle(Request::create('/scripts/' . $row->id . '/delete', 'POST', [
             '_token' => $session->csrfToken(),
@@ -107,6 +116,79 @@ final class CoreScriptsTest extends TestCase
         self::assertSame(0, (int)$app->database()->connection()->table('scripts')->count());
     }
 
+    public function testDraftCanBeRunWithCoreAndResultIsShown(): void
+    {
+        [$app, $session] = $this->boot();
+
+        $response = $app->handle(Request::create('/scripts/run', 'POST', [
+            '_token' => $session->csrfToken(),
+            'id' => '0',
+            'title' => 'Черновик',
+            'code' => 'echo "привет"; return 21 * 2;',
+            'description' => '',
+            'category_id' => '0',
+            'event_name' => '',
+            'use_core' => '1',
+        ]));
+
+        self::assertSame(200, $response->getStatusCode());
+        $html = (string)$response->getContent();
+        self::assertStringContainsString('Результат выполнения', $html);
+        self::assertStringContainsString('Выполнено', $html);
+        self::assertStringContainsString('привет', $html);
+        self::assertStringContainsString('42', $html);
+
+        // Запуск черновика не сохраняет сценарий.
+        self::assertSame(0, (int)$app->database()->connection()->table('scripts')->count());
+
+        $syntax = $app->handle(Request::create('/scripts/run', 'POST', [
+            '_token' => $session->csrfToken(),
+            'id' => '0',
+            'title' => 'Черновик',
+            'code' => 'if (',
+            'description' => '',
+            'category_id' => '0',
+            'event_name' => '',
+            'use_core' => '1',
+        ]));
+        self::assertSame(422, $syntax->getStatusCode());
+        self::assertStringContainsString('Синтаксическая ошибка', (string)$syntax->getContent());
+    }
+
+    public function testScriptWithoutCoreRunsAsPlainPhp(): void
+    {
+        [$app, $session] = $this->boot();
+        $executor = $app->container()->make(ScriptExecutor::class);
+        $code = 'return function_exists("sg") ? "CORE_AVAILABLE" : "PLAIN_ONLY";';
+
+        $withCore = $executor->execute($code, [], true);
+        self::assertTrue($withCore['ok']);
+        self::assertSame("'CORE_AVAILABLE'", $withCore['result']);
+
+        $plain = $executor->execute($code, [], false);
+        self::assertTrue($plain['ok']);
+        self::assertSame("'PLAIN_ONLY'", $plain['result']);
+
+        // $params передаётся и в отдельный процесс.
+        $params = $executor->execute('return $params["event"] ?? "none";', ['event' => 'module.demo.ready'], false);
+        self::assertTrue($params['ok']);
+        self::assertSame("'module.demo.ready'", $params['result']);
+
+        // Тот же выбор через форму: флаг use_core=0 доходит до выполнения.
+        $response = $app->handle(Request::create('/scripts/run', 'POST', [
+            '_token' => $session->csrfToken(),
+            'id' => '0',
+            'title' => 'Без ядра',
+            'code' => $code,
+            'description' => '',
+            'category_id' => '0',
+            'event_name' => '',
+            'use_core' => '0',
+        ]));
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('Выполнено', (string)$response->getContent());
+    }
+
     public function testScriptCategoriesAreManagedInModal(): void
     {
         [$app, $session] = $this->boot();
@@ -121,17 +203,27 @@ final class CoreScriptsTest extends TestCase
             'component' => 'script-categories/show',
             'yoyo-id' => 'test-script-categories',
         ]);
-        $this->yoyo($app, $session, [
+
+        // «Добавить» заменяет список формой, а сохранение возвращает список.
+        $form = $this->yoyo($app, $session, [
             'component' => 'script-categories/startCreate',
             'yoyo-id' => 'test-script-categories',
+            'open' => 'true',
             'view' => 'list',
         ]);
-        $this->yoyo($app, $session, [
+        self::assertStringContainsString('Новая категория', $form);
+        self::assertStringContainsString('name="title"', $form);
+        self::assertStringNotContainsString('Всего категорий:', $form);
+
+        $list = $this->yoyo($app, $session, [
             'component' => 'script-categories/save',
             'yoyo-id' => 'test-script-categories',
+            'open' => 'true',
             'view' => 'form',
             'title' => 'Освещение',
         ]);
+        self::assertStringContainsString('Категория создана.', $list);
+        self::assertStringContainsString('Всего категорий: 1', $list);
         $categoryId = (int)$app->database()->connection()->table('script_categories')->value('id');
         self::assertGreaterThan(0, $categoryId);
 
@@ -139,27 +231,36 @@ final class CoreScriptsTest extends TestCase
         $scripts->update($scriptId, 'Свет утром', 'cm("Спальня.turnOn");', '', $categoryId);
         self::assertSame(1, $scripts->categoryCounts()[$categoryId] ?? 0);
 
-        $this->yoyo($app, $session, [
+        $renameForm = $this->yoyo($app, $session, [
             'component' => 'script-categories/startEdit',
             'yoyo-id' => 'test-script-categories',
+            'open' => 'true',
             'view' => 'list',
             'actionArgs' => json_encode([$categoryId], JSON_THROW_ON_ERROR),
         ]);
-        $this->yoyo($app, $session, [
+        self::assertStringContainsString('Переименование категории', $renameForm);
+        self::assertStringContainsString('value="Освещение"', $renameForm);
+
+        $renamed = $this->yoyo($app, $session, [
             'component' => 'script-categories/save',
             'yoyo-id' => 'test-script-categories',
+            'open' => 'true',
             'view' => 'form',
             'editing' => (string)$categoryId,
             'title' => 'Свет',
         ]);
         self::assertSame('Свет', $app->database()->connection()->table('script_categories')->value('title'));
+        self::assertStringContainsString('Категория переименована.', $renamed);
+        self::assertStringContainsString('Всего категорий: 1', $renamed);
 
-        $this->yoyo($app, $session, [
+        $deleted = $this->yoyo($app, $session, [
             'component' => 'script-categories/remove',
             'yoyo-id' => 'test-script-categories',
+            'open' => 'true',
             'confirming' => (string)$categoryId,
             'actionArgs' => json_encode([$categoryId], JSON_THROW_ON_ERROR),
         ]);
+        self::assertStringContainsString('Категория удалена', $deleted);
         self::assertNull($app->database()->connection()->table('script_categories')->whereNull('deleted_at')->first());
         self::assertSame(0, (int)$app->database()->connection()->table('scripts')->where('id', $scriptId)->value('category_id'));
     }
@@ -168,7 +269,7 @@ final class CoreScriptsTest extends TestCase
     {
         [$app, $session] = $this->boot();
         $scripts = $app->container()->make(ScriptRepository::class);
-        $scripts->create('Утренний свет', 'cm("Спальня.turnOn");', 'Включает свет', 0, 'system.day');
+        $scripts->create('Утренний свет', 'cm("Спальня.turnOn");', 'Включает свет', 0, 'system.day', false);
 
         $export = $app->handle(Request::create('/scripts/export', 'GET'));
         self::assertSame(200, $export->getStatusCode());
@@ -178,9 +279,10 @@ final class CoreScriptsTest extends TestCase
         self::assertIsArray($decoded);
         self::assertSame('Утренний свет', $decoded[0]['title']);
         self::assertSame('system.day', $decoded[0]['event_name']);
+        self::assertFalse($decoded[0]['use_core']);
 
         $importJson = json_encode([
-            ['title' => 'Импортированный', 'code' => 'echo 1;', 'description' => 'из JSON', 'event_name' => 'system.hour'],
+            ['title' => 'Импортированный', 'code' => 'echo 1;', 'description' => 'из JSON', 'event_name' => 'module.demo.ready'],
             ['title' => 'Утренний свет', 'code' => 'дубликат'],
             ['title' => 'Сломанный', 'code' => 'if (', 'description' => 'ошибка'],
         ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
@@ -191,7 +293,9 @@ final class CoreScriptsTest extends TestCase
         ]));
         self::assertSame(302, $import->getStatusCode());
         self::assertNotNull($scripts->findByTitle('Импортированный'));
-        self::assertSame('system.hour', (string)$scripts->findByTitle('Импортированный')['event_name']);
+        self::assertSame('module.demo.ready', (string)$scripts->findByTitle('Импортированный')['event_name']);
+        // Поле отсутствует в JSON — по умолчанию ядро подключено.
+        self::assertTrue($scripts->findByTitle('Импортированный')['use_core']);
         self::assertNull($scripts->findByTitle('Сломанный'));
         self::assertSame(2, (int)$app->database()->connection()->table('scripts')->whereNull('deleted_at')->count());
         $location = rawurldecode((string)$import->headers->get('Location'));
@@ -209,7 +313,7 @@ final class CoreScriptsTest extends TestCase
     /**
      * @param array<string, string> $request
      */
-    private function yoyo(Application $app, ArraySession $session, array $request): void
+    private function yoyo(Application $app, ArraySession $session, array $request): string
     {
         Yoyo::request()->reset();
         $_REQUEST = $request;
@@ -223,6 +327,8 @@ final class CoreScriptsTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
 
         Yoyo::request()->reset();
+
+        return (string)$response->getContent();
     }
 
     /**
@@ -253,6 +359,7 @@ final class CoreScriptsTest extends TestCase
             $table->text('description')->nullable();
             $table->integer('category_id')->default(0);
             $table->string('event_name', 191)->default('');
+            $table->boolean('use_core')->default(true);
             $table->timestamps();
             $table->softDeletes();
         });

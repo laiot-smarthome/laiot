@@ -92,6 +92,9 @@
                             @else
                                 <x-md.badge tone="neutral">вручную</x-md.badge>
                             @endif
+                            @if (!$script['use_core'])
+                                <x-md.badge tone="warning" title="Сценарий выполняется отдельным процессом без оболочек ядра">без ядра</x-md.badge>
+                            @endif
                         </td>
                         <td>
                             <div class="md-table__actions">

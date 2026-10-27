@@ -41,7 +41,7 @@
                             <x-md.input name="title" label="Название категории" :value="$title" required autofocus
                                         placeholder="Освещение, Климат, Уведомления" hint="До 191 символа." />
                             <div class="md-ui-form-actions">
-                                <x-md.button type="submit" icon="check">
+                                <x-md.button type="submit" :icon="$editing > 0 ? 'check' : 'plus'">
                                     {{ $editing > 0 ? 'Сохранить' : 'Добавить категорию' }}
                                 </x-md.button>
                             </div>
@@ -84,11 +84,11 @@
                                                 <td>
                                                     <div class="md-table__actions">
                                                         @if ($confirming === $category['id'])
-                                                            <span class="md-app-dialog__confirm-text">Удалить категорию?</span>
+                                                            <span class="md-app-dialog__confirm-text">Удалить?</span>
                                                             <button type="button" class="md-btn md-btn--danger md-btn--sm"
-                                                                    yoyo:post="remove({{ $category['id'] }})">Удалить</button>
+                                                                    yoyo:post="remove({{ $category['id'] }})">Да</button>
                                                             <button type="button" class="md-btn md-btn--ghost md-btn--sm"
-                                                                    yoyo:get="cancelDelete">Отмена</button>
+                                                                    yoyo:get="cancelDelete">Нет</button>
                                                         @else
                                                             <x-md.icon-button icon="pencil" label="Переименовать категорию" size="sm"
                                                                               yoyo:get="startEdit({{ $category['id'] }})" />

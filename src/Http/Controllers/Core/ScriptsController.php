@@ -12,18 +12,22 @@ use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Runtime\InvalidUserCode;
+use MajorDoMo\Runtime\PhpSyntaxValidator;
+use MajorDoMo\Scripts\ScriptExecutor;
 use MajorDoMo\Scripts\ScriptRepository;
 use MajorDoMo\Scripts\ScriptTriggers;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Пользовательские скрипты: редактирование кода и запуск по системному событию.
+ * Пользовательские скрипты: код, запуск по событию и ручная проверка.
  *
  * Категории сценариев управляются модальным Yoyo-компонентом `script-categories`
  * на странице списка: отдельной страницы и форм на главной больше нет.
  *
  * Изменения:
+ * 2026-10-27 — кнопка «Выполнить» и выбор окружения с ядром/без ядра;
+ *              синхронный запуск отпускает блокировку сессии.
  * 2026-10-27 — категории вынесены в модалку, вместо расписания — системное событие;
  *              код проверяется синтаксически до сохранения.
  */
@@ -32,6 +36,8 @@ final readonly class ScriptsController extends Controller
     public function __construct(
         private Factory $view,
         private ScriptRepository $scripts,
+        private ScriptExecutor $executor,
+        private PhpSyntaxValidator $syntax,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -89,6 +95,7 @@ final readonly class ScriptsController extends Controller
                 'code' => $full['code'],
                 'category_id' => $full['category_id'],
                 'event_name' => $full['event_name'],
+                'use_core' => $full['use_core'],
             ];
         }
 
@@ -142,7 +149,8 @@ final readonly class ScriptsController extends Controller
                     (string)($item['code'] ?? ''),
                     (string)($item['description'] ?? ''),
                     (int)($item['category_id'] ?? 0),
-                    (string)($item['event_name'] ?? '')
+                    (string)($item['event_name'] ?? ''),
+                    !array_key_exists('use_core', $item) || (bool)$item['use_core']
                 );
             } catch (InvalidUserCode $error) {
                 $invalid[] = $title . ' (строка ' . $error->codeLine . ': ' . $error->getMessage() . ')';
@@ -177,13 +185,46 @@ final readonly class ScriptsController extends Controller
                 (string)$request->request->get('code', ''),
                 (string)$request->request->get('description', ''),
                 (int)$request->request->get('category_id', 0),
-                (string)$request->request->get('event_name', '')
+                (string)$request->request->get('event_name', ''),
+                $this->useCore($request)
             );
         } catch (InvalidArgumentException $error) {
             return $this->form(null, $this->errorText($error), $request->request->all(), 422, $this->codeError($error));
         }
 
         return new RedirectResponse('/scripts/' . $id . '/edit');
+    }
+
+    /**
+     * Ручной запуск черновика: синхронно, без сохранения.
+     *
+     * Код проверяется тем же валидатором, что и сохранение, но в базу ничего
+     * не пишется. Результат, вывод и ошибка возвращаются в ту же форму.
+     */
+    public function run(Request $request): Response
+    {
+        $id = max(0, (int)$request->request->get('id', 0));
+        $script = $id > 0 ? $this->scripts->find($id) : null;
+        $code = (string)$request->request->get('code', '');
+
+        $syntaxError = $this->syntax->validate($code);
+        if ($syntaxError !== null) {
+            return $this->form(
+                $script,
+                'Синтаксическая ошибка в строке ' . $syntaxError['line'] . ': ' . $syntaxError['message'],
+                $request->request->all(),
+                422,
+                ['line' => $syntaxError['line'], 'message' => $syntaxError['message']]
+            );
+        }
+
+        // Пока пользовательский код выполняется, файловая блокировка сессии
+        // не нужна: иначе вкладки той же сессии ждут запуск, а не работают
+        // параллельно. CSRF-токен к этому моменту уже проверен и прочитан.
+        $this->session->releaseLock();
+        $result = $this->executor->execute($code, [], $this->useCore($request));
+
+        return $this->form($script, null, $request->request->all(), 200, null, $result);
     }
 
     public function edit(string $id): Response
@@ -209,7 +250,8 @@ final readonly class ScriptsController extends Controller
                 (string)$request->request->get('code', ''),
                 (string)$request->request->get('description', ''),
                 (int)$request->request->get('category_id', 0),
-                (string)$request->request->get('event_name', '')
+                (string)$request->request->get('event_name', ''),
+                $this->useCore($request)
             );
         } catch (InvalidArgumentException $error) {
             return $this->form($script, $this->errorText($error), $request->request->all(), 422, $this->codeError($error));
@@ -226,16 +268,18 @@ final readonly class ScriptsController extends Controller
     }
 
     /**
-     * @param array{id:int,title:string,code:string,description:string,category_id:int,event_name:string}|null $script
+     * @param array{id:int,title:string,code:string,description:string,category_id:int,event_name:string,use_core:bool}|null $script
      * @param array<string, mixed>|null $draft
      * @param array{line:int,message:string}|null $codeError
+     * @param array{ok:bool,output:string,result:string,error:string,duration_ms:int}|null $runResult
      */
     private function form(
         ?array $script,
         ?string $error = null,
         ?array $draft = null,
         int $status = 200,
-        ?array $codeError = null
+        ?array $codeError = null,
+        ?array $runResult = null
     ): Response {
         $content = $this->view->make('pages.scripts.form', [
             'script' => $script,
@@ -244,10 +288,23 @@ final readonly class ScriptsController extends Controller
             'triggers' => ScriptTriggers::catalog(),
             'error' => $error,
             'codeError' => $codeError,
+            'runResult' => $runResult,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
         return $this->panel->render(new PanelPage($script === null ? 'Новый скрипт' : 'Скрипт', $content, 'scripts'), $status);
+    }
+
+    /**
+     * Флаг «подключать ядро»; отсутствие поля считается включённым.
+     */
+    private function useCore(Request $request): bool
+    {
+        if (!$request->request->has('use_core')) {
+            return true;
+        }
+
+        return (string)$request->request->get('use_core', '') === '1';
     }
 
     /**

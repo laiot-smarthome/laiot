@@ -46,6 +46,7 @@ use MajorDoMo\Runtime\PhpSyntaxValidator;
 use MajorDoMo\Runtime\TimeoutRepository;
 use MajorDoMo\Scripts\ScriptEventDispatcher;
 use MajorDoMo\Scripts\ScriptEventJob;
+use MajorDoMo\Scripts\ScriptExecutor;
 use MajorDoMo\Scripts\ScriptRepository;
 use MajorDoMo\Scripts\ScriptRunner;
 use MajorDoMo\Search\PanelSearch;
@@ -82,6 +83,7 @@ final class DomainServiceProvider extends ServiceProvider
             TimeoutRepository::class,
             CodeRunner::class,
             PhpSyntaxValidator::class,
+            ScriptExecutor::class,
             ScriptRunner::class,
             ScriptEventDispatcher::class,
             ScriptEventJob::class,

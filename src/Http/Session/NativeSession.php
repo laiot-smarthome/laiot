@@ -101,6 +101,20 @@ final class NativeSession implements SessionStore
         return is_string($token) && hash_equals($this->csrfToken(), $token);
     }
 
+    /**
+     * Отпускает файловую блокировку сессии, не теряя уже прочитанные данные.
+     *
+     * После вызова $_SESSION остаётся доступным для чтения в этом процессе,
+     * но новые записи уже не сохраняются — поэтому вызывать метод нужно
+     * перед пользовательским кодом, а не в середине работы с сессией.
+     */
+    public function releaseLock(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+    }
+
     public function regenerate(): void
     {
         if (!session_regenerate_id(true)) {

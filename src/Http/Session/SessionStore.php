@@ -34,5 +34,14 @@ interface SessionStore
 
     public function checkCsrf(mixed $token): bool;
 
+    /**
+     * Освобождает блокировку сессии до конца запроса.
+     *
+     * Native-сессия держит файл заблокированным: пока идёт долгий запуск
+     * сценария, другие вкладки той же сессии ждут. Метод вызывается перед
+     * синхронным пользовательским кодом, когда запись в сессию уже не нужна.
+     */
+    public function releaseLock(): void;
+
     public function regenerate(): void;
 }

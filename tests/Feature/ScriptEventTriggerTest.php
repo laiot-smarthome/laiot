@@ -50,6 +50,21 @@ final class ScriptEventTriggerTest extends TestCase
         self::assertSame('system.minute:2026-10-27T12:00:00+03:00', $GLOBALS['mydomo_event'] ?? null);
     }
 
+    public function testModuleEventQueuesBoundScript(): void
+    {
+        $app = $this->boot();
+        $scripts = $app->container()->make(ScriptRepository::class);
+        $scripts->create('Событие модуля', 'return 1;', '', 0, 'module.demo.ready');
+
+        $app->container()->make(SystemEvents::class)->emit('module.demo.ready', ['ok' => true]);
+
+        $jobs = $app->database()->connection()->table('queue_jobs')->get();
+        self::assertCount(1, $jobs);
+        $payload = json_decode((string)$jobs[0]->payload, true);
+        self::assertIsArray($payload);
+        self::assertSame('module.demo.ready', $payload['event']);
+    }
+
     public function testDeletedScriptIsSkippedWithoutQueueFailure(): void
     {
         $this->expectNotToPerformAssertions();
@@ -84,6 +99,7 @@ final class ScriptEventTriggerTest extends TestCase
             $table->text('description')->nullable();
             $table->integer('category_id')->default(0);
             $table->string('event_name', 191)->default('');
+            $table->boolean('use_core')->default(true);
             $table->timestamps();
             $table->softDeletes();
         });

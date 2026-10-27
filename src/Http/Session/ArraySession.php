@@ -68,6 +68,13 @@ final class ArraySession implements SessionStore
         return is_string($token) && hash_equals($this->csrf, $token);
     }
 
+    /**
+     * В памяти блокировки нет: метод нужен для общего контракта сессии.
+     */
+    public function releaseLock(): void
+    {
+    }
+
     public function regenerate(): void
     {
         $this->csrf = bin2hex(random_bytes(32));

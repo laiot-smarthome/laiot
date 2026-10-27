@@ -24,7 +24,7 @@ final readonly class ScriptRepository
     }
 
     /**
-     * @return list<array{id:int,title:string,category_id:int,description:string,event_name:string}>
+     * @return list<array{id:int,title:string,category_id:int,description:string,event_name:string,use_core:bool}>
      */
     public function all(string $search = '', int $categoryId = 0): array
     {
@@ -46,7 +46,7 @@ final readonly class ScriptRepository
     }
 
     /**
-     * @return array{id:int,title:string,code:string,description:string,category_id:int,event_name:string}|null
+     * @return array{id:int,title:string,code:string,description:string,category_id:int,event_name:string,use_core:bool}|null
      */
     public function find(int $id): ?array
     {
@@ -61,7 +61,7 @@ final readonly class ScriptRepository
     /**
      * Поиск по названию: alpha `runScript()` принимал и ID, и заголовок.
      *
-     * @return array{id:int,title:string,code:string,description:string,category_id:int,event_name:string}|null
+     * @return array{id:int,title:string,code:string,description:string,category_id:int,event_name:string,use_core:bool}|null
      */
     public function findByTitle(string $title): ?array
     {
@@ -102,7 +102,8 @@ final readonly class ScriptRepository
         string $code,
         string $description,
         int $categoryId,
-        string $eventName = ''
+        string $eventName = '',
+        bool $useCore = true
     ): int {
         $title = $this->title($title);
         $eventName = ScriptTriggers::normalize($eventName);
@@ -115,6 +116,7 @@ final readonly class ScriptRepository
             'description' => $description,
             'category_id' => max(0, $categoryId),
             'event_name' => $eventName,
+            'use_core' => $useCore,
             'created_at' => $now,
             'updated_at' => $now,
             'deleted_at' => null,
@@ -127,7 +129,8 @@ final readonly class ScriptRepository
         string $code,
         string $description,
         int $categoryId,
-        string $eventName = ''
+        string $eventName = '',
+        bool $useCore = true
     ): void {
         $title = $this->title($title);
         $eventName = ScriptTriggers::normalize($eventName);
@@ -141,6 +144,7 @@ final readonly class ScriptRepository
                 'description' => $description,
                 'category_id' => max(0, $categoryId),
                 'event_name' => $eventName,
+                'use_core' => $useCore,
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
     }
@@ -241,7 +245,7 @@ final readonly class ScriptRepository
     }
 
     /**
-     * @return array{id:int,title:string,category_id:int,description:string,event_name:string}
+     * @return array{id:int,title:string,category_id:int,description:string,event_name:string,use_core:bool}
      */
     private function row(object $row): array
     {
@@ -251,6 +255,8 @@ final readonly class ScriptRepository
             'category_id' => (int)$row->category_id,
             'description' => (string)($row->description ?? ''),
             'event_name' => (string)($row->event_name ?? ''),
+            // Старые установки без миграции считаем «с ядром».
+            'use_core' => (int)($row->use_core ?? 1) === 1,
         ];
     }
 
