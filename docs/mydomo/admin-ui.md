@@ -57,6 +57,7 @@ namespace из конфигурации, поэтому ручной `Yoyo::regi
 | `x-md.modal` + `mdConfirmDialog` | общий диалог подтверждения: формы помечаются `data-md-confirm`, а `window.confirm()` не используется |
 | `property-history` (Yoyo) | история свойства: кнопка в строке значения и drawer, который компонент перерисовывает сам; период 24ч/7д/30д/всё, текущее значение, статистика, график и записи. Отдельного JSON-роута нет — данные считает `PropertyHistoryService` на сервере |
 | `events-table` (Yoyo) | журнал событий: поиск, тип и статус — состояния компонента; таблица перерисовывается через `/yoyo`, без GET-перезагрузки и без JSON-эндпоинта |
+| `script-categories` (Yoyo) | категории сценариев: кнопка в шапке открывает нативную модалку, создание, переименование и удаление перерисовывают список через `/yoyo` POST с CSRF; отдельной страницы и блока на главной нет |
 | `x-md.button`, `x-md.card`, `x-md.kpi`, `x-md.badge`, `x-md.alert`, `x-md.hint`, `x-md.empty-state` | базовые элементы alpha-дизайна |
 | `x-md.field`, `x-md.input`, `x-md.select`, `x-md.textarea`, `x-md.checkbox`, `x-md.switch`, `x-md.radio`, `x-md.range` | формы; дополнительные атрибуты передаются нативному контролу |
 | `x-md.dropdown`, `x-md.tooltip` | локальные раскрывающиеся действия и подсказки на Alpine |
@@ -92,7 +93,7 @@ namespace из конфигурации, поэтому ручной `Yoyo::regi
 | Классы | `/classes` | `ClassRepository`, `PropertyRepository`, `MethodRepository`, `ObjectRepository` | дерево классов и подклассов, карточка с вкладками «Основное», «Свойства», «Методы», «Объекты»; наследование и происхождение членов видны в списках |
 | Объект класса | `/objects/{id}/edit` | `ObjectRepository`, `PropertyRepository`, `ValueRepository`, `PropertyValueService`, `HistoryRepository` | значения и объектные свойства/методы, история и журнал; только у объекта есть значения |
 | Локации | `/locations` | `LocationRepository` | поиск, приоритет, число объектов |
-| Скрипты | `/scripts` | `ScriptRepository` | поиск, фильтр категории, категории с переименованием и удалением, импорт/экспорт JSON, признак периодического запуска |
+| Скрипты | `/scripts` | `ScriptRepository` | поиск, фильтр категории, категории в модалке `script-categories`, импорт/экспорт JSON, запуск по системному событию, проверка синтаксиса кода при сохранении |
 | События | `/events` | `PropertyEventRepository` | фильтры типа и статуса, журнал цепочки; фильтры живут в Yoyo-компоненте `events-table` |
 | Очередь | `/jobs` | `Queue` | статистика, ожидающие, упавшие, повтор и удаление |
 | База знаний | `/knowledge-base` | `KnowledgeBase` | поиск, категории, статья с оглавлением и `md-prose` |
@@ -108,6 +109,7 @@ namespace из конфигурации, поэтому ручной `Yoyo::regi
 | API-токены | `/admin/tokens` | `ApiTokenRepository` | выпуск, срок, отзыв |
 | Оповещения | `/notifications` | `NotificationService` | список непрочитанных, явное прочтение |
 | Обслуживание | `/admin/maintenance` | `MaintenanceMode` | включение и выключение режима |
+| UI Kit | `/ui-kit` | Blade-компоненты и Yoyo | примеры компонентов; ссылка в меню «Система» |
 | Профиль | `/admin/profile` | `UserRepository` | имя и смена своего пароля |
 
 «Классы» — единственный пункт меню для модели дома. Объекты, свойства,
@@ -116,6 +118,20 @@ namespace из конфигурации, поэтому ручной `Yoyo::regi
 добавить собственное свойство или метод, которое перекрывает классовое с
 тем же названием. Значение существует только у объекта: карточка класса не
 показывает и не принимает значения, даже если объектов у класса ещё нет.
+
+### Проверка кода при сохранении
+
+Код сценариев, методов класса/объекта и PHP-обработчика webhook проверяется
+до записи в базу (`PhpSyntaxValidator`, разбор `token_get_all` с
+`TOKEN_PARSE`). Невалидный код не сохраняется: репозиторий бросает
+`InvalidUserCode` с номером строки, форма показывает ошибку в общем
+оповещении и внутри редактора, а `x-md.code` подсвечивает строку и переводит
+на неё курсор CodeMirror. Импорт JSON с невалидным сценарием пропускает
+такую запись и сообщает о ней в результате. Проверка не запускает код и не
+является sandbox: доверенный PHP по-прежнему выполняется при запуске.
+
+Инструкции по запуску и выполнению вынесены в отдельную карточку, а не в
+карточку редактора: так подсказка не смешивается с полем кода.
 
 ## 4. Обзор
 
@@ -137,9 +153,11 @@ namespace из конфигурации, поэтому ручной `Yoyo::regi
   `CoreMethodsTest`, `CoreEventsTest`, `CoreJobsTest`, `CoreScriptsTest`,
   `CoreUsersTest`, `CoreSettingsTest`, `CoreActionsLogTest`,
   `CoreSystemErrorsTest`, `ModulesPageTest`, `KnowledgeBaseTest`,
-  `ApiWebhooksTest`, `HistoryChartTest`).
+  `ApiWebhooksTest`, `PropertyHistoryTest`, `ScriptEventTriggerTest`).
 - `phpstan`, `php-cs-fixer`, `php vendor/bin/phpunit`.
-- Визуально проверены 1500 px и 390 px, светлая и тёмная тема.
+- Внешний вид проверяется вручную в браузере: светлая и тёмная тема,
+  1500 px и 390 px. Изолированные тесты проверяют разметку и состояния,
+  но не заменяют визуальную проверку.
 
 ## 6. Что ещё не перенесено из alpha
 
@@ -150,12 +168,12 @@ namespace из конфигурации, поэтому ручной `Yoyo::regi
 - живые KPI и график активности на обзоре, как в alpha-панели;
 - клиентская фильтрация таблиц без перезагрузки;
 - отметка «просмотрено» и история повторов ошибок (сейчас есть группы и
-  удаление, но нет отдельного статуса прочтения);
-- Yoyo-компоненты для интерактивных блоков.
+  удаление, но нет отдельного статуса прочтения).
 
 Уже перенесены: редактор кода CodeMirror 6 (ленивый чанк, PHP-подсветка,
-oneDark) и drawer истории свойства с периодом, статистикой, графиком
-ApexCharts и журналом записей.
+oneDark), drawer истории свойства с периодом, статистикой, графиком
+ApexCharts и журналом записей, а также Yoyo-компоненты интерактивных блоков
+(`events-table`, `property-history`, `folder-picker`, `script-categories`).
 
 ## 7. Как повторить проверку
 
@@ -163,7 +181,7 @@ ApexCharts и журналом записей.
 
 ```bash
 php vendor/bin/phpunit --filter AdminSectionsTest
-php vendor/bin/phpunit --filter HistoryChartTest
+php vendor/bin/phpunit --filter PropertyHistoryTest
 php vendor/bin/phpunit
 php vendor/bin/phpstan analyse --memory-limit=1G
 php vendor/bin/php-cs-fixer fix --dry-run --config=.php-cs-fixer.dist.php

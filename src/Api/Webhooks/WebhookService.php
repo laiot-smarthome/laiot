@@ -6,6 +6,7 @@ namespace MajorDoMo\Api\Webhooks;
 
 use InvalidArgumentException;
 use MajorDoMo\Runtime\CodeRunner;
+use MajorDoMo\Runtime\PhpSyntaxValidator;
 use MajorDoMo\Scripts\ScriptRepository;
 use MajorDoMo\Scripts\ScriptRunner;
 use Throwable;
@@ -15,6 +16,8 @@ use Throwable;
  *
  * Секрет хранится только как SHA-256; в UI показывается один раз при
  * создании/ротации. Старый `HookStore` не используется.
+ *
+ * 2026-10-27 — PHP-код webhook проверяется синтаксически до сохранения.
  */
 final readonly class WebhookService
 {
@@ -26,7 +29,8 @@ final readonly class WebhookService
         private WebhookRepository $repository,
         private ScriptRepository $scripts,
         private ScriptRunner $scriptRunner,
-        private CodeRunner $runner
+        private CodeRunner $runner,
+        private PhpSyntaxValidator $syntax
     ) {
     }
 
@@ -231,6 +235,12 @@ final readonly class WebhookService
             $code = trim((string)($input['code'] ?? ''));
             if ($code === '') {
                 throw new InvalidArgumentException('PHP-код не может быть пустым.');
+            }
+            $syntaxError = $this->syntax->validate($code);
+            if ($syntaxError !== null) {
+                throw new InvalidArgumentException(
+                    'Синтаксическая ошибка в строке ' . $syntaxError['line'] . ': ' . $syntaxError['message']
+                );
             }
         }
 

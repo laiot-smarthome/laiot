@@ -21,9 +21,59 @@ import {initNotifications} from './mydomo/notifications.js';
 import {initConfirm} from './mydomo/confirm.js';
 import {initCodeEditors} from './mydomo/code-editor.js';
 import {initChartMounts} from './mydomo/chart-mount.js';
+import {initYoyoCsrf} from './mydomo/yoyo.js';
 import './mydomo/linked-object.js';
 
 window.Alpine = Alpine;
+
+Alpine.data('mdDateTimePicker', (type, initial) => ({
+    type, value: initial, open: false, year: 0, month: 0, hour: '00', minute: '00',
+    weekdays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+    hours: Array.from({length: 24}, (_, i) => String(i).padStart(2, '0')),
+    minutes: Array.from({length: 60}, (_, i) => String(i).padStart(2, '0')),
+    init() { this.sync(); },
+    get today() { const date = new Date(); return this.dateValue(date.getFullYear(), date.getMonth(), date.getDate()); },
+    dateValue(year, month, day) { return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; },
+    sync() {
+        const date = this.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(this.value) ? new Date(`${this.value}T12:00:00`) : new Date();
+        this.year = date.getFullYear(); this.month = date.getMonth();
+        if (/^\d{2}:\d{2}/.test(this.value)) [this.hour, this.minute] = this.value.split(':');
+    },
+    toggle() { if (!this.open) this.sync(); this.open = !this.open; },
+    move(amount) { const date = new Date(this.year, this.month + amount, 1); this.year = date.getFullYear(); this.month = date.getMonth(); },
+    get monthLabel() { return new Intl.DateTimeFormat('ru-RU', {month: 'long', year: 'numeric'}).format(new Date(this.year, this.month, 1)); },
+    get days() {
+        const first = new Date(this.year, this.month, 1);
+        const blanks = (first.getDay() + 6) % 7;
+        const count = new Date(this.year, this.month + 1, 0).getDate();
+        return [...Array(blanks).fill(null), ...Array.from({length: count}, (_, index) => {
+            const number = index + 1, date = new Date(this.year, this.month, number);
+            return {number, value: this.dateValue(this.year, this.month, number), label: new Intl.DateTimeFormat('ru-RU', {dateStyle: 'long'}).format(date)};
+        })];
+    },
+    selectDate(value) { this.value = value; this.open = false; this.$nextTick(() => { this.$refs.trigger.focus(); this.$el.querySelector('input').dispatchEvent(new Event('change', {bubbles: true})); }); },
+    selectTime() { this.value = `${this.hour}:${this.minute}`; this.$nextTick(() => this.$el.querySelector('input').dispatchEvent(new Event('change', {bubbles: true}))); },
+}));
+
+Alpine.data('mdFileUpload', () => ({
+    dragging: false, files: [],
+    update() { this.files = Array.from(this.$refs.input.files); },
+    drop(event) {
+        this.dragging = false;
+        if (this.$refs.input.disabled || !event.dataTransfer.files.length) return;
+        const transfer = new DataTransfer();
+        Array.from(event.dataTransfer.files).slice(0, this.$refs.input.multiple ? undefined : 1).forEach(file => transfer.items.add(file));
+        this.$refs.input.files = transfer.files;
+        this.$refs.input.dispatchEvent(new Event('change', {bubbles: true}));
+    },
+    remove(index) {
+        const transfer = new DataTransfer();
+        this.files.filter((_, i) => i !== index).forEach(file => transfer.items.add(file));
+        this.$refs.input.files = transfer.files;
+        this.$refs.input.dispatchEvent(new Event('change', {bubbles: true}));
+    },
+    formatSize(size) { return size < 1024 ? `${size} Б` : size < 1048576 ? `${(size / 1024).toFixed(1)} КБ` : `${(size / 1048576).toFixed(1)} МБ`; },
+}));
 
 Alpine.data('mdSearchSelect', () => ({
     control: null,
@@ -138,6 +188,7 @@ Alpine.store('mdToasts', {
     push({title = '', text = '', tone = 'info', duration = 5000} = {}) {
         const id = ++this.nextId;
         const type = ['info', 'success', 'warning', 'danger'].includes(tone) ? tone : 'info';
+        if (this.items.length >= 3) this.items.shift();
         this.items.push({id, title: String(title), text: String(text), tone: type});
         if (duration > 0) window.setTimeout(() => this.remove(id), duration);
         return id;
@@ -152,5 +203,6 @@ initSearch();
 initNotifications();
 initCodeEditors();
 initChartMounts();
+initYoyoCsrf();
 
 Alpine.start();

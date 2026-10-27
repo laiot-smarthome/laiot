@@ -158,7 +158,7 @@ final class FunctionsTest extends TestCase
                 $table->text('code')->nullable();
                 $table->text('description')->nullable();
                 $table->integer('category_id')->default(0);
-                $table->boolean('run_periodically')->default(false);
+                $table->string('event_name', 191)->default('');
                 $table->timestamps();
                 $table->softDeletes();
             },

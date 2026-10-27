@@ -12,9 +12,9 @@
     $type = in_array($type, $types, true) ? $type : 'info';
     $icons = [
         'info' => 'info-circle',
-        'success' => 'check-circle',
-        'warning' => 'exclamation-triangle',
-        'danger' => 'x-octagon',
+        'success' => 'circle-check',
+        'warning' => 'alert-triangle',
+        'danger' => 'circle-x',
     ];
     $icon = $icon ?? $icons[$type];
 @endphp

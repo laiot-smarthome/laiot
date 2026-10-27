@@ -10,6 +10,7 @@ use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
+use MajorDoMo\Runtime\PhpSyntaxValidator;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -44,7 +45,7 @@ final class ClassHierarchyTest extends TestCase
 
         $this->classes = new ClassRepository($this->database);
         $this->properties = new PropertyRepository($this->database, $this->classes);
-        $this->methods = new MethodRepository($this->database, $this->classes);
+        $this->methods = new MethodRepository($this->database, $this->classes, new PhpSyntaxValidator());
         $this->objects = new ObjectRepository($this->database, $this->classes);
     }
 

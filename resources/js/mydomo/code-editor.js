@@ -52,7 +52,7 @@ function load() {
 
 function enhance(root = document) {
     const fields = root.querySelectorAll('textarea[data-code-editor]:not([data-code-editor-mounted])');
-    if (!fields.length) {
+    if (!fields.length && !root.querySelector('code[data-code-sample]:not([data-highlighted])')) {
         return;
     }
     fields.forEach((field) => {
@@ -69,7 +69,11 @@ function enhance(root = document) {
 }
 
 export function initCodeEditors() {
-    if (!document.querySelector('textarea[data-code-editor]')) {
+    // Компоненты могут появляться после перерисовки Yoyo.
+    document.body.addEventListener('htmx:afterSwap', (event) => {
+        if (event.target instanceof Element) enhance(event.target);
+    });
+    if (!document.querySelector('textarea[data-code-editor], code[data-code-sample]')) {
         return;
     }
 

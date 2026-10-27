@@ -3,12 +3,13 @@
         eyebrow="Автоматизация"
         icon="file-code"
         title="Скрипты"
-        lede="Сценарии на PHP: запускаются вручную, по расписанию или из других сценариев и API."
+        lede="Сценарии на PHP: запуск вручную, по системному событию, из других сценариев и API."
         :meta="[
             ['icon' => 'file-code', 'label' => 'Скриптов', 'value' => count($scripts)],
             ['icon' => 'folder', 'label' => 'Категорий', 'value' => count($categories)],
         ]">
         <x-slot:actions>
+            @yoyo('script-categories')
             <x-md.button href="/scripts/export" variant="secondary" icon="download">Экспорт</x-md.button>
             <x-md.button href="/scripts/import" variant="secondary" icon="upload">Импорт</x-md.button>
             <x-md.button href="/scripts/create" icon="plus">Новый скрипт</x-md.button>
@@ -86,8 +87,8 @@
                             @endif
                         </td>
                         <td>
-                            @if ($script['run_periodically'])
-                                <x-md.badge tone="success">по расписанию</x-md.badge>
+                            @if ($script['event_name'] !== '')
+                                <x-md.badge tone="info" title="{{ $script['event_name'] }}">{{ $script['trigger'] }}</x-md.badge>
                             @else
                                 <x-md.badge tone="neutral">вручную</x-md.badge>
                             @endif
@@ -107,56 +108,4 @@
             </x-slot:body>
         @endif
     </x-md.table>
-
-    <x-md.card title="Категории сценариев" subtitle="Категории помогают группировать сценарии и фильтровать список">
-        <form method="post" action="/scripts/categories" class="md-ui-form">
-            <input type="hidden" name="_token" value="{{ $csrf }}">
-            <div class="md-ui-form-grid">
-                <x-md.input name="title" label="Новая категория" placeholder="Освещение, Климат, Уведомления"
-                            required hint="До 191 символа." />
-            </div>
-            <div class="md-ui-form-actions">
-                <x-md.button type="submit" icon="plus">Добавить категорию</x-md.button>
-            </div>
-        </form>
-
-        @if ($categories === [])
-            <x-md.empty-state icon="folder" title="Категорий нет"
-                              text="Создайте категорию, чтобы фильтровать сценарии по назначению." compact />
-        @else
-            <x-md.table label="Категории сценариев">
-                <x-slot:head>
-                    <th scope="col">Категория</th>
-                    <th scope="col">Сценариев</th>
-                    <th scope="col" class="text-end"><span class="visually-hidden">Действия</span></th>
-                </x-slot:head>
-                <x-slot:body>
-                    @foreach ($categories as $category)
-                        <tr>
-                            <td>
-                                <form method="post" action="/scripts/categories/{{ $category['id'] }}" class="md-inline-form">
-                                    <input type="hidden" name="_token" value="{{ $csrf }}">
-                                    <input class="md-input" type="text" name="title" value="{{ $category['title'] }}"
-                                           aria-label="Название категории {{ $category['title'] }}">
-                                    <x-md.button type="submit" variant="secondary" size="sm" icon="check">Сохранить</x-md.button>
-                                </form>
-                            </td>
-                            <td>
-                                <a href="/scripts?category_id={{ $category['id'] }}">{{ $categoryCounts[$category['id']] ?? 0 }}</a>
-                            </td>
-                            <td>
-                                <div class="md-table__actions">
-                                    <form method="post" action="/scripts/categories/{{ $category['id'] }}/delete" class="md-inline-form"
-                                          data-md-confirm="Удалить категорию «{{ $category['title'] }}»? Сценарии останутся без категории.">
-                                        <input type="hidden" name="_token" value="{{ $csrf }}">
-                                        <x-md.icon-button type="submit" icon="trash" label="Удалить категорию" variant="danger" size="sm" />
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </x-slot:body>
-            </x-md.table>
-        @endif
-    </x-md.card>
 </div>

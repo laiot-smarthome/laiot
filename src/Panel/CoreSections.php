@@ -10,6 +10,7 @@ namespace MajorDoMo\Panel;
  * Ядровые страницы не являются модулями: у них нет module.json, ModuleDb и
  * lifecycle. Модулями остаются MQTT, Zigbee и сторонние SDK-модули.
  *
+ * 2026-10-27 — UI Kit возвращён в меню «Система» для просмотра компонентов.
  * 2026-10-26 — разделы сгруппированы по задачам, а не по типу кода: в
  * «Системе» остались только обслуживание установки, профиль и UI Kit вынесены
  * из основного меню (профиль живёт в подвале боковой панели).
@@ -48,10 +49,10 @@ final class CoreSections
             ['id' => 'tokens', 'label' => 'API-токены', 'href' => '/admin/tokens', 'icon' => 'ti-key', 'group' => 'Система'],
             ['id' => 'notifications', 'label' => 'Оповещения', 'href' => '/notifications', 'icon' => 'ti-bell', 'group' => 'Система'],
             ['id' => 'maintenance', 'label' => 'Обслуживание', 'href' => '/admin/maintenance', 'icon' => 'ti-tool', 'group' => 'Система'],
+            ['id' => 'ui_kit', 'label' => 'UI Kit', 'href' => '/ui-kit', 'icon' => 'ti-palette', 'group' => 'Система'],
 
             // Эти страницы есть, но в основном меню не нужны.
             ['id' => 'profile', 'label' => 'Профиль', 'href' => '/admin/profile', 'icon' => 'ti-user-circle', 'group' => 'Служебное', 'menu' => false],
-            ['id' => 'ui_kit', 'label' => 'UI Kit', 'href' => '/ui-kit', 'icon' => 'ti-palette', 'group' => 'Служебное', 'menu' => false],
         ];
     }
 

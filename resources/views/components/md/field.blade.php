@@ -29,7 +29,7 @@
         <div @class(['md-field__error' => $hasError, 'md-field__hint' => !$hasError])
              @if ($hasError) role="alert" @endif
              @if ($helpId !== null) id="{{ $helpId }}" @endif>
-            @if ($hasError)<x-md.icon name="exclamation-circle" />@endif
+            @if ($hasError)<x-md.icon name="alert-circle" />@endif
             <span>{{ $help }}</span>
         </div>
     @endif

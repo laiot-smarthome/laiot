@@ -53,10 +53,87 @@ body.md-admin-shell .md-admin-main { min-width: 0; padding-bottom: calc(32px + e
 .md-kit-input-shell { display: flex; align-items: center; gap: 8px; }
 .md-kit-input-shell .md-input { flex: 1; min-width: 0; }
 .md-kit-input-shell > span, .md-kit-input-shell > i { color: var(--md-ui-muted); }
+
+/* Файловое и цветовое поля остаются нативными, но используют стиль панели. */
+body.md-admin-shell .md-input[type="file"] { padding: 4px; color: var(--md-ui-muted); }
+body.md-admin-shell .md-input[type="file"]::file-selector-button { height: 100%; margin-right: 10px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--md-ui-surface-2); color: var(--md-ui-text); font: inherit; cursor: pointer; }
+body.md-admin-shell .md-input[type="file"]:disabled::file-selector-button { cursor: not-allowed; }
+body.md-admin-shell .md-input[type="color"] { padding: 4px; cursor: pointer; }
+body.md-admin-shell .md-input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+body.md-admin-shell .md-input[type="color"]::-webkit-color-swatch { border: 1px solid var(--md-ui-border); border-radius: 6px; }
+body.md-admin-shell .md-input[type="color"]::-moz-color-swatch { border: 1px solid var(--md-ui-border); border-radius: 6px; }
+
+/* Календарь и выбор времени расширяют нативные поля формы. */
+.md-date-picker { position: relative; }
+.md-date-picker__control { position: relative; }
+body.md-admin-shell .md-date-picker__control .md-input { padding-right: 42px; }
+.md-date-picker__control input::-webkit-calendar-picker-indicator { opacity: 0; width: 0; margin: 0; }
+.md-date-picker__trigger { position: absolute; top: 50%; right: 5px; transform: translateY(-50%); }
+.md-date-picker__popup { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: min(300px, 90vw); padding: 12px; border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-sm); background: var(--md-ui-surface); color: var(--md-ui-text); box-shadow: var(--md-ui-shadow-pop); }
+.md-date-picker__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; text-transform: capitalize; }
+.md-date-picker__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center; }
+.md-date-picker__weekday { padding: 6px 0; color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); }
+.md-date-picker__day { width: 100%; aspect-ratio: 1; padding: 0; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--md-ui-text); cursor: pointer; }
+.md-date-picker__day:hover, .md-date-picker__day:focus-visible { background: var(--md-ui-primary-soft); outline: 2px solid var(--md-ui-primary); outline-offset: -2px; }
+.md-date-picker__day.is-today { border-color: var(--md-ui-primary); }
+.md-date-picker__day.is-selected { background: var(--md-ui-primary); color: #fff; }
+.md-date-picker__today { margin-top: 10px; }
+.md-date-picker__time { display: flex; align-items: end; gap: 8px; margin-bottom: 12px; }
+.md-date-picker__time label { display: grid; gap: 5px; flex: 1; color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); }
+
+body.md-admin-shell .ts-wrapper.single .ts-control { align-items: center; }
+body.md-admin-shell .ts-wrapper.single .ts-control { padding-left: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 10px center; }
+body.md-admin-shell .ts-wrapper .ts-control input { min-width: 5ch; }
 .md-kit-upload { padding: 20px; border: 1px dashed var(--md-ui-border); border-radius: 12px; background: var(--md-ui-surface-2); }
 .md-kit-upload.is-dragging { border-color: var(--md-ui-primary); background: var(--md-ui-selected); }
 .md-kit-upload p { margin: 6px 0; }
 .md-kit-upload ul { margin: 8px 0 0; padding-inline-start: 20px; }
+
+/* Yoyo показывает индикатор только на время запроса. */
+body.md-admin-shell [yoyo\:spinning], body.md-admin-shell [yoyo\:spinning\.delay] { display: none; }
+.md-upload:focus-within { outline: 2px solid var(--md-ui-primary); outline-offset: 2px; }
+.md-upload:has(input:disabled) { opacity: .6; cursor: not-allowed; }
+.md-flow-change__actor { margin-top: 5px; color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); }
+.md-flow-change { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; padding: 5px 8px; border-radius: 6px; background: var(--md-ui-surface-2); color: var(--md-ui-text-soft); font-size: var(--md-ui-fs-xs); }
+
+/* Диалог каталога использует нативную модальность и оформление панели. */
+.md-folder-dialog { width: min(640px, calc(100vw - 24px)); max-width: none; max-height: calc(100vh - 24px); padding: 0; border: 0; border-radius: 12px; color: var(--md-ui-text); background: var(--md-ui-surface); }
+.md-folder-dialog::backdrop { background: rgba(0, 0, 0, .5); }
+.md-folder-dialog .modal-content { border: 0; }
+.md-folder-dialog .modal-footer { display: flex; flex-wrap: wrap; gap: 8px; }
+.md-folder-dialog .md-kit-folder__list { max-height: 45vh; overflow: auto; }
+.md-folder-dialog .md-kit-folder__list button { width: 100%; text-align: left; }
+
+/* Модалка Yoyo-компонента (категории сценариев): та же нативная модальность. */
+.md-app-dialog { width: min(560px, calc(100vw - 24px)); max-width: none; max-height: calc(100vh - 24px); padding: 0; border: 0; border-radius: 12px; color: var(--md-ui-text); background: var(--md-ui-surface); }
+.md-app-dialog::backdrop { background: rgba(0, 0, 0, .5); }
+.md-app-dialog .modal-content { max-height: calc(100vh - 24px); overflow: hidden; border: 0; }
+.md-app-dialog .modal-body { display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.md-app-dialog .modal-footer { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Специфичность выше базового `body.md-admin-shell .md-ui-form-actions`:
+   внутри модалки разделитель и отступ формы не нужны. */
+body.md-admin-shell .md-app-dialog .md-ui-form-actions { margin-top: 0; padding-top: 0; border-top: 0; }.md-app-dialog__subtitle { margin: 2px 0 0; color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); }
+.md-app-dialog__toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.md-app-dialog__meta { color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); }
+.md-app-dialog__confirm-text { align-self: center; color: var(--md-ui-danger); font-size: var(--md-ui-fs-xs); }
+
+/* Yoyo-обёртка не должна ломать flex шапки: кнопка остаётся прямой flex-единицей. */
+body.md-admin-shell .md-ui-hero__actions > .yoyo-wrapper { display: contents; }
+
+/* Ошибка серверного валидатора кода: строка известна до открытия редактора. */
+.md-code-editor__error { display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .5rem; padding: .625rem .75rem; border: 1px solid var(--md-ui-danger); border-radius: .5rem; background: var(--md-ui-danger-soft); color: var(--md-ui-danger); font-size: var(--md-ui-fs-xs); line-height: 1.45; }
+.md-code-editor__error i { flex: 0 0 auto; margin-top: 1px; }
+
+/* Встроенная пагинация Tabulator соответствует кнопкам админки. */
+.md-table-wrap .tabulator { border: 0; background: var(--md-ui-surface); color: var(--md-ui-text); font: inherit; }
+.md-table-wrap .tabulator .tabulator-header { background: var(--md-ui-surface-2); color: var(--md-ui-text); border-color: var(--md-ui-border); }
+.md-table-wrap .tabulator .tabulator-header .tabulator-col { background: transparent; border-color: var(--md-ui-border); }
+.md-table-wrap .tabulator-row { background: var(--md-ui-surface); color: var(--md-ui-text); border-color: var(--md-ui-border); }
+.md-table-wrap .tabulator-row:hover { background: var(--md-ui-surface-2); }
+.md-table-wrap .tabulator .tabulator-footer { padding: 12px; background: var(--md-ui-surface); color: var(--md-ui-muted); border-color: var(--md-ui-border); }
+.md-table-wrap .tabulator .tabulator-footer .tabulator-page { min-width: 32px; min-height: 32px; margin: 2px; border: 1px solid var(--md-ui-border); border-radius: 6px; background: var(--md-ui-surface); color: var(--md-ui-text); }
+.md-table-wrap .tabulator .tabulator-footer .tabulator-page.active { background: var(--md-ui-primary); border-color: var(--md-ui-primary); color: #fff; }
+.md-table-wrap .tabulator .tabulator-footer .tabulator-page:disabled { opacity: .45; }
 .md-kit-icons__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin: 12px 0; }
 .md-kit-icons__item { display: grid; justify-items: center; gap: 5px; min-width: 0; padding: 12px 4px; border: 1px solid var(--md-ui-border); border-radius: 10px; background: var(--md-ui-surface); color: var(--md-ui-text); }
 .md-kit-icons__item:hover, .md-kit-icons__item:focus-visible { background: var(--md-ui-selected); }
@@ -101,6 +178,30 @@ body.md-admin-shell .tabulator-row { background: var(--md-ui-surface); color: va
 body.md-admin-shell .tabulator-row.tabulator-row-even { background: var(--md-ui-surface-2); }
 body.md-admin-shell .tabulator-row:hover { background: var(--md-ui-selected); }
 body.md-admin-shell .tabulator .tabulator-footer .tabulator-page { color: var(--md-ui-text); }
+
+/* Таблица Tabulator использует те же размеры, цвета и разделители, что md-table. */
+body.md-admin-shell .md-data-table__grid.tabulator { color: var(--md-ui-text-soft); font: 400 var(--md-ui-fs-xs)/1.4 var(--md-ui-font); }
+body.md-admin-shell .md-data-table__grid.tabulator .tabulator-header { color: var(--md-ui-muted); background: var(--md-ui-surface-2); border-bottom: 1px solid var(--md-ui-border); }
+body.md-admin-shell .md-data-table__grid.tabulator .tabulator-header .tabulator-col { color: inherit; background: transparent; border-right: 0; }
+body.md-admin-shell .md-data-table__grid.tabulator .tabulator-header .tabulator-col .tabulator-col-content { padding: 8px 12px; font-size: var(--md-ui-fs-caption); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+body.md-admin-shell .md-data-table__grid.tabulator .tabulator-header .tabulator-col.tabulator-sortable:hover { background: var(--md-ui-surface-3); }
+body.md-admin-shell .md-data-table__grid.tabulator .tabulator-row,
+body.md-admin-shell .md-data-table__grid.tabulator .tabulator-row.tabulator-row-even { min-height: var(--md-ui-row-height); background: var(--md-ui-surface); color: var(--md-ui-text-soft); border-bottom: 1px solid var(--md-ui-border); }
+body.md-admin-shell .md-data-table__grid.tabulator .tabulator-row:last-child { border-bottom: 0; }
+body.md-admin-shell .md-data-table__grid.tabulator .tabulator-row:hover { background: var(--md-ui-surface-2); }
+body.md-admin-shell .md-data-table__grid.tabulator .tabulator-row .tabulator-cell { display: inline-flex; align-items: center; min-height: var(--md-ui-row-height); padding: 8px 12px; border-right: 0; }
+body.md-admin-shell .md-data-table__grid.tabulator .tabulator-footer { padding: 9px 12px; border-top: 1px solid var(--md-ui-border); background: var(--md-ui-surface); color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); font-weight: 400; }
+
+.md-object-tree { margin: 0; padding: 0; list-style: none; color: var(--md-ui-text); }
+.md-object-tree--nested { margin-left: 15px; padding-left: 12px; border-left: 1px solid var(--md-ui-border); }
+.md-object-tree summary, .md-object-tree__leaf { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 6px 8px; border-radius: 6px; color: inherit; text-decoration: none; }
+.md-object-tree summary { cursor: pointer; list-style: none; }
+.md-object-tree summary::-webkit-details-marker { display: none; }
+.md-object-tree summary:hover, .md-object-tree a:hover { background: var(--md-ui-surface-2); }
+.md-object-tree summary:focus-visible, .md-object-tree a:focus-visible { outline: 2px solid var(--md-ui-primary); outline-offset: -2px; }
+.md-object-tree__chevron { color: var(--md-ui-muted); transition: transform .15s; }
+.md-object-tree details[open] > summary > .md-object-tree__chevron { transform: rotate(90deg); }
+.md-object-tree__leaf { padding-left: 32px; }
 .md-kit-dropdown, .md-kit-tooltip { position: relative; display: inline-block; }
 .md-kit-dropdown__panel {
     position: absolute;

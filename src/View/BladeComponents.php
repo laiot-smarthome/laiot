@@ -12,6 +12,9 @@ use Illuminate\View\Compilers\BladeCompiler;
  * Один список и для нового kernel, и для временного BladeRenderer: иначе
  * компонент работает в тесте, но падает на живой странице.
  *
+ * 2026-10-27 — зарегистрированы типографика и хлебные крошки.
+ * 2026-10-27 — зарегистрированы дерево объектов и просмотр JSON.
+ * 2026-10-27 — зарегистрирован календарь и выбор времени.
  * 2026-10-27 — добавлены компоненты форм, таблиц и виджетов UI Kit.
  */
 final class BladeComponents
@@ -24,6 +27,7 @@ final class BladeComponents
         'avatar',
         'avatar-group',
         'badge',
+        'breadcrumbs',
         'button',
         'button-group',
         'card',
@@ -40,6 +44,7 @@ final class BladeComponents
         'cycle-card',
         'disclosure',
         'data-table',
+        'date-time-picker',
         'device-card',
         'drawer',
         'dropdown',
@@ -55,6 +60,7 @@ final class BladeComponents
         'icon-button',
         'icon-browser',
         'input',
+        'json-view',
         'kpi',
         'last-seen',
         'linked-object',
@@ -62,6 +68,7 @@ final class BladeComponents
         'logo',
         'meter',
         'modal',
+        'object-tree',
         'page-hero',
         'progress',
         'radio',
@@ -82,6 +89,7 @@ final class BladeComponents
         'tooltip',
         'toasts',
         'trace-drawer',
+        'typography',
     ];
 
     public static function register(BladeCompiler $compiler, string $views): void

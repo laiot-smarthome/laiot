@@ -22,6 +22,20 @@
             </div>
             <p>Иконки Tabler: <x-md.icon name="home" /> <x-md.icon name="bulb" /> <x-md.icon name="settings" /> <x-md.icon name="chart-line" /> <x-md.icon name="bell" /> <x-md.icon name="wifi" /></p>
         </x-md.card>
+        <x-md.card title="Типографика" subtitle="Используйте подходящий уровень заголовка и общие размеры текста.">
+            @foreach ([
+                ['display', 'Заголовок страницы', 'Крупный заголовок'],
+                ['h1', 'Название раздела', 'Заголовок первого уровня'],
+                ['h2', 'Заголовок блока', 'Заголовок второго уровня'],
+                ['h3', 'Подраздел', 'Заголовок третьего уровня'],
+                ['body', 'Основной текст интерфейса', 'Основной текст'],
+                ['small', 'Описание и дополнительная информация', 'Вторичный текст'],
+                ['caption', 'Состояние и подписи', 'Метки и подписи'],
+                ['mono', 'Kitchen.temperature = 22.5', 'Код и значения'],
+            ] as [$variant, $sample, $description])
+                <div class="md-ui-type-row"><x-md.typography :variant="$variant" as="span" class="md-ui-type-row__sample">{{ $sample }}</x-md.typography><span class="md-ui-type-row__meta">{{ $description }} · {{ $variant }}</span></div>
+            @endforeach
+        </x-md.card>
         <x-md.card title="Каталог иконок" subtitle="Поиск по Tabler Icons; нажмите на иконку, чтобы скопировать её класс."><x-md.icon-browser /></x-md.card>
     </section>
     <section id="buttons" class="md-kit-section"><x-md.section-heading eyebrow="02 · Действия" title="Кнопки и действия" />
@@ -48,8 +62,8 @@
             <x-md.select name="demo_multi" label="Несколько помещений" searchable multiple :options="['kitchen' => 'Кухня', 'living' => 'Гостиная', 'bedroom' => 'Спальня']" :selected="['kitchen', 'living']" />
             <x-md.input type="number" name="demo_number" label="Мощность" value="9" min="0" max="100" suffix="Вт" />
             <x-md.input type="password" name="demo_password" label="Пароль" autocomplete="new-password" password-toggle />
-            <x-md.input type="date" name="demo_date" label="Дата" />
-            <x-md.input type="time" name="demo_time" label="Время" />
+            <x-md.date-time-picker type="date" name="demo_date" label="Дата" />
+            <x-md.date-time-picker type="time" name="demo_time" label="Время" />
             <x-md.input type="color" name="demo_color" label="Цвет" value="#4792d1" />
             <x-md.input type="file" name="demo_file" label="Файл" />
             <x-md.input type="search" name="demo_quick_search" label="Поиск" icon="search" placeholder="Название устройства" />
@@ -70,6 +84,9 @@
     </section>
     <section id="linkedobject" class="md-kit-section"><x-md.section-heading eyebrow="04 · Связи" title="Объект, свойство и метод" /><x-md.card title="Связь объектов"><x-md.linked-object name="kit_object" label="Объект" property-name="kit_property" method-name="kit_method" /></x-md.card></section>
     <section id="navigation" class="md-kit-section"><x-md.section-heading eyebrow="05 · Навигация" title="Навигация и всплывающие элементы" />
+    <x-md.card title="Хлебные крошки" subtitle="Показывают путь к текущей странице; последний пункт не является ссылкой.">
+        <x-md.breadcrumbs :items="[['label' => 'Панель', 'href' => '/admin'], ['label' => 'Классы', 'href' => '/classes'], ['label' => 'Датчики']]" />
+    </x-md.card>
     <x-md.card title="Всплывающие элементы">
         <div class="md-ui-actions">
             <x-md.dropdown label="Действия">
@@ -115,6 +132,14 @@
         <x-md.data-table label="Пример устройств" :columns="[['key' => 'name', 'label' => 'Устройство'], ['key' => 'room', 'label' => 'Комната'], ['key' => 'status', 'label' => 'Состояние']]" :rows="[['name' => 'Основной свет', 'room' => 'Кухня', 'status' => 'Онлайн'], ['name' => 'Термостат', 'room' => 'Гостиная', 'status' => 'Онлайн'], ['name' => 'Датчик движения', 'room' => 'Прихожая', 'status' => 'Офлайн']]" :page-size="2" />
     </x-md.card>
     <x-md.card title="Серверная фильтрация на Yoyo" subtitle="Для данных, которые получает и фильтрует сервер.">@yoyo('ui-kit-devices')</x-md.card>
+    <x-md.card title="Журнал событий" subtitle="Реальные события с поиском и фильтрами типа и статуса.">@yoyo('events-table')<div class="md-ui-actions"><a class="md-btn md-btn--secondary md-btn--sm" href="/events">Открыть журнал</a></div></x-md.card>
+    <x-md.card title="Дерево объектов" subtitle="Раскрывайте группы и переходите к объектам."><x-md.object-tree :items="[
+        ['label' => 'Дом', 'open' => true, 'children' => [
+            ['label' => 'Кухня', 'open' => true, 'children' => [['label' => 'Свет', 'icon' => 'bulb'], ['label' => 'Температура', 'icon' => 'temperature']]],
+            ['label' => 'Гостиная', 'children' => [['label' => 'Термостат', 'icon' => 'temperature']]],
+        ]],
+    ]" /></x-md.card>
+    <x-md.card title="Загрузка и отсутствие данных"><div class="md-ui-card-grid"><div><div class="md-table__loading" role="status"><span class="md-spinner" aria-hidden="true"></span> Загружаем устройства…</div><x-md.skeleton :lines="3" /></div><x-md.empty-state title="Пока нет данных" text="Устройства появятся здесь после подключения." compact /></div></x-md.card>
     <x-md.card title="Аватары и пустое состояние"><x-md.avatar-group :items="['Анна Иванова', 'Михаил Сидоров', 'Сергей Петров']" /><x-md.empty-state title="Устройства не найдены" text="Измените условия поиска или добавьте устройство." compact /></x-md.card>
     <x-md.chart-card title="Температура за сутки" unit="°C" :points="[['t' => 1735689600000, 'v' => 21], ['t' => 1735711200000, 'v' => 22], ['t' => 1735732800000, 'v' => 23], ['t' => 1735754400000, 'v' => 21.5]]" />
     <x-md.card title="Компактный график"><x-md.sparkline label="Активность" :points="[['t' => 1735689600000, 'v' => 3], ['t' => 1735711200000, 'v' => 8], ['t' => 1735732800000, 'v' => 5]]" /></x-md.card>
@@ -123,7 +148,7 @@
     </section>
     <section id="feedback" class="md-kit-section"><x-md.section-heading eyebrow="08 · Обратная связь" title="Сообщения и диалоги" />
     <x-md.card title="Сообщения">
-        <div class="md-ui-stack">
+        <div class="md-ui-alert-stack">
             <x-md.alert type="info" title="Информация" text="Информационное сообщение." />
             <x-md.alert type="success" title="Готово" text="Операция выполнена." />
             <x-md.alert type="danger" title="Ошибка" text="Что-то пошло не так." />
@@ -142,7 +167,10 @@
         ['title' => 'Событие', 'text' => 'Значение датчика обновлено.', 'time' => '12:00', 'tone' => 'primary'],
     ]" />
 
-    <x-md.card title="Редактор кода"><x-md.code name="kit_code" label="Метод" value="return 42;" /></x-md.card></section>
+    <x-md.card title="Редактор кода" subtitle="Подсветка PHP, поиск, отмена и повтор изменений."><x-md.code name="kit_code" label="Метод" :value="'// Включить свет при движении' . PHP_EOL . 'if ($this->get(\'motion\')) {' . PHP_EOL . '    $this->set(\'light\', 1);' . PHP_EOL . '}'" /></x-md.card>
+    <x-md.code-sample title="Просмотр кода PHP" language="php" :code="'// Записать значение свойства' . PHP_EOL . 'sg(\'Kitchen.light\', 1);'" />
+    <x-md.json-view title="Просмотр JSON" :data="['object' => 'Kitchen', 'property' => 'temperature', 'value' => 22.5, 'online' => true]" />
+    </section>
     <section id="smarthome" class="md-kit-section"><x-md.section-heading eyebrow="10 · Умный дом" title="Устройства и датчики" />
         <div class="md-ui-card-grid"><x-md.device-card name="Основной свет" room="Кухня" type="Освещение" icon="bulb" value="65" unit="%" updated="Только что" connection="Zigbee"><x-md.switch label="Включён" checked /></x-md.device-card><x-md.sensor label="Температура" value="23,1" unit="°C" icon="temperature" hint="Гостиная" /><x-md.sensor label="Влажность" value="48" unit="%" icon="droplet" tone="info" /></div>
         <div class="md-ui-card-grid">
@@ -158,7 +186,24 @@
         <x-md.card title="Автоматизации и подключения"><x-md.automation-row name="Утренний сценарий" description="Будни в 07:00" last="сегодня" /><x-md.connection-status label="Zigbee" state="online" detail="Координатор подключён" /></x-md.card>
     </section>
     <section id="patterns" class="md-kit-section"><x-md.section-heading eyebrow="11 · Паттерны" title="Построение страниц" /><x-md.card title="Каркас раздела" subtitle="Заголовок, показатели, фильтры и основное содержимое"><p>Собирайте страницы из общих компонентов и показывайте ошибки рядом с полями.</p></x-md.card></section>
-    <section id="ai-chat" class="md-kit-section"><x-md.section-heading eyebrow="12 · ИИ" title="Компоненты сообщений" /><x-md.card title="Сущности"><div class="md-ui-actions"><x-md.entity type="object" name="Kitchen" /><x-md.entity type="property" name="Kitchen.Temperature" /><x-md.entity type="method" name="Kitchen.onChange" /><x-md.entity type="script" name="Morning" /></div><p><x-md.entity-text text="Свойство [[property:Kitchen.Temperature|Температура]] обновлено сценарием [[script:Morning]]." /></p></x-md.card><x-md.call-flow title="Цепочка выполнения" :nodes="[['type' => 'property', 'name' => 'Motion.value', 'status' => 'Изменено', 'children' => [['type' => 'method', 'name' => 'Motion.onChange', 'status' => 'Выполнено', 'children' => [['type' => 'script', 'name' => 'Включить свет', 'status' => 'Выполнено']]]]]]" /></section>
+    <section id="ai-chat" class="md-kit-section">
+        <x-md.section-heading eyebrow="12 · ИИ" title="Компоненты сообщений" />
+        <x-md.card title="Сущности"><div class="md-ui-actions"><x-md.entity type="object" name="Kitchen" /><x-md.entity type="property" name="Kitchen.Temperature" /><x-md.entity type="method" name="Kitchen.onChange" /><x-md.entity type="script" name="Morning" /></div><p><x-md.entity-text text="Свойство [[property:Kitchen.Temperature|Температура]] обновлено сценарием [[script:Morning]]." /></p></x-md.card>
+        <x-md.call-flow title="Свет по движению" started-at="23:41:07.120" duration="64 мс" :nodes="[
+            ['kind' => 'property', 'entity' => ['type' => 'property', 'name' => 'Motion.value'], 'time' => '23:41:07.120', 'actor' => 'Датчик движения · MQTT', 'before' => '0', 'after' => '1', 'status' => 'ok', 'children' => [
+                ['kind' => 'method', 'entity' => ['type' => 'method', 'name' => 'Motion.onChange'], 'time' => '23:41:07.125', 'offset' => '+5 мс', 'note' => 'Запущен обработчик изменения', 'status' => 'ok', 'children' => [
+                    ['kind' => 'condition', 'title' => 'Можно включать свет', 'expression' => 'Motion.value == 1 && Security.status == 0', 'branches' => [
+                        ['label' => 'Да', 'taken' => true, 'nodes' => [
+                            ['kind' => 'script', 'entity' => ['type' => 'script', 'name' => 'Свет по движению'], 'time' => '23:41:07.170', 'status' => 'ok', 'children' => [
+                                ['kind' => 'property', 'entity' => ['type' => 'property', 'name' => 'Light.status'], 'time' => '23:41:07.184', 'offset' => '+64 мс', 'actor' => 'Сценарий «Свет по движению»', 'before' => '0', 'after' => '1', 'status' => 'ok'],
+                            ]],
+                        ]],
+                        ['label' => 'Нет', 'taken' => false, 'empty_text' => 'Свет не включается'],
+                    ]],
+                ]],
+            ]],
+        ]" />
+    </section>
     <x-md.card title="Yoyo: серверный счётчик" subtitle="Blade + Yoyo, состояние на сервере">
         <div class="md-ui-demo__canvas">@yoyo('counter')</div>
     </x-md.card>

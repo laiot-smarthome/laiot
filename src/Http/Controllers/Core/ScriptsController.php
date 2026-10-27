@@ -11,12 +11,21 @@ use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Runtime\InvalidUserCode;
 use MajorDoMo\Scripts\ScriptRepository;
+use MajorDoMo\Scripts\ScriptTriggers;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Пользовательские скрипты: редактирование кода, без запуска циклов.
+ * Пользовательские скрипты: редактирование кода и запуск по системному событию.
+ *
+ * Категории сценариев управляются модальным Yoyo-компонентом `script-categories`
+ * на странице списка: отдельной страницы и форм на главной больше нет.
+ *
+ * Изменения:
+ * 2026-10-27 — категории вынесены в модалку, вместо расписания — системное событие;
+ *              код проверяется синтаксически до сохранения.
  */
 final readonly class ScriptsController extends Controller
 {
@@ -38,8 +47,13 @@ final readonly class ScriptsController extends Controller
             $categoryNames[$category['id']] = $category['title'];
         }
 
+        $scripts = [];
+        foreach ($this->scripts->all($search, $categoryId) as $script) {
+            $scripts[] = $script + ['trigger' => ScriptTriggers::label($script['event_name'])];
+        }
+
         $content = $this->view->make('pages.scripts.index', [
-            'scripts' => $this->scripts->all($search, $categoryId),
+            'scripts' => $scripts,
             'categories' => $categories,
             'categoryNames' => $categoryNames,
             'categoryCounts' => $this->scripts->categoryCounts(),
@@ -51,35 +65,6 @@ final readonly class ScriptsController extends Controller
         ])->render();
 
         return $this->panel->render(new PanelPage('Скрипты', $content, 'scripts'));
-    }
-
-    public function storeCategory(Request $request): Response
-    {
-        try {
-            $this->scripts->createCategory((string)$request->request->get('title', ''));
-        } catch (InvalidArgumentException $error) {
-            return new RedirectResponse('/scripts?error=' . rawurlencode($error->getMessage()));
-        }
-
-        return new RedirectResponse('/scripts?done=' . rawurlencode('Категория создана.'));
-    }
-
-    public function renameCategory(string $id, Request $request): Response
-    {
-        try {
-            $this->scripts->renameCategory((int)$id, (string)$request->request->get('title', ''));
-        } catch (InvalidArgumentException $error) {
-            return new RedirectResponse('/scripts?error=' . rawurlencode($error->getMessage()));
-        }
-
-        return new RedirectResponse('/scripts?done=' . rawurlencode('Категория переименована.'));
-    }
-
-    public function deleteCategory(string $id): Response
-    {
-        $this->scripts->deleteCategory((int)$id);
-
-        return new RedirectResponse('/scripts?done=' . rawurlencode('Категория удалена, сценарии остались без категории.'));
     }
 
     public function create(): Response
@@ -103,7 +88,7 @@ final readonly class ScriptsController extends Controller
                 'description' => $full['description'],
                 'code' => $full['code'],
                 'category_id' => $full['category_id'],
-                'run_periodically' => $full['run_periodically'],
+                'event_name' => $full['event_name'],
             ];
         }
 
@@ -137,6 +122,7 @@ final readonly class ScriptsController extends Controller
 
         $created = 0;
         $skipped = [];
+        $invalid = [];
         foreach ($decoded as $item) {
             if (!is_array($item)) {
                 continue;
@@ -150,19 +136,34 @@ final readonly class ScriptsController extends Controller
                 continue;
             }
 
-            $this->scripts->create(
-                $title,
-                (string)($item['code'] ?? ''),
-                (string)($item['description'] ?? ''),
-                (int)($item['category_id'] ?? 0),
-                (bool)($item['run_periodically'] ?? false)
-            );
+            try {
+                $this->scripts->create(
+                    $title,
+                    (string)($item['code'] ?? ''),
+                    (string)($item['description'] ?? ''),
+                    (int)($item['category_id'] ?? 0),
+                    (string)($item['event_name'] ?? '')
+                );
+            } catch (InvalidUserCode $error) {
+                $invalid[] = $title . ' (строка ' . $error->codeLine . ': ' . $error->getMessage() . ')';
+                continue;
+            } catch (InvalidArgumentException $error) {
+                $invalid[] = $title . ' (' . $error->getMessage() . ')';
+                continue;
+            }
             $created++;
         }
 
         $query = 'done=' . rawurlencode('Импортировано сценариев: ' . $created . '.');
+        $problems = [];
+        if ($invalid !== []) {
+            $problems[] = 'Не сохранены: ' . implode('; ', array_slice($invalid, 0, 5));
+        }
         if ($skipped !== []) {
-            $query .= '&error=' . rawurlencode('Пропущены (уже есть): ' . implode(', ', array_slice($skipped, 0, 5)));
+            $problems[] = 'Пропущены (уже есть): ' . implode(', ', array_slice($skipped, 0, 5));
+        }
+        if ($problems !== []) {
+            $query .= '&error=' . rawurlencode(implode(' ', $problems));
         }
 
         return new RedirectResponse('/scripts?' . $query);
@@ -176,10 +177,10 @@ final readonly class ScriptsController extends Controller
                 (string)$request->request->get('code', ''),
                 (string)$request->request->get('description', ''),
                 (int)$request->request->get('category_id', 0),
-                (string)$request->request->get('run_periodically', '') === '1'
+                (string)$request->request->get('event_name', '')
             );
         } catch (InvalidArgumentException $error) {
-            return $this->form(null, $error->getMessage(), $request->request->all(), 422);
+            return $this->form(null, $this->errorText($error), $request->request->all(), 422, $this->codeError($error));
         }
 
         return new RedirectResponse('/scripts/' . $id . '/edit');
@@ -208,10 +209,10 @@ final readonly class ScriptsController extends Controller
                 (string)$request->request->get('code', ''),
                 (string)$request->request->get('description', ''),
                 (int)$request->request->get('category_id', 0),
-                (string)$request->request->get('run_periodically', '') === '1'
+                (string)$request->request->get('event_name', '')
             );
         } catch (InvalidArgumentException $error) {
-            return $this->form($script, $error->getMessage(), $request->request->all(), 422);
+            return $this->form($script, $this->errorText($error), $request->request->all(), 422, $this->codeError($error));
         }
 
         return new RedirectResponse('/scripts');
@@ -225,19 +226,49 @@ final readonly class ScriptsController extends Controller
     }
 
     /**
-     * @param array{id:int,title:string,code:string,description:string,category_id:int,run_periodically:bool}|null $script
+     * @param array{id:int,title:string,code:string,description:string,category_id:int,event_name:string}|null $script
      * @param array<string, mixed>|null $draft
+     * @param array{line:int,message:string}|null $codeError
      */
-    private function form(?array $script, ?string $error = null, ?array $draft = null, int $status = 200): Response
-    {
+    private function form(
+        ?array $script,
+        ?string $error = null,
+        ?array $draft = null,
+        int $status = 200,
+        ?array $codeError = null
+    ): Response {
         $content = $this->view->make('pages.scripts.form', [
             'script' => $script,
             'draft' => $draft,
             'categories' => $this->scripts->categories(),
+            'triggers' => ScriptTriggers::catalog(),
             'error' => $error,
+            'codeError' => $codeError,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
         return $this->panel->render(new PanelPage($script === null ? 'Новый скрипт' : 'Скрипт', $content, 'scripts'), $status);
+    }
+
+    /**
+     * Текст ошибки для общего оповещения: у синтаксической ошибки нужна строка.
+     */
+    private function errorText(InvalidArgumentException $error): string
+    {
+        if ($error instanceof InvalidUserCode) {
+            return 'Синтаксическая ошибка в строке ' . $error->codeLine . ': ' . $error->getMessage();
+        }
+
+        return $error->getMessage();
+    }
+
+    /**
+     * @return array{line:int,message:string}|null
+     */
+    private function codeError(InvalidArgumentException $error): ?array
+    {
+        return $error instanceof InvalidUserCode
+            ? ['line' => $error->codeLine, 'message' => $error->getMessage()]
+            : null;
     }
 }

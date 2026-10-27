@@ -7,19 +7,23 @@ namespace MajorDoMo\Methods;
 use InvalidArgumentException;
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Runtime\InvalidUserCode;
+use MajorDoMo\Runtime\PhpSyntaxValidator;
 
 /**
  * Методы классов и объектов MyDoMo.
  *
+ * 2026-10-27 — код метода проверяется синтаксически до сохранения.
  * 2026-10-27 — методы находятся по цепочке наследования классов; добавлены
- * объектные методы (`object_id`), переопределяющие метод класса у одного
- * объекта. Вызов из сценария и OnChange идёт через этот же поиск.
+ *              объектные методы (`object_id`), переопределяющие метод класса у одного
+ *              объекта. Вызов из сценария и OnChange идёт через этот же поиск.
  */
 final readonly class MethodRepository
 {
     public function __construct(
         private DatabaseManager $database,
-        private ClassRepository $classes
+        private ClassRepository $classes,
+        private PhpSyntaxValidator $syntax
     ) {
     }
 
@@ -324,6 +328,7 @@ final readonly class MethodRepository
         [$classId, $objectId] = $this->scope($classId, $objectId);
         $title = $this->title($title);
         $this->assertTitleFree($classId, $objectId, $title);
+        $this->assertCode($code);
         $now = date('Y-m-d H:i:s');
 
         return (int)$this->database->connection()->table('methods')->insertGetId([
@@ -349,6 +354,7 @@ final readonly class MethodRepository
         [$classId, $objectId] = $this->scope($classId, $objectId);
         $title = $this->title($title);
         $this->assertTitleFree($classId, $objectId, $title, $id);
+        $this->assertCode($code);
 
         $this->database->connection()->table('methods')
             ->where('id', $id)
@@ -430,6 +436,19 @@ final readonly class MethodRepository
         if ($query->exists()) {
             throw new InvalidArgumentException('Метод с таким названием уже есть в этой области.');
         }
+    }
+
+    /**
+     * Единственная точка сохранения кода: invalid PHP не попадает в базу.
+     */
+    private function assertCode(string $code): void
+    {
+        $error = $this->syntax->validate($code);
+        if ($error === null) {
+            return;
+        }
+
+        throw new InvalidUserCode($error['line'], $error['message']);
     }
 
     /**

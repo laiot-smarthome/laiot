@@ -14,6 +14,7 @@ use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Objects\ObjectRepository;
+use MajorDoMo\Runtime\InvalidUserCode;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -24,6 +25,7 @@ use Symfony\Component\HttpFoundation\Response;
  * объекта. Редактор не исполняет код: вызов идёт из сценария, API или
  * OnChange-обработчика.
  *
+ * 2026-10-27 — синтаксическая ошибка кода подсвечивается в редакторе.
  * 2026-10-27 — страница стала контекстной формой класса/объекта.
  */
 final readonly class MethodsController extends Controller
@@ -67,7 +69,7 @@ final readonly class MethodsController extends Controller
                 $objectId
             );
         } catch (InvalidArgumentException $error) {
-            return $this->form(null, $error->getMessage(), $request->request->all(), 422);
+            return $this->form(null, $this->errorText($error), $request->request->all(), 422, $this->codeError($error));
         }
 
         return new RedirectResponse($this->returnUrl($classId, $objectId));
@@ -103,7 +105,7 @@ final readonly class MethodsController extends Controller
                 $objectId
             );
         } catch (InvalidArgumentException $error) {
-            return $this->form($method, $error->getMessage(), $request->request->all(), 422);
+            return $this->form($method, $this->errorText($error), $request->request->all(), 422, $this->codeError($error));
         }
 
         return new RedirectResponse($this->returnUrl($classId, $objectId));
@@ -124,9 +126,15 @@ final readonly class MethodsController extends Controller
     /**
      * @param array{id:int,class_id:int,object_id:int,title:string,description:string,code:string}|null $method
      * @param array<string, mixed>|null $draft
+     * @param array{line:int,message:string}|null $codeError
      */
-    private function form(?array $method, ?string $error = null, ?array $draft = null, int $status = 200): Response
-    {
+    private function form(
+        ?array $method,
+        ?string $error = null,
+        ?array $draft = null,
+        int $status = 200,
+        ?array $codeError = null
+    ): Response {
         $classId = (int)($draft['class_id'] ?? $method['class_id'] ?? 0);
         $objectId = (int)($draft['object_id'] ?? $method['object_id'] ?? 0);
         $object = $objectId > 0 ? $this->objects->find($objectId) : null;
@@ -145,6 +153,7 @@ final readonly class MethodsController extends Controller
             'objectId' => $objectId,
             'returnUrl' => $this->returnUrl($classId, $objectId),
             'error' => $error,
+            'codeError' => $codeError,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
@@ -152,6 +161,25 @@ final readonly class MethodsController extends Controller
             new PanelPage($method === null ? 'Новый метод' : 'Метод: ' . (string)$method['title'], $content, 'classes'),
             $status
         );
+    }
+
+    private function errorText(InvalidArgumentException $error): string
+    {
+        if ($error instanceof InvalidUserCode) {
+            return 'Синтаксическая ошибка в строке ' . $error->codeLine . ': ' . $error->getMessage();
+        }
+
+        return $error->getMessage();
+    }
+
+    /**
+     * @return array{line:int,message:string}|null
+     */
+    private function codeError(InvalidArgumentException $error): ?array
+    {
+        return $error instanceof InvalidUserCode
+            ? ['line' => $error->codeLine, 'message' => $error->getMessage()]
+            : null;
     }
 
     private function notFound(): Response

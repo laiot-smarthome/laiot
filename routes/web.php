@@ -151,17 +151,8 @@ return static function (Router $router): void {
             $router->post('/scripts/import', [ScriptsController::class, 'import'])
                 ->middleware('csrf')
                 ->name('scripts.import.store');
-            $router->post('/scripts/categories', [ScriptsController::class, 'storeCategory'])
-                ->middleware('csrf')
-                ->name('scripts.categories.store');
-            $router->post('/scripts/categories/{id}', [ScriptsController::class, 'renameCategory'])
-                ->whereNumber('id')
-                ->middleware('csrf')
-                ->name('scripts.categories.rename');
-            $router->post('/scripts/categories/{id}/delete', [ScriptsController::class, 'deleteCategory'])
-                ->whereNumber('id')
-                ->middleware('csrf')
-                ->name('scripts.categories.delete');
+            // Категории сценариев управляются модальным Yoyo-компонентом
+            // `script-categories`; отдельных POST-маршрутов раздела нет.
             $router->get('/scripts/create', [ScriptsController::class, 'create'])->name('scripts.create');
             $router->post('/scripts/create', [ScriptsController::class, 'store'])->middleware('csrf')->name('scripts.store');
             $router->get('/scripts/{id}/edit', [ScriptsController::class, 'edit'])->whereNumber('id')->name('scripts.edit');

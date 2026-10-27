@@ -7,7 +7,7 @@
 
 .md-code-editor--cm {
     display: block;
-    overflow: hidden;
+    overflow: visible;
     background: var(--md-ui-surface);
     border: 1px solid var(--md-ui-border);
     border-radius: var(--md-ui-radius-sm);
@@ -15,7 +15,7 @@
 
 .md-code-editor--cm .cm-editor {
     width: 100%;
-    min-height: 12rem;
+    max-height: 70vh;
     color: var(--md-ui-text);
     background: transparent;
     font-family: var(--md-ui-font-mono);
@@ -27,7 +27,6 @@
 }
 
 .md-code-editor--cm .cm-scroller {
-    max-height: 70vh;
     overflow: auto;
     line-height: 1.55;
 }
@@ -65,3 +64,18 @@
 .md-code-editor--cm .cm-searchMatch.cm-searchMatch-selected {
     background: var(--md-ui-primary-soft);
 }
+
+.md-code-editor--cm:focus-within { position: relative; z-index: 2; }
+.md-code-editor__toolbar:not([hidden]) { position: relative; z-index: 301; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px; border-bottom: 1px solid var(--md-ui-border); background: var(--md-ui-surface-2); color: var(--md-ui-muted); font-size: .8rem; }
+.md-code-editor__toolbar .md-ui-actions { flex-wrap: wrap; }
+.md-code-editor__help { position: relative; }
+.md-code-editor__help summary { list-style: none; cursor: pointer; }
+.md-code-editor__help summary::-webkit-details-marker { display: none; }
+.md-code-editor__shortcuts { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; width: min(300px, 85vw); padding: 12px; border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-sm); background: var(--md-ui-surface); color: var(--md-ui-text); box-shadow: var(--md-ui-shadow-pop); }
+.md-code-editor__shortcuts p { margin: 7px 0 0; }
+.md-code-editor__shortcuts kbd { padding: 2px 4px; border: 1px solid var(--md-ui-border); border-radius: 4px; background: var(--md-ui-surface-2); color: var(--md-ui-text); }
+.md-code-sample__code .tok-keyword, .md-code-sample__code .tok-bool, .md-code-sample__code .tok-atom { color: #c792ea; }
+.md-code-sample__code .tok-string, .md-code-sample__code .tok-string2 { color: #a5d6a7; }
+.md-code-sample__code .tok-number, .md-code-sample__code .tok-propertyName { color: #ffcb6b; }
+.md-code-sample__code .tok-variableName, .md-code-sample__code .tok-typeName { color: #82aaff; }
+.md-code-sample__code .tok-comment { color: #8499b1; font-style: italic; }

@@ -13,7 +13,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
-#[AsCommand(name: 'core-worker', description: 'Критичный ядровой процесс (queue/events/timeouts/maintenance)')]
+#[AsCommand(name: 'core-worker', description: 'Критичный ядровой процесс (queue/events/timeouts/maintenance/system-events)')]
+/** 2026-10-27 — добавлен процесс системных событий времени. */
 final class CoreWorkerCommand extends Command
 {
     public function __construct(private readonly CoreWorker $worker)
@@ -23,7 +24,7 @@ final class CoreWorkerCommand extends Command
 
     protected function configure(): void
     {
-        $this->addArgument('task', InputArgument::REQUIRED, 'queue, events, events.<n>, timeouts или maintenance');
+        $this->addArgument('task', InputArgument::REQUIRED, 'queue, events, events.<n>, timeouts, maintenance или system-events');
         $this->addOption('once', null, InputOption::VALUE_NONE, 'Один проход и выход');
     }
 

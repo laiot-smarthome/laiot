@@ -12,6 +12,9 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ * 2026-10-27 — проверяются семантика типографики и навигационной цепочки.
+ * 2026-10-27 — проверяются экранирование JSON и безопасные ссылки дерева.
+ * 2026-10-27 — проверяются цепочка с источником и изменением значения.
  * 2026-10-27 — проверяются новые примеры форм и таблицы.
  */
 final class CoreUiKitTest extends TestCase
@@ -49,11 +52,40 @@ final class CoreUiKitTest extends TestCase
         self::assertStringContainsString('Выбор карточками', $html);
         self::assertStringContainsString('aria-controls="left_block"', $html);
         self::assertStringContainsString('yoyo:name="folder-picker"', $html);
+        self::assertStringContainsString('Light.status', $html);
+        self::assertStringContainsString('Источник: Сценарий', $html);
+        self::assertStringContainsString('Было: <strong>0</strong>', $html);
+        self::assertStringContainsString('Стало: <strong>1</strong>', $html);
+        self::assertStringContainsString('#4', $html);
         $entityText = $app->container()->make(Factory::class)->make('components.md.entity-text', [
             'text' => '<script>alert(1)</script> [[property:Kitchen.Temperature|Температура|javascript:alert]]',
         ])->render();
         self::assertStringNotContainsString('<script>', $entityText);
         self::assertStringNotContainsString('href="javascript:', $entityText);
         self::assertStringContainsString('Температура', $entityText);
+
+        $tree = $app->container()->make(Factory::class)->make('components.md.object-tree', [
+            'items' => [['label' => '<script>alert(1)</script>', 'href' => 'javascript:alert(1)']],
+        ])->render();
+        self::assertStringNotContainsString('<script>', $tree);
+        self::assertStringNotContainsString('href="javascript:', $tree);
+
+        $json = $app->container()->make(Factory::class)->make('components.md.json-view', [
+            'data' => ['message' => '<script>alert(1)</script>'],
+        ])->render();
+        self::assertStringContainsString('data-language="json"', $json);
+        self::assertStringNotContainsString('<script>', $json);
+
+        $breadcrumbs = $app->container()->make(Factory::class)->make('components.md.breadcrumbs', [
+            'items' => [['label' => 'Панель', 'href' => '/admin'], ['label' => 'Текущая', 'href' => '/current']],
+        ])->render();
+        self::assertStringContainsString('href="/admin"', $breadcrumbs);
+        self::assertStringContainsString('aria-current="page"', $breadcrumbs);
+        self::assertStringNotContainsString('href="/current"', $breadcrumbs);
+
+        $unsafeBreadcrumb = $app->container()->make(Factory::class)->make('components.md.breadcrumbs', [
+            'items' => [['label' => 'Опасная ссылка', 'href' => 'javascript:alert(1)'], ['label' => 'Текущая']],
+        ])->render();
+        self::assertStringNotContainsString('href="javascript:', $unsafeBreadcrumb);
     }
 }

@@ -20,10 +20,10 @@
 
         <x-md.card title="Данные JSON">
             <x-md.textarea name="payload" label="JSON сценариев" rows="16" required
-                           hint="Массив объектов: title, description, code, category_id, run_periodically." />
+                           hint="Массив объектов: title, description, code, category_id, event_name." />
             <x-md.hint tone="info" title="Формат">
-                <code class="md-table__code">[{"title": "Утренний свет", "code": "cm('Спальня.turnOn');", "description": "...", "run_periodically": false}]</code>
-                <span class="md-ui-muted">Лишние поля игнорируются; сценарии с существующим названием пропускаются.</span>
+                <code class="md-table__code">[{"title": "Утренний свет", "code": "cm('Спальня.turnOn');", "description": "...", "event_name": "system.minute"}]</code>
+                <span class="md-ui-muted">Лишние поля игнорируются; сценарии с существующим названием пропускаются, а код с синтаксической ошибкой не сохраняется.</span>
             </x-md.hint>
         </x-md.card>
 

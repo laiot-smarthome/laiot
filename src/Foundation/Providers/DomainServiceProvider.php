@@ -22,6 +22,8 @@ use MajorDoMo\Events\PropertyEventContext;
 use MajorDoMo\Events\PropertyEventHandler;
 use MajorDoMo\Events\PropertyEventQueue;
 use MajorDoMo\Events\PropertyEventRepository;
+use MajorDoMo\Events\SystemEvents;
+use MajorDoMo\Events\SystemEventTicker;
 use MajorDoMo\Foundation\ServiceProvider;
 use MajorDoMo\History\HistoryRepository;
 use MajorDoMo\History\PropertyHistoryService;
@@ -40,7 +42,10 @@ use MajorDoMo\Properties\ValueRepository;
 use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
 use MajorDoMo\Runtime\CodeRunner;
+use MajorDoMo\Runtime\PhpSyntaxValidator;
 use MajorDoMo\Runtime\TimeoutRepository;
+use MajorDoMo\Scripts\ScriptEventDispatcher;
+use MajorDoMo\Scripts\ScriptEventJob;
 use MajorDoMo\Scripts\ScriptRepository;
 use MajorDoMo\Scripts\ScriptRunner;
 use MajorDoMo\Search\PanelSearch;
@@ -49,6 +54,8 @@ use MajorDoMo\Search\PanelSearch;
  * Репозитории и доменные операции ядра; зависимости собирает контейнер.
  *
  * Изменения:
+ * 2026-10-27 — сценарии запускаются по системному событию; код проверяется до сохранения.
+ * 2026-10-27 — регистрация системных событий и их доставки модулям.
  * 2026-10-27 — обработчик `property.changed` регистрируется для core-worker events.
  * 2026-10-26 — общие экземпляры сервисов сохранены при переходе на провайдеры.
  */
@@ -74,7 +81,10 @@ final class DomainServiceProvider extends ServiceProvider
             MethodRunner::class,
             TimeoutRepository::class,
             CodeRunner::class,
+            PhpSyntaxValidator::class,
             ScriptRunner::class,
+            ScriptEventDispatcher::class,
+            ScriptEventJob::class,
             WebhookRepository::class,
             WebhookService::class,
             HistoryRepository::class,
@@ -84,6 +94,8 @@ final class DomainServiceProvider extends ServiceProvider
             // Контекст события: цепочка, родитель журнала и модуль-автор
             // для вложенных записей внутри обработчика.
             PropertyEventContext::class,
+            SystemEvents::class,
+            SystemEventTicker::class,
             PropertyEventHandler::class,
             PropertyValueService::class,
             Authorization::class,
@@ -106,20 +118,52 @@ final class DomainServiceProvider extends ServiceProvider
     }
 
     /**
-     * Регистрирует обработчик очереди событий свойства.
+     * Регистрирует обработчики очередей ядра.
      *
-     * Само задание выполняет `core-worker events`; в HTTP-запросе обработчик
-     * только лежит в реестре и не запускает пользовательский код.
+     * Сами задания выполняет `core-worker`; в HTTP-запросе обработчики только
+     * лежат в реестре и не запускают пользовательский код.
      */
     public function boot(): void
     {
-        $this->container->make(JobRegistry::class)->register(
+        $jobs = $this->container->make(JobRegistry::class);
+        $jobs->register(
+            'module.system.event',
+            [$this->container->make(SystemEvents::class), 'deliver']
+        );
+        $jobs->register(
             'property.changed',
             $this->container->make(PropertyEventHandler::class)
         );
-        $this->container->make(JobRegistry::class)->register(
+        $jobs->register(
             'module.property.changed',
             $this->container->make(ModulePropertyHandler::class)
         );
+        // Задание и наблюдатель резолвятся лениво: boot не должен создавать
+        // ScriptRunner/CodeRunner раньше первого запуска сценария.
+        $jobs->register(ScriptEventDispatcher::JOB, $this->scriptEventHandler());
+
+        // Сценарии не модули: генератор событий передаёт их обработчику ядра,
+        // а не подписывает как SDK-модуль.
+        $this->container->make(SystemEvents::class)->observe($this->scriptEventObserver());
+    }
+
+    /**
+     * @return callable(array<string, mixed>): void
+     */
+    private function scriptEventHandler(): callable
+    {
+        return function (array $payload): void {
+            $this->container->make(ScriptEventJob::class)->handle($payload);
+        };
+    }
+
+    /**
+     * @return callable(string, array<string, mixed>): void
+     */
+    private function scriptEventObserver(): callable
+    {
+        return function (string $event, array $data): void {
+            $this->container->make(ScriptEventDispatcher::class)->dispatch($event, $data);
+        };
     }
 }

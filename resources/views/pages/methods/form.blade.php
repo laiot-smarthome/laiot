@@ -52,34 +52,40 @@
             <input type="hidden" name="object_id" value="{{ $objectId }}">
         @endif
 
-        <x-md.card title="Описание метода">
-            <div class="md-ui-form-stack">
-                @if ($classId <= 0 && $objectId <= 0)
+        <div class="md-ui-form-stack">
+            <x-md.card title="Описание метода">
+                <div class="md-ui-form-stack">
+                    @if ($classId <= 0 && $objectId <= 0)
+                        <div class="md-ui-form-grid">
+                            <x-md.select name="class_id" label="Класс" :selected="$classId" required
+                                         hint="Метод принадлежит классу и наследуется его объектами.">
+                                @foreach ($classes as $row)
+                                    <option value="{{ $row['id'] }}" @selected($classId === (int)$row['id'])>{{ $row['title'] }}</option>
+                                @endforeach
+                            </x-md.select>
+                        </div>
+                    @endif
+
                     <div class="md-ui-form-grid">
-                        <x-md.select name="class_id" label="Класс" :selected="$classId" required
-                                     hint="Метод принадлежит классу и наследуется его объектами.">
-                            @foreach ($classes as $row)
-                                <option value="{{ $row['id'] }}" @selected($classId === (int)$row['id'])>{{ $row['title'] }}</option>
-                            @endforeach
-                        </x-md.select>
+                        <x-md.input name="title" label="Название" :value="$field('title')" required
+                                    hint="Латиницей: onTemperatureChange, turnOn, refreshStatus." />
                     </div>
-                @endif
-
-                <div class="md-ui-form-grid">
-                    <x-md.input name="title" label="Название" :value="$field('title')" required
-                                hint="Латиницей: onTemperatureChange, turnOn, refreshStatus." />
+                    <x-md.textarea name="description" label="Описание" :value="$field('description')" rows="2"
+                                   hint="Когда вызывается и что меняет." />
                 </div>
-                <x-md.textarea name="description" label="Описание" :value="$field('description')" rows="2"
-                               hint="Когда вызывается и что меняет." />
-            </div>
-        </x-md.card>
+            </x-md.card>
 
-        <x-md.card title="Код">
-            <x-md.code name="code" :value="$field('code')" rows="18"
-                       hint="PHP без открывающего тега. Доступны $this, gg(), sg(), callMethod()." />
-            <x-md.hint tone="warning" title="Код выполняется при вызове"
-                       text="Сохранение безопасно, но метод запустится, когда его вызовет сценарий, OnChange или API." />
-        </x-md.card>
+            <x-md.card title="Код">
+                <x-md.code name="code" :value="$field('code')" :error="$codeError" rows="18"
+                           hint="PHP без открывающего тега. Доступны $this, gg(), sg(), callMethod()." />
+            </x-md.card>
+
+            <x-md.card title="Как выполняется" icon="player-play"
+                      subtitle="Сохранение код не выполняет: метод запускается только при вызове">
+                <x-md.hint tone="warning" title="Код выполняется при вызове"
+                           text="Метод запустится, когда его вызовет сценарий, OnChange или API. Синтаксис проверяется перед сохранением: при ошибке остаётся предыдущая версия." />
+            </x-md.card>
+        </div>
 
         <div class="md-ui-form-actions">
             <x-md.button type="submit" icon="check">{{ $isNew ? 'Создать метод' : 'Сохранить' }}</x-md.button>

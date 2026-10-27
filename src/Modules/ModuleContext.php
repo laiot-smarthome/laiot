@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MajorDoMo\Modules;
 
 use Illuminate\Container\Container;
+use MajorDoMo\Events\SystemEvents;
 
 /**
  * Контекст, который SDK передаёт в entrypoint модуля.
@@ -13,6 +14,7 @@ use Illuminate\Container\Container;
  * таблицы напрямую недоступны. Настройки и подписки на свойства выдаются
  * сервисами, привязанными к id модуля: подписаться за соседний модуль нельзя.
  *
+ * 2026-10-27 — подписка модуля на системные события.
  * 2026-10-27 — settings() и subscriptions() вместо доступа к реестру напрямую.
  */
 final readonly class ModuleContext
@@ -59,6 +61,11 @@ final readonly class ModuleContext
     public function subscriptions(): ModuleSubscriptions
     {
         return $this->subscriptions;
+    }
+
+    public function onSystemEvent(string $event, callable $listener): void
+    {
+        $this->container->make(SystemEvents::class)->subscribe($this->id(), $event, $listener);
     }
 
     public function container(): Container

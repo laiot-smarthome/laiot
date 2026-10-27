@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MajorDoMo\Worker;
 
 use MajorDoMo\Events\PropertyEventQueue;
+use MajorDoMo\Events\SystemEventTicker;
 use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Maintenance\RetentionPruner;
 use MajorDoMo\Queue\JobRegistry;
@@ -12,6 +13,7 @@ use MajorDoMo\Queue\Queue;
 use MajorDoMo\Queue\QueueWorker;
 use MajorDoMo\Runtime\CodeRunner;
 use MajorDoMo\Runtime\TimeoutRepository;
+use MajorDoMo\Support\Clock;
 use RuntimeException;
 use Throwable;
 
@@ -25,6 +27,7 @@ use Throwable;
  * `core-worker events.<n>` — одну, чтобы несколько процессов обрабатывали
  * независимые свойства параллельно, сохраняя порядок внутри свойства.
  *
+ * 2026-10-27 — системные события времени создаёт отдельный процесс.
  * 2026-10-27 — добавлен процесс events: OnChange и доставка свойства не
  *              выполняются в запросе, который записал значение.
  * 2026-10-27 — полосы событий: один процесс на полосу для параллельной работы.
@@ -34,7 +37,7 @@ use Throwable;
  */
 final class CoreWorker
 {
-    public const TASKS = ['queue', 'events', 'timeouts', 'maintenance'];
+    public const TASKS = ['queue', 'events', 'timeouts', 'maintenance', 'system-events'];
 
     private bool $stop = false;
 
@@ -47,7 +50,9 @@ final class CoreWorker
         private readonly PropertyEventQueue $events,
         private readonly LoggerFactory $loggers,
         private readonly ProcessLock $processLock,
-        private readonly RetentionPruner $retention
+        private readonly RetentionPruner $retention,
+        private readonly SystemEventTicker $systemEvents,
+        private readonly Clock $clock
     ) {
     }
 
@@ -74,6 +79,8 @@ final class CoreWorker
                         $this->runQueue('default', 'queue', $once, $pid);
                     } elseif ($task === 'timeouts') {
                         $this->runTimeouts($once, $pid);
+                    } elseif ($task === 'system-events') {
+                        $this->runSystemEvents($once, $pid);
                     } elseif ($task === 'maintenance') {
                         $this->runMaintenance($once, $pid);
                     } else {
@@ -216,6 +223,18 @@ final class CoreWorker
                 $next = time() + $this->retention->interval();
             }
             sleep(1);
+        }
+    }
+
+    private function runSystemEvents(bool $once, int $pid): void
+    {
+        while (!$this->stop) {
+            $this->state->refreshTask('core', 'system-events', $pid);
+            $this->systemEvents->tick($this->clock->now());
+            if ($once) {
+                return;
+            }
+            usleep(250_000);
         }
     }
 

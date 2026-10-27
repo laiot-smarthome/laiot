@@ -6,18 +6,25 @@ namespace MajorDoMo\Scripts;
 
 use InvalidArgumentException;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Runtime\InvalidUserCode;
+use MajorDoMo\Runtime\PhpSyntaxValidator;
 
 /**
  * Пользовательские скрипты MyDoMo.
+ *
+ * 2026-10-27 — вместо признака расписания хранится системное событие запуска;
+ *              код проверяется синтаксически до сохранения.
  */
 final readonly class ScriptRepository
 {
-    public function __construct(private DatabaseManager $database)
-    {
+    public function __construct(
+        private DatabaseManager $database,
+        private PhpSyntaxValidator $syntax
+    ) {
     }
 
     /**
-     * @return list<array{id:int,title:string,category_id:int,description:string,run_periodically:bool}>
+     * @return list<array{id:int,title:string,category_id:int,description:string,event_name:string}>
      */
     public function all(string $search = '', int $categoryId = 0): array
     {
@@ -34,18 +41,12 @@ final readonly class ScriptRepository
 
         return $query->orderBy('title')
             ->get()
-            ->map(static fn (object $row): array => [
-                'id' => (int)$row->id,
-                'title' => (string)$row->title,
-                'category_id' => (int)$row->category_id,
-                'description' => (string)($row->description ?? ''),
-                'run_periodically' => (int)($row->run_periodically ?? 0) === 1,
-            ])
+            ->map(fn (object $row): array => $this->row($row))
             ->all();
     }
 
     /**
-     * @return array{id:int,title:string,code:string,description:string,category_id:int,run_periodically:bool}|null
+     * @return array{id:int,title:string,code:string,description:string,category_id:int,event_name:string}|null
      */
     public function find(int $id): ?array
     {
@@ -54,20 +55,13 @@ final readonly class ScriptRepository
             ->whereNull('deleted_at')
             ->first();
 
-        return $row === null ? null : [
-            'id' => (int)$row->id,
-            'title' => (string)$row->title,
-            'code' => (string)($row->code ?? ''),
-            'description' => (string)($row->description ?? ''),
-            'category_id' => (int)$row->category_id,
-            'run_periodically' => (int)$row->run_periodically === 1,
-        ];
+        return $row === null ? null : $this->row($row) + ['code' => (string)($row->code ?? '')];
     }
 
     /**
      * Поиск по названию: alpha `runScript()` принимал и ID, и заголовок.
      *
-     * @return array{id:int,title:string,code:string,description:string,category_id:int,run_periodically:bool}|null
+     * @return array{id:int,title:string,code:string,description:string,category_id:int,event_name:string}|null
      */
     public function findByTitle(string $title): ?array
     {
@@ -76,43 +70,77 @@ final readonly class ScriptRepository
             ->whereNull('deleted_at')
             ->first();
 
-        return $row === null ? null : [
-            'id' => (int)$row->id,
-            'title' => (string)$row->title,
-            'code' => (string)($row->code ?? ''),
-            'description' => (string)($row->description ?? ''),
-            'category_id' => (int)$row->category_id,
-            'run_periodically' => (int)$row->run_periodically === 1,
-        ];
+        return $row === null ? null : $this->row($row) + ['code' => (string)($row->code ?? '')];
     }
 
-    public function create(string $title, string $code, string $description, int $categoryId, bool $runPeriodically): int
+    /**
+     * Сценарии, привязанные к системному событию.
+     *
+     * @return list<array{id:int,title:string}>
+     */
+    public function byEvent(string $event): array
     {
+        $event = trim($event);
+        if ($event === '') {
+            return [];
+        }
+
+        return $this->database->connection()->table('scripts')
+            ->where('event_name', $event)
+            ->whereNull('deleted_at')
+            ->orderBy('id')
+            ->get(['id', 'title'])
+            ->map(static fn (object $row): array => [
+                'id' => (int)$row->id,
+                'title' => (string)$row->title,
+            ])
+            ->all();
+    }
+
+    public function create(
+        string $title,
+        string $code,
+        string $description,
+        int $categoryId,
+        string $eventName = ''
+    ): int {
+        $title = $this->title($title);
+        $eventName = ScriptTriggers::normalize($eventName);
+        $this->assertCode($code);
         $now = date('Y-m-d H:i:s');
 
         return (int)$this->database->connection()->table('scripts')->insertGetId([
-            'title' => $this->title($title),
+            'title' => $title,
             'code' => $code,
             'description' => $description,
             'category_id' => max(0, $categoryId),
-            'run_periodically' => $runPeriodically ? 1 : 0,
+            'event_name' => $eventName,
             'created_at' => $now,
             'updated_at' => $now,
             'deleted_at' => null,
         ]);
     }
 
-    public function update(int $id, string $title, string $code, string $description, int $categoryId, bool $runPeriodically): void
-    {
+    public function update(
+        int $id,
+        string $title,
+        string $code,
+        string $description,
+        int $categoryId,
+        string $eventName = ''
+    ): void {
+        $title = $this->title($title);
+        $eventName = ScriptTriggers::normalize($eventName);
+        $this->assertCode($code);
         $this->database->connection()->table('scripts')
             ->where('id', $id)
             ->whereNull('deleted_at')
             ->update([
-                'title' => $this->title($title),
+                'title' => $title,
                 'code' => $code,
                 'description' => $description,
                 'category_id' => max(0, $categoryId),
-                'run_periodically' => $runPeriodically ? 1 : 0,
+                'event_name' => $eventName,
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
     }
@@ -197,6 +225,33 @@ final readonly class ScriptRepository
                 ->whereNull('deleted_at')
                 ->update(['deleted_at' => $now, 'updated_at' => $now]);
         });
+    }
+
+    /**
+     * Единственная точка сохранения кода: invalid PHP не попадает в базу.
+     */
+    private function assertCode(string $code): void
+    {
+        $error = $this->syntax->validate($code);
+        if ($error === null) {
+            return;
+        }
+
+        throw new InvalidUserCode($error['line'], $error['message']);
+    }
+
+    /**
+     * @return array{id:int,title:string,category_id:int,description:string,event_name:string}
+     */
+    private function row(object $row): array
+    {
+        return [
+            'id' => (int)$row->id,
+            'title' => (string)$row->title,
+            'category_id' => (int)$row->category_id,
+            'description' => (string)($row->description ?? ''),
+            'event_name' => (string)($row->event_name ?? ''),
+        ];
     }
 
     private function categoryTitle(string $title): string

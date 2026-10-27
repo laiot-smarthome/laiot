@@ -40,7 +40,7 @@ final readonly class ScriptRunner
     }
 
     /**
-     * @return array{id:int,title:string,code:string,description:string,category_id:int,run_periodically:bool}|null
+     * @return array{id:int,title:string,code:string,description:string,category_id:int,event_name:string}|null
      */
     private function find(int|string $id): ?array
     {

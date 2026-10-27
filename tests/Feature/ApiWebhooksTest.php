@@ -12,6 +12,7 @@ use MajorDoMo\Api\Webhooks\WebhookService;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use MajorDoMo\Runtime\CodeRunner;
+use MajorDoMo\Runtime\PhpSyntaxValidator;
 use MajorDoMo\Scripts\ScriptRepository;
 use MajorDoMo\Scripts\ScriptRunner;
 use PHPUnit\Framework\TestCase;
@@ -19,6 +20,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Входящие webhook: секрет, методы, сценарий/PHP, HTTP-вход и админка.
  *
+ * 2026-10-27 — PHP-код webhook проверяется синтаксически до сохранения.
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  */
 final class ApiWebhooksTest extends TestCase
@@ -77,7 +79,7 @@ final class ApiWebhooksTest extends TestCase
             'code' => 'return ((int)($params["payload"]["n"] ?? 0)) * 2;',
             'description' => '',
             'category_id' => 0,
-            'run_periodically' => 0,
+            'event_name' => '',
             'created_at' => '2026-10-26 12:00:00',
             'updated_at' => '2026-10-26 12:00:00',
         ]);
@@ -190,7 +192,7 @@ final class ApiWebhooksTest extends TestCase
             $table->text('code')->nullable();
             $table->text('description')->nullable();
             $table->integer('category_id')->default(0);
-            $table->boolean('run_periodically')->default(false);
+            $table->string('event_name', 191)->default('');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -199,7 +201,8 @@ final class ApiWebhooksTest extends TestCase
             new WebhookRepository($app->database()),
             $app->container()->make(ScriptRepository::class),
             $app->container()->make(ScriptRunner::class),
-            new CodeRunner()
+            new CodeRunner(),
+            new PhpSyntaxValidator()
         );
 
         SessionFixture::authenticate($app);
