@@ -219,6 +219,31 @@ ScriptRunner ищет существующий сценарий, CodeRunner ис
 Выполнение: разовый `timeout:run` либо отдельный `core-worker timeouts`.
 Ограничения повторов и конкуренции — [queue.md](queue.md).
 
+## Комнаты
+
+Состояние комнаты читается из свойств автоматического объекта комнаты,
+которые система обновляет при изменениях свойств с ролью. Название можно
+передавать как название локации («Кухня») или объекта комнаты («Kukhnya»).
+
+| Функция | Возврат и назначение |
+| --- | --- |
+| `roomState(string $room)` | `active/light/heating/condition/timeout/last_activity_at` или null |
+| `roomIsActive(string $room)` | bool: активность не истекла по `activityTimeout` |
+| `roomIsLight(string $room)` | bool: есть активный источник со ролью «Свет» |
+| `roomIsHeating(string $room)` | bool: есть активный источник со ролью «Обогрев» |
+| `roomIsCondition(string $room)` | bool: есть активный источник со ролью «Кондиционер» |
+
+```php
+if (roomIsActive('Кухня') && !roomIsLight('Кухня')) {
+    notify('В кухне кто-то есть, но свет выключен', 'warning', ['key' => 'room:kitchen']);
+}
+```
+
+Хелперы не запускают пересчёт: значения уже записаны сервисом активности.
+Если комната или приложение не найдены, `roomState()` возвращает null, а
+проверки — false. Роли свойств, таймер и ограничения описаны в
+[locations.md](locations.md).
+
 ## Уведомления и say
 
 `notify(string $message, string $type = 'info', array $options = []): array`

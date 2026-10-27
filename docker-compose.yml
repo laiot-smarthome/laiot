@@ -25,9 +25,9 @@ services:
       DB_USER: mydomo
       DB_PASSWORD: mydomo
       CACHE_DRIVER: file
-      MYDOMO_ADMIN_USER: admin
+      MYDOMO_ADMIN_USER: sysadmin
       MYDOMO_ADMIN_NAME: Администратор
-      MYDOMO_ADMIN_PASSWORD: majordomo
+      MYDOMO_ADMIN_PASSWORD: majordomo!
     depends_on:
       db:
         condition: service_healthy

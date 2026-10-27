@@ -6,6 +6,7 @@ namespace MajorDoMo\Auth;
 
 use InvalidArgumentException;
 use MajorDoMo\Database\DatabaseManager;
+use Throwable;
 
 /**
  * Пользователи MyDoMo.
@@ -14,12 +15,18 @@ use MajorDoMo\Database\DatabaseManager;
  * password_hash/password_verify.
  *
  * Изменения:
+ * 2026-10-27 — учётная запись, роли и объект Users сохраняются атомарно;
+ * логин от восьми символов, пароль требует специальный символ.
+ * 2026-10-27 — логин соответствует правилам имени объекта пользователя.
  * 2026-10-26 — проверка действующей сессии по пользователю и отпечатку пароля.
  */
 final readonly class UserRepository
 {
-    public function __construct(private DatabaseManager $database)
-    {
+    public function __construct(
+        private DatabaseManager $database,
+        private UserObjects $objects,
+        private RoleRepository $roles
+    ) {
     }
 
     /**
@@ -51,7 +58,7 @@ final readonly class UserRepository
     }
 
     /**
-     * @return array{id:int,username:string,name:string,is_admin:bool}|null
+     * @return array{id:int,username:string,name:string,is_admin:bool,object_id:int}|null
      */
     public function find(int $id): ?array
     {
@@ -65,6 +72,7 @@ final readonly class UserRepository
             'username' => (string)$row->username,
             'name' => (string)$row->name,
             'is_admin' => (int)$row->is_admin === 1,
+            'object_id' => (int)($row->object_id ?? 0),
         ];
     }
 
@@ -91,7 +99,7 @@ final readonly class UserRepository
     }
 
     /**
-     * @return list<array{id:int,username:string,name:string,is_admin:bool}>
+     * @return list<array{id:int,username:string,name:string,is_admin:bool,object_id:int}>
      */
     public function all(string $search = ''): array
     {
@@ -110,11 +118,13 @@ final readonly class UserRepository
                 'username' => (string)$row->username,
                 'name' => (string)$row->name,
                 'is_admin' => (int)$row->is_admin === 1,
+                'object_id' => (int)($row->object_id ?? 0),
             ])
             ->all();
     }
 
-    public function create(string $username, string $name, string $password, bool $isAdmin): int
+    /** @param list<int|string>|null $roleIds null назначает стандартную роль для CLI. */
+    public function create(string $username, string $name, string $password, bool $isAdmin, ?array $roleIds = null): int
     {
         [$username, $name] = $this->validate($username, $name);
         $this->validatePassword($password);
@@ -124,19 +134,35 @@ final readonly class UserRepository
 
         $now = date('Y-m-d H:i:s');
 
-        return (int)$this->database->connection()->table('users')->insertGetId([
-            'username' => $username,
-            'name' => $name,
-            'password' => password_hash($password, PASSWORD_DEFAULT),
-            'is_admin' => $isAdmin ? 1 : 0,
-            'is_default' => 0,
-            'created_at' => $now,
-            'updated_at' => $now,
-            'deleted_at' => null,
-        ]);
+        return $this->database->transaction(function () use ($username, $name, $password, $isAdmin, $roleIds, $now): int {
+            $objectId = $this->objects->create($username, $name);
+            $id = (int)$this->database->connection()->table('users')->insertGetId([
+                'username' => $username,
+                'name' => $name,
+                'password' => password_hash($password, PASSWORD_DEFAULT),
+                'is_admin' => $isAdmin ? 1 : 0,
+                'is_default' => 0,
+                'created_at' => $now,
+                'updated_at' => $now,
+                'deleted_at' => null,
+                'object_id' => $objectId,
+            ]);
+            if ($roleIds === null) {
+                $roleId = $this->database->connection()->table('roles')
+                    ->where('name', $isAdmin ? 'admin' : 'user')->whereNull('deleted_at')->value('id');
+                if ($roleId === null) {
+                    throw new InvalidArgumentException('Стандартная роль не найдена. Примените миграции ядра.');
+                }
+                $roleIds = [(int)$roleId];
+            }
+            $this->roles->syncUserRoles($id, $roleIds);
+
+            return $id;
+        });
     }
 
-    public function update(int $id, string $username, string $name, ?string $password, bool $isAdmin): void
+    /** @param list<int|string>|null $roleIds null сохраняет текущие назначения. */
+    public function update(int $id, string $username, string $name, ?string $password, bool $isAdmin, ?array $roleIds = null): void
     {
         [$username, $name] = $this->validate($username, $name);
         $existing = $this->find($id);
@@ -160,7 +186,19 @@ final readonly class UserRepository
             $values['password'] = password_hash($password, PASSWORD_DEFAULT);
         }
 
-        $this->database->connection()->table('users')->where('id', $id)->update($values);
+        try {
+            $this->database->transaction(function () use ($id, $username, $values, $roleIds, $existing): void {
+                $this->database->connection()->table('users')->where('id', $id)->update($values);
+                if ($roleIds !== null) {
+                    $this->roles->syncUserRoles($id, $roleIds);
+                }
+                $this->objects->rename($existing['object_id'], $username);
+            });
+        } catch (Throwable $error) {
+            $this->objects->cancelRename();
+            throw $error;
+        }
+        $this->objects->finishRename();
     }
 
     public function changeProfile(int $id, string $name, ?string $password = null): void
@@ -185,11 +223,20 @@ final readonly class UserRepository
 
     public function delete(int $id): void
     {
+        $user = $this->find($id);
+        if ($user === null) {
+            return;
+        }
         $now = date('Y-m-d H:i:s');
-        $this->database->connection()->table('users')
-            ->where('id', $id)
-            ->whereNull('deleted_at')
-            ->update(['deleted_at' => $now, 'updated_at' => $now]);
+        $this->database->transaction(function () use ($id, $user, $now): void {
+            $connection = $this->database->connection();
+            $connection->table('users')->where('id', $id)->update([
+                'username' => $user['username'] . '~deleted~' . $id, 'deleted_at' => $now, 'updated_at' => $now,
+            ]);
+            $connection->table('user_roles')->where('user_id', $id)->delete();
+            $connection->table('api_tokens')->where('user_id', $id)->update(['revoked_at' => $now, 'updated_at' => $now]);
+            $this->objects->remove($user['object_id']);
+        });
     }
 
     /**
@@ -199,8 +246,8 @@ final readonly class UserRepository
     {
         $username = trim($username);
         $name = trim($name);
-        if (!preg_match('/^[A-Za-z0-9_.-]{3,64}$/D', $username)) {
-            throw new InvalidArgumentException('Логин: 3–64 символа, латиница, цифры, точка, дефис, подчёркивание.');
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]{7,63}$/D', $username)) {
+            throw new InvalidArgumentException('Логин: 8–64 символа, латиница, цифры и _, первый символ — буква или _.');
         }
         if ($name === '' || mb_strlen($name) > 191) {
             throw new InvalidArgumentException('Имя обязательно, до 191 символа.');
@@ -211,15 +258,18 @@ final readonly class UserRepository
 
     private function validatePassword(string $password): void
     {
-        if (strlen($password) < 8) {
-            throw new InvalidArgumentException('Пароль — минимум 8 символов.');
+        if (mb_strlen($password) < 8 || preg_match('/[\p{P}\p{S}]/u', $password) !== 1) {
+            throw new InvalidArgumentException('Пароль — минимум 8 символов, включая хотя бы один специальный символ.');
+        }
+        if (strlen($password) > 72 || str_contains($password, "\0")) {
+            throw new InvalidArgumentException('Пароль должен быть не длиннее 72 байт и не содержать нулевой символ.');
         }
     }
 
     private function exists(string $username, ?int $exceptId = null): bool
     {
         $query = $this->database->connection()->table('users')
-            ->where('username', $username)
+            ->whereRaw('LOWER(username) = ?', [strtolower($username)])
             ->whereNull('deleted_at');
         if ($exceptId !== null) {
             $query->where('id', '<>', $exceptId);

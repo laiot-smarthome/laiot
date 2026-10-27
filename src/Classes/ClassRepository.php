@@ -13,6 +13,7 @@ use Throwable;
 /**
  * Классы объектов MyDoMo и их иерархия.
  *
+ * 2026-10-27 — системный Users нельзя удалить, переименовать или перенести.
  * 2026-10-27 — добавлены parent_id, подклассы и безопасная проверка циклов:
  * класс наследует свойства/методы всех предков, а объекты подкласса остаются
  * объектами родительского класса для выборок и наследования.
@@ -269,6 +270,10 @@ final readonly class ClassRepository
         $this->assertTitleFree($title, $id);
 
         $current = $this->find($id);
+        if ($current !== null && $current['title'] === 'Users'
+            && ($title !== 'Users' || $parentId !== $current['parent_id'])) {
+            throw new InvalidArgumentException('Класс Users используется учётными записями: его имя и родителя менять нельзя.');
+        }
         if ($current !== null && (int)$current['parent_id'] !== $parentId) {
             $this->assertMembersUniqueForParent($id, $parentId);
         }
@@ -301,6 +306,9 @@ final readonly class ClassRepository
         $class = $this->find($id);
         if ($class === null) {
             return;
+        }
+        if ($class['title'] === 'Users') {
+            throw new InvalidArgumentException('Системный класс Users удалить нельзя.');
         }
         if ($this->children($id) !== []) {
             throw new InvalidArgumentException('Сначала перенесите или удалите подклассы этого класса.');

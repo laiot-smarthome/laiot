@@ -12,6 +12,11 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * Создание учётной записи с объектом Users и стандартной ролью.
+ *
+ * 2026-10-27 — справка отражает общие правила логина и пароля.
+ */
 #[AsCommand(name: 'user:create', description: 'Создать пользователя MyDoMo')]
 final class UserCreateCommand extends Command
 {
@@ -22,9 +27,9 @@ final class UserCreateCommand extends Command
 
     protected function configure(): void
     {
-        $this->addArgument('username', InputArgument::REQUIRED, 'Логин');
+        $this->addArgument('username', InputArgument::REQUIRED, 'Логин: 8–64 символа, латиница, цифры и _, первый — буква или _');
         $this->addArgument('name', InputArgument::REQUIRED, 'Имя');
-        $this->addArgument('password', InputArgument::REQUIRED, 'Пароль (минимум 8 символов)');
+        $this->addArgument('password', InputArgument::REQUIRED, 'Пароль: минимум 8 символов, включая специальный символ');
         $this->addOption('admin', null, InputOption::VALUE_NONE, 'Сделать администратором');
     }
 

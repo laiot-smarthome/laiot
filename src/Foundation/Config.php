@@ -12,6 +12,7 @@ namespace MajorDoMo\Foundation;
  * чтобы bootstrap не зависел от alpha `MajorDoMo\Core\Config`.
  *
  * 2026-10-27 — замена alpha Config после удаления lib/.
+ * 2026-10-27 — общий разбор файла для чтения и редактора окружения.
  */
 final class Config
 {
@@ -30,7 +31,14 @@ final class Config
         if ($lines === false) {
             return;
         }
-        foreach ($lines as $line) {
+        self::$values = self::parse(implode("\n", $lines));
+    }
+
+    /** @return array<string, string> */
+    public static function parse(string $contents): array
+    {
+        $values = [];
+        foreach (explode("\n", $contents) as $line) {
             $line = trim($line);
             if ($line === '' || str_starts_with($line, '#') || str_starts_with($line, ';')) {
                 continue;
@@ -52,8 +60,10 @@ final class Config
                     || ($value[0] === "'" && $value[strlen($value) - 1] === "'"))) {
                 $value = substr($value, 1, -1);
             }
-            self::$values[$key] = $value;
+            $values[$key] = $value;
         }
+
+        return $values;
     }
 
     public static function string(string $key, string $default = ''): string

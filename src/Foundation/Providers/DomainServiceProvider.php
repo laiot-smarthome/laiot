@@ -13,6 +13,7 @@ use MajorDoMo\Auth\AdminAuthenticator;
 use MajorDoMo\Auth\ApiTokenRepository;
 use MajorDoMo\Auth\Authorization;
 use MajorDoMo\Auth\RoleRepository;
+use MajorDoMo\Auth\UserObjects;
 use MajorDoMo\Auth\UserRepository;
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\SettingsRepository;
@@ -30,6 +31,8 @@ use MajorDoMo\History\HistoryRepository;
 use MajorDoMo\History\PropertyHistoryService;
 use MajorDoMo\LinkedObject\LinkedObjectService;
 use MajorDoMo\Locations\LocationRepository;
+use MajorDoMo\Locations\RoomActivityService;
+use MajorDoMo\Locations\RoomProvisioner;
 use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Methods\MethodRunner;
@@ -54,21 +57,33 @@ use MajorDoMo\Scripts\ScriptExecutor;
 use MajorDoMo\Scripts\ScriptRepository;
 use MajorDoMo\Scripts\ScriptRunner;
 use MajorDoMo\Search\PanelSearch;
+use MajorDoMo\Settings\DatabaseSettingsGuard;
+use MajorDoMo\Settings\EnvFile;
+use MajorDoMo\Settings\SettingsSchema;
+use MajorDoMo\Settings\SettingsService;
 
 /**
  * Репозитории и доменные операции ядра; зависимости собирает контейнер.
  *
  * Изменения:
+ * 2026-10-27 — жизненный цикл объекта пользователя зарегистрирован как сервис.
+ * 2026-10-27 — редактор системного окружения зарегистрирован отдельно от DB-настроек.
  * 2026-10-27 — общее долговечное состояние цепочек свойств.
  * 2026-10-27 — сценарии запускаются по системному событию; код проверяется до сохранения.
  * 2026-10-27 — регистрация системных событий и их доставки модулям.
  * 2026-10-27 — обработчик `property.changed` регистрируется для core-worker events.
+ * 2026-10-27 — комнаты получают провижининг класса/объекта и сервис активности.
  * 2026-10-26 — общие экземпляры сервисов сохранены при переходе на провайдеры.
  */
 final class DomainServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->container->singleton(SettingsService::class, fn (Container $container): SettingsService => new SettingsService(
+            new EnvFile((string)$this->app->config('environment_file', $this->app->root() . '/.env')),
+            SettingsSchema::defaults($this->app->root()),
+            $container->make(DatabaseSettingsGuard::class)
+        ));
         foreach ([
             SettingsRepository::class,
             RoleRepository::class,
@@ -77,6 +92,8 @@ final class DomainServiceProvider extends ServiceProvider
             ActionLogger::class,
             ErrorRepository::class,
             LocationRepository::class,
+            RoomProvisioner::class,
+            RoomActivityService::class,
             ScriptRepository::class,
             ClassRepository::class,
             PropertyRepository::class,
@@ -110,6 +127,7 @@ final class DomainServiceProvider extends ServiceProvider
             PropertyValueService::class,
             Authorization::class,
             UserRepository::class,
+            UserObjects::class,
             AdminAuthenticator::class,
             PanelSearch::class,
             DashboardStats::class,

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Локальный стенд MyDoMo: ждём БД, применяем миграции, создаём админа.
+# 2026-10-27 — начальные данные соответствуют политике логина и пароля.
 set -euo pipefail
 
 cd /var/www/html
@@ -27,6 +28,6 @@ echo "[mydomo] миграции"
 php bin/mydomo db:migrate
 
 echo "[mydomo] администратор"
-php bin/mydomo user:create "${MYDOMO_ADMIN_USER:-admin}" "${MYDOMO_ADMIN_NAME:-Администратор}" "${MYDOMO_ADMIN_PASSWORD:-majordomo}" --admin || true
+php bin/mydomo user:create "${MYDOMO_ADMIN_USER:-sysadmin}" "${MYDOMO_ADMIN_NAME:-Администратор}" "${MYDOMO_ADMIN_PASSWORD:-majordomo!}" --admin || true
 
 exec "$@"

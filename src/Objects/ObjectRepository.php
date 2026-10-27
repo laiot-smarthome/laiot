@@ -15,6 +15,8 @@ use Throwable;
 /**
  * Объекты MyDoMo.
  *
+ * 2026-10-27 — имя, класс и удаление связанного пользователя управляются
+ * через учётную запись, чтобы связь по id не расходилась с логином.
  * 2026-10-27 — удаление объекта снимает подписки модулей на его свойства.
  * 2026-10-27 — выборка по классу учитывает подклассы: объект подкласса
  * остаётся экземпляром родительского класса, как в alpha.
@@ -248,6 +250,10 @@ final readonly class ObjectRepository
         $locationId = $this->assertLocation($locationId);
 
         $current = $this->find($id);
+        $user = $this->linkedUser($id);
+        if ($user !== null && ($title !== $user->username || $classId !== (int)($current['class_id'] ?? 0))) {
+            throw new InvalidArgumentException('Имя и класс объекта пользователя меняются через раздел «Пользователи».');
+        }
         if ($current !== null && (int)$current['class_id'] !== $classId) {
             $this->assertMembersUniqueForClass($id, $classId);
         }
@@ -278,6 +284,9 @@ final readonly class ObjectRepository
 
     public function delete(int $id): void
     {
+        if ($this->linkedUser($id) !== null) {
+            throw new InvalidArgumentException('Удалите пользователя в разделе «Пользователи» — его объект будет удалён вместе с ним.');
+        }
         $object = $this->find($id);
         if ($object === null) {
             return;
@@ -304,6 +313,17 @@ final readonly class ObjectRepository
         if ($this->classes->find($classId) === null) {
             throw new InvalidArgumentException('Класс объекта не найден.');
         }
+    }
+
+    private function linkedUser(int $objectId): ?object
+    {
+        $schema = $this->database->connection()->getSchemaBuilder();
+        if (!$schema->hasTable('users') || !$schema->hasColumn('users', 'object_id')) {
+            return null;
+        }
+
+        return $this->database->connection()->table('users')->where('object_id', $objectId)
+            ->whereNull('deleted_at')->first();
     }
 
     /**

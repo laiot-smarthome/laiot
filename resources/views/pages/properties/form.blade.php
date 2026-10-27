@@ -10,6 +10,8 @@
         : ((string)($class['title'] ?? ''));
     $currentOnChange = $field('on_change');
     $methodTitles = array_map(static fn (array $row): string => (string)$row['title'], $methodOptions);
+    $roomRoles = \MajorDoMo\Locations\RoomRole::labels();
+    $currentRoomRole = \MajorDoMo\Locations\RoomRole::normalize($field('room_role'));
     $bindingsByModule = [];
     foreach ($bindings ?? [] as $binding) {
         $bindingsByModule[$binding['module']][] = $binding['object_title'];
@@ -103,14 +105,48 @@
                         @endif
                     </x-md.select>
 
+                    @if ($roomRoleAvailable)
+                        <x-md.select name="room_role" label="Роль в комнате" :selected="$currentRoomRole"
+                                     :hint="$roomRoleHint">
+                            <option value="">— не участвует —</option>
+                            @foreach ($roomRoles as $role => $roleLabel)
+                                <option value="{{ $role }}" @selected($currentRoomRole === $role)>{{ $roleLabel }}</option>
+                            @endforeach
+                        </x-md.select>
+                    @else
+                        <div class="md-field">
+                            <div class="md-field__label">
+                                Роль в комнате
+                                <x-md.tooltip :text="$roomRoleHint">
+                                    <button type="button" class="md-icon-btn md-icon-btn--sm"
+                                            aria-label="Почему роль недоступна">
+                                        <x-md.icon name="help-circle" />
+                                    </button>
+                                </x-md.tooltip>
+                            </div>
+                            <div class="md-field__control">
+                                <select class="md-select" disabled aria-describedby="room-role-help"
+                                        title="{{ $roomRoleHint }}">
+                                    <option value="">— не участвует —</option>
+                                    @foreach ($roomRoles as $role => $roleLabel)
+                                        <option value="{{ $role }}" @selected($currentRoomRole === $role)>{{ $roleLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="md-field__hint" id="room-role-help">{{ $roomRoleHint }}</div>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="md-ui-form-grid">
                     <x-md.checkbox name="keep_history" value="1" label="Хранить историю"
                                    description="Каждая запись значения попадёт в историю и станет доступна на графике."
                                    :checked="$keepHistory" />
-                </div>
 
-                <x-md.checkbox name="only_new_values" value="1" label="Принимать только новые значения"
-                               description="Повторная запись того же значения принимается, но не запускает OnChange, историю и модули. Выключено — повтор тоже запускает цепочку."
-                               :checked="$onlyNewValues" />
+                    <x-md.checkbox name="only_new_values" value="1" label="Принимать только новые значения"
+                                   description="Повторная запись того же значения принимается, но не запускает OnChange, историю и модули. Выключено — повтор тоже запускает цепочку."
+                                   :checked="$onlyNewValues" />
+                </div>
             </div>
 
             <div class="md-ui-form-actions">
@@ -150,6 +186,14 @@
                             <code class="md-table__code">{{ $property['on_change'] }}</code>
                         @else
                             <span class="md-ui-muted">Не задан</span>
+                        @endif
+                    </div>
+                    <div>
+                        <div class="md-field__label">Роль в комнате</div>
+                        @if ($currentRoomRole !== '')
+                            <x-md.badge tone="info">{{ $roomRoles[$currentRoomRole] ?? $currentRoomRole }}</x-md.badge>
+                        @else
+                            <span class="md-ui-muted">не участвует</span>
                         @endif
                     </div>
                     <div>

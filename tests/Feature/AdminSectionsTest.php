@@ -18,6 +18,8 @@ use PHPUnit\Framework\TestCase;
  * открываются на полной схеме, ссылки ведут на чистые URL, фильтры и вкладки
  * карточки работают, обзор показывает реальные данные.
  *
+ * 2026-10-27 — страница настроек использует изолированный путь окружения.
+ * 2026-10-27 — модель датчиков задаётся отдельно от начальной модели Users.
  * 2026-10-26 — тест добавлен вместе с переносом разделов на x-md и md-dash.
  */
 final class AdminSectionsTest extends TestCase
@@ -31,6 +33,7 @@ final class AdminSectionsTest extends TestCase
 
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
+            'environment_file' => sys_get_temp_dir() . '/mydomo-admin-env-' . bin2hex(random_bytes(8)),
             'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
@@ -41,6 +44,9 @@ final class AdminSectionsTest extends TestCase
         SessionFixture::authenticate($app);
 
         $connection = $app->database()->connection();
+        foreach (['methods', 'properties', 'classes'] as $table) {
+            $connection->table($table)->delete();
+        }
         $now = date('Y-m-d H:i:s');
 
         $connection->table('classes')->insert([

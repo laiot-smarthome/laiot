@@ -2,41 +2,24 @@
 
 declare(strict_types=1);
 
-use MajorDoMo\Foundation\Config;
 use MajorDoMo\Foundation\Application;
+use MajorDoMo\Foundation\Config;
+use MajorDoMo\Settings\SettingsSchema;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $root = dirname(__DIR__);
 Config::boot($root);
 
-$app = new Application($root, [
-    // 2026-10-26 — подробности ошибок включаются только явным APP_DEBUG.
-    'debug' => Config::bool('APP_DEBUG', false),
-    'timezone' => Config::string('APP_TIMEZONE', 'Europe/Moscow'),
-    'cache' => [
-        'driver' => Config::string('CACHE_DRIVER', 'file'),
-        'path' => $root . '/var/cache/data',
-        'prefix' => 'mydomo.',
-        'redis' => [
-            'host' => Config::string('REDIS_HOST', '127.0.0.1'),
-            'port' => Config::int('REDIS_PORT', 6379) ?: 6379,
-            'database' => Config::int('REDIS_DB', 0),
-            'password' => Config::string('REDIS_PASSWORD', ''),
-        ],
-    ],
+// 2026-10-27 — схема редактора .env задаёт также рабочие типы и привязки параметров.
+$app = new Application($root, array_replace_recursive([
     'database' => [
         'driver' => 'mysql',
-        'host' => Config::string('DB_HOST', '127.0.0.1'),
-        'port' => Config::int('DB_PORT', 3306) ?: 3306,
-        'database' => Config::string('DB_NAME'),
-        'username' => Config::string('DB_USER'),
-        'password' => Config::string('DB_PASSWORD'),
         'charset' => 'utf8mb4',
         'collation' => 'utf8mb4_unicode_ci',
         'prefix' => '',
     ],
-]);
+], SettingsSchema::environment($root)));
 $app->boot();
 
 return $app;

@@ -12,6 +12,8 @@ use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Locations\LocationKind;
+use MajorDoMo\Locations\LocationRepository;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
@@ -28,6 +30,9 @@ use Symfony\Component\HttpFoundation\Response;
  * редактируются — только у конкретного объекта.
  *
  * 2026-10-27 — страница стала контекстной формой класса/объекта.
+ * 2026-10-27 — у свойства появилась роль в комнате для сбора активности.
+ * 2026-10-27 — роль доступна только у свойства объекта, который расположен
+ *              в комнате; для класса и дома/этажа выбор заблокирован.
  */
 final readonly class PropertiesController extends Controller
 {
@@ -39,6 +44,7 @@ final readonly class PropertiesController extends Controller
         private MethodRepository $methods,
         private PropertySubscriptionRepository $subscriptions,
         private NameReferenceUpdater $references,
+        private LocationRepository $locations,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -63,6 +69,7 @@ final readonly class PropertiesController extends Controller
     {
         $classId = max(0, (int)$request->request->get('class_id', 0));
         $objectId = max(0, (int)$request->request->get('object_id', 0));
+        $object = $objectId > 0 ? $this->objects->find($objectId) : null;
 
         try {
             $this->properties->create(
@@ -73,7 +80,8 @@ final readonly class PropertiesController extends Controller
                 (string)$request->request->get('keep_history', '') === '1',
                 (string)$request->request->get('on_change', ''),
                 $objectId,
-                (string)$request->request->get('only_new_values', '') === '1'
+                (string)$request->request->get('only_new_values', '') === '1',
+                $this->roomRoleFor($request, $object)
             );
         } catch (InvalidArgumentException $error) {
             return $this->form(null, $error->getMessage(), $request->request->all(), 422);
@@ -101,6 +109,7 @@ final readonly class PropertiesController extends Controller
 
         $classId = max(0, (int)$request->request->get('class_id', $property['class_id']));
         $objectId = max(0, (int)$request->request->get('object_id', $property['object_id']));
+        $object = $objectId > 0 ? $this->objects->find($objectId) : null;
 
         try {
             $this->properties->update(
@@ -112,7 +121,8 @@ final readonly class PropertiesController extends Controller
                 (string)$request->request->get('keep_history', '') === '1',
                 (string)$request->request->get('on_change', ''),
                 $objectId,
-                (string)$request->request->get('only_new_values', '') === '1'
+                (string)$request->request->get('only_new_values', '') === '1',
+                $this->roomRoleFor($request, $object, (string)$property['room_role'])
             );
         } catch (InvalidArgumentException $error) {
             return $this->form($property, $error->getMessage(), $request->request->all(), 422);
@@ -136,7 +146,7 @@ final readonly class PropertiesController extends Controller
     }
 
     /**
-     * @param array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}|null $property
+     * @param array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,room_role:string}|null $property
      * @param array<string, mixed>|null $draft
      */
     private function form(?array $property, ?string $error = null, ?array $draft = null, int $status = 200): Response
@@ -152,6 +162,7 @@ final readonly class PropertiesController extends Controller
         $methodOptions = $object !== null
             ? $this->methods->forObject((int)$object['id'])
             : ($classId > 0 ? $this->methods->effectiveForClass($classId) : []);
+        $roomRole = $this->roomRoleContext($object);
 
         $content = $this->view->make('pages.properties.form', [
             'property' => $property,
@@ -169,6 +180,8 @@ final readonly class PropertiesController extends Controller
                 : (bool)($property['only_new_values'] ?? false),
             'bindings' => $propertyId > 0 ? $this->subscriptions->forProperty($propertyId) : [],
             'methodOptions' => $methodOptions,
+            'roomRoleAvailable' => $roomRole['available'],
+            'roomRoleHint' => $roomRole['hint'],
             'takenNames' => $this->properties->takenNames($classId, $objectId, $propertyId),
             'returnUrl' => $this->returnUrl($classId, $objectId),
             'error' => $error,
@@ -186,6 +199,73 @@ final readonly class PropertiesController extends Controller
         $content = $this->view->make('pages.objects.missing', [])->render();
 
         return $this->panel->render(new PanelPage('Свойство не найдено', $content, 'classes'), 404);
+    }
+
+    /**
+     * Доступна ли роль в комнате для выбранного объекта.
+     *
+     * Роль описывает участие значения в активности помещения, поэтому она
+     * имеет смысл только у объекта, который реально стоит в комнате. У класса
+     * локации нет, а дом и этаж — не помещение.
+     *
+     * @param array{id:int,title:string,class_id:int,location_id:int,description:string}|null $object
+     * @return array{available:bool,hint:string}
+     */
+    private function roomRoleContext(?array $object): array
+    {
+        if ($object === null) {
+            return [
+                'available' => false,
+                'hint' => 'Роль в комнате доступна только у свойства объекта. У класса нет расположения: создайте объект, выберите ему комнату и задайте роль в свойстве объекта.',
+            ];
+        }
+        $locationId = (int)$object['location_id'];
+        if ($locationId <= 0) {
+            return [
+                'available' => false,
+                'hint' => 'У объекта не выбрана локация. Укажите комнату в карточке объекта — после этого роль станет доступна.',
+            ];
+        }
+        $location = $this->locations->find($locationId);
+        if ($location === null) {
+            return [
+                'available' => false,
+                'hint' => 'Локация объекта не найдена. Выберите комнату в карточке объекта.',
+            ];
+        }
+        if ($location['kind'] !== LocationKind::ROOM) {
+            return [
+                'available' => false,
+                'hint' => 'Объект расположен в локации «' . (string)$location['title'] . '» ('
+                    . LocationKind::label((string)$location['kind'])
+                    . '), а роль в комнате доступна только для объекта в комнате.',
+            ];
+        }
+
+        return [
+            'available' => true,
+            'hint' => 'Система собирает значения выбранных свойств и обновляет активность, свет, обогрев и кондиционер комнаты «'
+                . (string)$location['title'] . '».',
+        ];
+    }
+
+    /**
+     * Роль из запроса принимается только при доступной комнате.
+     *
+     * Заблокированное поле не приходит в POST; существующую роль в этом
+     * случае сохраняем, чтобы правка названия или описания её не стирала.
+     *
+     * @param array{id:int,title:string,class_id:int,location_id:int,description:string}|null $object
+     */
+    private function roomRoleFor(Request $request, ?array $object, string $existing = ''): string
+    {
+        if (!$this->roomRoleContext($object)['available']) {
+            return $existing;
+        }
+
+        return $request->request->has('room_role')
+            ? (string)$request->request->get('room_role', '')
+            : $existing;
     }
 
     private function returnUrl(int $classId, int $objectId): string

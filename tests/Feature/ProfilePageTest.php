@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ * 2026-10-27 — новый пароль соответствует общему требованию спецсимвола.
  */
 final class ProfilePageTest extends TestCase
 {
@@ -51,12 +52,12 @@ final class ProfilePageTest extends TestCase
         $save = $app->handle(Request::create('/admin/profile', 'POST', [
             '_token' => $session->csrfToken(),
             'name' => 'Главный админ',
-            'password' => 'newsecret123',
+            'password' => 'newsecret!123',
         ]));
         self::assertSame(302, $save->getStatusCode());
         $row = $app->database()->connection()->table('users')->where('id', 1)->first();
         self::assertSame('Главный админ', $row->name);
-        self::assertTrue(password_verify('newsecret123', $row->password));
+        self::assertTrue(password_verify('newsecret!123', $row->password));
         self::assertSame('Главный админ', $session->user()['name']);
         self::assertNotSame($oldStamp, $session->user()['stamp']);
         $next = $app->handle(Request::create('/admin/profile', 'GET'));

@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
  * История свойства на Yoyo: сервис расчёта и компонент вместо JSON-роута.
  *
  * 2026-10-27 — тест заменил HistoryChartTest после переноса на Yoyo.
+ * 2026-10-27 — начальная модель Users не входит в фикстуру датчика.
  */
 final class PropertyHistoryTest extends TestCase
 {
@@ -39,6 +40,9 @@ final class PropertyHistoryTest extends TestCase
         SessionFixture::authenticate($this->app);
 
         $db = $this->app->database()->connection();
+        foreach (['methods', 'properties', 'classes'] as $table) {
+            $db->table($table)->delete();
+        }
         $now = date('Y-m-d H:i:s');
         $db->table('classes')->insert([
             'id' => 1, 'title' => 'Датчик', 'parent_id' => 0,

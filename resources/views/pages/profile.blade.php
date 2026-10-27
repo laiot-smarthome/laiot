@@ -33,7 +33,8 @@
                     <x-md.input name="username" label="Логин" :value="$user['username'] ?? ''" disabled
                                 hint="Логин меняет администратор в карточке пользователя." />
                     <x-md.input name="password" type="password" label="Новый пароль" value=""
-                                hint="Оставьте пустым, чтобы не менять. Минимум 8 символов." />
+                                autocomplete="new-password" minlength="8"
+                                hint="Оставьте пустым, чтобы не менять. Новый пароль — от 8 символов со спецсимволом." />
                 </div>
             </div>
         </x-md.card>

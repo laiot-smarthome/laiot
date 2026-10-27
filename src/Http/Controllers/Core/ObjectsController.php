@@ -29,6 +29,7 @@ use Throwable;
 /**
  * Карточка объекта внутри раздела «Классы».
  *
+ * 2026-10-27 — запрет удаления связанного пользователя показывается в форме.
  * Объект — единственное место, где существуют значения свойств и их история.
  * Класс задаёт свойства/методы, объект получает значения; объектные свойства
  * и методы действуют только у этого объекта.
@@ -164,7 +165,11 @@ final readonly class ObjectsController extends Controller
             return new RedirectResponse('/classes');
         }
 
-        $this->objects->delete((int)$id);
+        try {
+            $this->objects->delete((int)$id);
+        } catch (InvalidArgumentException $error) {
+            return $this->form($object, $error->getMessage(), null, 422);
+        }
 
         return new RedirectResponse(
             (int)$object['class_id'] > 0

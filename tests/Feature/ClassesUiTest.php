@@ -219,6 +219,11 @@ final class ClassesUiTest extends TestCase
         (new Migrator($app->database(), $app->root() . '/database/migrations'))->migrate();
         SessionFixture::authenticate($app);
 
+        // Фикстура проверяет собственное дерево с заданными id, отдельно от Users.
+        foreach (['methods', 'properties', 'classes'] as $table) {
+            $app->database()->connection()->table($table)->delete();
+        }
+
         $connection = $app->database()->connection();
         $now = date('Y-m-d H:i:s');
         $connection->table('classes')->insert([

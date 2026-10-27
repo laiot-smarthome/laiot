@@ -7,6 +7,7 @@ namespace MajorDoMo\Properties;
 use InvalidArgumentException;
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Locations\RoomRole;
 use MajorDoMo\Rename\NameReferenceUpdater;
 use MajorDoMo\Support\Identifier;
 use Throwable;
@@ -22,6 +23,8 @@ use Throwable;
  * 2026-10-27 — имя свойства латиницей и уникально в области: в классе с учётом
  * предков, у объекта — среди объектных и действующих классовых. Переопределение
  * одноимённым свойством больше не создаётся.
+ * 2026-10-27 — у свойства появилась роль в комнате (`room_role`): по ней
+ * система собирает свет, обогрев, охлаждение и датчики активности.
  */
 final readonly class PropertyRepository
 {
@@ -34,7 +37,7 @@ final readonly class PropertyRepository
     }
 
     /**
-     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}>
+     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,room_role:string}>
      */
     public function all(string $search = '', int $classId = 0): array
     {
@@ -61,7 +64,7 @@ final readonly class PropertyRepository
     /**
      * Собственные свойства класса без унаследованных.
      *
-     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
+     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,room_role:string,origin:string,owner_class_id:int,owner_class_title:string}>
      */
     public function ownForClass(int $classId): array
     {
@@ -79,7 +82,7 @@ final readonly class PropertyRepository
      * Ближайший класс в цепочке побеждает при совпадении названия — так
      * подкласс может переопределить свойство родителя.
      *
-     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
+     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,room_role:string,origin:string,owner_class_id:int,owner_class_title:string}>
      */
     public function effectiveForClass(int $classId): array
     {
@@ -141,7 +144,7 @@ final readonly class PropertyRepository
      * Сначала объектное свойство, затем ближайший класс и его предки. Значение
      * хранится у объекта; на уровне класса значения нет.
      *
-     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
+     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,room_role:string,origin:string,owner_class_id:int,owner_class_title:string}>
      */
     public function forObject(int $objectId): array
     {
@@ -248,7 +251,7 @@ final readonly class PropertyRepository
     }
 
     /**
-     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}|null
+     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,room_role:string}|null
      */
     public function find(int $id): ?array
     {
@@ -263,7 +266,7 @@ final readonly class PropertyRepository
     /**
      * Свойство объекта: объектное свойство, затем ближайший класс и предки.
      *
-     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}|null
+     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,room_role:string}|null
      */
     public function resolveForObject(int $objectId, string $title): ?array
     {
@@ -289,7 +292,7 @@ final readonly class PropertyRepository
     /**
      * Свойство класса с учётом наследования, без объектных переопределений.
      *
-     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}|null
+     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,room_role:string}|null
      */
     public function resolveForClass(int $classId, string $title): ?array
     {
@@ -347,7 +350,8 @@ final readonly class PropertyRepository
         bool $keepHistory,
         string $onChange,
         int $objectId = 0,
-        bool $onlyNewValues = false
+        bool $onlyNewValues = false,
+        string $roomRole = ''
     ): int {
         [$classId, $objectId] = $this->scope($classId, $objectId);
         $title = Identifier::assert($title, 'свойства');
@@ -369,6 +373,13 @@ final readonly class PropertyRepository
         if ($this->hasColumn('properties', 'only_new_values')) {
             $data['only_new_values'] = $onlyNewValues ? 1 : 0;
         }
+        if ($this->hasColumn('properties', 'room_role')) {
+            $data['room_role'] = RoomRole::normalize($roomRole);
+        } elseif (RoomRole::normalize($roomRole) !== '') {
+            throw new InvalidArgumentException(
+                'Поле room_role не создано в БД: примените миграции (php bin/mydomo db:migrate).'
+            );
+        }
 
         return (int)$this->database->connection()->table('properties')->insertGetId($data);
     }
@@ -382,7 +393,8 @@ final readonly class PropertyRepository
         bool $keepHistory,
         string $onChange,
         int $objectId = 0,
-        bool $onlyNewValues = false
+        bool $onlyNewValues = false,
+        string $roomRole = ''
     ): void {
         [$classId, $objectId] = $this->scope($classId, $objectId);
         $title = Identifier::assert($title, 'свойства');
@@ -396,7 +408,7 @@ final readonly class PropertyRepository
 
         $connection = $this->database->connection();
         try {
-            $connection->transaction(function () use ($connection, $id, $classId, $objectId, $title, $description, $dataType, $keepHistory, $onChange, $onlyNewValues, $current): void {
+            $connection->transaction(function () use ($connection, $id, $classId, $objectId, $title, $description, $dataType, $keepHistory, $onChange, $onlyNewValues, $roomRole, $current): void {
                 $data = [
                     'class_id' => $classId,
                     'object_id' => $objectId,
@@ -409,6 +421,13 @@ final readonly class PropertyRepository
                 ];
                 if ($this->hasColumn('properties', 'only_new_values')) {
                     $data['only_new_values'] = $onlyNewValues ? 1 : 0;
+                }
+                if ($this->hasColumn('properties', 'room_role')) {
+                    $data['room_role'] = RoomRole::normalize($roomRole);
+                } elseif (RoomRole::normalize($roomRole) !== '') {
+                    throw new InvalidArgumentException(
+                        'Поле room_role не создано в БД: примените миграции (php bin/mydomo db:migrate).'
+                    );
                 }
                 $connection->table('properties')
                     ->where('id', $id)
@@ -445,7 +464,7 @@ final readonly class PropertyRepository
 
     /**
      * @param list<int> $classIds
-     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
+     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,room_role:string,origin:string,owner_class_id:int,owner_class_title:string}>
      */
     private function rowsForClasses(array $classIds, int $targetClassId, string $targetTitle): array
     {
@@ -640,7 +659,7 @@ final readonly class PropertyRepository
     }
 
     /**
-     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}
+     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,room_role:string}
      */
     private function hydrate(object $row): array
     {
@@ -656,6 +675,7 @@ final readonly class PropertyRepository
             'keep_history' => (int)($row->keep_history ?? 0) === 1,
             'only_new_values' => (int)($row->only_new_values ?? 0) === 1,
             'on_change' => (string)($row->on_change ?? ''),
+            'room_role' => RoomRole::normalize((string)($row->room_role ?? '')),
         ];
     }
 

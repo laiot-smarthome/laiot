@@ -11,6 +11,9 @@ use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * 2026-10-27 — фикстуры ролей учитывают удалённые назначения и разрешения.
+ */
 final class ApiTokenTest extends TestCase
 {
     private Application $app;
@@ -42,21 +45,25 @@ final class ApiTokenTest extends TestCase
             $table->increments('id');
             $table->string('name');
             $table->string('title');
+            $table->softDeletes();
         });
         $this->app->database()->schema()->create('permissions', static function (Blueprint $table): void {
             $table->increments('id');
             $table->string('name');
             $table->string('title');
+            $table->softDeletes();
         });
         $this->app->database()->schema()->create('role_permissions', static function (Blueprint $table): void {
             $table->increments('id');
             $table->integer('role_id');
             $table->integer('permission_id');
+            $table->softDeletes();
         });
         $this->app->database()->schema()->create('user_roles', static function (Blueprint $table): void {
             $table->increments('id');
             $table->integer('user_id');
             $table->integer('role_id');
+            $table->softDeletes();
         });
         $this->app->database()->connection()->table('roles')->insert(['id' => 1, 'name' => 'admin', 'title' => 'Администратор']);
         $this->app->database()->connection()->table('permissions')->insert(['id' => 1, 'name' => '*', 'title' => 'Все']);

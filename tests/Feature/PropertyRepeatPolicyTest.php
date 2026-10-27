@@ -71,6 +71,10 @@ final class PropertyRepeatPolicyTest extends TestCase
         SessionFixture::authenticate($app);
 
         $db = $app->database()->connection();
+        // Проверяется изолированная модель датчика с фиксированными id.
+        foreach (['methods', 'properties', 'classes'] as $table) {
+            $db->table($table)->delete();
+        }
         $now = date('Y-m-d H:i:s');
         $db->table('classes')->insert([
             'id' => 1, 'title' => 'Sensor', 'parent_id' => 0, 'description' => '',

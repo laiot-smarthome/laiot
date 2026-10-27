@@ -27,7 +27,6 @@ use MajorDoMo\Http\Controllers\MaintenanceController;
 use MajorDoMo\Http\Controllers\ModuleSettingsController;
 use MajorDoMo\Http\Controllers\ModulesPageController;
 use MajorDoMo\Http\Controllers\ProfileController;
-use MajorDoMo\Http\Controllers\RolesController;
 use MajorDoMo\Http\Controllers\StatusController;
 use MajorDoMo\Http\Controllers\TokensController;
 use MajorDoMo\Http\Controllers\YoyoController;
@@ -83,9 +82,6 @@ return static function (Router $router): void {
         $router->get('/status', StatusController::class)
             ->middleware(['auth'])
             ->name('status');
-        $router->get('/roles', RolesController::class)
-            ->middleware(['auth', 'can:users.manage'])
-            ->name('roles');
         $router->get('/admin/tokens', [TokensController::class, 'index'])
             ->middleware(['auth', 'can:users.manage'])
             ->name('admin.tokens');
@@ -171,16 +167,17 @@ return static function (Router $router): void {
             $router->get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge_base.index');
             $router->get('/knowledge-base/{doc}', [KnowledgeBaseController::class, 'show'])->where('doc', '.*')->name('knowledge_base.show');
 
-            $router->get('/users', [UsersController::class, 'index'])->name('users.index');
-            $router->get('/users/create', [UsersController::class, 'create'])->name('users.create');
-            $router->post('/users/create', [UsersController::class, 'store'])->middleware('csrf')->name('users.store');
-            $router->get('/users/{id}/edit', [UsersController::class, 'edit'])->whereNumber('id')->name('users.edit');
-            $router->post('/users/{id}/edit', [UsersController::class, 'update'])->whereNumber('id')->middleware('csrf')->name('users.update');
-            $router->post('/users/{id}/delete', [UsersController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('users.delete');
+            $router->middleware('can:users.manage')->group(function (Router $router): void {
+                $router->get('/users', [UsersController::class, 'index'])->name('users.index');
+                $router->get('/users/create', [UsersController::class, 'create'])->name('users.create');
+                $router->post('/users/create', [UsersController::class, 'store'])->middleware('csrf')->name('users.store');
+                $router->get('/users/{id}/edit', [UsersController::class, 'edit'])->whereNumber('id')->name('users.edit');
+                $router->post('/users/{id}/edit', [UsersController::class, 'update'])->whereNumber('id')->middleware('csrf')->name('users.update');
+                $router->post('/users/{id}/delete', [UsersController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('users.delete');
+            });
 
-            $router->get('/settings', [SettingsController::class, 'index'])->name('settings.index');
-            $router->get('/settings/{id}/edit', [SettingsController::class, 'edit'])->whereNumber('id')->name('settings.edit');
-            $router->post('/settings/{id}', [SettingsController::class, 'save'])->whereNumber('id')->middleware('csrf')->name('settings.save');
+            $router->get('/settings', [SettingsController::class, 'index'])
+                ->middleware('can:settings.manage')->name('settings.index');
 
             $router->get('/journal', [ActionsLogController::class, 'index'])->name('actions_log.index');
             $router->post('/journal/{id}/delete', [ActionsLogController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('actions_log.delete');

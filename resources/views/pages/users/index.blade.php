@@ -2,12 +2,13 @@
     <x-md.page-hero
         eyebrow="Система"
         icon="users"
-        title="Пользователи"
-        lede="Администраторы и операторы панели. Роли задают доступ к разделам, пароль хранится только в виде хеша."
+        title="Пользователи и роли"
+        lede="Учётные записи, роли и объекты пользователей дома. Вход в админку доступен только администраторам."
         :meta="[
             ['icon' => 'users', 'label' => 'Пользователей', 'value' => count($users)],
         ]">
         <x-slot:actions>
+            @yoyo('user-roles')
             <x-md.button href="/users/create" icon="plus">Новый пользователь</x-md.button>
         </x-slot:actions>
     </x-md.page-hero>
@@ -46,6 +47,8 @@
                 <th scope="col">Логин</th>
                 <th scope="col">Доступ</th>
                 <th scope="col">Роли</th>
+                <th scope="col">Дома / Wi-Fi</th>
+                <th scope="col">Объект</th>
                 <th scope="col" class="text-end"><span class="visually-hidden">Действия</span></th>
             </x-slot:head>
 
@@ -81,10 +84,17 @@
                             @endif
                         </td>
                         <td>
+                            <div class="md-ui-actions">
+                                <x-md.badge :tone="($presence[$user['id']]['isHome'] ?? '') === '1' ? 'success' : 'neutral'">{{ ($presence[$user['id']]['isHome'] ?? '') === '1' ? 'Дома' : 'Вне дома' }}</x-md.badge>
+                                <x-md.badge :tone="($presence[$user['id']]['isWifiConnected'] ?? '') === '1' ? 'info' : 'neutral'">{{ ($presence[$user['id']]['isWifiConnected'] ?? '') === '1' ? 'Wi-Fi подключён' : 'Без Wi-Fi' }}</x-md.badge>
+                            </div>
+                        </td>
+                        <td><a href="/objects/{{ $user['object_id'] }}/edit"><code>{{ $user['username'] }}</code></a></td>
+                        <td>
                             <div class="md-table__actions">
                                 <x-md.icon-button href="/users/{{ $user['id'] }}/edit" icon="pencil" label="Открыть пользователя" size="sm" />
                                 <form method="post" action="/users/{{ $user['id'] }}/delete" class="md-inline-form"
-                                      data-md-confirm="Удалить пользователя «{{ $user['username'] }}»?">
+                                      data-md-confirm="Удалить пользователя «{{ $user['username'] }}», его объект и историю значений?">
                                     <input type="hidden" name="_token" value="{{ $csrf }}">
                                     <x-md.icon-button type="submit" icon="trash" label="Удалить пользователя" variant="danger" size="sm" />
                                 </form>

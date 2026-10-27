@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MajorDoMo\Events;
 
 use MajorDoMo\History\HistoryRepository;
+use MajorDoMo\Locations\RoomActivityService;
 use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Methods\MethodRunner;
@@ -33,6 +34,8 @@ use Throwable;
  * 2026-10-27 — ошибка OnChange останавливает прямую доставку модулям.
  * 2026-10-27 — доставка модулям вынесена в их собственные очереди.
  * 2026-10-27 — обработчик создан для асинхронного конвейера свойств.
+ * 2026-10-27 — после истории обновляется активность комнаты: свойства с ролью
+ *              света, обогрева, охлаждения или датчика двигают её состояние.
  */
 final readonly class PropertyEventHandler implements JobHandler
 {
@@ -49,7 +52,8 @@ final readonly class PropertyEventHandler implements JobHandler
         private PropertyEventContext $context,
         private LoggerInterface $logger,
         private PropertyExecutionRepository $executions,
-        private ErrorRepository $errors
+        private ErrorRepository $errors,
+        private RoomActivityService $roomActivity
     ) {
     }
 
@@ -149,6 +153,21 @@ final readonly class PropertyEventHandler implements JobHandler
             }
 
             return;
+        }
+
+        // Активность комнаты — системная реакция на уже сохранённое значение.
+        // Ошибка здесь не должна отменять пользовательский OnChange или
+        // доставку модулям: значение и история уже зафиксированы.
+        if ($changed) {
+            try {
+                $this->roomActivity->propertyChanged($object, $property);
+            } catch (Throwable $error) {
+                $this->logger->warning('Не удалось обновить активность комнаты', [
+                    'object_id' => $objectId,
+                    'property_id' => $propertyId,
+                    'error' => $error->getMessage(),
+                ]);
+            }
         }
 
         $handlerSucceeded = true;

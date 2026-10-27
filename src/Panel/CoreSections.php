@@ -7,6 +7,7 @@ namespace MajorDoMo\Panel;
 /**
  * Реестр ядровых разделов админки.
  *
+ * 2026-10-27 — пользователи и роли объединены в одном разделе.
  * Ядровые страницы не являются модулями: у них нет module.json, ModuleDb и
  * lifecycle. Модулями остаются MQTT, Zigbee и сторонние SDK-модули.
  *
@@ -39,8 +40,7 @@ final class CoreSections
             ['id' => 'knowledge_base', 'label' => 'База знаний', 'href' => '/knowledge-base', 'icon' => 'ti-book', 'group' => 'Автоматизация'],
 
             ['id' => 'modules', 'label' => 'Модули', 'href' => '/admin/modules', 'icon' => 'ti-puzzle', 'group' => 'Система'],
-            ['id' => 'users', 'label' => 'Пользователи', 'href' => '/users', 'icon' => 'ti-users', 'group' => 'Система'],
-            ['id' => 'roles', 'label' => 'Роли', 'href' => '/roles', 'icon' => 'ti-shield', 'group' => 'Система'],
+            ['id' => 'users', 'label' => 'Пользователи и роли', 'href' => '/users', 'icon' => 'ti-users', 'group' => 'Система'],
             ['id' => 'settings', 'label' => 'Настройки', 'href' => '/settings', 'icon' => 'ti-settings', 'group' => 'Система'],
             ['id' => 'actions_log', 'label' => 'Журнал', 'href' => '/journal', 'icon' => 'ti-list-details', 'group' => 'Система'],
             ['id' => 'system_errors', 'label' => 'Ошибки', 'href' => '/errors', 'icon' => 'ti-alert-triangle', 'group' => 'Система'],

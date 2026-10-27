@@ -10,15 +10,20 @@ use InvalidArgumentException;
 use MajorDoMo\Audit\ActionLogger;
 use MajorDoMo\Auth\RoleRepository;
 use MajorDoMo\Auth\UserRepository;
+use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Objects\ObjectRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Пользователи MyDoMo: список, создание, редактирование, soft delete.
+ *
+ * 2026-10-27 — единый раздел с ролями, объектом Users и состоянием присутствия;
+ * ошибки сохраняют выбор ролей, собственный доступ нельзя снять случайно.
  */
 final readonly class UsersController extends Controller
 {
@@ -26,6 +31,8 @@ final readonly class UsersController extends Controller
         private Factory $view,
         private UserRepository $users,
         private RoleRepository $roles,
+        private ObjectRepository $objects,
+        private DatabaseManager $database,
         private SessionStore $session,
         private PanelRenderer $panel,
         private ActionLogger $audit
@@ -36,14 +43,11 @@ final readonly class UsersController extends Controller
     {
         $search = trim((string)$request->query->get('q', ''));
         $users = $this->users->all($search);
-        $rolesByUser = [];
-        foreach ($users as $user) {
-            $rolesByUser[$user['id']] = $this->roles->rolesForUser($user['id']);
-        }
 
         $content = $this->view->make('pages.users.index', [
             'users' => $users,
-            'rolesByUser' => $rolesByUser,
+            'rolesByUser' => $this->roles->rolesByUser(),
+            'presence' => $this->presence(),
             'search' => $search,
             'csrf' => $this->session->csrfToken(),
         ])->render();
@@ -53,7 +57,9 @@ final readonly class UsersController extends Controller
 
     public function create(): Response
     {
-        return $this->form(null);
+        $userRole = array_values(array_filter($this->roles->allRoles(), static fn (array $role): bool => $role['name'] === 'user'));
+
+        return $this->form(null, null, ['role_ids' => array_column($userRole, 'id')]);
     }
 
     public function store(Request $request): Response
@@ -64,8 +70,7 @@ final readonly class UsersController extends Controller
         $isAdmin = (string)$request->request->get('is_admin', '') === '1';
 
         try {
-            $id = $this->users->create($username, $name, $password, $isAdmin);
-            $this->roles->syncUserRoles($id, $this->roleIds($request));
+            $id = $this->users->create($username, $name, $password, $isAdmin, $this->roleIds($request));
             $this->audit->log('user.create', 'Создан пользователь: ' . $username, (string)($this->session->user()['username'] ?? ''));
             return new RedirectResponse('/users/' . $id . '/edit');
         } catch (InvalidArgumentException $error) {
@@ -73,6 +78,7 @@ final readonly class UsersController extends Controller
                 'username' => $username,
                 'name' => $name,
                 'is_admin' => $isAdmin,
+                'role_ids' => $request->request->all('role_ids'),
             ], 422);
         }
     }
@@ -99,14 +105,17 @@ final readonly class UsersController extends Controller
         $isAdmin = (string)$request->request->get('is_admin', '') === '1';
 
         try {
-            $this->users->update((int)$id, $username, $name, $password, $isAdmin);
-            $this->roles->syncUserRoles((int)$id, $this->roleIds($request));
+            if ((int)$id === (int)($this->session->user()['id'] ?? 0) && !$isAdmin) {
+                throw new InvalidArgumentException('Нельзя снять доступ в админку у собственной учётной записи.');
+            }
+            $this->users->update((int)$id, $username, $name, $password, $isAdmin, $this->roleIds($request));
             $this->audit->log('user.update', 'Изменён пользователь: ' . $username, (string)($this->session->user()['username'] ?? ''));
         } catch (InvalidArgumentException $error) {
             return $this->form($user, $error->getMessage(), [
                 'username' => $username,
                 'name' => $name,
                 'is_admin' => $isAdmin,
+                'role_ids' => $request->request->all('role_ids'),
             ], 422);
         }
 
@@ -115,6 +124,9 @@ final readonly class UsersController extends Controller
 
     public function delete(string $id): Response
     {
+        if ((int)$id === (int)($this->session->user()['id'] ?? 0)) {
+            return $this->form($this->users->find((int)$id), 'Нельзя удалить собственную учётную запись.', null, 422);
+        }
         $this->users->delete((int)$id);
         $this->audit->log('user.delete', 'Удалён пользователь #' . $id, (string)($this->session->user()['username'] ?? ''));
 
@@ -128,12 +140,18 @@ final readonly class UsersController extends Controller
     {
         $ids = $request->request->all('role_ids');
 
-        return array_values(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0));
+        foreach ($ids as $id) {
+            if ((!is_int($id) && !is_string($id)) || preg_match('/^[1-9][0-9]*$/D', (string)$id) !== 1) {
+                throw new InvalidArgumentException('Некорректный список ролей.');
+            }
+        }
+
+        return array_values(array_unique(array_map('intval', $ids)));
     }
 
     /**
-     * @param array{id:int,username:string,name:string,is_admin:bool}|null $user
-     * @param array{username:string,name:string,is_admin:bool}|null $draft
+     * @param array{id:int,username:string,name:string,is_admin:bool,object_id:int}|null $user
+     * @param array<string,mixed>|null $draft
      */
     private function form(?array $user, ?string $error = null, ?array $draft = null, int $status = 200): Response
     {
@@ -141,11 +159,32 @@ final readonly class UsersController extends Controller
             'user' => $user,
             'draft' => $draft,
             'roles' => $this->roles->allRoles(),
-            'selectedRoles' => $user !== null ? $this->roles->roleIdsForUser($user['id']) : [],
+            'selectedRoles' => $draft !== null && isset($draft['role_ids'])
+                ? array_map('intval', array_filter($draft['role_ids'], 'is_scalar'))
+                : ($user !== null ? $this->roles->roleIdsForUser($user['id']) : []),
+            'permissions' => $this->roles->allPermissions(),
+            'grants' => $this->roles->permissionsByRole(),
+            'object' => $user !== null ? $this->objects->find($user['object_id']) : null,
             'error' => $error,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
         return $this->panel->render(new PanelPage($user === null ? 'Новый пользователь' : 'Пользователь', $content, 'users'), $status);
+    }
+
+    /** @return array<int,array<string,string>> */
+    private function presence(): array
+    {
+        $rows = $this->database->connection()->table('users as u')
+            ->join('property_values as v', 'v.object_id', '=', 'u.object_id')
+            ->join('properties as p', 'p.id', '=', 'v.property_id')
+            ->whereNull('u.deleted_at')->whereNull('p.deleted_at')->whereNull('v.deleted_at')
+            ->whereIn('p.title', ['isHome', 'isWifiConnected'])->get(['u.id', 'p.title', 'v.value']);
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(int)$row->id][(string)$row->title] = (string)$row->value;
+        }
+
+        return $result;
     }
 }

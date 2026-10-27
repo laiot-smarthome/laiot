@@ -27,7 +27,7 @@ docker compose up --build -d
 ```
 
 Открыть `http://127.0.0.1:8080/login`. Администратор по умолчанию:
-`admin` / `majordomo` (меняется переменными `MYDOMO_ADMIN_*` в
+`sysadmin` / `majordomo!` (меняется переменными `MYDOMO_ADMIN_*` в
 `docker-compose.yml`).
 
 Первый запуск применяет миграции и создаёт администратора; повторный запуск

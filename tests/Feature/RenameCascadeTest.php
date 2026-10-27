@@ -196,6 +196,11 @@ final class RenameCascadeTest extends TestCase
         (new Migrator($app->database(), $app->root() . '/database/migrations'))->migrate();
         SessionFixture::authenticate($app);
 
+        // Фиксированные id этой модели не должны пересекаться с начальным Users.
+        foreach (['methods', 'properties', 'classes'] as $table) {
+            $app->database()->connection()->table($table)->delete();
+        }
+
         $connection = $app->database()->connection();
         $now = date('Y-m-d H:i:s');
         $connection->table('classes')->insert([

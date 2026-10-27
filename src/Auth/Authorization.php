@@ -12,6 +12,9 @@ use Throwable;
  *
  * Основной источник — таблицы ролей; если БД/миграции ещё недоступны,
  * используется сессионный `is_admin` как безопасный fallback.
+ *
+ * 2026-10-27 — флаг администратора всегда даёт заявленный полный доступ,
+ * независимо от набора дополнительно назначенных ролей.
  */
 final readonly class Authorization
 {
@@ -53,6 +56,10 @@ final readonly class Authorization
         $user = $this->user();
         if ($user === null) {
             return false;
+        }
+
+        if ((bool)($user['is_admin'] ?? false)) {
+            return true;
         }
 
         if ($this->roles instanceof RoleRepository) {
