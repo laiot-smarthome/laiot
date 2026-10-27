@@ -12,6 +12,7 @@ use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Locations\LocationRepository;
+use MajorDoMo\Objects\ObjectRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -20,12 +21,15 @@ use Throwable;
  * Локации: помещения и их приоритет в интерфейсе.
  *
  * 2026-10-26 — добавлены поиск и количество объектов в помещении.
+ * 2026-10-27 — локация принадлежит объекту: карточка показывает объекты
+ * помещения и не привязывает к нему класс.
  */
 final readonly class LocationsController extends Controller
 {
     public function __construct(
         private Factory $view,
         private LocationRepository $locations,
+        private ObjectRepository $objects,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -111,6 +115,7 @@ final readonly class LocationsController extends Controller
             'draft' => $draft,
             'title' => (string)($draft['title'] ?? $location['title'] ?? ''),
             'priority' => (int)($draft['priority'] ?? $location['priority'] ?? 0),
+            'objects' => $location === null ? [] : $this->objects->all('', 0, (int)$location['id']),
             'error' => $error,
             'csrf' => $this->session->csrfToken(),
         ])->render();

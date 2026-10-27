@@ -27,6 +27,10 @@ final readonly class PanelRenderer
     public function render(PanelPage $page, int $status = 200): Response
     {
         $menu = $page->menu !== [] ? $page->menu : $this->defaultMenu($page->active);
+        $notice = $this->session->get('panel.notice');
+        if ($notice !== null) {
+            $this->session->forget('panel.notice');
+        }
         $html = $this->view->make('layouts.alpha', [
             'title' => $page->title,
             'content' => $page->content,
@@ -34,6 +38,7 @@ final readonly class PanelRenderer
             'csrf' => $this->session->csrfToken(),
             'user' => $this->session->user(),
             'menu' => $menu,
+            'notice' => is_string($notice) && $notice !== '' ? $notice : null,
         ])->render();
 
         return new Response($html, $status);

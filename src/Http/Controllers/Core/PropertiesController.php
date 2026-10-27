@@ -12,8 +12,11 @@ use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
+use MajorDoMo\Properties\PropertySubscriptionRepository;
+use MajorDoMo\Rename\NameReferenceUpdater;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -33,6 +36,9 @@ final readonly class PropertiesController extends Controller
         private PropertyRepository $properties,
         private ClassRepository $classes,
         private ObjectRepository $objects,
+        private MethodRepository $methods,
+        private PropertySubscriptionRepository $subscriptions,
+        private NameReferenceUpdater $references,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -66,7 +72,8 @@ final readonly class PropertiesController extends Controller
                 (string)$request->request->get('data_type', 'string'),
                 (string)$request->request->get('keep_history', '') === '1',
                 (string)$request->request->get('on_change', ''),
-                $objectId
+                $objectId,
+                (string)$request->request->get('only_new_values', '') === '1'
             );
         } catch (InvalidArgumentException $error) {
             return $this->form(null, $error->getMessage(), $request->request->all(), 422);
@@ -104,11 +111,14 @@ final readonly class PropertiesController extends Controller
                 (string)$request->request->get('data_type', 'string'),
                 (string)$request->request->get('keep_history', '') === '1',
                 (string)$request->request->get('on_change', ''),
-                $objectId
+                $objectId,
+                (string)$request->request->get('only_new_values', '') === '1'
             );
         } catch (InvalidArgumentException $error) {
             return $this->form($property, $error->getMessage(), $request->request->all(), 422);
         }
+
+        $this->rememberRename((string)$property['title'], (string)$request->request->get('title', ''));
 
         return new RedirectResponse($this->returnUrl($classId, $objectId));
     }
@@ -126,7 +136,7 @@ final readonly class PropertiesController extends Controller
     }
 
     /**
-     * @param array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string}|null $property
+     * @param array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}|null $property
      * @param array<string, mixed>|null $draft
      */
     private function form(?array $property, ?string $error = null, ?array $draft = null, int $status = 200): Response
@@ -138,6 +148,10 @@ final readonly class PropertiesController extends Controller
             $classId = (int)$object['class_id'];
         }
         $class = $classId > 0 ? $this->classes->find($classId) : null;
+        $propertyId = (int)($property['id'] ?? 0);
+        $methodOptions = $object !== null
+            ? $this->methods->forObject((int)$object['id'])
+            : ($classId > 0 ? $this->methods->effectiveForClass($classId) : []);
 
         $content = $this->view->make('pages.properties.form', [
             'property' => $property,
@@ -147,6 +161,15 @@ final readonly class PropertiesController extends Controller
             'object' => $object,
             'classId' => $classId,
             'objectId' => $objectId,
+            'keepHistory' => $draft !== null
+                ? (string)($draft['keep_history'] ?? '') === '1'
+                : (bool)($property['keep_history'] ?? false),
+            'onlyNewValues' => $draft !== null
+                ? (string)($draft['only_new_values'] ?? '') === '1'
+                : (bool)($property['only_new_values'] ?? false),
+            'bindings' => $propertyId > 0 ? $this->subscriptions->forProperty($propertyId) : [],
+            'methodOptions' => $methodOptions,
+            'takenNames' => $this->properties->takenNames($classId, $objectId, $propertyId),
             'returnUrl' => $this->returnUrl($classId, $objectId),
             'error' => $error,
             'csrf' => $this->session->csrfToken(),
@@ -175,5 +198,21 @@ final readonly class PropertiesController extends Controller
         }
 
         return '/classes';
+    }
+
+    private function rememberRename(string $old, string $new): void
+    {
+        $old = trim($old);
+        $new = trim($new);
+        if ($old === '' || $old === $new) {
+            return;
+        }
+        $message = 'Имя «' . $old . '» изменено на «' . $new . '». Обновлено ссылок: '
+            . $this->references->changes() . '.';
+        $warnings = $this->references->warnings();
+        if ($warnings !== []) {
+            $message .= ' Не удалось обновить файлов модулей: ' . count($warnings) . ' (подробности в логе).';
+        }
+        $this->session->set('panel.notice', $message);
     }
 }

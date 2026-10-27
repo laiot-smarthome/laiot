@@ -18,10 +18,13 @@ use MajorDoMo\Locations\LocationRepository;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
+use MajorDoMo\Properties\PropertySubscriptionRepository;
 use MajorDoMo\Properties\PropertyValueService;
 use MajorDoMo\Properties\ValueRepository;
+use MajorDoMo\Rename\NameReferenceUpdater;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
  * Карточка объекта внутри раздела «Классы».
@@ -32,6 +35,8 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * 2026-10-27 — убран отдельный каталог объектов, значения редактируются во
  * вкладке «Свойства», добавлены объектные свойства/методы и наследование.
+ * 2026-10-27 — класс обязателен, имя объекта проверяется латиницей и
+ * уникальностью, расположение задаётся только у объекта.
  */
 final readonly class ObjectsController extends Controller
 {
@@ -43,11 +48,13 @@ final readonly class ObjectsController extends Controller
         private ClassRepository $classes,
         private LocationRepository $locations,
         private PropertyRepository $properties,
+        private PropertySubscriptionRepository $subscriptions,
         private MethodRepository $methods,
         private ValueRepository $values,
         private HistoryRepository $history,
         private PropertyEventRepository $events,
         private PropertyValueService $propertyValues,
+        private NameReferenceUpdater $references,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -124,6 +131,8 @@ final readonly class ObjectsController extends Controller
             return $this->form($object, $error->getMessage(), $request->request->all(), 422);
         }
 
+        $this->rememberRename((string)$object['title'], (string)$request->request->get('title', ''));
+
         return new RedirectResponse('/objects/' . $id . '/edit');
     }
 
@@ -190,8 +199,10 @@ final readonly class ObjectsController extends Controller
             'class' => $class,
             'classPath' => $path,
             'locations' => $this->locations->all(),
+            'takenNames' => $this->objects->titles($objectId),
             'properties' => $properties,
             'values' => $values,
+            'propertyBindings' => $this->safeBindings(array_column($properties, 'id')),
             'classMethods' => $classMethods,
             'objectPropertyCount' => count(array_filter($properties, static fn (array $row): bool => $row['origin'] === 'object')),
             'history' => $tab === 'history' && $objectId > 0 ? $this->history->forObject($objectId) : [],
@@ -210,5 +221,34 @@ final readonly class ObjectsController extends Controller
         $content = $this->view->make('pages.objects.missing', [])->render();
 
         return $this->panel->render(new PanelPage('Объект не найден', $content, 'classes'), 404);
+    }
+
+    /**
+     * @param list<int> $propertyIds
+     * @return array<int,list<array{module:string,object_id:int,object_title:string}>>
+     */
+    private function safeBindings(array $propertyIds): array
+    {
+        try {
+            return $this->subscriptions->forProperties(array_map('intval', $propertyIds));
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    private function rememberRename(string $old, string $new): void
+    {
+        $old = trim($old);
+        $new = trim($new);
+        if ($old === '' || $old === $new) {
+            return;
+        }
+        $message = 'Имя «' . $old . '» изменено на «' . $new . '». Обновлено ссылок: '
+            . $this->references->changes() . '.';
+        $warnings = $this->references->warnings();
+        if ($warnings !== []) {
+            $message .= ' Не удалось обновить файлов модулей: ' . count($warnings) . ' (подробности в логе).';
+        }
+        $this->session->set('panel.notice', $message);
     }
 }

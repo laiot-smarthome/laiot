@@ -113,16 +113,20 @@ SDK регистрирует `/module/<id>` с auth и контекстом Modu
 | События | PropertyValueService, PropertyEventContext, PropertyEventHandler, PropertyEventRepository, ModuleBus |
 | Задания | Queue/DatabaseQueue, QueueWorker, JobRegistry |
 | Панель | CoreSections, PanelRenderer, PanelPage, PanelSearch, LinkedObjectService |
+| Переименование | CodeReferenceRewriter, NameReferenceUpdater |
 | Диагностика | LoggerFactory, RequestContext, ErrorRepository, ActionLogger |
 | Сообщения | NotificationService |
 | Документы | KnowledgeBase, MarkdownRenderer |
 
 Классы образуют дерево (`parent_id`), а свойства/методы ищутся по цепочке
-наследования: объектный член перекрывает классовый, ближайший подкласс —
-родительский. Запись свойства проходит PropertyValueService: проверка
-объекта/свойства, сохранение значения и постановка задания `property.changed`
-в очередь `events` одной транзакцией. OnChange, историю и доставку модулям
-выполняет отдельный процесс `core-worker events` (`PropertyEventHandler`).
+наследования. Системные имена латиницей и уникальны: свойство/метод — во всей
+ветке класса, поэтому одноимённое переопределение не создаётся; поиск по
+цепочке остаётся для чтения legacy-строк. Локация принадлежит объекту
+(`objects.location_id`), не классу. Запись свойства проходит
+PropertyValueService: проверка объекта/свойства, сохранение значения и
+постановка задания `property.changed` в очередь `events` одной транзакцией.
+OnChange, историю и доставку модулям выполняет отдельный процесс
+`core-worker events` (`PropertyEventHandler`).
 Поэтому запись датчика не ждёт пользовательского PHP, а тысячи изменений
 обрабатываются в своём процессе.
 

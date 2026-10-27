@@ -28,6 +28,7 @@ use Throwable;
  *
  * Ошибка метода не откатывает значение: она фиксируется в журнале и логе.
  *
+ * 2026-10-27 — ошибка OnChange останавливает прямую доставку модулям.
  * 2026-10-27 — доставка модулям вынесена в их собственные очереди.
  * 2026-10-27 — обработчик создан для асинхронного конвейера свойств.
  */
@@ -128,8 +129,9 @@ final readonly class PropertyEventHandler implements JobHandler
             return;
         }
 
+        $handlerSucceeded = true;
         if ($handler !== '') {
-            $this->runHandler(
+            $handlerSucceeded = $this->runHandler(
                 $object,
                 $property,
                 $handler,
@@ -144,6 +146,10 @@ final readonly class PropertyEventHandler implements JobHandler
 
         // История пишется после реакции, но с временем самой записи значения.
         $this->recordHistory($objectId, $propertyId, $newValue, $changed, $property, $occurredAt);
+
+        if (!$handlerSucceeded) {
+            return;
+        }
 
         $this->deliverModules(
             $object,
@@ -174,7 +180,7 @@ final readonly class PropertyEventHandler implements JobHandler
         array $chain,
         int $depth,
         int $parentId
-    ): void {
+    ): bool {
         $objectTitle = (string)$object['title'];
         $propertyTitle = (string)$property['title'];
 
@@ -206,7 +212,7 @@ final readonly class PropertyEventHandler implements JobHandler
                     'handler' => $handler,
                 ]);
 
-                return;
+                return false;
             }
 
             $this->methodRunner->run($objectTitle, $handler, [
@@ -219,6 +225,7 @@ final readonly class PropertyEventHandler implements JobHandler
                 'CHAIN' => $chain,
             ]);
             $this->events->finish($handlerEventId, 'ok');
+            return true;
         } catch (Throwable $error) {
             $this->events->finish($handlerEventId, 'error', $error->getMessage());
             $this->logger->warning('OnChange-обработчик свойства завершился ошибкой', [
@@ -227,6 +234,7 @@ final readonly class PropertyEventHandler implements JobHandler
                 'handler' => $handler,
                 'error' => $error->getMessage(),
             ]);
+            return false;
         } finally {
             $this->context->restore($snapshot);
         }

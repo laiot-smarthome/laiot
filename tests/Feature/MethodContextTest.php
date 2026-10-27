@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * `$this` внутри метода: контекст объекта, запись, вложенный вызов и история.
  *
+ * 2026-10-27 — проверены совместное выполнение методов объекта и предка.
  * 2026-10-27 — тест создан вместе с MethodContext.
  */
 final class MethodContextTest extends TestCase
@@ -34,6 +35,28 @@ final class MethodContextTest extends TestCase
         $this->boot();
 
         self::assertSame(6, callMethod('Кухня', 'outer', ['x' => 3]));
+    }
+
+    public function testObjectMethodCallsInheritedMethodInOrder(): void
+    {
+        $app = $this->boot();
+        $connection = $app->database()->connection();
+        $now = date('Y-m-d H:i:s');
+        $connection->table('classes')->insert([
+            'id' => 2, 'title' => 'Подкласс', 'parent_id' => 1, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $connection->table('objects')->where('id', 1)->update(['class_id' => 2]);
+        $connection->table('methods')->insert([
+            'class_id' => 0, 'object_id' => 1, 'title' => 'objectMethod', 'description' => '',
+            'code' => '$this->set("state", "before"); $result = $this->call("inner", ["x" => 4]);'
+                . ' return [$this->get("state"), $result, $this->title()];',
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+
+        self::assertSame(['before', 8, 'Кухня'], callMethod('Кухня', 'objectMethod'));
+        self::assertSame(1, $this->pendingEvents($app));
+        $this->drainEvents($app);
+        self::assertSame(1, history('Кухня.state')?->count());
     }
 
     public function testHistoryInsideMethodAndAfterEventsWorker(): void

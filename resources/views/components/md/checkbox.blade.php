@@ -23,7 +23,7 @@
            @checked($checked)
            @disabled($disabled)
            @required($required)>
-    <span class="md-check__box" aria-hidden="true"><x-md.icon name="check2" /></span>
+    <span class="md-check__box" aria-hidden="true"><x-md.icon name="check" /></span>
     @if ($label !== null || $description !== null)
         <span class="md-check__text">
             @if ($label !== null)<span class="md-check__label">{{ $label }}</span>@endif

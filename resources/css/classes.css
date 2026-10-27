@@ -1,0 +1,228 @@
+/*
+ * Раздел «Классы»: дерево классов и объектов, живые имена, карточки.
+ *
+ * 2026-10-27 — ПК показывает объекты дочерними строками дерева, мобильный
+ * оставляет компактную панель под классом. Стили дополняют md-* систему,
+ * а не заменяют её.
+ */
+
+/* Живая проверка системного имени. */
+body.md-admin-shell .md-name-field__status {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 18px;
+    margin-top: 6px;
+}
+
+body.md-admin-shell .md-name-field__message {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    color: var(--md-ui-muted);
+    font-size: var(--md-ui-fs-xs);
+    line-height: 1.45;
+}
+
+body.md-admin-shell .md-name-field__message i {
+    flex: none;
+    margin-top: 1px;
+    font-size: .95em;
+}
+
+body.md-admin-shell .md-name-field__message--free {
+    color: var(--md-ui-success);
+}
+
+body.md-admin-shell .md-name-field__message--taken,
+body.md-admin-shell .md-name-field__message--invalid {
+    color: var(--md-ui-danger);
+}
+
+body.md-admin-shell .md-name-field__description {
+    margin-top: 4px;
+}
+
+body.md-admin-shell .md-input.is-valid {
+    border-color: var(--md-ui-success);
+}
+
+body.md-admin-shell .md-input.is-valid:focus {
+    border-color: var(--md-ui-success);
+    box-shadow: 0 0 0 3px var(--md-ui-success-soft);
+}
+
+/* Тулбар дерева: поиск, фильтр, раскрытие и счётчик. */
+body.md-admin-shell .md-classes-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+}
+
+body.md-admin-shell .md-classes-toolbar .md-ui-search {
+    flex: 1 1 260px;
+    min-width: 200px;
+}
+
+body.md-admin-shell .md-classes-toolbar__meta {
+    margin-left: auto;
+    color: var(--md-ui-muted);
+    font-size: var(--md-ui-fs-xs);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+body.md-admin-shell .md-classes-toolbar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Дерево: строка объекта — ребёнок класса. */
+body.md-admin-shell .md-classes-table .md-tree-table__cell {
+    min-width: 260px;
+}
+
+body.md-admin-shell .md-classes-object-row > td {
+    background: var(--md-ui-surface-2);
+    border-top: 1px dashed var(--md-ui-border);
+}
+
+body.md-admin-shell .md-classes-object-cell {
+    min-height: 42px;
+}
+
+/* Вертикальная ветка от класса к его объектам: строка объекта — ребёнок,
+   поэтому линия идёт по уровню класса, а горизонтальный отвод уже рисует
+   общий md-tree-table. */
+body.md-admin-shell .md-classes-object-row .md-classes-object-cell::after {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--md-tree-level, 1) * 18px - 7px);
+    width: 1px;
+    background: var(--md-ui-border);
+    content: "";
+}
+
+body.md-admin-shell .md-classes-object-icon {
+    color: var(--md-ui-info);
+    background: var(--md-ui-info-soft);
+}
+
+body.md-admin-shell .md-classes-object-location {
+    flex: none;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.md-admin-shell .md-classes-object-meta {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    color: var(--md-ui-muted);
+    font-size: var(--md-ui-fs-caption);
+}
+
+body.md-admin-shell .md-classes-object-meta i {
+    font-size: .9em;
+}
+
+body.md-admin-shell .md-classes-object-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+body.md-admin-shell .md-classes-mobile-objects {
+    display: none;
+}
+
+body.md-admin-shell .md-classes-mobile-objects .md-tree-table__panel {
+    gap: 8px;
+}
+
+body.md-admin-shell .md-classes-object-list {
+    display: grid;
+    gap: 6px;
+}
+
+body.md-admin-shell .md-classes-object-link {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 6px 9px;
+    border: 1px solid var(--md-ui-border);
+    border-radius: var(--md-ui-radius-sm);
+    background: var(--md-ui-surface);
+    color: var(--md-ui-text-soft);
+    font-size: var(--md-ui-fs-xs);
+    text-decoration: none;
+}
+
+body.md-admin-shell .md-classes-object-link:hover,
+body.md-admin-shell .md-classes-object-link:focus-visible {
+    border-color: var(--md-ui-primary);
+    color: var(--md-ui-primary);
+}
+
+body.md-admin-shell .md-classes-object-link__location {
+    margin-left: auto;
+    color: var(--md-ui-muted);
+    font-size: var(--md-ui-fs-caption);
+    white-space: nowrap;
+}
+
+/* Карточка класса: описание и быстрые действия. */
+body.md-admin-shell .md-classes-card-lede {
+    max-width: 80ch;
+    margin: 0;
+    color: var(--md-ui-text-soft);
+    line-height: 1.55;
+}
+
+body.md-admin-shell .md-classes-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* На телефоне объекты не дублируются строками дерева: работает панель. */
+@media (max-width: 991.98px) {
+    body.md-admin-shell .md-classes-col-count {
+        display: none;
+    }
+}
+
+@media (max-width: 767.98px) {
+    body.md-admin-shell .md-classes-object-row {
+        display: none !important;
+    }
+
+    body.md-admin-shell .md-classes-mobile-objects {
+        display: table-row;
+    }
+
+    body.md-admin-shell .md-classes-table .md-tree-table__cell {
+        min-width: 0;
+    }
+
+    body.md-admin-shell .md-classes-table .md-tree-table__desc {
+        max-width: 42vw;
+        white-space: normal;
+    }
+
+    body.md-admin-shell .md-classes-toolbar__meta {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    body.md-admin-shell .md-classes-toolbar .md-ui-search {
+        flex-basis: 100%;
+    }
+}

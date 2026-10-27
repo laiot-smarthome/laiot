@@ -15,6 +15,8 @@ use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
+use MajorDoMo\Properties\PropertySubscriptionRepository;
+use MajorDoMo\Rename\NameReferenceUpdater;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -26,6 +28,9 @@ use Throwable;
  * 2026-10-27 — объекты, свойства, методы, значения и история больше не
  * отдельные пункты меню: пользователь работает через класс, а наследование
  * показывается в карточке класса и его объекта.
+ * 2026-10-27 — дерево на ПК содержит объекты дочерними строками, на телефоне
+ * остаётся компактная панель. Системное имя класса проверяется латиницей и
+ * уникальностью сразу в форме; у класса появилось описание.
  */
 final readonly class ClassesController extends Controller
 {
@@ -39,6 +44,8 @@ final readonly class ClassesController extends Controller
         private PropertyRepository $properties,
         private MethodRepository $methods,
         private ObjectRepository $objects,
+        private PropertySubscriptionRepository $subscriptions,
+        private NameReferenceUpdater $references,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -48,7 +55,7 @@ final readonly class ClassesController extends Controller
     {
         $search = trim((string)$request->query->get('q', ''));
         $allClasses = $this->classes->all();
-        $rows = $this->classes->flattened($search);
+        $rows = $this->classes->flattened();
         $objectsByClass = $this->safeObjects();
         $propertyCounts = $this->safeCount(fn (): array => $this->properties->effectiveCounts($allClasses));
         $methodCounts = $this->safeCount(fn (): array => $this->methods->effectiveCounts($allClasses));
@@ -89,6 +96,35 @@ final readonly class ClassesController extends Controller
             $subtree((int)$class['id']);
         }
 
+        $treeClasses = [];
+        $treeObjects = [];
+        foreach ($rows as $row) {
+            $classId = (int)$row['id'];
+            $classObjects = $objectsByClass[$classId] ?? [];
+            $treeClasses[] = [
+                'id' => $classId,
+                'parent_id' => (int)$row['parent_id'],
+                'depth' => (int)$row['depth'],
+                'title' => (string)$row['title'],
+                'description' => (string)$row['description'],
+                'path' => (string)$row['path'],
+                'has_children' => (bool)$row['has_children'],
+                'children_count' => (int)$row['children_count'],
+                'objects_count' => count($classObjects),
+                'objects_deep_count' => (int)($subtreeObjectCounts[$classId] ?? 0),
+            ];
+            $treeObjects[(string)$classId] = array_map(
+                static fn (array $object): array => [
+                    'id' => (int)$object['id'],
+                    'title' => (string)$object['title'],
+                    'description' => (string)$object['description'],
+                    'location_id' => (int)$object['location_id'],
+                    'location_title' => (string)$object['location_title'],
+                ],
+                $classObjects
+            );
+        }
+
         $content = $this->view->make('pages.classes.index', [
             'rows' => $rows,
             'classes' => $allClasses,
@@ -97,10 +133,16 @@ final readonly class ClassesController extends Controller
             'methodCounts' => $methodCounts,
             'objectCounts' => $objectCounts,
             'subtreeObjectCounts' => $subtreeObjectCounts,
+            'tree' => [
+                'query' => $search,
+                'classes' => $treeClasses,
+                'objects' => (object)$treeObjects,
+            ],
             'totalObjects' => array_sum($objectCounts),
             'totalProperties' => array_sum(array_column($propertyCounts, 'own')),
             'totalMethods' => array_sum(array_column($methodCounts, 'own')),
             'totalSubclasses' => count(array_filter($allClasses, static fn (array $class): bool => (int)$class['parent_id'] > 0)),
+            'rootClasses' => count(array_filter($allClasses, static fn (array $class): bool => (int)$class['parent_id'] === 0)),
             'search' => $search,
             'error' => $this->pullError(),
             'csrf' => $this->session->csrfToken(),
@@ -121,7 +163,8 @@ final readonly class ClassesController extends Controller
         try {
             $id = $this->classes->create(
                 (string)$request->request->get('title', ''),
-                (int)$request->request->get('parent_id', 0)
+                (int)$request->request->get('parent_id', 0),
+                (string)$request->request->get('description', '')
             );
         } catch (InvalidArgumentException $error) {
             return $this->form(null, $error->getMessage(), $request->request->all(), 422);
@@ -138,9 +181,7 @@ final readonly class ClassesController extends Controller
         }
 
         $tab = (string)$request->query->get('tab', '');
-        if ($tab === '') {
-            $tab = 'overview';
-        }
+        $tab = $tab === '' ? 'overview' : $tab;
 
         return $this->form($class, null, null, 200, in_array($tab, self::TABS, true) ? $tab : 'overview');
     }
@@ -156,11 +197,14 @@ final readonly class ClassesController extends Controller
             $this->classes->update(
                 (int)$id,
                 (string)$request->request->get('title', ''),
-                (int)$request->request->get('parent_id', 0)
+                (int)$request->request->get('parent_id', 0),
+                (string)$request->request->get('description', '')
             );
         } catch (InvalidArgumentException $error) {
             return $this->form($class, $error->getMessage(), $request->request->all(), 422, 'overview');
         }
+
+        $this->rememberRename((string)$class['title'], (string)$request->request->get('title', ''));
 
         return new RedirectResponse('/classes/' . $id . '/edit');
     }
@@ -179,7 +223,7 @@ final readonly class ClassesController extends Controller
     }
 
     /**
-     * @param array{id:int,title:string,parent_id:int}|null $class
+     * @param array{id:int,title:string,parent_id:int,description:string}|null $class
      * @param array<string, mixed>|null $draft
      */
     private function form(
@@ -206,7 +250,7 @@ final readonly class ClassesController extends Controller
 
         $properties = $classId > 0 ? $this->properties->effectiveForClass($classId) : [];
         $methods = $classId > 0 ? $this->methods->effectiveForClass($classId) : [];
-        $objects = $classId > 0 ? $this->objects->forClass($classId, true) : [];
+        $objects = $classId > 0 ? $this->objects->forClass($classId, false) : [];
 
         $content = $this->view->make('pages.classes.form', [
             'class' => $class,
@@ -221,6 +265,8 @@ final readonly class ClassesController extends Controller
             'properties' => $properties,
             'methods' => $methods,
             'objects' => $objects,
+            'propertyBindings' => $this->safeBindings(array_column($properties, 'id')),
+            'takenNames' => $this->classes->titles($classId),
             'ownProperties' => count(array_filter($properties, static fn (array $row): bool => $row['origin'] === 'own')),
             'inheritedProperties' => count(array_filter($properties, static fn (array $row): bool => $row['origin'] === 'inherited')),
             'ownMethods' => count(array_filter($methods, static fn (array $row): bool => $row['origin'] === 'own')),
@@ -243,7 +289,7 @@ final readonly class ClassesController extends Controller
     }
 
     /**
-     * @return array<int,list<array{id:int,title:string}>>
+     * @return array<int,list<array{id:int,title:string,location_id:int,location_title:string,description:string}>>
      */
     private function safeObjects(): array
     {
@@ -276,5 +322,34 @@ final readonly class ClassesController extends Controller
         $this->session->forget(self::FLASH_ERROR);
 
         return is_string($error) && $error !== '' ? $error : null;
+    }
+
+    /**
+     * @param list<int> $propertyIds
+     * @return array<int,list<array{module:string,object_id:int,object_title:string}>>
+     */
+    private function safeBindings(array $propertyIds): array
+    {
+        try {
+            return $this->subscriptions->forProperties(array_map('intval', $propertyIds));
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    private function rememberRename(string $old, string $new): void
+    {
+        $old = trim($old);
+        $new = trim($new);
+        if ($old === '' || $old === $new) {
+            return;
+        }
+        $message = 'Имя «' . $old . '» изменено на «' . $new . '». Обновлено ссылок: '
+            . $this->references->changes() . '.';
+        $warnings = $this->references->warnings();
+        if ($warnings !== []) {
+            $message .= ' Не удалось обновить файлов модулей: ' . count($warnings) . ' (подробности в логе).';
+        }
+        $this->session->set('panel.notice', $message);
     }
 }

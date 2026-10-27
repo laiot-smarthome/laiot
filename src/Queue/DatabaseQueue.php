@@ -18,6 +18,7 @@ use Throwable;
  * это удобно для диагностики.
  *
  * Изменения:
+ * 2026-10-27 — полоса событий ждёт повтор старшего задания, сохраняя порядок.
  * 2026-10-27 — подтверждение и ошибка относятся к конкретной резервации.
  * 2026-10-27 — проверка таблицы кэшируется: очередь событий вызывает её на
  *              каждом задании.
@@ -92,19 +93,25 @@ final class DatabaseQueue implements Queue
         $connection = $this->database->connection();
 
         for ($attempt = 0; $attempt < 3; $attempt++) {
-            $row = $connection->table($this->table)
+            $orderedEvents = $queue === 'events' || preg_match('/^events\.\d+$/D', $queue) === 1;
+            $query = $connection->table($this->table)
                 ->where('queue', $queue)
                 ->whereNull('deleted_at')
-                ->whereNull('failed_at')
-                ->where('available_at', '<=', date('Y-m-d H:i:s', $now))
-                ->where(static function ($query) use ($reservationCutoff): void {
-                    $query->whereNull('reserved_at')
-                        ->orWhere('reserved_at', '<=', $reservationCutoff);
-                })
-                ->orderBy('id')
-                ->first();
+                ->whereNull('failed_at');
+            if (!$orderedEvents) {
+                $query->where('available_at', '<=', date('Y-m-d H:i:s', $now))
+                    ->where(static function ($query) use ($reservationCutoff): void {
+                        $query->whereNull('reserved_at')
+                            ->orWhere('reserved_at', '<=', $reservationCutoff);
+                    });
+            }
+            $row = $query->orderBy('id')->first();
 
             if ($row === null) {
+                return null;
+            }
+            if ($orderedEvents && ((string)$row->available_at > date('Y-m-d H:i:s', $now)
+                || ($row->reserved_at !== null && (string)$row->reserved_at > $reservationCutoff))) {
                 return null;
             }
 

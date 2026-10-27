@@ -134,6 +134,57 @@ final class PropertySubscriptionRepository
     }
 
     /**
+     * Подписки на конкретные свойства: для карточки свойства и списков.
+     *
+     * @param list<int> $propertyIds
+     * @return array<int,list<array{module:string,object_id:int,object_title:string}>>
+     */
+    public function forProperties(array $propertyIds): array
+    {
+        $ids = [];
+        foreach ($propertyIds as $propertyId) {
+            $propertyId = (int)$propertyId;
+            if ($propertyId > 0) {
+                $ids[$propertyId] = $propertyId;
+            }
+        }
+        if (!$this->hasTable() || $ids === []) {
+            return [];
+        }
+
+        $result = [];
+        $rows = $this->database->connection()->table('property_subscriptions as s')
+            ->join('objects as o', 'o.id', '=', 's.object_id')
+            ->whereIn('s.property_id', array_values($ids))
+            ->whereNull('o.deleted_at')
+            ->orderBy('s.module')
+            ->orderBy('o.title')
+            ->get([
+                's.property_id',
+                's.module',
+                's.object_id',
+                'o.title as object_title',
+            ]);
+        foreach ($rows as $row) {
+            $result[(int)$row->property_id][] = [
+                'module' => (string)$row->module,
+                'object_id' => (int)$row->object_id,
+                'object_title' => (string)($row->object_title ?? ''),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return list<array{module:string,object_id:int,object_title:string}>
+     */
+    public function forProperty(int $propertyId): array
+    {
+        return $this->forProperties([$propertyId])[$propertyId] ?? [];
+    }
+
+    /**
      * Идемпотентно добавляет подписку. Повторный вызов не создаёт дубль.
      */
     public function attach(int $objectId, int $propertyId, string $module): bool

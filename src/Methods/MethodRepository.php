@@ -7,8 +7,11 @@ namespace MajorDoMo\Methods;
 use InvalidArgumentException;
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Rename\NameReferenceUpdater;
 use MajorDoMo\Runtime\InvalidUserCode;
 use MajorDoMo\Runtime\PhpSyntaxValidator;
+use MajorDoMo\Support\Identifier;
+use Throwable;
 
 /**
  * Методы классов и объектов MyDoMo.
@@ -17,13 +20,16 @@ use MajorDoMo\Runtime\PhpSyntaxValidator;
  * 2026-10-27 — методы находятся по цепочке наследования классов; добавлены
  *              объектные методы (`object_id`), переопределяющие метод класса у одного
  *              объекта. Вызов из сценария и OnChange идёт через этот же поиск.
+ * 2026-10-27 — имя метода латиницей и уникально в области класса (с предками)
+ *              и объекта; одноимённый метод больше не переопределяет родителя.
  */
 final readonly class MethodRepository
 {
     public function __construct(
         private DatabaseManager $database,
         private ClassRepository $classes,
-        private PhpSyntaxValidator $syntax
+        private PhpSyntaxValidator $syntax,
+        private ?NameReferenceUpdater $references = null
     ) {
     }
 
@@ -326,7 +332,7 @@ final readonly class MethodRepository
         int $objectId = 0
     ): int {
         [$classId, $objectId] = $this->scope($classId, $objectId);
-        $title = $this->title($title);
+        $title = Identifier::assert($title, 'метода');
         $this->assertTitleFree($classId, $objectId, $title);
         $this->assertCode($code);
         $now = date('Y-m-d H:i:s');
@@ -335,7 +341,7 @@ final readonly class MethodRepository
             'class_id' => $classId,
             'object_id' => $objectId,
             'title' => $title,
-            'description' => $description,
+            'description' => trim($description),
             'code' => $code,
             'created_at' => $now,
             'updated_at' => $now,
@@ -352,21 +358,42 @@ final readonly class MethodRepository
         int $objectId = 0
     ): void {
         [$classId, $objectId] = $this->scope($classId, $objectId);
-        $title = $this->title($title);
-        $this->assertTitleFree($classId, $objectId, $title, $id);
+        $title = Identifier::assert($title, 'метода');
+        $current = $this->find($id);
+        if ($current === null || $current['title'] !== $title) {
+            $this->assertTitleFree($classId, $objectId, $title, $id);
+        }
         $this->assertCode($code);
 
-        $this->database->connection()->table('methods')
-            ->where('id', $id)
-            ->whereNull('deleted_at')
-            ->update([
-                'class_id' => $classId,
-                'object_id' => $objectId,
-                'title' => $title,
-                'description' => $description,
-                'code' => $code,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
+        $connection = $this->database->connection();
+        try {
+            $connection->transaction(function () use ($connection, $id, $classId, $objectId, $title, $description, $code, $current): void {
+                $connection->table('methods')
+                    ->where('id', $id)
+                    ->whereNull('deleted_at')
+                    ->update([
+                        'class_id' => $classId,
+                        'object_id' => $objectId,
+                        'title' => $title,
+                        'description' => trim($description),
+                        'code' => $code,
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
+                if ($current !== null && $current['title'] !== $title) {
+                    $this->references?->methodRenamed(
+                        $id,
+                        (int)$current['class_id'],
+                        (int)$current['object_id'],
+                        $current['title'],
+                        $title
+                    );
+                }
+            });
+        } catch (Throwable $error) {
+            $this->references?->discardPendingFiles();
+            throw $error;
+        }
+        $this->references?->flushModuleFiles();
     }
 
     public function delete(int $id): void
@@ -424,18 +451,123 @@ final readonly class MethodRepository
         return [$classId, $objectId];
     }
 
+    /**
+     * Имена, занятые в области метода: класс с предками и объект.
+     *
+     * @return list<string>
+     */
+    public function takenNames(int $classId, int $objectId, int $exceptId = 0): array
+    {
+        $names = [];
+        foreach ($this->classLevelNames($classId, $exceptId, $objectId <= 0) as $title) {
+            $names[mb_strtolower($title)] = $title;
+        }
+        if ($objectId > 0) {
+            $query = $this->database->connection()->table('methods')
+                ->where('object_id', $objectId)
+                ->whereNull('deleted_at');
+            if ($exceptId > 0) {
+                $query->where('id', '<>', $exceptId);
+            }
+            foreach ($query->pluck('title') as $title) {
+                $names[mb_strtolower((string)$title)] = (string)$title;
+            }
+        }
+
+        return array_values($names);
+    }
+
     private function assertTitleFree(int $classId, int $objectId, string $title, int $exceptId = 0): void
     {
+        $classOwner = $this->classLevelOwner($classId, $title, $exceptId, $objectId <= 0);
+        if ($classOwner !== null) {
+            throw new InvalidArgumentException(
+                $objectId > 0
+                    ? 'Метод «' . $title . '» уже объявлен у класса «' . $classOwner . '»; '
+                        . 'у объекта используйте другое имя.'
+                    : 'Метод «' . $title . '» уже объявлен у класса «' . $classOwner . '» в этой ветке наследования.'
+            );
+        }
+
+        if ($objectId <= 0) {
+            return;
+        }
+
         $query = $this->database->connection()->table('methods')
             ->where('class_id', $classId)
             ->where('object_id', $objectId)
-            ->where('title', $title);
+            ->whereRaw('LOWER(title) = ?', [mb_strtolower($title)])
+            ->whereNull('deleted_at');
         if ($exceptId > 0) {
             $query->where('id', '<>', $exceptId);
         }
         if ($query->exists()) {
-            throw new InvalidArgumentException('Метод с таким названием уже есть в этой области.');
+            throw new InvalidArgumentException('Метод с таким названием уже есть у этого объекта.');
         }
+    }
+
+    private function classLevelOwner(int $classId, string $title, int $exceptId = 0, bool $withDescendants = true): ?string
+    {
+        if ($classId <= 0) {
+            return null;
+        }
+        $ids = $this->classScopeIds($classId, $withDescendants);
+        if ($ids === []) {
+            return null;
+        }
+        $query = $this->database->connection()->table('methods')
+            ->whereIn('class_id', $ids)
+            ->where('object_id', 0)
+            ->whereRaw('LOWER(title) = ?', [mb_strtolower($title)])
+            ->whereNull('deleted_at');
+        if ($exceptId > 0) {
+            $query->where('id', '<>', $exceptId);
+        }
+        $ownerId = $query->value('class_id');
+        if ($ownerId === null) {
+            return null;
+        }
+
+        return (string)($this->classes->find((int)$ownerId)['title'] ?? '');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function classLevelNames(int $classId, int $exceptId = 0, bool $withDescendants = true): array
+    {
+        if ($classId <= 0) {
+            return [];
+        }
+        $ids = $this->classScopeIds($classId, $withDescendants);
+        if ($ids === []) {
+            return [];
+        }
+        $query = $this->database->connection()->table('methods')
+            ->whereIn('class_id', $ids)
+            ->where('object_id', 0)
+            ->whereNull('deleted_at')
+            ->orderBy('title');
+        if ($exceptId > 0) {
+            $query->where('id', '<>', $exceptId);
+        }
+
+        return $query->pluck('title')->map(static fn (mixed $title): string => (string)$title)->all();
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function classScopeIds(int $classId, bool $withDescendants): array
+    {
+        $ids = $this->classes->ancestorIds($classId);
+        if ($withDescendants) {
+            foreach ($this->classes->descendantIds($classId, false) as $id) {
+                $ids[] = $id;
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     /**
@@ -463,15 +595,5 @@ final readonly class MethodRepository
             'title' => (string)$row->title,
             'description' => (string)($row->description ?? ''),
         ];
-    }
-
-    private function title(string $title): string
-    {
-        $title = trim($title);
-        if ($title === '' || mb_strlen($title) > 191) {
-            throw new InvalidArgumentException('Название метода обязательно, до 191 символа.');
-        }
-
-        return $title;
     }
 }

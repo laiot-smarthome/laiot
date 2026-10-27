@@ -133,7 +133,7 @@ final class AdminSectionsTest extends TestCase
         self::assertSame(200, $properties->getStatusCode());
         $propertiesHtml = (string)$properties->getContent();
         self::assertStringContainsString('temperature', $propertiesHtml);
-        self::assertStringContainsString('от Датчик', $propertiesHtml);
+        self::assertStringContainsString('Датчик', $propertiesHtml);
         // Значение принадлежит объекту, а не классу: формы значения в карточке
         // класса быть не должно.
         self::assertStringNotContainsString('name="values[', $propertiesHtml);
@@ -141,7 +141,7 @@ final class AdminSectionsTest extends TestCase
         $methods = $app->handle(Request::create('/classes/3/edit', 'GET', ['tab' => 'methods']));
         $methodsHtml = (string)$methods->getContent();
         self::assertStringContainsString('refresh', $methodsHtml);
-        self::assertStringContainsString('от Датчик', $methodsHtml);
+        self::assertStringContainsString('Датчик', $methodsHtml);
 
         $object = $app->handle(Request::create('/objects/3/edit', 'GET', ['tab' => 'properties']));
         $objectHtml = (string)$object->getContent();

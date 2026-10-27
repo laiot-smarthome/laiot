@@ -83,7 +83,7 @@ final class CoreObjectsTest extends TestCase
             $app->database()->schema()->create($name, $definition);
         }
         $now = date('Y-m-d H:i:s');
-        $app->database()->connection()->table('classes')->insert(['title' => 'Датчик', 'created_at' => $now, 'updated_at' => $now]);
+        $app->database()->connection()->table('classes')->insert(['title' => 'Sensor', 'created_at' => $now, 'updated_at' => $now]);
         $app->database()->connection()->table('properties')->insert([
             'class_id' => 1, 'title' => 'temperature', 'data_type' => 'float', 'created_at' => $now, 'updated_at' => $now,
         ]);
@@ -92,7 +92,7 @@ final class CoreObjectsTest extends TestCase
 
         $create = $app->handle(Request::create('/objects/create', 'POST', [
             '_token' => $session->csrfToken(),
-            'title' => 'Кухня',
+            'title' => 'Kitchen',
             'class_id' => 1,
             'location_id' => 0,
         ]));

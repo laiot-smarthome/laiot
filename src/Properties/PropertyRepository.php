@@ -7,6 +7,9 @@ namespace MajorDoMo\Properties;
 use InvalidArgumentException;
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Rename\NameReferenceUpdater;
+use MajorDoMo\Support\Identifier;
+use Throwable;
 
 /**
  * Свойства классов и объектов MyDoMo.
@@ -16,18 +19,22 @@ use MajorDoMo\Database\DatabaseManager;
  * 2026-10-27 — свойства ищутся по цепочке наследования классов; добавлены
  * объектные свойства (`object_id`), которые переопределяют классовое свойство
  * с тем же названием только у одного объекта.
+ * 2026-10-27 — имя свойства латиницей и уникально в области: в классе с учётом
+ * предков, у объекта — среди объектных и действующих классовых. Переопределение
+ * одноимённым свойством больше не создаётся.
  */
 final readonly class PropertyRepository
 {
     public function __construct(
         private DatabaseManager $database,
         private ClassRepository $classes,
-        private ?PropertySubscriptionRepository $subscriptions = null
+        private ?PropertySubscriptionRepository $subscriptions = null,
+        private ?NameReferenceUpdater $references = null
     ) {
     }
 
     /**
-     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string}>
+     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}>
      */
     public function all(string $search = '', int $classId = 0): array
     {
@@ -54,7 +61,7 @@ final readonly class PropertyRepository
     /**
      * Собственные свойства класса без унаследованных.
      *
-     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
+     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
      */
     public function ownForClass(int $classId): array
     {
@@ -72,7 +79,7 @@ final readonly class PropertyRepository
      * Ближайший класс в цепочке побеждает при совпадении названия — так
      * подкласс может переопределить свойство родителя.
      *
-     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
+     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
      */
     public function effectiveForClass(int $classId): array
     {
@@ -134,7 +141,7 @@ final readonly class PropertyRepository
      * Сначала объектное свойство, затем ближайший класс и его предки. Значение
      * хранится у объекта; на уровне класса значения нет.
      *
-     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
+     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
      */
     public function forObject(int $objectId): array
     {
@@ -241,7 +248,7 @@ final readonly class PropertyRepository
     }
 
     /**
-     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string}|null
+     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}|null
      */
     public function find(int $id): ?array
     {
@@ -256,7 +263,7 @@ final readonly class PropertyRepository
     /**
      * Свойство объекта: объектное свойство, затем ближайший класс и предки.
      *
-     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string}|null
+     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}|null
      */
     public function resolveForObject(int $objectId, string $title): ?array
     {
@@ -282,7 +289,7 @@ final readonly class PropertyRepository
     /**
      * Свойство класса с учётом наследования, без объектных переопределений.
      *
-     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string}|null
+     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}|null
      */
     public function resolveForClass(int $classId, string $title): ?array
     {
@@ -339,25 +346,31 @@ final readonly class PropertyRepository
         string $dataType,
         bool $keepHistory,
         string $onChange,
-        int $objectId = 0
+        int $objectId = 0,
+        bool $onlyNewValues = false
     ): int {
         [$classId, $objectId] = $this->scope($classId, $objectId);
-        $title = $this->title($title);
+        $title = Identifier::assert($title, 'свойства');
+        $onChange = $this->onChange($onChange);
         $this->assertTitleFree($classId, $objectId, $title);
         $now = date('Y-m-d H:i:s');
-
-        return (int)$this->database->connection()->table('properties')->insertGetId([
+        $data = [
             'class_id' => $classId,
             'object_id' => $objectId,
             'title' => $title,
-            'description' => $description,
+            'description' => trim($description),
             'data_type' => $this->dataType($dataType),
             'keep_history' => $keepHistory ? 1 : 0,
-            'on_change' => $onChange,
+            'on_change' => trim($onChange),
             'created_at' => $now,
             'updated_at' => $now,
             'deleted_at' => null,
-        ]);
+        ];
+        if ($this->hasColumn('properties', 'only_new_values')) {
+            $data['only_new_values'] = $onlyNewValues ? 1 : 0;
+        }
+
+        return (int)$this->database->connection()->table('properties')->insertGetId($data);
     }
 
     public function update(
@@ -368,25 +381,54 @@ final readonly class PropertyRepository
         string $dataType,
         bool $keepHistory,
         string $onChange,
-        int $objectId = 0
+        int $objectId = 0,
+        bool $onlyNewValues = false
     ): void {
         [$classId, $objectId] = $this->scope($classId, $objectId);
-        $title = $this->title($title);
-        $this->assertTitleFree($classId, $objectId, $title, $id);
+        $title = Identifier::assert($title, 'свойства');
+        $onChange = $this->onChange($onChange);
+        $current = $this->find($id);
+        // Legacy-строку с уже существующим дублем можно исправить, не
+        // переименовывая: иначе редактирование описания было бы невозможно.
+        if ($current === null || $current['title'] !== $title) {
+            $this->assertTitleFree($classId, $objectId, $title, $id);
+        }
 
-        $this->database->connection()->table('properties')
-            ->where('id', $id)
-            ->whereNull('deleted_at')
-            ->update([
-                'class_id' => $classId,
-                'object_id' => $objectId,
-                'title' => $title,
-                'description' => $description,
-                'data_type' => $this->dataType($dataType),
-                'keep_history' => $keepHistory ? 1 : 0,
-                'on_change' => $onChange,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
+        $connection = $this->database->connection();
+        try {
+            $connection->transaction(function () use ($connection, $id, $classId, $objectId, $title, $description, $dataType, $keepHistory, $onChange, $onlyNewValues, $current): void {
+                $data = [
+                    'class_id' => $classId,
+                    'object_id' => $objectId,
+                    'title' => $title,
+                    'description' => trim($description),
+                    'data_type' => $this->dataType($dataType),
+                    'keep_history' => $keepHistory ? 1 : 0,
+                    'on_change' => trim($onChange),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
+                if ($this->hasColumn('properties', 'only_new_values')) {
+                    $data['only_new_values'] = $onlyNewValues ? 1 : 0;
+                }
+                $connection->table('properties')
+                    ->where('id', $id)
+                    ->whereNull('deleted_at')
+                    ->update($data);
+                if ($current !== null && $current['title'] !== $title) {
+                    $this->references?->propertyRenamed(
+                        $id,
+                        (int)$current['class_id'],
+                        (int)$current['object_id'],
+                        $current['title'],
+                        $title
+                    );
+                }
+            });
+        } catch (Throwable $error) {
+            $this->references?->discardPendingFiles();
+            throw $error;
+        }
+        $this->references?->flushModuleFiles();
     }
 
     public function delete(int $id): void
@@ -403,7 +445,7 @@ final readonly class PropertyRepository
 
     /**
      * @param list<int> $classIds
-     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
+     * @return list<array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string,origin:string,owner_class_id:int,owner_class_title:string}>
      */
     private function rowsForClasses(array $classIds, int $targetClassId, string $targetTitle): array
     {
@@ -467,22 +509,138 @@ final readonly class PropertyRepository
         return [$classId, $objectId];
     }
 
+    /**
+     * Имена, занятые в области свойства: класс с предками и объект.
+     *
+     * @return list<string>
+     */
+    public function takenNames(int $classId, int $objectId, int $exceptId = 0): array
+    {
+        $names = [];
+        foreach ($this->classLevelNames($classId, $exceptId, $objectId <= 0) as $title) {
+            $names[mb_strtolower($title)] = $title;
+        }
+        if ($objectId > 0) {
+            $query = $this->database->connection()->table('properties')
+                ->where('object_id', $objectId)
+                ->whereNull('deleted_at');
+            if ($exceptId > 0) {
+                $query->where('id', '<>', $exceptId);
+            }
+            foreach ($query->pluck('title') as $title) {
+                $names[mb_strtolower((string)$title)] = (string)$title;
+            }
+        }
+
+        return array_values($names);
+    }
+
+    /**
+     * Уникальность в области: в классе — с учётом предков, у объекта —
+     * среди объектных свойств и действующих классовых.
+     */
     private function assertTitleFree(int $classId, int $objectId, string $title, int $exceptId = 0): void
     {
+        $classOwner = $this->classLevelOwner($classId, $title, $exceptId, $objectId <= 0);
+        if ($classOwner !== null) {
+            throw new InvalidArgumentException(
+                $objectId > 0
+                    ? 'Свойство «' . $title . '» уже объявлено у класса «' . $classOwner . '»; '
+                        . 'у объекта используйте другое имя.'
+                    : 'Свойство «' . $title . '» уже объявлено у класса «' . $classOwner . '» в этой ветке наследования.'
+            );
+        }
+
+        if ($objectId <= 0) {
+            return;
+        }
+
         $query = $this->database->connection()->table('properties')
             ->where('class_id', $classId)
             ->where('object_id', $objectId)
-            ->where('title', $title);
+            ->whereRaw('LOWER(title) = ?', [mb_strtolower($title)])
+            ->whereNull('deleted_at');
         if ($exceptId > 0) {
             $query->where('id', '<>', $exceptId);
         }
         if ($query->exists()) {
-            throw new InvalidArgumentException('Свойство с таким названием уже есть в этой области.');
+            throw new InvalidArgumentException('Свойство с таким названием уже есть у этого объекта.');
         }
     }
 
     /**
-     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string}
+     * Класс из цепочки, где уже объявлено такое классовое свойство.
+     */
+    private function classLevelOwner(int $classId, string $title, int $exceptId = 0, bool $withDescendants = true): ?string
+    {
+        if ($classId <= 0) {
+            return null;
+        }
+        $ids = $this->classScopeIds($classId, $withDescendants);
+        if ($ids === []) {
+            return null;
+        }
+
+        $query = $this->database->connection()->table('properties')
+            ->whereIn('class_id', $ids)
+            ->where('object_id', 0)
+            ->whereRaw('LOWER(title) = ?', [mb_strtolower($title)])
+            ->whereNull('deleted_at');
+        if ($exceptId > 0) {
+            $query->where('id', '<>', $exceptId);
+        }
+        $ownerId = $query->value('class_id');
+        if ($ownerId === null) {
+            return null;
+        }
+
+        return (string)($this->classes->find((int)$ownerId)['title'] ?? '');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function classLevelNames(int $classId, int $exceptId = 0, bool $withDescendants = true): array
+    {
+        if ($classId <= 0) {
+            return [];
+        }
+        $ids = $this->classScopeIds($classId, $withDescendants);
+        if ($ids === []) {
+            return [];
+        }
+        $query = $this->database->connection()->table('properties')
+            ->whereIn('class_id', $ids)
+            ->where('object_id', 0)
+            ->whereNull('deleted_at')
+            ->orderBy('title');
+        if ($exceptId > 0) {
+            $query->where('id', '<>', $exceptId);
+        }
+
+        return $query->pluck('title')->map(static fn (mixed $title): string => (string)$title)->all();
+    }
+
+    /**
+     * Класс, его предки и (для свойств класса) потомки: имя должно быть
+     * уникальным во всей ветке, а не только на одном уровне.
+     *
+     * @return list<int>
+     */
+    private function classScopeIds(int $classId, bool $withDescendants): array
+    {
+        $ids = $this->classes->ancestorIds($classId);
+        if ($withDescendants) {
+            foreach ($this->classes->descendantIds($classId, false) as $id) {
+                $ids[] = $id;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @return array{id:int,class_id:int,object_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}
      */
     private function hydrate(object $row): array
     {
@@ -496,6 +654,7 @@ final readonly class PropertyRepository
             'description' => (string)($row->description ?? ''),
             'data_type' => (string)($row->data_type ?? 'string'),
             'keep_history' => (int)($row->keep_history ?? 0) === 1,
+            'only_new_values' => (int)($row->only_new_values ?? 0) === 1,
             'on_change' => (string)($row->on_change ?? ''),
         ];
     }
@@ -505,13 +664,21 @@ final readonly class PropertyRepository
         return in_array($dataType, ['string', 'int', 'float', 'bool'], true) ? $dataType : 'string';
     }
 
-    private function title(string $title): string
+    private function onChange(string $onChange): string
     {
-        $title = trim($title);
-        if ($title === '' || mb_strlen($title) > 191) {
-            throw new InvalidArgumentException('Название свойства обязательно, до 191 символа.');
-        }
+        $onChange = trim($onChange);
 
-        return $title;
+        return $onChange === '' ? '' : Identifier::assert($onChange, 'OnChange-метода');
+    }
+
+    private function hasColumn(string $table, string $column): bool
+    {
+        try {
+            $schema = $this->database->connection()->getSchemaBuilder();
+
+            return $schema->hasTable($table) && $schema->hasColumn($table, $column);
+        } catch (Throwable) {
+            return false;
+        }
     }
 }

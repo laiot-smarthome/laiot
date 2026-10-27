@@ -31,6 +31,7 @@ final class CoreClassesTest extends TestCase
             $table->increments('id');
             $table->string('title')->unique();
             $table->integer('parent_id')->default(0);
+            $table->text('description')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -42,18 +43,20 @@ final class CoreClassesTest extends TestCase
 
         $create = $app->handle(Request::create('/classes/create', 'POST', [
             '_token' => $session->csrfToken(),
-            'title' => 'Датчик',
+            'title' => 'Sensor',
+            'description' => 'Базовый датчик',
         ]));
         self::assertSame(302, $create->getStatusCode());
         $row = $app->database()->connection()->table('classes')->first();
         self::assertNotNull($row);
+        self::assertSame('Базовый датчик', $row->description);
 
         $edit = $app->handle(Request::create('/classes/' . $row->id . '/edit', 'POST', [
             '_token' => $session->csrfToken(),
-            'title' => 'Датчик температуры',
+            'title' => 'TemperatureSensor',
         ]));
         self::assertSame(302, $edit->getStatusCode());
-        self::assertSame('Датчик температуры', $app->database()->connection()->table('classes')->where('id', $row->id)->value('title'));
+        self::assertSame('TemperatureSensor', $app->database()->connection()->table('classes')->where('id', $row->id)->value('title'));
 
         $delete = $app->handle(Request::create('/classes/' . $row->id . '/delete', 'POST', [
             '_token' => $session->csrfToken(),

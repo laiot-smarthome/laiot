@@ -12,6 +12,7 @@
 @import 'ui-v2.css';
 @import 'ui-system.css';
 @import 'admin_panel.css';
+@import 'classes.css';
 
 /* Оболочка общая для ядра и модулей: отступы и фокус задаются один раз. */
 body.md-admin-shell { --md-shell-nav-text: #f8fafc; --md-shell-nav-accent: #9ccbf0; --md-shell-nav-muted: rgba(226, 232, 240, .68); --md-shell-nav-accent-bg: rgba(108, 178, 232, .16); font-family: var(--md-ui-font); line-height: 1.5; letter-spacing: 0; }

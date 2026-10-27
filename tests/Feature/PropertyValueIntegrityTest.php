@@ -44,6 +44,7 @@ final class PropertyValueIntegrityTest extends TestCase
             '2026_10_26_000019_create_property_events.php',
             '2026_10_27_000001_add_class_hierarchy_and_object_members.php',
             '2026_10_27_000002_create_property_subscriptions.php',
+            '2026_10_27_000009_add_class_description.php',
         ] as $name) {
             $migration = require dirname(__DIR__, 2) . '/database/migrations/' . $name;
             $migration($this->database->connection());
@@ -63,9 +64,9 @@ final class PropertyValueIntegrityTest extends TestCase
             new PropertyEventQueue(new DatabaseQueue($this->database), ['events_lanes' => 1])
         );
 
-        $this->classes->create('Датчик');
-        $this->classes->create('Свет');
-        $objects->create('Датчик', 1, 0, '');
+        $this->classes->create('Sensor');
+        $this->classes->create('Light');
+        $objects->create('Sensor', 1, 0, '');
         $this->properties->create(1, 'temperature', '', 'string', true, '');
         $this->properties->create(2, 'temperature', '', 'string', true, '');
     }
@@ -77,33 +78,33 @@ final class PropertyValueIntegrityTest extends TestCase
             self::assertSame(0, $this->database->connection()->table($table)->count());
         }
         self::assertTrue($this->service->setValue(1, 1, 'local'));
-        self::assertSame('local', $this->service->get('Датчик', 'temperature'));
+        self::assertSame('local', $this->service->get('Sensor', 'temperature'));
     }
 
     public function testInheritedAndObjectPropertiesAreWritable(): void
     {
-        $childId = $this->classes->create('Умный датчик', 1);
+        $childId = $this->classes->create('SmartSensor', 1);
         $this->database->connection()->table('objects')->insert([
-            'title' => 'Гостиная',
+            'title' => 'LivingRoom',
             'class_id' => $childId,
             'location_id' => 0,
             'description' => '',
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
-        $objectId = (int)$this->database->connection()->table('objects')->where('title', 'Гостиная')->value('id');
+        $objectId = (int)$this->database->connection()->table('objects')->where('title', 'LivingRoom')->value('id');
 
         // Наследуемое свойство родительского класса доступно объекту подкласса.
         self::assertTrue($this->service->setValue($objectId, 1, 'inherited'));
-        self::assertSame('inherited', $this->service->get('Гостиная', 'temperature'));
+        self::assertSame('inherited', $this->service->get('LivingRoom', 'temperature'));
 
-        // Объектное свойство перекрывает классовое только у этого объекта.
-        $objectPropertyId = $this->properties->create($childId, 'temperature', '', 'float', false, '', $objectId);
+        // Объектное свойство дополняет классовые и принадлежит только объекту.
+        $objectPropertyId = $this->properties->create($childId, 'offset', '', 'float', false, '', $objectId);
         self::assertTrue($this->service->setValue($objectId, $objectPropertyId, 'object'));
-        self::assertSame('object', $this->service->get('Гостиная', 'temperature'));
+        self::assertSame('object', $this->service->get('LivingRoom', 'offset'));
         self::assertSame('object', $this->values->get($objectId, $objectPropertyId));
 
-        $resolved = $this->properties->resolveForObject($objectId, 'temperature');
+        $resolved = $this->properties->resolveForObject($objectId, 'offset');
         self::assertNotNull($resolved);
         self::assertSame($objectPropertyId, $resolved['id']);
     }

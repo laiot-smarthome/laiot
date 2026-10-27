@@ -110,6 +110,9 @@
                     <li class="active" aria-current="page">{{ $title }}</li>
                 </ol>
             </div>
+            @if (!empty($notice))
+                <div class="mb-3"><x-md.alert type="success" :text="$notice" /></div>
+            @endif
             {{-- Содержимое раздела или SDK-модуля: общие header и меню уже созданы оболочкой. --}}
             {!! $content !!}
         </main>

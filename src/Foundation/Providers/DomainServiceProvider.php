@@ -41,6 +41,8 @@ use MajorDoMo\Properties\PropertyValueService;
 use MajorDoMo\Properties\ValueRepository;
 use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
+use MajorDoMo\Rename\CodeReferenceRewriter;
+use MajorDoMo\Rename\NameReferenceUpdater;
 use MajorDoMo\Runtime\CodeRunner;
 use MajorDoMo\Runtime\PhpSyntaxValidator;
 use MajorDoMo\Runtime\TimeoutRepository;
@@ -83,6 +85,8 @@ final class DomainServiceProvider extends ServiceProvider
             TimeoutRepository::class,
             CodeRunner::class,
             PhpSyntaxValidator::class,
+            CodeReferenceRewriter::class,
+            NameReferenceUpdater::class,
             ScriptExecutor::class,
             ScriptRunner::class,
             ScriptEventDispatcher::class,

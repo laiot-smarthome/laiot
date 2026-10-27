@@ -37,7 +37,7 @@ use MajorDoMo\Notifications\NotificationService;
 $service = $app->container()->make(NotificationService::class);
 
 $result = $service->send('events', 'Цикл остановлен', 'warning', [
-    'key' => 'chain:Кухня.temperature',
+    'key' => 'chain:KitchenLight.temperature',
     'title' => 'Цепочка события',
     'details' => 'Повтор свойства в цепочке',
     'url' => '/events',

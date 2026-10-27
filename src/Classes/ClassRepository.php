@@ -6,6 +6,9 @@ namespace MajorDoMo\Classes;
 
 use InvalidArgumentException;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Rename\NameReferenceUpdater;
+use MajorDoMo\Support\Identifier;
+use Throwable;
 
 /**
  * Классы объектов MyDoMo и их иерархия.
@@ -13,15 +16,21 @@ use MajorDoMo\Database\DatabaseManager;
  * 2026-10-27 — добавлены parent_id, подклассы и безопасная проверка циклов:
  * класс наследует свойства/методы всех предков, а объекты подкласса остаются
  * объектами родительского класса для выборок и наследования.
+ * 2026-10-27 — системное имя проверяется латиницей, у класса появилось
+ * описание для карточки и дерева.
  */
 final readonly class ClassRepository
 {
-    public function __construct(private DatabaseManager $database)
-    {
+    private const MAX_TITLE_LENGTH = 191;
+
+    public function __construct(
+        private DatabaseManager $database,
+        private ?NameReferenceUpdater $references = null
+    ) {
     }
 
     /**
-     * @return list<array{id:int,title:string,parent_id:int}>
+     * @return list<array{id:int,title:string,parent_id:int,description:string}>
      */
     public function all(): array
     {
@@ -29,16 +38,29 @@ final readonly class ClassRepository
             ->whereNull('deleted_at')
             ->orderBy('title')
             ->get()
-            ->map(static fn (object $row): array => [
-                'id' => (int)$row->id,
-                'title' => (string)$row->title,
-                'parent_id' => (int)($row->parent_id ?? 0),
-            ])
+            ->map(fn (object $row): array => $this->hydrate($row))
             ->all();
     }
 
     /**
-     * @return array{id:int,title:string,parent_id:int}|null
+     * Названия классов для живой проверки имени: занятые, кроме текущего.
+     *
+     * @return list<string>
+     */
+    public function titles(int $exceptId = 0): array
+    {
+        $query = $this->database->connection()->table('classes')
+            ->whereNull('deleted_at')
+            ->orderBy('title');
+        if ($exceptId > 0) {
+            $query->where('id', '<>', $exceptId);
+        }
+
+        return $query->pluck('title')->map(static fn (mixed $title): string => (string)$title)->all();
+    }
+
+    /**
+     * @return array{id:int,title:string,parent_id:int,description:string}|null
      */
     public function find(int $id): ?array
     {
@@ -47,11 +69,7 @@ final readonly class ClassRepository
             ->whereNull('deleted_at')
             ->first();
 
-        return $row === null ? null : [
-            'id' => (int)$row->id,
-            'title' => (string)$row->title,
-            'parent_id' => (int)($row->parent_id ?? 0),
-        ];
+        return $row === null ? null : $this->hydrate($row);
     }
 
     /**
@@ -61,7 +79,7 @@ final readonly class ClassRepository
      * дерево пришлось бы строить от скрытых родителей и показывать лишнее.
      *
      * @return list<array{
-     *     id:int,title:string,parent_id:int,depth:int,ancestors:list<int>,
+     *     id:int,title:string,parent_id:int,description:string,depth:int,ancestors:list<int>,
      *     path:string,has_children:bool,children_count:int
      * }>
      */
@@ -224,9 +242,9 @@ final readonly class ClassRepository
         return $ids;
     }
 
-    public function create(string $title, int $parentId = 0): int
+    public function create(string $title, int $parentId = 0, string $description = ''): int
     {
-        $title = $this->title($title);
+        $title = Identifier::assert($title, 'класса');
         $parentId = max(0, $parentId);
         $this->assertParent($parentId);
         $this->assertTitleFree($title);
@@ -236,27 +254,46 @@ final readonly class ClassRepository
         return (int)$this->database->connection()->table('classes')->insertGetId([
             'title' => $title,
             'parent_id' => $parentId,
+            'description' => trim($description),
             'created_at' => $now,
             'updated_at' => $now,
             'deleted_at' => null,
         ]);
     }
 
-    public function update(int $id, string $title, int $parentId = 0): void
+    public function update(int $id, string $title, int $parentId = 0, string $description = ''): void
     {
-        $title = $this->title($title);
+        $title = Identifier::assert($title, 'класса');
         $parentId = max(0, $parentId);
         $this->assertParent($parentId, $id);
         $this->assertTitleFree($title, $id);
 
-        $this->database->connection()->table('classes')
-            ->where('id', $id)
-            ->whereNull('deleted_at')
-            ->update([
-                'title' => $title,
-                'parent_id' => $parentId,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
+        $current = $this->find($id);
+        if ($current !== null && (int)$current['parent_id'] !== $parentId) {
+            $this->assertMembersUniqueForParent($id, $parentId);
+        }
+
+        $connection = $this->database->connection();
+        try {
+            $connection->transaction(function () use ($connection, $id, $title, $parentId, $description, $current): void {
+                $connection->table('classes')
+                    ->where('id', $id)
+                    ->whereNull('deleted_at')
+                    ->update([
+                        'title' => $title,
+                        'parent_id' => $parentId,
+                        'description' => trim($description),
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
+                if ($current !== null && $current['title'] !== $title) {
+                    $this->references?->classRenamed($current['title'], $title);
+                }
+            });
+        } catch (Throwable $error) {
+            $this->references?->discardPendingFiles();
+            throw $error;
+        }
+        $this->references?->flushModuleFiles();
     }
 
     public function delete(int $id): void
@@ -276,7 +313,11 @@ final readonly class ClassRepository
         $this->database->connection()->table('classes')
             ->where('id', $id)
             ->whereNull('deleted_at')
-            ->update(['deleted_at' => $now, 'updated_at' => $now]);
+            ->update([
+                'title' => $this->archivedTitle((string)$class['title'], $id),
+                'deleted_at' => $now,
+                'updated_at' => $now,
+            ]);
     }
 
     /**
@@ -322,9 +363,59 @@ final readonly class ClassRepository
         }
     }
 
+    /**
+     * Перенос под дерево не должен создавать одноимённые свойства/методы.
+     *
+     * Проверяем всех членов переносимого поддерева (включая объектные) против
+     * классовых членов новых предков: иначе после смены родителя появился бы
+     * дубль, который запрещён при создании.
+     */
+    private function assertMembersUniqueForParent(int $classId, int $parentId): void
+    {
+        if ($parentId <= 0) {
+            return;
+        }
+        $ancestorIds = $this->ancestorIds($parentId);
+        $subtreeIds = $this->descendantIds($classId);
+        if ($ancestorIds === [] || $subtreeIds === []) {
+            return;
+        }
+        $schema = $this->database->connection()->getSchemaBuilder();
+        foreach (['properties' => 'Свойство', 'methods' => 'Метод'] as $table => $label) {
+            if (!$schema->hasTable($table) || !$schema->hasColumn($table, 'title')
+                || !$schema->hasColumn($table, 'object_id')) {
+                continue;
+            }
+            $taken = $this->database->connection()->table($table)
+                ->whereIn('class_id', $ancestorIds)
+                ->where('object_id', 0)
+                ->whereNull('deleted_at')
+                ->pluck('title')
+                ->map(static fn (mixed $value): string => mb_strtolower((string)$value))
+                ->all();
+            if ($taken === []) {
+                continue;
+            }
+            $rows = $this->database->connection()->table($table)
+                ->whereIn('class_id', $subtreeIds)
+                ->whereNull('deleted_at')
+                ->pluck('title');
+            foreach ($rows as $title) {
+                if (in_array(mb_strtolower((string)$title), $taken, true)) {
+                    throw new InvalidArgumentException(
+                        $label . ' «' . (string)$title . '» уже есть у нового родительского класса. '
+                        . 'Переименуйте его перед переносом.'
+                    );
+                }
+            }
+        }
+    }
+
     private function assertTitleFree(string $title, int $exceptId = 0): void
     {
-        $query = $this->database->connection()->table('classes')->where('title', $title);
+        $query = $this->database->connection()->table('classes')
+            ->whereRaw('LOWER(title) = ?', [mb_strtolower($title)])
+            ->whereNull('deleted_at');
         if ($exceptId > 0) {
             $query->where('id', '<>', $exceptId);
         }
@@ -346,13 +437,28 @@ final readonly class ClassRepository
             ->exists();
     }
 
-    private function title(string $title): string
+    /**
+     * Освобождает системное имя: уникальный индекс БД не должен блокировать
+     * повторное создание класса с тем же именем после удаления.
+     */
+    private function archivedTitle(string $title, int $id): string
     {
-        $title = trim($title);
-        if ($title === '' || mb_strlen($title) > 191) {
-            throw new InvalidArgumentException('Название класса обязательно, до 191 символа.');
-        }
+        $suffix = '~deleted~' . $id;
 
-        return $title;
+        return mb_substr($title, 0, self::MAX_TITLE_LENGTH - mb_strlen($suffix)) . $suffix;
+    }
+
+    /**
+     * @return array{id:int,title:string,parent_id:int,description:string}
+     */
+    private function hydrate(object $row): array
+    {
+        // `??` терпит БД, где миграция описания ещё не применена.
+        return [
+            'id' => (int)$row->id,
+            'title' => (string)$row->title,
+            'parent_id' => (int)($row->parent_id ?? 0),
+            'description' => trim((string)($row->description ?? '')),
+        ];
     }
 }

@@ -59,16 +59,20 @@ $modules = $app->modules();
 | `getHistoryCount(string $name, $from = null, $to = null)` | Число записей |
 
 Имя `Объект.Свойство` разбивается по последней точке. Объект должен
-существовать. Свойство ищется среди объектных свойств объекта, затем в его
-классе и по цепочке наследования; ближайший член с тем же названием
-выигрывает. Автосоздания объектов/свойств нет.
+существовать; системные имена класса, объекта, свойства и метода — латиница,
+цифры и `_` (`src/Support/Identifier`). Свойство ищется среди объектных
+свойств объекта, затем в его классе и по цепочке наследования. Дубликаты
+имён в ветке не создаются; для legacy-строк разрешение идёт по ближайшему
+классу. Автосоздания объектов/свойств нет. Переименование объекта, свойства
+или метода обновляет ссылки в сценариях и методах; подробности —
+[admin-ui.md](admin-ui.md).
 
 ```php
-sg('Кухня.temperature', 23.5, 'mqtt');
-$value = gg('Кухня.temperature');
-$history = getHistory('Кухня.temperature', 20);
-$avg = history('Кухня.temperature')->from('-1 day')->avg();
-$week = getHistoryRange('Кухня.temperature', '-7 days', 'now', 200);
+sg('KitchenLight.temperature', 23.5, 'mqtt');
+$value = gg('KitchenLight.temperature');
+$history = getHistory('KitchenLight.temperature', 20);
+$avg = history('KitchenLight.temperature')->from('-1 day')->avg();
+$week = getHistoryRange('KitchenLight.temperature', '-7 days', 'now', 200);
 ```
 
 Значение нормализуется: null → пустая строка, bool → `1`/`0`, скаляр →
@@ -76,9 +80,11 @@ $week = getHistoryRange('Кухня.temperature', '-7 days', 'now', 200);
 дают false при записи. Ошибки инфраструктуры не превращаются автоматически
 в false.
 
-`sg()` асинхронен: `true` означает «значение сохранено и событие поставлено
-в очередь», а не «метод уже выполнился». Журнал и история появятся после
-обработки задания `core-worker events`. Значение `gg()` доступно сразу.
+`sg()` асинхронен: `true` означает «значение принято и, если оно новое,
+событие поставлено в очередь», а не «метод уже выполнился». При включённом у
+свойства `only_new_values` повтор того же значения тоже возвращает `true`, но
+цепочку не запускает. Журнал и история появятся после обработки задания
+`core-worker events`. Значение `gg()` доступно сразу.
 
 Своего эха модуль не получает: пока он обрабатывает изменение, его записи
 не возвращаются ему как новое событие; другие подписчики и OnChange
@@ -101,9 +107,9 @@ alpha-совместимые `$noLinked` в новое API не перенося
 ```php
 use MajorDoMo\History\HistoryQuery;
 
-$day = history('Кухня.temperature')->from('-24 hours');
+$day = history('KitchenLight.temperature')->from('-24 hours');
 $stats = $day->stats();     // count, min, max, avg, sum, last
-$top = history('Кухня.temperature')->last(10)->oldestFirst()->values();
+$top = history('KitchenLight.temperature')->last(10)->oldestFirst()->values();
 ```
 
 Значения в истории — строки. В `min/max/avg/sum` входят только непустые
@@ -130,9 +136,9 @@ $ok = $values->setValue($objectId, $propertyId, '24', 'panel');
 Поддерживаются две формы одного синхронного вызова:
 
 ```php
-$result = callMethod('Кухня', 'double', ['x' => 5]);
-$result = callMethod('Кухня.double', ['x' => 5]);
-$result = cm('Кухня.double', ['x' => 5]);
+$result = callMethod('KitchenLight', 'double', ['x' => 5]);
+$result = callMethod('KitchenLight.double', ['x' => 5]);
+$result = cm('KitchenLight.double', ['x' => 5]);
 ```
 
 | Функция | Параметры |
@@ -143,9 +149,9 @@ $result = cm('Кухня.double', ['x' => 5]);
 | `runMethod(string $method, mixed $params = 0)` | Алиас cm |
 
 Метод ищется среди объектных методов объекта, затем в его классе и по
-цепочке наследования: ближайший подкласс перекрывает родительский метод.
-В коде доступен `$params`; возвращается
-результат include/явного return, для пустого кода — null.
+цепочке наследования. Дубликаты имён не создаются; для legacy-строк
+разрешение идёт по ближайшему классу. В коде доступен `$params`;
+возвращается результат include/явного return, для пустого кода — null.
 
 Несуществующий объект/метод вызывает InvalidArgumentException.
 Некорректное составное имя без точки возвращает null на уровне helper.

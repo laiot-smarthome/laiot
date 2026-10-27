@@ -6,6 +6,7 @@ namespace MajorDoMo\Foundation;
 
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Foundation\Application as ApplicationContract;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
@@ -30,6 +31,8 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Изменения:
  * 2026-10-26 — сборка подсистем вынесена в провайдеры, публичный API сохранён.
+ * 2026-10-27 — контейнер отдаёт Blade минимальный Foundation-адаптер, чтобы
+ *              компилировались новые анонимные компоненты.
  */
 final class Application
 {
@@ -68,6 +71,12 @@ final class Application
             Container::setInstance($this->container);
             $this->container->instance(Container::class, $this->container);
             $this->container->instance(self::class, $this);
+            // Blade ищет пространство имён компонентов через Foundation-
+            // контракт; полного Laravel нет, поэтому отдаём минимальный адаптер.
+            $this->container->instance(
+                ApplicationContract::class,
+                new BladeComponentNamespace('MajorDoMo')
+            );
             AppContext::set($this);
 
             $providers = $this->providers();

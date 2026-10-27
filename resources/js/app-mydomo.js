@@ -23,6 +23,8 @@ import {initCodeEditors} from './mydomo/code-editor.js';
 import {initChartMounts} from './mydomo/chart-mount.js';
 import {initYoyoCsrf} from './mydomo/yoyo.js';
 import './mydomo/linked-object.js';
+import {registerClassesTree} from './mydomo/classes-tree.js';
+import {registerNameCheck} from './mydomo/name-check.js';
 
 window.Alpine = Alpine;
 
@@ -204,5 +206,7 @@ initNotifications();
 initCodeEditors();
 initChartMounts();
 initYoyoCsrf();
+registerClassesTree(Alpine);
+registerNameCheck(Alpine);
 
 Alpine.start();

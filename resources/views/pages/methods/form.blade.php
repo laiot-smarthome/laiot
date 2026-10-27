@@ -13,7 +13,7 @@
         icon="code"
         :title="$isNew ? 'Новый метод' : $method['title']"
         :lede="$isObjectMethod
-            ? 'Объектный метод действует только у объекта «' . $contextTitle . '» и переопределяет одноимённый метод класса.'
+            ? 'Объектный метод действует только у объекта «' . $contextTitle . '» и дополняет методы класса. Имя латиницей и не должно совпадать с действующими.'
             : 'Метод класса наследуют подклассы и их объекты. Редактор не запускает код: вызов идёт из сценария, API или OnChange.'"
         :meta="[
             ['icon' => $isObjectMethod ? 'box' : 'hierarchy', 'label' => $isObjectMethod ? 'Объект' : 'Класс', 'value' => $contextTitle !== '' ? $contextTitle : 'не задан'],
@@ -40,7 +40,7 @@
             :title="$isObjectMethod ? 'Объектный метод' : 'Метод класса'"
             :text="$isObjectMethod
                 ? 'Метод доступен только объекту «' . $contextTitle . '»; остальные объекты класса его не видят.'
-                : 'Метод наследуют подклассы и все объекты этого класса. Одноимённый метод подкласса переопределяет родительский.'" />
+                : 'Метод наследуют подклассы и все объекты этого класса. Имя не повторяет методы предков.'" />
     @endif
 
     <form method="post" action="{{ $isNew ? '/methods/create' : '/methods/' . $method['id'] . '/edit' }}" class="md-ui-form">
@@ -67,8 +67,9 @@
                     @endif
 
                     <div class="md-ui-form-grid">
-                        <x-md.input name="title" label="Название" :value="$field('title')" required
-                                    hint="Латиницей: onTemperatureChange, turnOn, refreshStatus." />
+                        <x-md.name-field name="title" label="Системное имя" :value="$field('title')"
+                                         :taken="$takenNames" required
+                                         hint="Латиница, цифры и _; например onTemperatureChange, turnOn, refreshStatus." />
                     </div>
                     <x-md.textarea name="description" label="Описание" :value="$field('description')" rows="2"
                                    hint="Когда вызывается и что меняет." />

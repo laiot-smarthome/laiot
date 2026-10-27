@@ -194,6 +194,26 @@ final class PropertyDeliveryTest extends TestCase
         }
     }
 
+    public function testOnChangeFailureStopsDeliveryButKeepsHistoryAndLaterCommands(): void
+    {
+        [$app, $subscriber] = $this->boot();
+        $this->subscribe($app, 1, 1, 'demo');
+        $app->database()->connection()->table('methods')->where('title', 'onTemperature')->update([
+            'code' => 'if ($params["NEW_VALUE"] === "bad") { throw new \\RuntimeException("boom"); }',
+        ]);
+
+        self::assertTrue(sg('Кухня.temperature', 'bad'));
+        self::assertTrue(sg('Кухня.temperature', 'good'));
+        $this->drainEvents($app);
+
+        self::assertSame('good', gg('Кухня.temperature'));
+        self::assertSame(2, $app->database()->connection()->table('property_history')->count());
+        self::assertCount(1, $subscriber->changes);
+        self::assertSame('good', $subscriber->changes[0]->newValue);
+        self::assertSame(1, $app->database()->connection()->table('property_events')
+            ->where('type', 'handler.method')->where('status', 'error')->count());
+    }
+
     public function testDeliveryIsQueuedForModuleWorker(): void
     {
         [$app, $subscriber] = $this->boot();

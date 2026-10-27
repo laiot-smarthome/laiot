@@ -51,7 +51,7 @@ final class PropertyValueService
      *
      * @return array{
      *     object:array{id:int,title:string,class_id:int,location_id:int,description:string},
-     *     property:array{id:int,class_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string}
+     *     property:array{id:int,class_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string}
      * }|null
      */
     public function resolve(string $objectTitle, string $propertyTitle): ?array
@@ -138,7 +138,7 @@ final class PropertyValueService
 
     /**
      * @param array{id:int,title:string,class_id:int,location_id:int,description:string} $object
-     * @param array{id:int,class_id:int,title:string,description:string,data_type:string,keep_history:bool,on_change:string} $property
+     * @param array{id:int,class_id:int,title:string,description:string,data_type:string,keep_history:bool,only_new_values:bool,on_change:string} $property
      */
     private function write(array $object, array $property, mixed $value, string $source): bool
     {
@@ -151,6 +151,7 @@ final class PropertyValueService
         $propertyId = (int)$property['id'];
         $objectTitle = (string)$object['title'];
         $propertyTitle = (string)$property['title'];
+        $onlyNewValues = (bool)$property['only_new_values'];
         $source = mb_substr(trim($source), 0, 191);
 
         $token = $this->context->token($objectTitle, $propertyTitle);
@@ -159,11 +160,16 @@ final class PropertyValueService
 
         // Значение и задание — одна транзакция: событие не потеряется, если
         // запись упадёт, и не появится без сохранённого значения.
-        $this->database->transaction(function () use ($objectId, $propertyId, $objectTitle, $propertyTitle, $newValue, $source, $token, $loop, $tooDeep): void {
+        $this->database->transaction(function () use ($objectId, $propertyId, $objectTitle, $propertyTitle, $newValue, $source, $token, $loop, $tooDeep, $onlyNewValues): void {
             // Строка объекта существует и до первого значения свойства, поэтому
             // защищает также одновременное создание отсутствующего значения.
             $this->database->connection()->table('objects')->where('id', $objectId)->lockForUpdate()->first();
             $oldValue = (string)($this->values->get($objectId, $propertyId) ?? '');
+            // Политика «только новые значения»: повтор принимается, но не
+            // запускает OnChange, историю и доставку модулям.
+            if ($onlyNewValues && $oldValue === $newValue) {
+                return;
+            }
             $job = new PropertyChangedJob([
                 'object_id' => $objectId,
                 'property_id' => $propertyId,

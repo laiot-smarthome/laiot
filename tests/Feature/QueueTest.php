@@ -12,6 +12,7 @@ use RuntimeException;
 /**
  * 2026-10-26 — проверка возврата задания после просроченной резервации.
  * 2026-10-27 — проверка защиты от старого владельца резервации.
+ * 2026-10-27 — проверка порядка событий при ожидании повтора.
  */
 final class QueueTest extends TestCase
 {
@@ -124,6 +125,26 @@ final class QueueTest extends TestCase
     {
         $this->expectException(RuntimeException::class);
         $this->queue->push('bad queue', 'demo.job');
+    }
+
+    public function testEventLaneWaitsForEarlierRetryBeforeLaterEvents(): void
+    {
+        $firstId = $this->queue->push('events.0', 'demo.first');
+        $secondId = $this->queue->push('events.0', 'demo.second');
+        $first = $this->queue->pop('events.0');
+        self::assertNotNull($first);
+        self::assertSame($firstId, $first->id);
+        self::assertNull($this->queue->pop('events.0'));
+        $this->queue->fail($first, new RuntimeException('temporary failure'));
+        self::assertNull($this->queue->pop('events.0'));
+
+        $this->now += 60;
+        $recovery = new DatabaseQueue($this->database, [], fn (): int => $this->now);
+        $retried = $recovery->pop('events.0');
+        self::assertNotNull($retried);
+        self::assertSame($firstId, $retried->id);
+        $recovery->ack($retried);
+        self::assertSame($secondId, $recovery->pop('events.0')?->id);
     }
 
     public function testExpiredReservationDoesNotBlockFollowingJobs(): void
