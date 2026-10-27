@@ -4,19 +4,23 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Queue;
 
+use MajorDoMo\Logging\ErrorRepository;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
  * Один шаг worker-а: взять задание, выполнить обработчик, подтвердить или
  * вернуть в очередь с ошибкой.
+ *
+ * 2026-10-27 — ошибки очереди доступны также в общем просмотре ошибок.
  */
 final readonly class QueueWorker
 {
     public function __construct(
         private Queue $queue,
         private JobRegistry $handlers,
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        private ?ErrorRepository $errors = null
     ) {
     }
 
@@ -42,6 +46,10 @@ final readonly class QueueWorker
             ]);
         } catch (Throwable $error) {
             $this->queue->fail($job, $error);
+            $this->errors?->record('error', 'Ошибка очереди: ' . $error->getMessage(), [
+                'exception' => $error, 'job' => $job->job, 'queue' => $queue,
+                'job_id' => $job->id, 'execution_id' => $job->payload['execution_id'] ?? null,
+            ], '');
             $this->logger->error('Queue job failed', [
                 'job' => $job->job,
                 'queue' => $queue,

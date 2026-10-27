@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MajorDoMo\Worker;
 
 use MajorDoMo\Events\PropertyEventQueue;
+use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
@@ -24,6 +25,7 @@ use Throwable;
  * свойств этому модулю. Медленный подписчик задерживает только свой worker,
  * а не события свойств и не другие модули.
  *
+ * 2026-10-27 — отдельный процесс привязок получает исключительную очередь.
  * 2026-10-27 — worker обслуживает очередь доставки модуля.
  * 2026-10-27 — блокировка процесса удерживается при длительных обработчиках.
  */
@@ -40,7 +42,9 @@ final class Worker
         private readonly JobRegistry $jobs,
         private readonly PropertyEventQueue $eventQueues,
         private readonly LoggerInterface $logger,
-        private readonly ProcessLock $processLock
+        private readonly ProcessLock $processLock,
+        private readonly ProcessLock $deliveryLock,
+        private readonly ErrorRepository $errors
     ) {
     }
 
@@ -151,11 +155,18 @@ final class Worker
      */
     private function drainDeliveries(string $moduleId): int
     {
-        $worker = $this->queueWorker ??= new QueueWorker($this->queue, $this->jobs, $this->logger);
+        $worker = $this->queueWorker ??= new QueueWorker($this->queue, $this->jobs, $this->logger, $this->errors);
         $queue = $this->eventQueues->moduleQueueName($moduleId);
+        if (!$this->deliveryLock->acquire(['queue.' . $queue])) {
+            return 0;
+        }
         $handled = 0;
-        while ($handled < 100 && $worker->work($queue)) {
-            $handled++;
+        try {
+            while ($handled < 100 && $worker->work($queue)) {
+                $handled++;
+            }
+        } finally {
+            $this->deliveryLock->release();
         }
 
         return $handled;

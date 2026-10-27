@@ -72,6 +72,21 @@ final class MethodContextTest extends TestCase
         self::assertSame(1, history('Кухня.state')?->count());
     }
 
+    public function testRecursiveMethodFailsWithoutPoisoningNextInvocation(): void
+    {
+        $app = $this->boot();
+        $app->database()->connection()->table('methods')->where('title', 'outer')->update([
+            'code' => 'return $this->call("outer");',
+        ]);
+        try {
+            callMethod('Кухня', 'outer');
+            self::fail('Рекурсия должна останавливаться до исчерпания памяти.');
+        } catch (\RuntimeException $error) {
+            self::assertStringContainsString('глубина', $error->getMessage());
+        }
+        self::assertSame(6, callMethod('Кухня', 'inner', ['x' => 3]));
+    }
+
     public function testThisIsMethodContextInstance(): void
     {
         $this->boot();

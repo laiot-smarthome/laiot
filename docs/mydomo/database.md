@@ -35,7 +35,7 @@ uppercase-поля не читаются через runtime-адаптер. От
 | Значения | property_values, property_history, property_events, property_subscriptions |
 | Сценарии | scripts, script_categories, runtime_timeouts |
 | Диагностика | action_log, system_errors, notifications |
-| Задания | queue_jobs |
+| Задания | queue_jobs, property_executions |
 | SDK | module_registry, module_migrations, shared_events |
 | Входящие webhook | api_webhooks |
 | Настройки и миграции | settings, migrations |

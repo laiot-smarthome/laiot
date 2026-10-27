@@ -18,6 +18,7 @@ namespace MajorDoMo\Events;
  * метода или подписчика получает цепочку и родителя из него, а не из
  * глобального состояния запроса.
  *
+ * 2026-10-27 — вложенные команды наследуют долговечный шаг выполнения.
  * 2026-10-27 — заменяет PropertyEventChain: к цепочке добавлены родитель
  *              журнала и текущий модуль.
  */
@@ -33,14 +34,17 @@ final class PropertyEventContext
 
     private ?string $module = null;
 
+    private int $executionId = 0;
+
     /**
      * @param list<string> $tokens
      */
-    public function enter(array $tokens = [], int $parentEventId = 0, ?string $module = null): void
+    public function enter(array $tokens = [], int $parentEventId = 0, ?string $module = null, int $executionId = 0): void
     {
         $this->tokens = self::clean($tokens);
         $this->parentEventId = max(0, $parentEventId);
         $this->module = $module;
+        $this->executionId = $executionId;
     }
 
     public function leave(): void
@@ -48,10 +52,11 @@ final class PropertyEventContext
         $this->tokens = [];
         $this->parentEventId = 0;
         $this->module = null;
+        $this->executionId = 0;
     }
 
     /**
-     * @return array{tokens:list<string>,parent:int,module:?string}
+     * @return array{tokens:list<string>,parent:int,module:?string,execution:int}
      */
     public function snapshot(): array
     {
@@ -59,17 +64,24 @@ final class PropertyEventContext
             'tokens' => $this->tokens,
             'parent' => $this->parentEventId,
             'module' => $this->module,
+            'execution' => $this->executionId,
         ];
     }
 
     /**
-     * @param array{tokens:list<string>,parent:int,module:?string} $snapshot
+     * @param array{tokens:list<string>,parent:int,module:?string,execution:int} $snapshot
      */
     public function restore(array $snapshot): void
     {
         $this->tokens = $snapshot['tokens'];
         $this->parentEventId = $snapshot['parent'];
         $this->module = $snapshot['module'];
+        $this->executionId = $snapshot['execution'];
+    }
+
+    public function executionId(): int
+    {
+        return $this->executionId;
     }
 
     public function token(string $objectTitle, string $propertyTitle): string

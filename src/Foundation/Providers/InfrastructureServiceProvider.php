@@ -10,8 +10,10 @@ use LogicException;
 use MajorDoMo\Cache\CacheFactory;
 use MajorDoMo\Cache\CacheStore;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Events\PropertyEventRepository;
 use MajorDoMo\Foundation\ServiceProvider;
 use MajorDoMo\Logging\ErrorFileWriter;
+use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Logging\RequestContext;
 use MajorDoMo\Queue\DatabaseQueue;
@@ -26,6 +28,7 @@ use Psr\Log\LoggerInterface;
  * Базовое окружение: время, логирование, БД, кэш, очередь и helpers.
  *
  * Изменения:
+ * 2026-10-27 — аварии очереди связаны с журналом шагов и просмотром ошибок.
  * 2026-10-26 — инфраструктура вынесена из Application в ленивые singleton.
  */
 final class InfrastructureServiceProvider extends ServiceProvider
@@ -67,7 +70,10 @@ final class InfrastructureServiceProvider extends ServiceProvider
         ));
         $this->container->singleton(Queue::class, fn (Container $container): Queue => new DatabaseQueue(
             $container->make(DatabaseManager::class),
-            (array)$this->app->config('queue', [])
+            (array)$this->app->config('queue', []),
+            null,
+            $container->make(ErrorRepository::class),
+            $container->make(PropertyEventRepository::class)
         ));
         $this->container->singleton(JobRegistry::class);
         $this->container->singleton(MaintenanceMode::class, fn (): MaintenanceMode => new MaintenanceMode($this->app->root()));

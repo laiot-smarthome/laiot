@@ -7,6 +7,9 @@ namespace MajorDoMo\Queue;
 use Closure;
 use Illuminate\Database\Schema\Blueprint;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Events\PropertyEventRepository;
+use MajorDoMo\Events\PropertyExecutionRepository;
+use MajorDoMo\Logging\ErrorRepository;
 use RuntimeException;
 use Throwable;
 
@@ -18,6 +21,7 @@ use Throwable;
  * это удобно для диагностики.
  *
  * Изменения:
+ * 2026-10-27 — готовность цепочки и порядок свойства проверяются при выдаче.
  * 2026-10-27 — полоса событий ждёт повтор старшего задания, сохраняя порядок.
  * 2026-10-27 — подтверждение и ошибка относятся к конкретной резервации.
  * 2026-10-27 — проверка таблицы кэшируется: очередь событий вызывает её на
@@ -40,13 +44,17 @@ final class DatabaseQueue implements Queue
     /** Таблица проверяется один раз на процесс: лишний запрос к схеме на каждой операции не нужен. */
     private bool $tableReady = false;
 
+    private ?bool $hasExecutions = null;
+
     /**
      * @param array<string, mixed> $config
      */
     public function __construct(
         private readonly DatabaseManager $database,
         array $config = [],
-        ?Closure $clock = null
+        ?Closure $clock = null,
+        private readonly ?ErrorRepository $errors = null,
+        private readonly ?PropertyEventRepository $eventLog = null
     ) {
         $this->table = (string)($config['table'] ?? 'queue_jobs');
         if (!preg_match('/^[a-z][a-z0-9_]{1,63}$/D', $this->table)) {
@@ -64,10 +72,16 @@ final class DatabaseQueue implements Queue
         $this->assertName($job, 'job');
         $this->ensureTable();
         $now = ($this->clock)();
+        $executionId = in_array($job, ['property.changed', 'module.property.changed'], true)
+            ? max(0, (int)($payload['execution_id'] ?? 0)) : 0;
+        if ($executionId > 0) {
+            $this->hasExecutions = true;
+        }
 
         return (int)$this->database->connection()->table($this->table)->insertGetId([
             'queue' => $queue,
             'job' => $job,
+            'execution_id' => $executionId > 0 ? $executionId : null,
             'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR),
             'attempts' => 0,
             'available_at' => date('Y-m-d H:i:s', $now + max(0, $delaySeconds)),
@@ -91,21 +105,28 @@ final class DatabaseQueue implements Queue
         $now = ($this->clock)();
         $reservationCutoff = date('Y-m-d H:i:s', $now - $this->reservationTimeout);
         $connection = $this->database->connection();
+        if ($this->hasExecutions !== true) {
+            $this->hasExecutions = $connection->getSchemaBuilder()->hasTable('property_executions');
+        }
 
         for ($attempt = 0; $attempt < 3; $attempt++) {
-            $orderedEvents = $queue === 'events' || preg_match('/^events\.\d+$/D', $queue) === 1;
+            $orderedEvents = !$this->hasExecutions
+                && ($queue === 'events' || preg_match('/^events\.\d+$/D', $queue) === 1);
             $query = $connection->table($this->table)
-                ->where('queue', $queue)
-                ->whereNull('deleted_at')
-                ->whereNull('failed_at');
+                ->where($this->table . '.queue', $queue)
+                ->whereNull($this->table . '.deleted_at')
+                ->whereNull($this->table . '.failed_at');
             if (!$orderedEvents) {
-                $query->where('available_at', '<=', date('Y-m-d H:i:s', $now))
+                $query->where($this->table . '.available_at', '<=', date('Y-m-d H:i:s', $now))
                     ->where(static function ($query) use ($reservationCutoff): void {
                         $query->whereNull('reserved_at')
                             ->orWhere('reserved_at', '<=', $reservationCutoff);
                     });
             }
-            $row = $query->orderBy('id')->first();
+            if ($this->hasExecutions) {
+                PropertyExecutionRepository::constrainReady($query, $this->table);
+            }
+            $row = $query->orderBy($this->table . '.id')->first();
 
             if ($row === null) {
                 return null;
@@ -116,6 +137,9 @@ final class DatabaseQueue implements Queue
             }
 
             $reservationToken = bin2hex(random_bytes(16));
+            // Просроченная резервация означает аварийно оборванную попытку.
+            // Иначе exit/OOM в пользовательском PHP повторялся бы бесконечно.
+            $attempts = (int)$row->attempts + ($row->reserved_at !== null ? 1 : 0);
             $reserved = $connection->table($this->table)
                 ->where('id', (int)$row->id)
                 ->whereNull('deleted_at')
@@ -128,20 +152,32 @@ final class DatabaseQueue implements Queue
                 ->update([
                     'reserved_at' => date('Y-m-d H:i:s', $now),
                     'reservation_token' => $reservationToken,
+                    'attempts' => $attempts,
                     'updated_at' => date('Y-m-d H:i:s', $now),
                 ]);
 
             if ($reserved === 1) {
                 $payload = json_decode((string)$row->payload, true);
 
-                return new QueueJob(
+                $job = new QueueJob(
                     (int)$row->id,
                     (string)$row->queue,
                     (string)$row->job,
                     is_array($payload) ? $payload : [],
-                    (int)$row->attempts,
+                    $attempts,
                     $reservationToken
                 );
+                if ($attempts >= $this->maxAttempts) {
+                    $error = new RuntimeException('Превышен лимит аварийных завершений задания.');
+                    $this->fail($job, $error);
+                    $this->errors?->record('error', $error->getMessage(), [
+                        'exception' => $error, 'job_id' => $job->id,
+                        'execution_id' => $job->payload['execution_id'] ?? null,
+                    ], '');
+                    continue;
+                }
+
+                return $job;
             }
         }
 
@@ -156,7 +192,7 @@ final class DatabaseQueue implements Queue
 
     public function fail(QueueJob $job, Throwable $error): void
     {
-        $attempts = $job->attempts + 1;
+        $attempts = min($this->maxAttempts, $job->attempts + 1);
         $now = ($this->clock)();
         $values = [
             'attempts' => $attempts,
@@ -172,8 +208,20 @@ final class DatabaseQueue implements Queue
             $values['available_at'] = date('Y-m-d H:i:s', $now + $this->retryDelay);
         }
 
-        $this->database->connection()->table($this->table)->where('id', $job->id)
-            ->where('reservation_token', $job->reservationToken)->update($values);
+        $this->database->transaction(function () use ($job, $values, $attempts, $error): void {
+            $updated = $this->database->connection()->table($this->table)->where('id', $job->id)
+                ->where('reservation_token', $job->reservationToken)->update($values);
+            $executionId = (int)($job->payload['execution_id'] ?? 0);
+            if ($updated === 1 && $attempts >= $this->maxAttempts && $executionId > 0) {
+                $states = new PropertyExecutionRepository($this->database);
+                $states->fail($executionId, $error->getMessage());
+                $step = $states->find($executionId);
+                $this->eventLog?->finish($step['event_id'], 'error', $error->getMessage());
+                if (!$step['handler_done']) {
+                    $this->eventLog?->finish($step['handler_event_id'], 'error', $error->getMessage());
+                }
+            }
+        });
     }
 
     public function stats(string $queue): array
@@ -262,11 +310,33 @@ final class DatabaseQueue implements Queue
         $this->ensureTable();
         $now = ($this->clock)();
 
-        return $this->database->connection()->table($this->table)
-            ->where('id', $id)
-            ->whereNull('deleted_at')
-            ->whereNotNull('failed_at')
-            ->update([
+        return $this->database->transaction(function () use ($id, $now): bool {
+            $query = $this->database->connection()->table($this->table)->where('id', $id)
+                ->whereNull('deleted_at')->whereNotNull('failed_at');
+            $row = (clone $query)->lockForUpdate()->first();
+            if ($row === null) {
+                return false;
+            }
+            $execution = [];
+            if ((int)($row->execution_id ?? 0) > 0) {
+                $states = new PropertyExecutionRepository($this->database);
+                $previous = $states->find((int)$row->execution_id);
+                $newId = $states->create(0, $previous['stream']);
+                // Ручной повтор — новая цепочка: ранее отменённые потомки
+                // остаются отменёнными, учтённая история не дублируется.
+                $states->update($newId, ['history_done' => $previous['history_done']]);
+                $payload = json_decode((string)$row->payload, true, 512, JSON_THROW_ON_ERROR);
+                if (!is_array($payload)) {
+                    throw new RuntimeException('Payload задания должен быть массивом.');
+                }
+                $payload['execution_id'] = $newId;
+                $execution = [
+                    'execution_id' => $newId,
+                    'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                ];
+            }
+
+            return $query->update($execution + [
                 'attempts' => 0,
                 'failed_at' => null,
                 'error' => null,
@@ -275,6 +345,7 @@ final class DatabaseQueue implements Queue
                 'available_at' => date('Y-m-d H:i:s', $now),
                 'updated_at' => date('Y-m-d H:i:s', $now),
             ]) > 0;
+        });
     }
 
     public function forget(int $id): bool
@@ -305,6 +376,7 @@ final class DatabaseQueue implements Queue
             $table->increments('id');
             $table->string('queue', 64);
             $table->string('job', 191);
+            $table->unsignedBigInteger('execution_id')->nullable()->index();
             $table->text('payload');
             $table->integer('attempts')->default(0);
             $table->dateTime('available_at');

@@ -6,6 +6,7 @@ namespace MajorDoMo\Worker;
 
 use MajorDoMo\Events\PropertyEventQueue;
 use MajorDoMo\Events\SystemEventTicker;
+use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Maintenance\RetentionPruner;
 use MajorDoMo\Queue\JobRegistry;
@@ -27,6 +28,7 @@ use Throwable;
  * `core-worker events.<n>` — одну, чтобы несколько процессов обрабатывали
  * независимые свойства параллельно, сохраняя порядок внутри свойства.
  *
+ * 2026-10-27 — отдельный module.<id> обслуживает привязки без задач модуля.
  * 2026-10-27 — системные события времени создаёт отдельный процесс.
  * 2026-10-27 — добавлен процесс events: OnChange и доставка свойства не
  *              выполняются в запросе, который записал значение.
@@ -52,7 +54,8 @@ final class CoreWorker
         private readonly ProcessLock $processLock,
         private readonly RetentionPruner $retention,
         private readonly SystemEventTicker $systemEvents,
-        private readonly Clock $clock
+        private readonly Clock $clock,
+        private readonly ErrorRepository $errors
     ) {
     }
 
@@ -64,6 +67,9 @@ final class CoreWorker
             ? array_map(static fn (string $queue): string => 'queue.' . $queue, $lane === null
                 ? $this->events->queueNames() : [$this->events->queueName($lane)])
             : ['core.' . $task];
+        if (str_starts_with($task, 'module.')) {
+            $keys = ['queue.' . $task];
+        }
         if (!$this->processLock->acquire($keys)) {
             throw new RuntimeException('Core-worker уже запущен: ' . $task);
         }
@@ -77,6 +83,8 @@ final class CoreWorker
                 try {
                     if ($task === 'queue') {
                         $this->runQueue('default', 'queue', $once, $pid);
+                    } elseif (str_starts_with($task, 'module.')) {
+                        $this->runQueue($task, $task, $once, $pid);
                     } elseif ($task === 'timeouts') {
                         $this->runTimeouts($once, $pid);
                     } elseif ($task === 'system-events') {
@@ -120,13 +128,17 @@ final class CoreWorker
         if (in_array($task, self::TASKS, true)) {
             return null;
         }
+        if (str_starts_with($task, 'module.')) {
+            $this->events->moduleQueueName(substr($task, 7));
+            return null;
+        }
 
         throw new RuntimeException('Неизвестный core-worker: ' . $task);
     }
 
     private function runQueue(string $queue, string $task, bool $once, int $pid): void
     {
-        $worker = new QueueWorker($this->queue, $this->jobs, $this->loggers->channel('queue'));
+        $worker = new QueueWorker($this->queue, $this->jobs, $this->loggers->channel('queue'), $this->errors);
         while (!$this->stop) {
             $this->state->refreshTask('core', $task, $pid);
             $worked = $worker->work($queue);
@@ -151,7 +163,7 @@ final class CoreWorker
         $queues = $lane === null
             ? $this->events->queueNames()
             : [$this->events->queueName($lane)];
-        $worker = new QueueWorker($this->queue, $this->jobs, $this->loggers->channel('events'));
+        $worker = new QueueWorker($this->queue, $this->jobs, $this->loggers->channel('events'), $this->errors);
 
         while (!$this->stop) {
             $this->state->refreshTask('core', $task, $pid);

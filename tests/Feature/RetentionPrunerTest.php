@@ -6,6 +6,7 @@ namespace MajorDoMo\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use MajorDoMo\Console\PruneCommand;
+use MajorDoMo\Events\PropertyExecutionRepository;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Maintenance\RetentionPruner;
 use PHPUnit\Framework\TestCase;
@@ -93,6 +94,32 @@ final class RetentionPrunerTest extends TestCase
         self::assertSame(1, $app->database()->connection()->table('property_history')->count());
     }
 
+    public function testExecutionRetentionPreservesPendingAndQueuedChains(): void
+    {
+        $app = $this->boot();
+        $executions = $app->container()->make(PropertyExecutionRepository::class);
+        $executions->ensureTable();
+        $completed = $executions->create(0, 'property:1:1');
+        $pending = $executions->create(0, 'property:1:2');
+        $parent = $executions->create(0, 'property:1:3');
+        $child = $executions->create($parent, 'property:1:4');
+        $queued = $executions->create(0, 'property:1:5');
+        $connection = $app->database()->connection();
+        $old = date('Y-m-d H:i:s', time() - 40 * 86400);
+        $connection->table('property_executions')->update(['created_at' => $old, 'updated_at' => $old]);
+        $connection->table('property_executions')->whereIn('id', [$completed, $parent, $queued])
+            ->update(['status' => 'ok']);
+        $connection->table('queue_jobs')->insert([
+            'queue' => 'events.0', 'execution_id' => $queued, 'failed_at' => null,
+        ]);
+
+        $pruner = $app->container()->make(RetentionPruner::class);
+        self::assertSame(1, $pruner->prune(true)['property_executions']);
+        self::assertSame(1, $pruner->prune()['property_executions']);
+        self::assertSame([$pending, $parent, $child, $queued], $connection->table('property_executions')
+            ->orderBy('id')->pluck('id')->map(static fn (mixed $id): int => (int)$id)->all());
+    }
+
     /**
      * @param array<string, mixed> $retention
      */
@@ -139,6 +166,7 @@ final class RetentionPrunerTest extends TestCase
         $schema->create('queue_jobs', static function (Blueprint $table): void {
             $table->increments('id');
             $table->string('queue', 64);
+            $table->unsignedBigInteger('execution_id')->nullable();
             $table->dateTime('failed_at')->nullable();
         });
         $schema->create('runtime_timeouts', static function (Blueprint $table): void {

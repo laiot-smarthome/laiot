@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MajorDoMo\Console;
 
 use MajorDoMo\Foundation\Application;
+use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Queue\QueueWorker;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -14,6 +15,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(name: 'queue:work', description: 'Обработать задания очереди MyDoMo')]
+/** 2026-10-27 — ошибки разового worker записываются в общий журнал ошибок. */
 final class QueueWorkCommand extends Command
 {
     public function __construct(private readonly Application $app)
@@ -35,7 +37,8 @@ final class QueueWorkCommand extends Command
         $worker = new QueueWorker(
             $this->app->queue(),
             $this->app->jobs(),
-            $this->app->container()->make(LoggerFactory::class)->channel('queue')
+            $this->app->container()->make(LoggerFactory::class)->channel('queue'),
+            $this->app->container()->make(ErrorRepository::class)
         );
         $processed = 0;
 

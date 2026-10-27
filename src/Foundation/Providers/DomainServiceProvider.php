@@ -22,6 +22,7 @@ use MajorDoMo\Events\PropertyEventContext;
 use MajorDoMo\Events\PropertyEventHandler;
 use MajorDoMo\Events\PropertyEventQueue;
 use MajorDoMo\Events\PropertyEventRepository;
+use MajorDoMo\Events\PropertyExecutionRepository;
 use MajorDoMo\Events\SystemEvents;
 use MajorDoMo\Events\SystemEventTicker;
 use MajorDoMo\Foundation\ServiceProvider;
@@ -46,6 +47,7 @@ use MajorDoMo\Rename\NameReferenceUpdater;
 use MajorDoMo\Runtime\CodeRunner;
 use MajorDoMo\Runtime\PhpSyntaxValidator;
 use MajorDoMo\Runtime\TimeoutRepository;
+use MajorDoMo\Runtime\UserCodeDeadline;
 use MajorDoMo\Scripts\ScriptEventDispatcher;
 use MajorDoMo\Scripts\ScriptEventJob;
 use MajorDoMo\Scripts\ScriptExecutor;
@@ -57,6 +59,7 @@ use MajorDoMo\Search\PanelSearch;
  * Репозитории и доменные операции ядра; зависимости собирает контейнер.
  *
  * Изменения:
+ * 2026-10-27 — общее долговечное состояние цепочек свойств.
  * 2026-10-27 — сценарии запускаются по системному событию; код проверяется до сохранения.
  * 2026-10-27 — регистрация системных событий и их доставки модулям.
  * 2026-10-27 — обработчик `property.changed` регистрируется для core-worker events.
@@ -97,6 +100,7 @@ final class DomainServiceProvider extends ServiceProvider
             PropertyHistoryService::class,
             ValueRepository::class,
             PropertyEventRepository::class,
+            PropertyExecutionRepository::class,
             // Контекст события: цепочка, родитель журнала и модуль-автор
             // для вложенных записей внутри обработчика.
             PropertyEventContext::class,
@@ -114,6 +118,13 @@ final class DomainServiceProvider extends ServiceProvider
             $this->container->singleton($service);
         }
         $this->container->singleton(KnowledgeBase::class, fn (): KnowledgeBase => new KnowledgeBase($this->app->root() . '/docs'));
+        $this->container->singleton(UserCodeDeadline::class, function (): UserCodeDeadline {
+            $timeout = (int)$this->app->config('queue.handler_timeout', 5);
+            if ($timeout >= (int)$this->app->config('queue.reservation_timeout', 300)) {
+                throw new \RuntimeException('queue.handler_timeout должен быть меньше reservation_timeout.');
+            }
+            return new UserCodeDeadline($timeout);
+        });
         $this->container->singleton(
             PropertyEventQueue::class,
             fn (Container $container): PropertyEventQueue => new PropertyEventQueue(

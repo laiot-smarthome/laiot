@@ -18,6 +18,7 @@ use Throwable;
  * Срок `0` отключает очистку конкретного раздела. Ошибки удаляются вместе с
  * отдельными файлами; остальные таблицы чистятся физически.
  *
+ * 2026-10-27 — завершённые цепочки очищаются только без заданий в очереди.
  * 2026-10-27 — очистка истории, журнала, очереди, таймеров и ошибок.
  */
 final class RetentionPruner
@@ -52,6 +53,7 @@ final class RetentionPruner
             'property_history' => $this->purgeByDate('property_history', $this->cutoff('history_days'), $batch, $dryRun),
             'property_events' => $this->purgeByDate('property_events', $this->cutoff('events_days'), $batch, $dryRun),
             'queue_jobs' => $this->purgeQueue($this->cutoff('queue_days'), $batch, $dryRun),
+            'property_executions' => $this->purgeExecutions($this->cutoff('events_days'), $batch, $dryRun),
             'runtime_timeouts' => $this->purgeTimeouts($this->cutoff('timeouts_days'), $batch, $dryRun),
             'system_errors' => $this->purgeErrors($this->cutoff('errors_days'), $batch, $dryRun),
         ];
@@ -65,6 +67,47 @@ final class RetentionPruner
         }
 
         return date('Y-m-d H:i:s', time() - $days * 86400);
+    }
+
+    private function purgeExecutions(?string $cutoff, int $batch, bool $dryRun): int
+    {
+        if ($cutoff === null || !$this->table('property_executions')) {
+            return 0;
+        }
+        $roots = $this->database->connection()->table('property_executions as root')
+            ->whereColumn('root.id', 'root.root_id')
+            ->where('root.updated_at', '<', $cutoff)
+            ->whereNotExists(static function ($query) use ($cutoff): void {
+                $query->selectRaw('1')->from('property_executions as step')
+                    ->whereColumn('step.root_id', 'root.id')
+                    ->where(static function ($unfinished) use ($cutoff): void {
+                        $unfinished->whereIn('step.status', ['pending', 'running'])
+                            ->orWhere('step.updated_at', '>=', $cutoff);
+                    });
+            });
+        if ($this->table('queue_jobs') && $this->database->schema()->hasColumn('queue_jobs', 'execution_id')) {
+            $roots->whereNotExists(static function ($query): void {
+                $query->selectRaw('1')->from('queue_jobs as job')
+                    ->join('property_executions as queued', 'queued.id', '=', 'job.execution_id')
+                    ->whereColumn('queued.root_id', 'root.id');
+            });
+        }
+        $total = 0;
+        do {
+            $ids = (clone $roots)->orderBy('root.id')->limit($batch)->pluck('root.id')->all();
+            if ($ids === []) {
+                break;
+            }
+            $steps = $this->database->connection()->table('property_executions')->whereIn('root_id', $ids);
+            $total += $dryRun ? (int)$steps->count() : (int)$steps->delete();
+            if ($dryRun) {
+                // При dry-run считаем все подходящие цепочки одним запросом.
+                return (int)$this->database->connection()->table('property_executions')
+                    ->whereIn('root_id', (clone $roots)->select('root.id'))->count();
+            }
+        } while (count($ids) === $batch);
+
+        return $total;
     }
 
     private function purgeByDate(string $table, ?string $cutoff, int $batch, bool $dryRun): int

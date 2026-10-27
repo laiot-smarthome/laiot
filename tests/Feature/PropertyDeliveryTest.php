@@ -21,6 +21,7 @@ use RuntimeException;
  * «строка подписки + зарегистрированный обработчик». Обработчик тестовый:
  * реальный каталог модуля не нужен.
  *
+ * 2026-10-27 — ошибка отменяет оставшиеся привязки одной цепочки.
  * 2026-10-27 — тест создан вместе с доставкой `module.delivery`.
  */
 final class PropertyDeliveryTest extends TestCase
@@ -167,13 +168,12 @@ final class PropertyDeliveryTest extends TestCase
             ->count());
     }
 
-    public function testHandlerRunsBeforeHistoryAndDelivery(): void
+    public function testHistoryIsSavedBeforeUserCodeAndDelivery(): void
     {
         [$app, $subscriber] = $this->boot();
         $this->subscribe($app, 1, 4, 'demo');
 
-        // Обработчик и подписчик фиксируют, сколько строк истории уже есть:
-        // в момент реакции её быть не должно, к доставке — уже должна.
+        // Оба обработчика уже видят историю принятого значения.
         $GLOBALS['md_probe'] = static fn (): int => $app->database()->connection()
             ->table('property_history')
             ->count();
@@ -186,7 +186,7 @@ final class PropertyDeliveryTest extends TestCase
             self::assertTrue(sg('Кухня.order', '42'));
             $this->drainEvents($app);
             self::assertSame([
-                ['handler', 0],
+                ['handler', 1],
                 ['module', 1],
             ], $GLOBALS['md_order']);
         } finally {
@@ -238,12 +238,130 @@ final class PropertyDeliveryTest extends TestCase
         self::assertCount(0, $subscriber->changes);
         self::assertSame(1, $queue->stats('module.demo')['pending']);
 
-        $this->drainEvents($app);
+        $app->container()->make(\MajorDoMo\Worker\CoreWorker::class)->run('module.demo', true);
         self::assertCount(1, $subscriber->changes);
         self::assertSame('Кухня.temperature', $subscriber->changes[0]->token());
     }
 
-    public function testFailingModuleDoesNotBlockAnotherModule(): void
+    public function testFailedMethodCancelsNestedCommandsAndKeepsTheirHistory(): void
+    {
+        [$app, $subscriber] = $this->boot();
+        $this->subscribe($app, 2, 2, 'demo');
+        $connection = $app->database()->connection();
+        $connection->table('properties')->where('id', 2)->update(['keep_history' => true]);
+        $connection->table('methods')->where('title', 'onTrigger')->update([
+            'code' => 'sg("Лампа.state", "on"); throw new \\RuntimeException("parent failed");',
+        ]);
+
+        self::assertTrue(sg('Кухня.trigger', '1'));
+        $this->drainEvents($app);
+
+        self::assertSame('on', gg('Лампа.state'));
+        self::assertCount(0, $subscriber->changes);
+        self::assertSame(1, $connection->table('property_history')->where('property_id', 2)->count());
+        self::assertSame(1, $connection->table('property_events')->where('property_title', 'state')
+            ->where('status', 'skipped')->count());
+        $error = $connection->table('system_errors')->first();
+        self::assertNotNull($error);
+        self::assertStringContainsString('parent failed', (string)$error->message);
+        $errorContext = json_decode((string)$error->context, true, 512, JSON_THROW_ON_ERROR);
+        self::assertIsArray($errorContext);
+        self::assertGreaterThan(0, $errorContext['execution_id']);
+        self::assertGreaterThan(0, $errorContext['event_id']);
+
+        self::assertTrue(sg('Лампа.state', 'off'));
+        $this->drainEvents($app);
+        self::assertCount(1, $subscriber->changes);
+        self::assertSame('off', $subscriber->changes[0]->newValue);
+        self::assertSame(2, $connection->table('property_history')->where('property_id', 2)->count());
+    }
+
+    public function testFailedSubscriberCancelsItsNestedCommands(): void
+    {
+        [$app, $first] = $this->boot();
+        $second = new TestPropertySubscriber();
+        $app->container()->make(PropertySubscriberRegistry::class)
+            ->register('other', static fn (): PropertySubscriber => $second);
+        $this->subscribe($app, 1, 1, 'demo');
+        $this->subscribe($app, 2, 2, 'other');
+        $first->onChange = static function (): void {
+            sg('Лампа.state', 'on');
+            throw new RuntimeException('delivery failed');
+        };
+
+        self::assertTrue(sg('Кухня.temperature', '7'));
+        $this->drainEvents($app);
+        self::assertSame('on', gg('Лампа.state'));
+        self::assertCount(0, $second->changes);
+
+        self::assertTrue(sg('Лампа.state', 'off'));
+        $this->drainEvents($app);
+        self::assertCount(1, $second->changes);
+    }
+
+    public function testTimedOutMethodCancelsChildrenAndNextCommandStillRuns(): void
+    {
+        if (!(new \MajorDoMo\Runtime\UserCodeDeadline(1))->supported()) {
+            self::markTestSkipped('Таймаут обработчика требует Linux/pcntl.');
+        }
+        [$app, $subscriber] = $this->boot(['handler_timeout' => 1]);
+        $this->subscribe($app, 1, 1, 'demo');
+        $connection = $app->database()->connection();
+        $connection->table('methods')->where('title', 'onTemperature')->update([
+            'code' => 'sg("Лампа.state", "on"); sleep(3);',
+        ]);
+        self::assertTrue(sg('Кухня.temperature', 'slow'));
+        $this->drainEvents($app);
+        self::assertCount(0, $subscriber->changes);
+        self::assertSame(1, $connection->table('property_history')->count());
+        self::assertSame(1, $connection->table('property_events')->where('status', 'error')->count());
+        self::assertSame(1, $connection->table('property_events')->where('status', 'skipped')->count());
+
+        $connection->table('methods')->where('title', 'onTemperature')->update(['code' => 'return true;']);
+        self::assertTrue(sg('Кухня.temperature', 'healthy'));
+        $this->drainEvents($app);
+        self::assertCount(1, $subscriber->changes);
+        self::assertSame('healthy', $subscriber->changes[0]->newValue);
+    }
+
+    public function testRetryAfterDeliveryFailureDoesNotRepeatSuccessfulMethod(): void
+    {
+        [$app, $subscriber] = $this->boot();
+        $this->subscribe($app, 1, 1, 'demo');
+        $connection = $app->database()->connection();
+        $connection->table('methods')->where('title', 'onTemperature')->update([
+            'code' => '$GLOBALS["md_method_runs"]++;',
+        ]);
+        $GLOBALS['md_method_runs'] = 0;
+        $queue = $app->queue();
+        $lanes = $app->container()->make(PropertyEventQueue::class);
+        self::assertTrue(sg('Кухня.temperature', '42'));
+        $job = $queue->pop($lanes->queueName($lanes->laneFor(1, 1)));
+        self::assertNotNull($job);
+        $connection->getSchemaBuilder()->rename('property_subscriptions', 'saved_subscriptions');
+        try {
+            try {
+                $app->jobs()->handle($job->job, $job->payload);
+                self::fail('Постановка доставки должна завершиться ошибкой отсутствующей таблицы.');
+            } catch (\Illuminate\Database\QueryException) {
+                // Следующая попытка должна продолжиться с этапа доставки.
+            } finally {
+                $connection->getSchemaBuilder()->rename('saved_subscriptions', 'property_subscriptions');
+            }
+
+            $app->jobs()->handle($job->job, $job->payload);
+            $app->jobs()->handle($job->job, $job->payload);
+            $queue->ack($job);
+            $this->drainEvents($app);
+            self::assertSame(1, $GLOBALS['md_method_runs']);
+            self::assertSame(1, $connection->table('property_history')->count());
+            self::assertCount(1, $subscriber->changes);
+        } finally {
+            unset($GLOBALS['md_method_runs']);
+        }
+    }
+
+    public function testFailingModuleCancelsRemainingDeliveryInSameChain(): void
     {
         [$app, $first] = $this->boot();
         $second = new TestPropertySubscriber();
@@ -257,14 +375,14 @@ final class PropertyDeliveryTest extends TestCase
         $this->drainEvents($app);
 
         self::assertCount(0, $first->changes);
-        self::assertCount(1, $second->changes);
+        self::assertCount(0, $second->changes);
         $statuses = $app->database()->connection()->table('property_events')
             ->where('type', 'module.delivery')
             ->orderBy('id')
             ->pluck('status')
             ->map(static fn (mixed $status): string => (string)$status)
             ->all();
-        self::assertSame(['error', 'ok'], $statuses);
+        self::assertSame(['error', 'skipped'], $statuses);
     }
 
     public function testSubscriptionRepositoryIsIdempotent(): void
@@ -302,15 +420,17 @@ final class PropertyDeliveryTest extends TestCase
     }
 
     /**
+     * @param array<string, mixed> $queueConfig
      * @return array{0:Application,1:TestPropertySubscriber}
      */
-    private function boot(): array
+    private function boot(array $queueConfig = []): array
     {
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
             'log' => 'php://stderr',
             'session' => new \MajorDoMo\Http\Session\ArraySession(),
             'cache' => ['driver' => 'array'],
+            'queue' => $queueConfig,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
         ]);
         $app->boot();
@@ -411,6 +531,15 @@ final class PropertyDeliveryTest extends TestCase
                 $table->text('message')->nullable();
                 $table->text('chain')->nullable();
                 $table->integer('depth')->default(0);
+                $table->timestamps();
+                $table->softDeletes();
+            },
+            'system_errors' => static function (Blueprint $table): void {
+                $table->increments('id');
+                $table->string('level', 16);
+                $table->text('message');
+                $table->text('context')->nullable();
+                $table->string('request_id', 64)->default('');
                 $table->timestamps();
                 $table->softDeletes();
             },

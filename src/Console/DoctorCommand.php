@@ -13,6 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
 #[AsCommand(name: 'doctor', description: 'Проверить окружение MyDoMo')]
+/** 2026-10-27 — проверяются расширения Linux-worker и таймаутов обработчиков. */
 final class DoctorCommand extends Command
 {
     public function __construct(private readonly Application $app)
@@ -23,7 +24,7 @@ final class DoctorCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $checks = [];
-        foreach (['pdo_mysql', 'mbstring', 'intl', 'curl', 'json', 'openssl', 'fileinfo'] as $extension) {
+        foreach (['pdo_mysql', 'mbstring', 'intl', 'curl', 'json', 'openssl', 'fileinfo', 'pcntl', 'posix'] as $extension) {
             $checks[] = ['PHP extension', $extension, extension_loaded($extension) ? 'ok' : 'missing'];
         }
         $checks[] = ['Timezone', $this->app->clock()->timezone(), 'ok'];

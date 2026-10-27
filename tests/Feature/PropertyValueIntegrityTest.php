@@ -8,6 +8,7 @@ use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Events\PropertyEventContext;
 use MajorDoMo\Events\PropertyEventQueue;
+use MajorDoMo\Events\PropertyExecutionRepository;
 use MajorDoMo\History\HistoryRepository;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyRepository;
@@ -61,7 +62,8 @@ final class PropertyValueIntegrityTest extends TestCase
             $this->values,
             $history,
             new PropertyEventContext(),
-            new PropertyEventQueue(new DatabaseQueue($this->database), ['events_lanes' => 1])
+            new PropertyEventQueue(new DatabaseQueue($this->database), ['events_lanes' => 1]),
+            new PropertyExecutionRepository($this->database)
         );
 
         $this->classes->create('Sensor');

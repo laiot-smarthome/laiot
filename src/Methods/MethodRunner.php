@@ -8,6 +8,8 @@ use InvalidArgumentException;
 use MajorDoMo\Notifications\NotificationService;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Properties\PropertyValueService;
+use MajorDoMo\Runtime\UserCodeDeadline;
+use RuntimeException;
 
 /**
  * Выполнение пользовательского метода.
@@ -19,16 +21,20 @@ use MajorDoMo\Properties\PropertyValueService;
  * `history()`, `call()`, `notify()` и короткий доступ к параметрам. Контекст
  * привязан к тому же объекту, чей метод вызван.
  *
+ * 2026-10-27 — рекурсия ограничена до исчерпания памяти процесса.
  * 2026-10-27 — метод выполняется с контекстом объекта, `$this` больше не пустой.
  * 2026-10-27 — метод ищется у объекта, затем в классе и по цепочке наследования.
  */
-final readonly class MethodRunner
+final class MethodRunner
 {
+    private int $depth = 0;
+
     public function __construct(
-        private ObjectRepository $objects,
-        private MethodRepository $methods,
-        private PropertyValueService $values,
-        private NotificationService $notifications
+        private readonly ObjectRepository $objects,
+        private readonly MethodRepository $methods,
+        private readonly PropertyValueService $values,
+        private readonly NotificationService $notifications,
+        private readonly UserCodeDeadline $deadline
     ) {
     }
 
@@ -36,6 +42,20 @@ final readonly class MethodRunner
      * @param array<string, mixed> $params
      */
     public function run(string $objectTitle, string $methodTitle, array $params = []): mixed
+    {
+        if ($this->depth >= 64) {
+            throw new RuntimeException('Превышена глубина вложенных вызовов методов: 64.');
+        }
+        $this->depth++;
+        try {
+            return $this->deadline->run(fn () => $this->invoke($objectTitle, $methodTitle, $params));
+        } finally {
+            $this->depth--;
+        }
+    }
+
+    /** @param array<string, mixed> $params */
+    private function invoke(string $objectTitle, string $methodTitle, array $params): mixed
     {
         $object = $this->objects->findByTitle(trim($objectTitle));
         if ($object === null) {

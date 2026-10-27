@@ -20,6 +20,7 @@ use MajorDoMo\Foundation\Application;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
+/** 2026-10-27 — doctor показывает отсутствие обязательных расширений worker. */
 final class ConsoleCommandsTest extends TestCase
 {
     private Application $app;
@@ -58,7 +59,10 @@ final class ConsoleCommandsTest extends TestCase
         $tester = new CommandTester(new DoctorCommand($this->app));
         $tester->execute([]);
 
-        self::assertSame(0, $tester->getStatusCode());
+        $workerAvailable = extension_loaded('pcntl') && extension_loaded('posix');
+        self::assertSame($workerAvailable ? 0 : 1, $tester->getStatusCode());
+        self::assertStringContainsString('pcntl', $tester->getDisplay());
+        self::assertStringContainsString('posix', $tester->getDisplay());
         self::assertStringContainsString('Database', $tester->getDisplay());
         self::assertStringContainsString('Cache', $tester->getDisplay());
     }

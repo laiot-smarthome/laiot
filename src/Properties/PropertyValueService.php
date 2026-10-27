@@ -8,6 +8,7 @@ use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Events\PropertyChangedJob;
 use MajorDoMo\Events\PropertyEventContext;
 use MajorDoMo\Events\PropertyEventQueue;
+use MajorDoMo\Events\PropertyExecutionRepository;
 use MajorDoMo\History\HistoryQuery;
 use MajorDoMo\History\HistoryRepository;
 use MajorDoMo\Objects\ObjectRepository;
@@ -26,6 +27,7 @@ use MajorDoMo\Objects\ObjectRepository;
  * собственное эхо. Полоса очереди выбирается по объекту и свойству, поэтому
  * порядок изменений одного свойства сохраняется при нескольких процессах.
  *
+ * 2026-10-27 — команда атомарно получает состояние и родителя выполнения.
  * 2026-10-27 — запись переведена на асинхронный конвейер: значение + задание,
  *              без синхронных OnChange, истории и доставки.
  * 2026-10-27 — параллельные записи объекта согласуют старое значение и событие.
@@ -42,7 +44,8 @@ final class PropertyValueService
         private readonly ValueRepository $values,
         private readonly HistoryRepository $history,
         private readonly PropertyEventContext $context,
-        private readonly PropertyEventQueue $events
+        private readonly PropertyEventQueue $events,
+        private readonly PropertyExecutionRepository $executions
     ) {
     }
 
@@ -157,10 +160,11 @@ final class PropertyValueService
         $token = $this->context->token($objectTitle, $propertyTitle);
         $loop = $this->context->contains($token);
         $tooDeep = $this->context->depth() >= PropertyEventContext::MAX_DEPTH;
+        $this->executions->ensureTable();
 
         // Значение и задание — одна транзакция: событие не потеряется, если
         // запись упадёт, и не появится без сохранённого значения.
-        $this->database->transaction(function () use ($objectId, $propertyId, $objectTitle, $propertyTitle, $newValue, $source, $token, $loop, $tooDeep, $onlyNewValues): void {
+        $this->database->transaction(function () use ($objectId, $propertyId, $objectTitle, $propertyTitle, $newValue, $source, $token, $loop, $tooDeep, $onlyNewValues, $property): void {
             // Строка объекта существует и до первого значения свойства, поэтому
             // защищает также одновременное создание отсутствующего значения.
             $this->database->connection()->table('objects')->where('id', $objectId)->lockForUpdate()->first();
@@ -171,6 +175,10 @@ final class PropertyValueService
                 return;
             }
             $job = new PropertyChangedJob([
+                'execution_id' => $this->executions->create(
+                    $this->context->executionId(),
+                    'property:' . $objectId . ':' . $propertyId
+                ),
                 'object_id' => $objectId,
                 'property_id' => $propertyId,
                 'object_title' => $objectTitle,
@@ -179,6 +187,8 @@ final class PropertyValueService
                 'new_value' => $newValue,
                 'source' => $source,
                 'changed' => $oldValue !== $newValue,
+                'keep_history' => (bool)$property['keep_history'],
+                'on_change' => (string)$property['on_change'],
                 'chain' => $this->context->nextChain($token),
                 'depth' => $this->context->depth(),
                 'stopped' => $loop || $tooDeep,

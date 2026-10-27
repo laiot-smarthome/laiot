@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MajorDoMo\Events;
 
 use MajorDoMo\History\HistoryRepository;
+use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Methods\MethodRunner;
 use MajorDoMo\Objects\ObjectRepository;
@@ -18,7 +19,7 @@ use Throwable;
 /**
  * Обработчик задания `property.changed` в процессе `core-worker events`.
  *
- * Порядок: якорь в журнале → OnChange-метод → история → задания доставки
+ * Порядок: якорь в журнале → история → OnChange-метод → задания доставки
  * модулям. Значение уже сохранено записавшим процессом, поэтому здесь нет
  * записи значения: только реакция, учёт и постановка доставки.
  *
@@ -28,6 +29,7 @@ use Throwable;
  *
  * Ошибка метода не откатывает значение: она фиксируется в журнале и логе.
  *
+ * 2026-10-27 — долговечные этапы и отмена вложенной цепочки при ошибке.
  * 2026-10-27 — ошибка OnChange останавливает прямую доставку модулям.
  * 2026-10-27 — доставка модулям вынесена в их собственные очереди.
  * 2026-10-27 — обработчик создан для асинхронного конвейера свойств.
@@ -45,7 +47,9 @@ final readonly class PropertyEventHandler implements JobHandler
         private PropertyEventQueue $eventQueues,
         private Queue $queue,
         private PropertyEventContext $context,
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        private PropertyExecutionRepository $executions,
+        private ErrorRepository $errors
     ) {
     }
 
@@ -54,6 +58,15 @@ final readonly class PropertyEventHandler implements JobHandler
      */
     public function handle(array $payload): void
     {
+        $executionId = (int)($payload['execution_id'] ?? 0);
+        $step = $this->executions->find($executionId);
+        if (in_array($step['status'], ['ok', 'skipped'], true)) {
+            return;
+        }
+        $cancelled = $this->executions->cancelled($executionId);
+        if (!$cancelled) {
+            $this->executions->update($executionId, ['status' => 'running']);
+        }
         $objectId = max(0, (int)($payload['object_id'] ?? 0));
         $propertyId = max(0, (int)($payload['property_id'] ?? 0));
         $object = $this->objects->find($objectId);
@@ -64,6 +77,7 @@ final readonly class PropertyEventHandler implements JobHandler
                 'object_id' => $objectId,
                 'property_id' => $propertyId,
             ]);
+            $this->executions->update($executionId, ['status' => 'skipped']);
 
             return;
         }
@@ -85,13 +99,15 @@ final readonly class PropertyEventHandler implements JobHandler
         $objectTitle = (string)$object['title'];
         $propertyTitle = (string)$property['title'];
         $handler = trim((string)$property['on_change']);
+        $handler = trim((string)($payload['on_change'] ?? $handler));
+        $property['keep_history'] = (bool)($payload['keep_history'] ?? $property['keep_history']);
 
         // Якорь создаётся до метода: вложенные записи должны получить
         // правильного родителя, а зависший обработчик — остаться заметным.
-        $eventId = $changed ? $this->events->record([
+        $eventId = $changed ? $this->executions->journal($executionId, 'event_id', fn (): int => $this->events->record([
             'parent_id' => $parentId,
             'type' => 'property.changed',
-            'status' => $stopped ? 'stopped' : 'changed',
+            'status' => $cancelled ? 'skipped' : ($stopped ? 'stopped' : 'changed'),
             'source' => $source,
             'object_id' => $objectId,
             'property_id' => $propertyId,
@@ -99,15 +115,19 @@ final readonly class PropertyEventHandler implements JobHandler
             'property_title' => $propertyTitle,
             'old_value' => $oldValue,
             'new_value' => $newValue,
-            'message' => $stopped ? $this->stopMessage($loop) : null,
+            'message' => $cancelled ? 'Цепочка остановлена после ошибки родительского шага.' : ($stopped ? $this->stopMessage($loop) : null),
             'chain' => $chain,
             'depth' => $depth,
-        ]) : 0;
+        ])) : 0;
         $anchorId = $eventId > 0 ? $eventId : $parentId;
 
-        if ($stopped) {
-            if ($handler !== '') {
-                $this->events->record([
+        // История фиксируется до произвольного PHP: даже exit/OOM внутри
+        // метода не должен потерять факт уже принятого значения.
+        $this->executions->once($executionId, 'history_done', fn () => $this->recordHistory($objectId, $propertyId, $newValue, $changed, $property, $occurredAt));
+
+        if ($stopped || $cancelled) {
+            if ($handler !== '' && $step['handler_event_id'] === 0) {
+                $this->executions->journal($executionId, 'handler_event_id', fn (): int => $this->events->record([
                     'parent_id' => $anchorId,
                     'type' => 'handler.method',
                     'status' => 'skipped',
@@ -119,12 +139,14 @@ final readonly class PropertyEventHandler implements JobHandler
                     'old_value' => $oldValue,
                     'new_value' => $newValue,
                     'handler' => $handler,
-                    'message' => $this->stopMessage($loop),
+                    'message' => $cancelled ? 'Цепочка остановлена после ошибки родительского шага.' : $this->stopMessage($loop),
                     'chain' => $chain,
                     'depth' => $depth + 1,
-                ]);
+                ]));
             }
-            $this->recordHistory($objectId, $propertyId, $newValue, $changed, $property, $occurredAt);
+            if ($step['status'] !== 'error') {
+                $this->executions->update($executionId, ['status' => 'skipped']);
+            }
 
             return;
         }
@@ -140,18 +162,16 @@ final readonly class PropertyEventHandler implements JobHandler
                 $source,
                 $chain,
                 $depth,
-                $anchorId
+                $anchorId,
+                $executionId
             );
         }
-
-        // История пишется после реакции, но с временем самой записи значения.
-        $this->recordHistory($objectId, $propertyId, $newValue, $changed, $property, $occurredAt);
 
         if (!$handlerSucceeded) {
             return;
         }
 
-        $this->deliverModules(
+        $this->executions->once($executionId, 'delivery_done', fn () => $this->deliverModules(
             $object,
             $property,
             $oldValue,
@@ -161,8 +181,10 @@ final readonly class PropertyEventHandler implements JobHandler
             $chain,
             $depth,
             $anchorId,
-            $writerModule
-        );
+            $writerModule,
+            $executionId
+        ));
+        $this->executions->update($executionId, ['status' => 'ok']);
     }
 
     /**
@@ -179,12 +201,16 @@ final readonly class PropertyEventHandler implements JobHandler
         string $source,
         array $chain,
         int $depth,
-        int $parentId
+        int $parentId,
+        int $executionId
     ): bool {
+        if ($this->executions->find($executionId)['handler_done']) {
+            return true;
+        }
         $objectTitle = (string)$object['title'];
         $propertyTitle = (string)$property['title'];
 
-        $handlerEventId = $this->events->record([
+        $handlerEventId = $this->executions->journal($executionId, 'handler_event_id', fn (): int => $this->events->record([
             'parent_id' => $parentId,
             'type' => 'handler.method',
             'status' => 'running',
@@ -198,14 +224,19 @@ final readonly class PropertyEventHandler implements JobHandler
             'handler' => $handler,
             'chain' => $chain,
             'depth' => $depth + 1,
-        ]);
+        ]));
 
         $snapshot = $this->context->snapshot();
-        $this->context->enter($chain, $handlerEventId, null);
+        $this->context->enter($chain, $handlerEventId, null, $executionId);
 
         try {
             if ($this->methods->findForObject((int)$object['id'], (int)$object['class_id'], $handler) === null) {
                 $this->events->finish($handlerEventId, 'missing', 'Метод не найден: ' . $handler);
+                $this->executions->fail($executionId, 'Метод не найден: ' . $handler);
+                $this->errors->record('error', 'OnChange-метод не найден: ' . $handler, [
+                    'execution_id' => $executionId, 'event_id' => $handlerEventId,
+                    'object' => $objectTitle, 'property' => $propertyTitle,
+                ], '');
                 $this->logger->warning('OnChange-метод свойства не найден', [
                     'object' => $objectTitle,
                     'property' => $propertyTitle,
@@ -225,9 +256,15 @@ final readonly class PropertyEventHandler implements JobHandler
                 'CHAIN' => $chain,
             ]);
             $this->events->finish($handlerEventId, 'ok');
+            $this->executions->update($executionId, ['handler_done' => true]);
             return true;
         } catch (Throwable $error) {
             $this->events->finish($handlerEventId, 'error', $error->getMessage());
+            $this->executions->fail($executionId, $error->getMessage());
+            $this->errors->record('error', 'Ошибка OnChange: ' . $error->getMessage(), [
+                'exception' => $error, 'execution_id' => $executionId,
+                'event_id' => $handlerEventId, 'object' => $objectTitle, 'property' => $propertyTitle,
+            ], '');
             $this->logger->warning('OnChange-обработчик свойства завершился ошибкой', [
                 'object' => $objectTitle,
                 'property' => $propertyTitle,
@@ -255,7 +292,8 @@ final readonly class PropertyEventHandler implements JobHandler
         array $chain,
         int $depth,
         int $parentId,
-        ?string $writerModule
+        ?string $writerModule,
+        int $executionId
     ): void {
         $objectId = (int)$object['id'];
         $propertyId = (int)$property['id'];
@@ -275,6 +313,7 @@ final readonly class PropertyEventHandler implements JobHandler
 
             $this->queue->pushJob(
                 new ModulePropertyChangedJob([
+                    'execution_id' => $this->executions->create($executionId, 'module:' . $module),
                     'module' => $module,
                     'parent_id' => $parentId,
                     'object_id' => $objectId,
