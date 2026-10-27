@@ -80,6 +80,10 @@
                                 <x-md.button :href="'/module/' . $module['id']" variant="secondary" size="sm" icon="arrow-right">Открыть</x-md.button>
                             @endif
 
+                            @if (!$isCore && $installed && ($module['settings'] !== [] || $module['subscriber']))
+                                <x-md.button :href="'/admin/modules/' . $module['id'] . '/settings'" variant="secondary" size="sm" icon="settings">Настройки</x-md.button>
+                            @endif
+
                             @if ($isCore)
                                 <span class="md-table__muted">Ядровый модуль нельзя выключить или удалить.</span>
                             @elseif (!$installed)

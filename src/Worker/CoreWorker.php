@@ -6,6 +6,7 @@ namespace MajorDoMo\Worker;
 
 use MajorDoMo\Events\PropertyEventQueue;
 use MajorDoMo\Logging\LoggerFactory;
+use MajorDoMo\Maintenance\RetentionPruner;
 use MajorDoMo\Queue\JobRegistry;
 use MajorDoMo\Queue\Queue;
 use MajorDoMo\Queue\QueueWorker;
@@ -15,10 +16,11 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Критичные ядровые процессы: очередь, события свойств и setTimeOut.
+ * Критичные ядровые процессы: очередь, события свойств, setTimeOut и retention.
  *
  * Они не делят процесс с модульными задачами и запускаются отдельными
- * systemd-юнитами `mydomo-core@queue`/`mydomo-core@events`/`mydomo-core@timeouts`.
+ * systemd-юнитами `mydomo-core@queue`/`mydomo-core@events`/`mydomo-core@timeouts`/
+ * `mydomo-core@maintenance`.
  * Очередь событий разбита на полосы: `core-worker events` обслуживает все,
  * `core-worker events.<n>` — одну, чтобы несколько процессов обрабатывали
  * независимые свойства параллельно, сохраняя порядок внутри свойства.
@@ -28,10 +30,11 @@ use Throwable;
  * 2026-10-27 — полосы событий: один процесс на полосу для параллельной работы.
  * 2026-10-27 — лог-каналы queue/events вместо общего app.
  * 2026-10-27 — блокировки полос удерживаются всё время жизни worker.
+ * 2026-10-27 — maintenance: retention истории, журнала, очереди и ошибок.
  */
 final class CoreWorker
 {
-    public const TASKS = ['queue', 'events', 'timeouts'];
+    public const TASKS = ['queue', 'events', 'timeouts', 'maintenance'];
 
     private bool $stop = false;
 
@@ -43,7 +46,8 @@ final class CoreWorker
         private readonly BackgroundTaskState $state,
         private readonly PropertyEventQueue $events,
         private readonly LoggerFactory $loggers,
-        private readonly ProcessLock $processLock
+        private readonly ProcessLock $processLock,
+        private readonly RetentionPruner $retention
     ) {
     }
 
@@ -70,6 +74,8 @@ final class CoreWorker
                         $this->runQueue('default', 'queue', $once, $pid);
                     } elseif ($task === 'timeouts') {
                         $this->runTimeouts($once, $pid);
+                    } elseif ($task === 'maintenance') {
+                        $this->runMaintenance($once, $pid);
                     } else {
                         $this->runEvents($lane, $task, $once, $pid);
                     }
@@ -181,6 +187,35 @@ final class CoreWorker
                 return;
             }
             usleep(1_000_000);
+        }
+    }
+
+    /**
+     * Периодическая очистка по срокам из config/retention.php.
+     *
+     * Ошибка очистки не должна убивать сервис: пишем в queue-лог и
+     * повторяем через interval. Процесс один на установку (ProcessLock).
+     */
+    private function runMaintenance(bool $once, int $pid): void
+    {
+        $next = 0;
+        while (!$this->stop) {
+            $this->state->refreshTask('core', 'maintenance', $pid);
+            if (time() >= $next) {
+                try {
+                    $counts = $this->retention->prune();
+                    $this->loggers->channel('queue')->info('Retention: очистка выполнена', $counts);
+                } catch (Throwable $error) {
+                    $this->loggers->channel('queue')->error('Retention: очистка не выполнена', [
+                        'error' => $error->getMessage(),
+                    ]);
+                }
+                if ($once) {
+                    return;
+                }
+                $next = time() + $this->retention->interval();
+            }
+            sleep(1);
         }
     }
 

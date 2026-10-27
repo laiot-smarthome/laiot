@@ -1,0 +1,4 @@
+@props(['name', 'devices' => 0, 'online' => 0, 'temperature' => null, 'humidity' => null, 'icon' => 'home'])
+@php($devices = max(0, (int) $devices))
+@php($online = max(0, min($devices, (int) $online)))
+<article {{ $attributes->class(['md-room']) }}><header class="md-room__head"><span class="md-room__icon"><x-md.icon :name="$icon" /></span><div class="md-room__identity"><h3 class="md-room__name">{{ $name }}</h3><div class="md-room__meta">{{ $online }} из {{ $devices }} онлайн</div></div><x-md.status :state="$devices === 0 ? 'idle' : ($online === $devices ? 'online' : 'warning')" /></header><div class="md-room__stats">@if ($temperature !== null)<span><x-md.icon name="temperature" /> {{ $temperature }} °C</span>@endif @if ($humidity !== null)<span><x-md.icon name="droplet" /> {{ $humidity }} %</span>@endif</div><x-md.progress :value="$online" :max="max(1, $devices)" size="sm" label="Устройства онлайн" />{{ $slot }}</article>

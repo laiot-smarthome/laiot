@@ -36,6 +36,7 @@ $console->add(new MajorDoMo\Console\ModuleCheckCommand(
 ));
 $console->add(new MajorDoMo\Console\WorkerCommand($app->container()->make(MajorDoMo\Worker\Worker::class)));
 $console->add(new MajorDoMo\Console\CoreWorkerCommand($app->container()->make(MajorDoMo\Worker\CoreWorker::class)));
+$console->add(new MajorDoMo\Console\PruneCommand($app->container()->make(MajorDoMo\Maintenance\RetentionPruner::class)));
 $console->add(new MajorDoMo\Console\RouteListCommand($app));
 $console->add(new MajorDoMo\Console\QueueStatsCommand($app));
 $console->add(new MajorDoMo\Console\QueueWorkCommand($app));

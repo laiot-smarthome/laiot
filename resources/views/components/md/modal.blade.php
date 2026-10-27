@@ -11,7 +11,7 @@
         $size = in_array($size, ['sm', 'lg', 'xl'], true) ? ' modal-' . $size : '';
     @endphp
 
-    <div x-data>
+    <div x-data="mdDialog(@js($id))">
         <div class="modal-backdrop fade"
              :class="{'show': $store.mdModal.open === @js($id)}"
              :style="$store.mdModal.open === @js($id) ? 'display: block' : 'display: none'"
@@ -20,6 +20,7 @@
 
         <div {{ $attributes->class(['modal', 'fade', 'md-modal']) }}
              id="{{ $id }}"
+             x-ref="dialog"
              tabindex="-1"
              role="dialog"
              aria-modal="true"
@@ -28,6 +29,7 @@
              :class="{'show': $store.mdModal.open === @js($id)}"
              :style="$store.mdModal.open === @js($id) ? 'display: block' : 'display: none'"
              @keydown.escape.window="$store.mdModal.close()"
+             @keydown.tab="trap($event)"
              @click.self="$store.mdModal.close()">
             <div class="modal-dialog modal-dialog-centered{{ $size }}">
                 <div class="modal-content">

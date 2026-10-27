@@ -10,6 +10,7 @@ use MajorDoMo\Http\Controller;
 use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Logging\ErrorFileWriter;
 use MajorDoMo\Logging\ErrorRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,12 +23,14 @@ use Symfony\Component\HttpFoundation\Response;
  * паре level + message, а удаление группы — одно обновление с тем же условием.
  *
  * 2026-10-26 — добавлены группировка, поиск по сообщению и удаление группы.
+ * 2026-10-27 — просмотр отдельного файла ошибки.
  */
 final readonly class SystemErrorsController extends Controller
 {
     public function __construct(
         private Factory $view,
         private ErrorRepository $errors,
+        private ErrorFileWriter $files,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -88,6 +91,25 @@ final readonly class SystemErrorsController extends Controller
         ])->render();
 
         return $this->panel->render(new PanelPage('Ошибки', $content, 'system_errors'));
+    }
+
+    public function file(string $id): Response
+    {
+        $error = $this->errors->find((int)$id);
+        if ($error === null) {
+            return $this->text('Ошибка не найдена.', 404);
+        }
+        $file = $this->files->read($error['log_file']);
+        if ($file === null) {
+            return $this->text('Файл ошибки не найден.', 404);
+        }
+
+        $content = $this->view->make('pages.system_errors.file', [
+            'error' => $error,
+            'file' => $file,
+        ])->render();
+
+        return $this->panel->render(new PanelPage('Ошибка #' . $error['id'], $content, 'system_errors'));
     }
 
     public function delete(string $id): Response

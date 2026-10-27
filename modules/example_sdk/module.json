@@ -3,9 +3,10 @@
     "type": "module",
     "name": "SDK Example",
     "version": "1.0.0",
-    "description": "Минимальный модуль MyDoMo SDK: миграция, ModuleDb, маршрут и Blade-страница.",
+    "description": "Минимальный модуль MyDoMo SDK: миграция, ModuleDb, настройки, подписки, маршрут и Blade-страница.",
     "namespace": "Example\\Sdk\\",
     "entrypoint": "Module",
+    "property_subscriber": "ExampleSubscriber",
     "src": "src",
     "routes": "routes.php",
     "views": "views",
@@ -13,6 +14,34 @@
     "storage": {
         "driver": "mysql",
         "tables": ["notes"]
+    },
+    "settings": {
+        "greeting": {
+            "title": "Приветствие",
+            "type": "string",
+            "default": "Привет",
+            "description": "Строка, которую модуль показывает на своей странице."
+        },
+        "notes_limit": {
+            "title": "Сколько заметок показывать",
+            "type": "int",
+            "default": 10,
+            "description": "Целое число от 1 до 100."
+        },
+        "mode": {
+            "title": "Режим",
+            "type": "select",
+            "default": "simple",
+            "options": {
+                "simple": "Простой",
+                "advanced": "Расширенный"
+            }
+        },
+        "show_block": {
+            "title": "Показывать блок",
+            "type": "bool",
+            "default": true
+        }
     },
     "menu": {
         "title": "SDK Example",

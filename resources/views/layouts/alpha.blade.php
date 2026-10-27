@@ -178,6 +178,7 @@
     </x-slot:actions>
 </x-md.modal>
 
+<x-md.toasts />
 <script src="/assets/admin/mydomo.js" defer></script>
 @stack('scripts')
 </body>

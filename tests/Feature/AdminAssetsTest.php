@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
  * ядра обязаны грузить mydomo.js.
  *
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ * 2026-10-27 — Tom Select входит в локальный бандл новых компонентов.
  */
 final class AdminAssetsTest extends TestCase
 {
@@ -35,7 +36,6 @@ final class AdminAssetsTest extends TestCase
             'window.$ =',
             'MDJAdminPanel',
             'partLoad',
-            'TomSelect',
         ] as $marker) {
             self::assertStringNotContainsString($marker, $bundle, 'В mydomo.js не должно быть ' . $marker);
         }

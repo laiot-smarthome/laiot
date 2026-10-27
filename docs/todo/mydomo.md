@@ -44,6 +44,27 @@ order: 5
 
 ## 0. Текущий прогресс
 
+- [x] Retention и просмотр файлов ошибок (2026-10-27): `config/retention.php`
+  задаёт сроки истории, журнала, упавших заданий, таймеров и ошибок; порции
+  не блокируют запись. `db:prune [--dry-run]` — ручной прогон,
+  `core-worker maintenance` — постоянный процесс (systemd
+  `mydomo-core@maintenance`). Ошибки удаляются вместе с файлами; в админке
+  файл открывается по `/errors/<id>/file`, путь проверяется. Проверено
+  `RetentionPrunerTest` (2 теста) и `ErrorFileViewTest` (2 теста);
+  документы — [logging.md](../mydomo/logging.md),
+  [configuration.md](../mydomo/configuration.md),
+  [console.md](../mydomo/console.md), [runtime.md](../mydomo/runtime.md).
+
+- [x] Настройки и подписки SDK (2026-10-27): `module.json` объявляет схему
+  `settings` (string/text/int/bool/select), значения хранятся в
+  `module_registry.settings`, общий экран `/admin/modules/<id>/settings`
+  строит форму и проверяет типы. `ModuleContext` получил `settings()` и
+  `subscriptions()`: модуль подписывается только от своего id, пара
+  проверяется по действующим свойствам объекта, выбор хранится в
+  `property_subscriptions`. Проверено `ModuleSettingsTest` (7 тестов) и
+  `ModuleSubscriptionsTest` (3 теста); документы — [sdk.md](../mydomo/sdk.md),
+  [modules.md](../mydomo/modules.md), [limitations.md](../mydomo/limitations.md).
+
 - [x] Изоляция модульных очередей (2026-10-27): доставка изменений свойства
   уходит заданием в `module.<id>` и выполняется `worker <id>`; медленный или
   упавший подписчик не задерживает events и другие модули. Проверено
@@ -63,8 +84,8 @@ order: 5
   (`log_file`), удаление записи или группы удаляет файл. Проверено
   `LoggingTest` (3), `ErrorFileWriterTest` (2), `ErrorRepositoryTest` (2);
   документы — [logging.md](../mydomo/logging.md),
-  [configuration.md](../mydomo/configuration.md). Остаток: показ файла в
-  админке и retention таблицы.
+  [configuration.md](../mydomo/configuration.md). Просмотр файла и retention
+  добавлены следующим пунктом.
 - [x] Рантайм пользовательского кода (2026-10-27): `MethodContext` даёт методу
   `$this` с `get/set/history/call/notify` и короткими именами свойств;
   `HistoryQuery` и обёртки `history()`, `getHistoryRange`,

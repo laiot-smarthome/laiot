@@ -1,0 +1,2 @@
+@props(['name', 'description' => null, 'state' => 'online', 'last' => null, 'icon' => 'bolt'])
+<div {{ $attributes->class(['md-automation']) }}><span class="md-automation__icon"><x-md.icon :name="$icon" /></span><div class="md-automation__text"><span class="md-automation__name">{{ $name }}</span>@if ($description !== null)<span class="md-automation__description">{{ $description }}</span>@endif</div><div class="md-automation__meta">@if ($last !== null)<x-md.last-seen :value="$last" />@endif</div><x-md.status :state="$state" />{{ $slot }}</div>

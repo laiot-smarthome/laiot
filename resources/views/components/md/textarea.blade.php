@@ -24,7 +24,7 @@
         $size !== 'md' ? 'md-textarea--' . $size : null,
         $hasError ? 'is-invalid' : null,
     ]));
-    $attrs = 'class="' . e($class) . '" id="' . e($id) . '" rows="' . max(2, (int)$rows) . '"';
+    $attrs = (string)$attributes->class([$class]) . ' id="' . e($id) . '" rows="' . max(2, (int)$rows) . '"';
     if ($name !== null) {
         $attrs .= ' name="' . e($name) . '"';
     }
@@ -41,7 +41,10 @@
         $attrs .= ' readonly';
     }
     if ($hasError) {
-        $attrs .= ' aria-invalid="true" aria-describedby="' . e($id) . '-help"';
+        $attrs .= ' aria-invalid="true"';
+    }
+    if ($error !== null || $hint !== null || $description !== null) {
+        $attrs .= ' aria-describedby="' . e($id) . '-help"';
     }
 @endphp
 

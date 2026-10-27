@@ -12,8 +12,11 @@ use JsonException;
  * Манифест модуля MyDoMo SDK.
  *
  * `module.json` — единственный контракт модуля: id, namespace, точки входа,
- * маршруты, представления, миграции, storage, menu, requires/dependencies.
+ * маршруты, представления, миграции, storage, menu, settings,
+ * requires/dependencies.
  * Никаких legacy-полей `project_modules` здесь нет.
+ *
+ * 2026-10-27 — необязательная схема `settings` с типами и умолчаниями.
  */
 final readonly class ModuleManifest
 {
@@ -146,6 +149,11 @@ final readonly class ModuleManifest
             }
         }
 
+        // Настройки описываются манифестом, а значения хранит реестр модулей.
+        // Модуль не создаёт свою таблицу настроек и не рисует общую форму:
+        // одинаковые типы полей выглядят и проверяются в ядре одинаково.
+        $settings = self::normalizeSettings($data['settings'] ?? null);
+
         $requires = $data['requires'] ?? [];
         if (!is_array($requires)) {
             throw new InvalidArgumentException('requires модуля должен быть объектом.');
@@ -211,6 +219,7 @@ final readonly class ModuleManifest
             'dependencies' => array_values(array_unique($dependencies)),
             'permissions' => self::stringList($data, 'permissions'),
             'tasks' => $normalizedTasks,
+            'settings' => $settings,
         ] + $paths;
 
         return new self($manifest, $path, $type);
@@ -224,6 +233,16 @@ final readonly class ModuleManifest
     public function isCore(): bool
     {
         return $this->type === 'core';
+    }
+
+    /**
+     * Описание полей настроек из манифеста.
+     *
+     * @return array<string, array{title:string,type:string,default:mixed,options:array<string,string>,description:string}>
+     */
+    public function settingsSchema(): array
+    {
+        return $this->data['settings'];
     }
 
     public function assertCompatible(string $mydomoVersion, string $phpVersion = PHP_VERSION): void
@@ -253,6 +272,91 @@ final readonly class ModuleManifest
     public function toArray(): array
     {
         return $this->data;
+    }
+
+    /**
+     * Проверяет и нормализует описание настроек модуля.
+     *
+     * @return array<string, array{title:string,type:string,default:mixed,options:array<string,string>,description:string}>
+     */
+    private static function normalizeSettings(mixed $raw): array
+    {
+        if ($raw === null) {
+            return [];
+        }
+        if (!is_array($raw) || array_is_list($raw)) {
+            throw new InvalidArgumentException('settings модуля должен быть объектом.');
+        }
+
+        $settings = [];
+        foreach ($raw as $key => $field) {
+            if (!is_string($key) || !preg_match('/^[a-z][a-z0-9_]{1,63}$/D', $key)) {
+                throw new InvalidArgumentException('settings: ключи только [a-z][a-z0-9_], 2–64 символа.');
+            }
+            if (!is_array($field) || array_is_list($field)) {
+                throw new InvalidArgumentException('settings.' . $key . ' должен быть объектом.');
+            }
+
+            $title = $field['title'] ?? null;
+            if (!is_string($title) || trim($title) === '') {
+                throw new InvalidArgumentException('settings.' . $key . '.title обязателен.');
+            }
+            $description = $field['description'] ?? '';
+            if (!is_string($description)) {
+                throw new InvalidArgumentException('settings.' . $key . '.description должен быть строкой.');
+            }
+
+            $type = $field['type'] ?? 'string';
+            if (!in_array($type, ['string', 'text', 'int', 'bool', 'select'], true)) {
+                throw new InvalidArgumentException('settings.' . $key . '.type: string, text, int, bool или select.');
+            }
+
+            $default = $field['default'] ?? match ($type) {
+                'int' => 0,
+                'bool' => false,
+                'select' => null,
+                default => '',
+            };
+            $options = [];
+            if ($type === 'select') {
+                $rawOptions = $field['options'] ?? null;
+                if (!is_array($rawOptions) || $rawOptions === [] || array_is_list($rawOptions)) {
+                    throw new InvalidArgumentException('settings.' . $key . '.options должен быть непустым объектом «значение — подпись».');
+                }
+                foreach ($rawOptions as $value => $label) {
+                    if (!is_string($value) || $value === '' || mb_strlen($value) > 64 || !is_string($label) || trim($label) === '') {
+                        throw new InvalidArgumentException('settings.' . $key . '.options: строковые ключи и подписи.');
+                    }
+                    $options[$value] = $label;
+                }
+                if ($default === null) {
+                    $default = array_key_first($options);
+                }
+                if (!is_string($default) || !array_key_exists($default, $options)) {
+                    throw new InvalidArgumentException('settings.' . $key . '.default должен быть одним из options.');
+                }
+            } elseif ($type === 'int') {
+                if (!is_int($default)) {
+                    throw new InvalidArgumentException('settings.' . $key . '.default: целое число.');
+                }
+            } elseif ($type === 'bool') {
+                if (!is_bool($default)) {
+                    throw new InvalidArgumentException('settings.' . $key . '.default: true или false.');
+                }
+            } elseif (!is_string($default)) {
+                throw new InvalidArgumentException('settings.' . $key . '.default: строка.');
+            }
+
+            $settings[$key] = [
+                'title' => $title,
+                'type' => $type,
+                'default' => $default,
+                'options' => $options,
+                'description' => $description,
+            ];
+        }
+
+        return $settings;
     }
 
     /**

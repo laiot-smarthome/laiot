@@ -18,11 +18,15 @@ use Throwable;
  * логирования проглатываются.
  *
  * 2026-10-27 — отдельный файл на ошибку и удаление файлов вместе с записью.
+ * 2026-10-27 — find() и purgeBefore() для просмотра и retention.
  */
 final class ErrorRepository
 {
     /** Наличие log_file проверяется один раз: старые тестовые схемы без колонки. */
     private ?bool $hasLogFile = null;
+
+    /** Наличие таблицы проверяется один раз на процесс. */
+    private ?bool $hasTable = null;
 
     public function __construct(
         private readonly DatabaseManager $database,
@@ -84,7 +88,7 @@ final class ErrorRepository
     public function latest(int $limit = 100, string $level = ''): array
     {
         $connection = $this->database->connection();
-        if (!$connection->getSchemaBuilder()->hasTable('system_errors')) {
+        if (!$this->available()) {
             return [];
         }
 
@@ -152,6 +156,85 @@ final class ErrorRepository
     }
 
     /**
+     * Одна запись для страницы файла ошибки.
+     *
+     * @return array{id:int,level:string,message:string,request_id:string,created_at:string,log_file:string}|null
+     */
+    public function find(int $id): ?array
+    {
+        if ($id <= 0 || !$this->available()) {
+            return null;
+        }
+        $row = $this->database->connection()->table('system_errors')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->first();
+        if ($row === null) {
+            return null;
+        }
+
+        return [
+            'id' => (int)$row->id,
+            'level' => (string)$row->level,
+            'message' => (string)$row->message,
+            'request_id' => (string)$row->request_id,
+            'created_at' => (string)$row->created_at,
+            'log_file' => $this->hasLogFile() ? (string)($row->log_file ?? '') : '',
+        ];
+    }
+
+    public function countBefore(string $cutoff): int
+    {
+        if (!$this->available()) {
+            return 0;
+        }
+
+        return (int)$this->database->connection()->table('system_errors')
+            ->where('created_at', '<', $cutoff)
+            ->count();
+    }
+
+    /**
+     * Физически удаляет старые ошибки вместе с их файлами.
+     *
+     * В отличие от `delete()`, retention не оставляет soft-deleted строку:
+     * цель — вернуть место, а не скрыть запись. Порции ограничены, чтобы
+     * очистка не держала таблицу заблокированной на минуты.
+     */
+    public function purgeBefore(string $cutoff, int $batch = 500): int
+    {
+        if (!$this->available()) {
+            return 0;
+        }
+        $batch = max(1, min(5000, $batch));
+        $connection = $this->database->connection();
+        $hasFile = $this->hasLogFile();
+        $total = 0;
+
+        do {
+            $query = $connection->table('system_errors')
+                ->where('created_at', '<', $cutoff)
+                ->orderBy('id')
+                ->limit($batch);
+            $rows = $hasFile ? $query->get(['id', 'log_file']) : $query->get(['id']);
+            $ids = [];
+            foreach ($rows as $row) {
+                $ids[] = (int)$row->id;
+                if ($hasFile) {
+                    $this->files->delete((string)($row->log_file ?? ''));
+                }
+            }
+            if ($ids === []) {
+                break;
+            }
+            $connection->table('system_errors')->whereIn('id', $ids)->delete();
+            $total += count($ids);
+        } while (count($ids) === $batch);
+
+        return $total;
+    }
+
+    /**
      * Старые тестовые схемы могут не иметь колонку log_file; в этом случае
      * отдельный файл не пишется, а журнал продолжает работать.
      */
@@ -169,5 +252,20 @@ final class ErrorRepository
         }
 
         return $this->hasLogFile;
+    }
+
+    private function available(): bool
+    {
+        if ($this->hasTable !== null) {
+            return $this->hasTable;
+        }
+
+        try {
+            $this->hasTable = $this->database->connection()->getSchemaBuilder()->hasTable('system_errors');
+        } catch (Throwable) {
+            $this->hasTable = false;
+        }
+
+        return $this->hasTable;
     }
 }

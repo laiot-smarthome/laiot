@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Modules;
 
+use JsonException;
 use MajorDoMo\Database\DatabaseManager;
 
 /**
  * Реестр сторонних модулей и применённых миграций.
+ *
+ * 2026-10-27 — чтение и сохранение `settings` модуля в колонке реестра.
  */
 final readonly class ModuleRegistry
 {
@@ -51,6 +54,44 @@ final readonly class ModuleRegistry
     public function isInstalled(string $id): bool
     {
         return $this->find($id) !== null;
+    }
+
+    /**
+     * Сохранённые значения настроек модуля.
+     *
+     * Битый JSON читается как пустой набор: модуль продолжает работать на
+     * умолчаниях схемы, а не падает на старой записи реестра.
+     *
+     * @return array<string, mixed>
+     */
+    public function settings(string $id): array
+    {
+        $raw = $this->find($id)['settings'] ?? null;
+        if (!is_string($raw) || $raw === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return [];
+        }
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * @param array<string, mixed> $values
+     */
+    public function saveSettings(string $id, array $values): void
+    {
+        $this->database->connection()->table('module_registry')
+            ->where('module_id', $id)
+            ->whereNull('deleted_at')
+            ->update([
+                'settings' => json_encode($values, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
     }
 
     public function isEnabled(string $id): bool

@@ -58,10 +58,11 @@ $port = Config::int('REDIS_PORT', 6379);
 ## Что настраивается PHP-конфигурацией
 
 `ConfigLoader` загружает `config/app.php`, `cache.php`, `queue.php`,
-`logging.php`, `providers.php`; переданный конструктору Application массив
-рекурсивно перекрывает их. Исключение — providers: явно переданный список
-заменяет стандартный целиком. Это позволяет однозначно задавать порядок
-провайдеров в изолированной сборке. Контракт — [providers.md](providers.md).
+`logging.php`, `retention.php`, `providers.php`; переданный конструктору
+Application массив рекурсивно перекрывает их. Исключение — providers: явно
+переданный список заменяет стандартный целиком. Это позволяет однозначно
+задавать порядок провайдеров в изолированной сборке. Контракт —
+[providers.md](providers.md).
 
 - `views`, `view_cache`, `log` — пути и журнал из конфигурации приложения.
 - `queue.table/max_attempts/retry_delay/reservation_timeout/events_lanes` —
@@ -72,6 +73,10 @@ $port = Config::int('REDIS_PORT', 6379);
   из `config/logging.php`; `log` перекрывает путь (поток `php://stderr` в
   тестах и CLI), `debug` включает уровень Debug. Каналы пишут отдельные
   файлы с суточной ротацией.
+- `retention.history_days/events_days/queue_days/timeouts_days/errors_days` —
+  сроки хранения; `retention.batch` — размер порции, `retention.interval` —
+  период `core-worker maintenance` в секундах (минимум 300). `0` в сроке
+  отключает раздел. Подробности — [logging.md](logging.md).
 
 ## Часовой пояс и существующее расхождение
 

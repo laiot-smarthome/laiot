@@ -13,6 +13,107 @@
 @import 'ui-system.css';
 @import 'admin_panel.css';
 
+/* Общие плавающие элементы используют те же токены, что и остальные контролы. */
+[x-cloak] { display: none !important; }
+.md-kit-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.md-kit-nav a {
+    padding: 7px 12px;
+    border: 1px solid var(--md-ui-border);
+    border-radius: 999px;
+    background: var(--md-ui-surface);
+    color: var(--md-ui-text);
+    text-decoration: none;
+}
+.md-kit-nav a:hover, .md-kit-nav a:focus-visible { background: var(--md-ui-selected); }
+.md-kit-section { display: grid; gap: 16px; scroll-margin-top: 88px; }
+.md-kit-section .md-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+.md-kit-password { display: flex; align-items: center; gap: 4px; }
+.md-kit-password .md-input { flex: 1; min-width: 0; }
+.md-kit-icons__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin: 12px 0; }
+.md-kit-icons__item { display: grid; justify-items: center; gap: 5px; min-width: 0; padding: 12px 4px; border: 1px solid var(--md-ui-border); border-radius: 10px; background: var(--md-ui-surface); color: var(--md-ui-text); }
+.md-kit-icons__item:hover, .md-kit-icons__item:focus-visible { background: var(--md-ui-selected); }
+.md-kit-icons__item i { font-size: 24px; }
+.md-kit-icons__item span { max-width: 100%; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.md-kit-command-list { display: grid; gap: 4px; max-height: min(50dvh, 400px); overflow-y: auto; margin-top: 12px; }
+.md-kit-command-list a { display: grid; gap: 2px; padding: 10px; border-radius: 8px; color: var(--md-ui-text); text-decoration: none; }
+.md-kit-command-list a.is-active, .md-kit-command-list a:focus-visible { background: var(--md-ui-selected); }
+.md-kit-command-list small { color: var(--md-ui-muted); }
+.md-kit-context__trigger { display: inline-block; padding: 10px; border: 1px dashed var(--md-ui-border); border-radius: 8px; }
+.md-kit-context__panel { position: fixed; }
+.md-kit-energy-value { margin: 0 0 8px; font-size: 2rem; font-weight: 650; }
+.md-kit-energy-value small { font-size: 1rem; color: var(--md-ui-muted); }
+.md-kit-meter + .md-kit-meter { margin-top: 12px; }
+.md-kit-meter__value { color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); }
+.md-kit-flow { display: grid; gap: 10px; padding-inline-start: 24px; }
+.md-kit-flow p { margin: 4px 0; color: var(--md-ui-muted); }
+.md-kit-code-sample { overflow: hidden; border: 1px solid var(--md-ui-border); border-radius: 10px; background: var(--md-ui-surface-2); }
+.md-kit-code-sample__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; }
+.md-kit-code-sample pre { overflow: auto; margin: 0; padding: 12px; }
+.md-kit-toasts { position: fixed; z-index: 1200; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 8px; width: min(360px, calc(100vw - 32px)); }
+.md-kit-toast { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid var(--md-ui-border); border-radius: 12px; background: var(--md-ui-surface); color: var(--md-ui-text); box-shadow: 0 12px 30px rgba(0, 0, 0, .14); }
+.md-kit-toast p { margin: 4px 0 0; }
+.md-kit-toast--success { border-inline-start: 3px solid var(--md-ui-success); }
+.md-kit-toast--warning { border-inline-start: 3px solid var(--md-ui-warning); }
+.md-kit-toast--danger { border-inline-start: 3px solid var(--md-ui-danger); }
+body.md-admin-shell .tabulator {
+    border: 0;
+    background: var(--md-ui-surface);
+    color: var(--md-ui-text);
+    font-family: inherit;
+}
+body.md-admin-shell .tabulator .tabulator-header,
+body.md-admin-shell .tabulator .tabulator-header .tabulator-col,
+body.md-admin-shell .tabulator .tabulator-footer,
+body.md-admin-shell .tabulator-row { background: var(--md-ui-surface); color: var(--md-ui-text); border-color: var(--md-ui-border); }
+body.md-admin-shell .tabulator-row.tabulator-row-even { background: var(--md-ui-surface-2); }
+body.md-admin-shell .tabulator-row:hover { background: var(--md-ui-selected); }
+body.md-admin-shell .tabulator .tabulator-footer .tabulator-page { color: var(--md-ui-text); }
+.md-kit-dropdown, .md-kit-tooltip { position: relative; display: inline-block; }
+.md-kit-dropdown__panel {
+    position: absolute;
+    z-index: 1100;
+    top: calc(100% + 6px);
+    inset-inline-start: 0;
+    min-width: 180px;
+    padding: 6px;
+    border: 1px solid var(--md-ui-border);
+    border-radius: 12px;
+    background: var(--md-ui-surface);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .14);
+}
+.md-kit-dropdown__panel a, .md-kit-dropdown__panel button {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--md-ui-text);
+    text-align: start;
+    text-decoration: none;
+}
+.md-kit-dropdown__panel a:hover, .md-kit-dropdown__panel button:hover,
+.md-kit-dropdown__panel a:focus-visible, .md-kit-dropdown__panel button:focus-visible {
+    background: var(--md-ui-selected);
+}
+.md-kit-tooltip__bubble {
+    position: absolute;
+    z-index: 1100;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: min(240px, 80vw);
+    padding: 6px 10px;
+    border: 1px solid var(--md-ui-border);
+    border-radius: 8px;
+    background: var(--md-ui-surface);
+    color: var(--md-ui-text);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .14);
+    font-size: var(--md-ui-fs-xs);
+    pointer-events: none;
+}
+
 /* ---------------------------------------------------------------------------
  * Утилиты страниц админки MyDoMo.
  *

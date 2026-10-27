@@ -56,8 +56,22 @@ namespace из конфигурации, поэтому ручной `Yoyo::regi
 | `property-history` (Yoyo) | история свойства: кнопка в строке значения и drawer, который компонент перерисовывает сам; период 24ч/7д/30д/всё, текущее значение, статистика, график и записи. Отдельного JSON-роута нет — данные считает `PropertyHistoryService` на сервере |
 | `events-table` (Yoyo) | журнал событий: поиск, тип и статус — состояния компонента; таблица перерисовывается через `/yoyo`, без GET-перезагрузки и без JSON-эндпоинта |
 | `x-md.button`, `x-md.card`, `x-md.kpi`, `x-md.badge`, `x-md.alert`, `x-md.hint`, `x-md.empty-state` | базовые элементы alpha-дизайна |
-| `x-md.field`, `x-md.input`, `x-md.select`, `x-md.textarea`, `x-md.checkbox`, `x-md.switch` | формы |
+| `x-md.field`, `x-md.input`, `x-md.select`, `x-md.textarea`, `x-md.checkbox`, `x-md.switch`, `x-md.radio`, `x-md.range` | формы; дополнительные атрибуты передаются нативному контролу |
+| `x-md.dropdown`, `x-md.tooltip` | локальные раскрывающиеся действия и подсказки на Alpine |
+| `x-md.choice-group`, `x-md.device-card`, `x-md.sensor`, `x-md.avatar-group`, `x-md.button-group` | выбор карточками и общие элементы панели |
+| `x-md.light-control`, `x-md.thermostat`, `x-md.scene-card`, `x-md.meter` | элементы управления и показателей умного дома; действия и сохранение подключает страница |
+| `x-md.data-table` | локальная таблица Tabulator с поиском, сортировкой и страницами; без JavaScript показывается обычная таблица |
 | `x-md.code` | редактор кода: textarea-фолбэк без JS и CodeMirror 6 отдельным lazy-chunk (`mydomo-codeeditor.js/css`), только при наличии `textarea[data-code-editor]` |
+
+`x-md.select` с `searchable` использует локальный Tom Select; `multiple`
+разрешает несколько значений. Таблица принимает `columns` с ключами `key`,
+`label` и `rows` с соответствующими значениями. Ячейки таблицы выводятся
+как текст. Она предназначена для уже загруженных небольших наборов; поиск
+по серверным данным и авторизация остаются в Yoyo и сервисах ядра. При
+удалении узла Alpine освобождает экземпляры Tom Select и Tabulator.
+
+Однократное уведомление: `$store.mdToasts.push({title, text, tone, duration})`.
+Длительность задаётся в миллисекундах; `0` оставляет сообщение до закрытия.
 
 Раскладка страниц и форм использует готовые классы `md-ui-page`,
 `md-ui-page--stack`, `md-ui-hero`, `md-ui-kpi-grid`, `md-ui-card-grid`,
@@ -86,6 +100,7 @@ namespace из конфигурации, поэтому ручной `Yoyo::regi
 | Журнал | `/journal` | `ActionLogRepository` | фильтр типа, поиск, удаление записи |
 | Ошибки | `/errors` | `ErrorRepository` | группы одинаковых сообщений, поиск, плоский список, удаление записи или группы |
 | Модули | `/admin/modules` | `ModuleInstaller` | состояние модуля (ядро / включён / выключен / не установлен), установка, включение, отключение, удаление из реестра |
+| Настройки модуля | `/admin/modules/<id>/settings` | `ModuleSettingsController` | форма по схеме `module.json`, значения в реестре, выбор подписок на свойства объекта |
 | API и webhook | `/api` | `WebhookService` | список, секрет один раз, методы, перевыпуск |
 | API-документация | `/admin/api` | `Router` | живой список маршрутов и правила авторизации |
 | API-токены | `/admin/tokens` | `ApiTokenRepository` | выпуск, срок, отзыв |

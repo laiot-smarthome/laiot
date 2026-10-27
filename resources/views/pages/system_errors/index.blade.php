@@ -137,6 +137,9 @@
                         </td>
                         <td>
                             <div class="md-table__actions">
+                                @if ($error['log_file'] !== '')
+                                    <x-md.icon-button :href="'/errors/' . $error['id'] . '/file'" icon="file-text" label="Открыть файл ошибки" size="sm" />
+                                @endif
                                 <form method="post" action="/errors/{{ $error['id'] }}/delete" class="md-inline-form"
                                       data-md-confirm="Удалить запись об ошибке?">
                                     <input type="hidden" name="_token" value="{{ $csrf }}">

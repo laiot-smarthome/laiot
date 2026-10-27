@@ -7,7 +7,11 @@ namespace MajorDoMo\Modules;
 use Illuminate\Container\Container;
 use Illuminate\Routing\Router;
 use Illuminate\View\Factory;
+use JsonException;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Objects\ObjectRepository;
+use MajorDoMo\Properties\PropertyRepository;
+use MajorDoMo\Properties\PropertySubscriptionRepository;
 use MajorDoMo\Support\HelperLoader;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +25,7 @@ use Throwable;
  * enabled=1 в `module_registry`. Все манифесты валидируются ModuleManifest.
  *
  * Изменения:
+ * 2026-10-27 — настройки и подписки в ModuleContext.
  * 2026-10-26 — загрузка без конфигурации БД не обращается к реестру в БД.
  */
 final class ModuleManager
@@ -30,6 +35,9 @@ final class ModuleManager
 
     /** @var array<string, array<string, mixed>> */
     private array $discovered = [];
+
+    /** @var array<string, ModuleSettings> */
+    private array $moduleSettings = [];
 
     private readonly ModuleRegistry $registry;
 
@@ -84,6 +92,17 @@ final class ModuleManager
     public function db(string $id): ?ModuleDb
     {
         return $this->discovered[$id]['db'] ?? null;
+    }
+
+    /**
+     * Действующие настройки модуля по схеме манифеста.
+     *
+     * Снимок собран при обнаружении модулей; после сохранения настроек
+     * значения обновятся в следующем запросе/процессе.
+     */
+    public function settings(string $id): ModuleSettings
+    {
+        return $this->moduleSettings[$id] ?? throw new RuntimeException('Модуль не найден: ' . $id);
     }
 
     /**
@@ -225,11 +244,22 @@ final class ModuleManager
             throw new RuntimeException('Модуль не найден: ' . $id);
         }
 
+        $settings = $this->moduleSettings[$id] ?? ModuleSettings::fromStored([], []);
+        $subscriptions = new ModuleSubscriptions(
+            $id,
+            is_string($module['property_subscriber'] ?? null) && $module['property_subscriber'] !== '',
+            $this->container->make(PropertySubscriptionRepository::class),
+            $this->container->make(PropertyRepository::class),
+            $this->container->make(ObjectRepository::class)
+        );
+
         return new ModuleContext(
             $module['manifest'],
             $module['bus'],
             $this->container,
             $this->root,
+            $settings,
+            $subscriptions,
             $module['db'] ?? null
         );
     }
@@ -304,6 +334,11 @@ final class ModuleManager
                 $module['enabled'] = $manifest->isCore()
                     || (isset($registry[$manifest->id()]) && (int)$registry[$manifest->id()]['enabled'] === 1);
 
+                $this->moduleSettings[$manifest->id()] = ModuleSettings::fromStored(
+                    $manifest->settingsSchema(),
+                    self::storedSettings($registry[$manifest->id()] ?? null)
+                );
+
                 $this->registerAutoloader($module);
                 $this->discovered[$manifest->id()] = $module;
                 if ($module['installed'] && $module['enabled']) {
@@ -348,6 +383,26 @@ final class ModuleManager
                 error_log('MyDoMo module boot failed for ' . $id . ': ' . $error->getMessage());
             }
         }
+    }
+
+    /**
+     * @param array<string, mixed>|null $row
+     * @return array<string, mixed>
+     */
+    private static function storedSettings(?array $row): array
+    {
+        $raw = $row['settings'] ?? null;
+        if (!is_string($raw) || $raw === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return [];
+        }
+
+        return is_array($decoded) ? $decoded : [];
     }
 
     /**

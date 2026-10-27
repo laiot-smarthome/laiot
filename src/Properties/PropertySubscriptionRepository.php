@@ -21,6 +21,7 @@ use Throwable;
  * нет гонки «прочитать-переписать» при параллельной правке подписок.
  *
  * 2026-10-27 — репозиторий создан вместо `LINKED_MODULES` alpha.
+ * 2026-10-27 — `forModule()` для страницы подписок модуля.
  */
 final class PropertySubscriptionRepository
 {
@@ -75,8 +76,7 @@ final class PropertySubscriptionRepository
      * Все подписки объекта: пригодится карточке объекта и странице модуля.
      *
      * @return list<array{id:int,property_id:int,property_title:string,module:string}>
-     */
-    public function forObject(int $objectId): array
+     */    public function forObject(int $objectId): array
     {
         if (!$this->hasTable() || $objectId <= 0) {
             return [];
@@ -97,6 +97,38 @@ final class PropertySubscriptionRepository
                 'property_id' => (int)$row->property_id,
                 'property_title' => (string)($row->property_title ?? ''),
                 'module' => (string)$row->module,
+            ])
+            ->all();
+    }
+
+    /**
+     * Подписки одного модуля: что именно он обслуживает в этой установке.
+     *
+     * @return list<array{object_id:int,object_title:string,property_id:int,property_title:string}>
+     */
+    public function forModule(string $module): array
+    {
+        $module = $this->module($module);
+        if (!$this->hasTable()) {
+            return [];
+        }
+
+        return $this->database->connection()->table('property_subscriptions')
+            ->join('objects', 'objects.id', '=', 'property_subscriptions.object_id')
+            ->leftJoin('properties', 'properties.id', '=', 'property_subscriptions.property_id')
+            ->where('property_subscriptions.module', $module)
+            ->orderBy('property_subscriptions.id')
+            ->get([
+                'property_subscriptions.object_id',
+                'objects.title as object_title',
+                'property_subscriptions.property_id',
+                'properties.title as property_title',
+            ])
+            ->map(static fn (object $row): array => [
+                'object_id' => (int)$row->object_id,
+                'object_title' => (string)($row->object_title ?? ''),
+                'property_id' => (int)$row->property_id,
+                'property_title' => (string)($row->property_title ?? ''),
             ])
             ->all();
     }

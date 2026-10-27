@@ -17,7 +17,7 @@
     <input type="checkbox"
            data-md-raw-checkbox
            id="{{ $id }}"
-           class="md-check__input"
+           {{ $attributes->class(['md-check__input']) }}
            @if ($name !== null) name="{{ $name }}" @endif
            value="{{ $value }}"
            @checked($checked)

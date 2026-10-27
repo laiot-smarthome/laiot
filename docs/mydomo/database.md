@@ -41,6 +41,12 @@ uppercase-поля не читаются через runtime-адаптер. От
 | Настройки и миграции | settings, migrations |
 
 Справочник актуальных имён — миграции `database/migrations`.
+`module_registry.settings` хранит JSON-значения настроек модуля по схеме
+`module.json`; форма и проверка — [sdk.md](sdk.md), общая страница —
+`/admin/modules/<id>/settings`.
+Retention (`db:prune`, `core-worker maintenance`) физически удаляет старые
+`property_history`, `property_events`, failed `queue_jobs`,
+`runtime_timeouts` и `system_errors`; сроки — в `config/retention.php`.
 При переносе ядровых разделов миграция 000024 переименовывает прежнюю
 `module_api_webhooks`, 000025 удаляет таблицу Shoutbox, 000026
 переименовывает `module_shared_events` в `shared_events`, а

@@ -5,6 +5,7 @@
     'selected' => '',
     'placeholder' => null,
     'multiple' => false,
+    'searchable' => false,
     'label' => null,
     'description' => null,
     'hint' => null,
@@ -25,9 +26,9 @@
         $size !== 'md' ? 'md-select--' . $size : null,
         $hasError ? 'is-invalid' : null,
     ]));
-    $attrs = 'class="' . e($class) . '" id="' . e($id) . '"';
+    $attrs = (string)$attributes->class([$class]) . ' id="' . e($id) . '"';
     if ($name !== null) {
-        $attrs .= ' name="' . e($name) . (($multiple ?? false) ? '[]' : '') . '"';
+        $attrs .= ' name="' . e($name) . ($multiple && !str_ends_with($name, '[]') ? '[]' : '') . '"';
     }
     if ($required) {
         $attrs .= ' required';
@@ -38,8 +39,14 @@
     if ($multiple) {
         $attrs .= ' multiple';
     }
+    if ($searchable) {
+        $attrs .= ' x-data="mdSearchSelect"';
+    }
     if ($hasError) {
-        $attrs .= ' aria-invalid="true" aria-describedby="' . e($id) . '-help"';
+        $attrs .= ' aria-invalid="true"';
+    }
+    if ($error !== null || $hint !== null || $description !== null) {
+        $attrs .= ' aria-describedby="' . e($id) . '-help"';
     }
 @endphp
 

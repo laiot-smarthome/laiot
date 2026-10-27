@@ -19,6 +19,7 @@ use Throwable;
  * удаляет объявленные таблицы модуля и его SQLite-данные.
  *
  * 2026-10-27 — permissions/assets из манифеста и purge данных при удалении.
+ * 2026-10-27 — в списке видны настройки и подписчик модуля.
  */
 final readonly class ModuleInstaller
 {
@@ -171,6 +172,8 @@ final readonly class ModuleInstaller
                     static fn (mixed $table): bool => is_string($table) && $table !== ''
                 )),
                 'tasks' => array_keys($tasks),
+                'settings' => array_keys(is_array($manifest['settings'] ?? null) ? $manifest['settings'] : []),
+                'subscriber' => is_string($manifest['property_subscriber'] ?? null) && $manifest['property_subscriber'] !== '',
                 'core' => (bool)($module['core'] ?? false),
                 'installed' => (bool)($module['core'] ?? false) || $row !== null,
                 'enabled' => (bool)($module['core'] ?? false) || ($row !== null && (int)$row['enabled'] === 1),

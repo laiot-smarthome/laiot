@@ -12,6 +12,7 @@
     'optional' => false,
     'disabled' => false,
     'readonly' => false,
+    'passwordToggle' => false,
     'size' => 'md',
     'wrap' => null,
 ])
@@ -40,14 +41,22 @@
         $attributesString .= ' readonly';
     }
     if ($hasError) {
-        $attributesString .= ' aria-invalid="true" aria-describedby="' . e($id) . '-help"';
+        $attributesString .= ' aria-invalid="true"';
+    }
+    if ($error !== null || $hint !== null || $description !== null) {
+        $attributesString .= ' aria-describedby="' . e($id) . '-help"';
     }
     $class = implode(' ', array_filter([
         'md-input',
         $size !== 'md' ? 'md-input--' . $size : null,
         $hasError ? 'is-invalid' : null,
     ]));
-    $control = '<input class="' . e($class) . '" ' . $attributesString . '>';
+    $control = '<input ' . $attributes->class([$class]) . ' ' . $attributesString
+        . ($passwordToggle && $type === 'password' ? ' :type="revealed ? \'text\' : \'password\'"' : '') . '>';
+    if ($passwordToggle && $type === 'password') {
+        $control = '<span class="md-kit-password" x-data="{revealed: false}">' . $control
+            . '<button type="button" class="md-icon-btn" @click="revealed = !revealed" :aria-label="revealed ? \'Скрыть пароль\' : \'Показать пароль\'" :aria-pressed="revealed.toString()"><i class="ti ti-eye" aria-hidden="true"></i></button></span>';
+    }
 @endphp
 
 @if ($wrap)

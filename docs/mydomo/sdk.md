@@ -58,6 +58,17 @@ modules/weather/
   "migrations": "migrations",
   "helpers": "helpers.php",
   "assets": "assets",
+  "settings": {
+    "host": {"title": "Хост", "type": "string", "default": "localhost"},
+    "port": {"title": "Порт", "type": "int", "default": 1883},
+    "mode": {
+      "title": "Режим",
+      "type": "select",
+      "default": "auto",
+      "options": {"auto": "Авто", "manual": "Вручную"}
+    },
+    "enabled": {"title": "Включено", "type": "bool", "default": true}
+  },
   "storage": {
     "driver": "mysql",
     "tables": ["forecasts"]
@@ -85,8 +96,11 @@ modules/weather/
 без `..`. ID — 2–64 символа `[a-z][a-z0-9_]`; дефис в ID не разрешён.
 
 `property_subscriber` — необязательный класс в namespace модуля, который
-принимает изменения свойств (см. раздел 5). Какие именно свойства обслуживает
+принимает изменения свойств (см. раздел 6). Какие именно свойства обслуживает
 модуль, манифест не задаёт: это выбор пользователя.
+
+`settings` — необязательная схема параметров модуля (см. раздел 5).
+Значения хранит реестр, а не таблица модуля; экран общий для всех модулей.
 
 ## 3. Entrypoint
 
@@ -107,7 +121,8 @@ final class Module extends \MajorDoMo\Modules\Module
 ```
 
 `ModuleContext` даёт `db()`, `bus()`, `container()`, `root()`, `id()`,
-`version()`. Прямой доступ к PDO/`$db` ядра запрещён.
+`version()`, `settings()` и `subscriptions()`. Прямой доступ к PDO/`$db` ядра
+запрещён.
 
 `db()` возвращает null, если storage не объявлен. `root()` сейчас возвращает
 корень приложения, а не каталог модуля. Контейнер и root делают модуль
@@ -152,14 +167,52 @@ context.db() в install-hook либо предварительно дораба�
 миграций. Не обещайте, что переключение storage.driver само переносит
 все DDL в другое соединение. Незавершённый файл не откатывается автоматически.
 
-## 5. Изменения свойств
+## 5. Настройки модуля
 
-Подписку на свойство выбирает пользователь в интерфейсе модуля: модуль
-показывает список доступных объектов/свойств, пользователь отмечает нужные.
-Хранит выбор ядро — таблица `property_subscriptions`, поэтому один и тот же
-модуль в разных установках обслуживает разные устройства.
+Настройки объявляются в манифесте, значения хранит `module_registry.settings`.
+Модуль не создаёт свою таблицу для общих параметров и не рисует форму: экран
+`/admin/modules/<id>/settings` строится по той же схеме, а модуль читает
+готовые значения.
 
-Манифест объявляет только обработчик:
+```json
+"settings": {
+  "host": {"title": "Хост", "type": "string", "default": "localhost"},
+  "port": {"title": "Порт", "type": "int", "default": 1883},
+  "mode": {
+    "title": "Режим",
+    "type": "select",
+    "default": "auto",
+    "options": {"auto": "Авто", "manual": "Вручную"}
+  },
+  "enabled": {"title": "Включено", "type": "bool", "default": true}
+}
+```
+
+Типы: `string`, `text`, `int`, `bool`, `select`; `title` обязателен,
+`description` необязателен. У `select` непустой `options`, а `default`
+обязан быть одним из них. Ключи — `[a-z][a-z0-9_]`.
+
+```php
+$settings = $context->settings();
+$host = $settings->get('host');   // умолчание схемы, если значение не сохранено
+$port = $settings->get('port', 1883);
+$all = $settings->all();          // только объявленные ключи
+```
+
+Сохранение идёт через общий экран: `ModuleSettings::cast()` проверяет типы,
+не принимает неизвестное значение select и не сохраняет лишние поля.
+Значения читаются при сборке контекста модуля, поэтому новый HTTP-запрос
+видит их сразу, а запущенный worker нужно перезапустить. Произвольные данные,
+которых нет в схеме, храните в `ModuleDb`, а не в настройках. Экран доступен
+для установленного стороннего модуля; core-модули настроек через реестр не
+имеют.
+
+## 6. Изменения свойств
+
+Подписку на свойство выбирает пользователь. Манифест объявляет только
+обработчик, а страница `/admin/modules/<id>/settings` показывает действующие
+свойства объекта. Выбор хранит ядро в `property_subscriptions`, поэтому один
+и тот же модуль в разных установках обслуживает разные устройства.
 
 ```json
 "property_subscriber": "PropertySubscriber"
@@ -186,11 +239,23 @@ final class PropertySubscriber implements PropertySubscriber
 эхо модуль не получает: сервис записи не возвращает автору его же изменение.
 Подробности — [events.md](events.md).
 
-Подписку ставит и снимает `PropertySubscriptionRepository` (`attach`,
-`detach`, `modulesFor`, `forObject`); прямые `INSERT` в таблицу из модуля
-запрещены. Страница выбора в модуле появится вместе с переносом MQTT/Zigbee.
+Подписки в коде модуля:
 
-## 6. Lifecycle
+```php
+$subscriptions = $context->subscriptions();
+$subscriptions->attach($objectId, $propertyId);   // идемпотентно
+$subscriptions->detach($objectId, $propertyId);
+$subscriptions->isAttached($objectId, $propertyId);
+$subscriptions->attached();                       // объект и свойство
+```
+
+Фасад привязан к id модуля из контекста: подписать соседний модуль нельзя,
+а модуль без `property_subscriber` получает ошибку. Пара проверяется по
+действующим свойствам объекта — объектное свойство или классовое с
+наследованием. Прямые `INSERT` в `property_subscriptions` из модуля
+запрещены.
+
+## 7. Lifecycle
 
 ```bash
 php bin/mydomo db:migrate          # создаёт module_registry/module_migrations
@@ -222,7 +287,7 @@ enable повторно проверяет совместимость/завис
 `enabled` сторонние модули. Выключенный модуль не регистрирует маршруты,
 меню и helpers.
 
-## 7. Безопасность и границы
+## 8. Безопасность и границы
 
 - нет `eval`, `$db`, `SQLSelect*`, `mysqli_*`, `PDO` и глобальных путей ядра;
 - `module:check` ищет эти вызовы в `src`, `routes` и `helpers` модуля и
@@ -239,7 +304,7 @@ enable повторно проверяет совместимость/завис
 изоляция от произвольного PHP. `module:check` — сканер, а не sandbox;
 автоматического CodeGuard пока нет.
 
-## 8. Ограничения текущего этапа
+## 9. Ограничения текущего этапа
 
 - установка только из локального `modules/<id>/`, marketplace позже;
 - `module:remove --purge` удаляет данные и таблицы, но не код модуля:

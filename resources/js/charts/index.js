@@ -8,7 +8,7 @@
 import ApexCharts from 'apexcharts';
 import '../../css/mydomo-charts.css';
 
-let chart = null;
+const charts = new Map();
 
 function token(name, fallback) {
     const value = getComputedStyle(document.body).getPropertyValue(name).trim();
@@ -22,14 +22,14 @@ function token(name, fallback) {
  * @param {{name?:string, unit?:string}} options
  */
 export function render(element, points, options = {}) {
-    destroy();
+    destroy(element);
 
     const dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
     const primary = token('--md-ui-primary', '#2f7fbd');
     const grid = token('--md-ui-border', '#e4e8ef');
     const muted = token('--md-ui-muted', '#667085');
 
-    chart = new ApexCharts(element, {
+    const chart = new ApexCharts(element, {
         chart: {
             type: 'area',
             height: 220,
@@ -75,15 +75,18 @@ export function render(element, points, options = {}) {
         markers: { size: 0, hover: { size: 4 } },
     });
 
+    charts.set(element, chart);
     chart.render();
 
     return chart;
 }
 
-export function destroy() {
-    if (chart) {
-        chart.destroy();
-        chart = null;
+export function destroy(element = null) {
+    for (const [node, chart] of charts) {
+        if (element === null || node === element || element.contains(node)) {
+            chart.destroy();
+            charts.delete(node);
+        }
     }
 }
 

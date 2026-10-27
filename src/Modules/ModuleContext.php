@@ -10,7 +10,10 @@ use Illuminate\Container\Container;
  * Контекст, который SDK передаёт в entrypoint модуля.
  *
  * Модуль получает только свой ModuleDb/ModuleBus и контейнер; root и чужие
- * таблицы напрямую недоступны.
+ * таблицы напрямую недоступны. Настройки и подписки на свойства выдаются
+ * сервисами, привязанными к id модуля: подписаться за соседний модуль нельзя.
+ *
+ * 2026-10-27 — settings() и subscriptions() вместо доступа к реестру напрямую.
  */
 final readonly class ModuleContext
 {
@@ -22,6 +25,8 @@ final readonly class ModuleContext
         private ModuleBus $bus,
         private Container $container,
         private string $root,
+        private ModuleSettings $settings,
+        private ModuleSubscriptions $subscriptions,
         private ?ModuleDb $db = null
     ) {
     }
@@ -44,6 +49,16 @@ final readonly class ModuleContext
     public function bus(): ModuleBus
     {
         return $this->bus;
+    }
+
+    public function settings(): ModuleSettings
+    {
+        return $this->settings;
+    }
+
+    public function subscriptions(): ModuleSubscriptions
+    {
+        return $this->subscriptions;
     }
 
     public function container(): Container

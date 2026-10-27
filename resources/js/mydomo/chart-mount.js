@@ -24,7 +24,8 @@ async function init(root) {
         element.dataset.mdChartReady = '1';
         try {
             const charts = await loadCharts();
-            charts.render(element, points, { name: element.dataset.mdChartName || '' });
+            if (!element.isConnected) continue;
+            charts.render(element, points, { name: element.dataset.mdChartName || '', unit: element.dataset.mdChartUnit || '' });
         } catch (error) {
             delete element.dataset.mdChartReady;
             element.classList.add('md-history-chart__empty');
@@ -38,5 +39,8 @@ export function initChartMounts() {
 
     document.body.addEventListener('htmx:afterSwap', (event) => {
         void init(event.target instanceof Element ? event.target : document);
+    });
+    document.body.addEventListener('htmx:beforeCleanupElement', (event) => {
+        if (event.target instanceof Element) window.MDCharts?.destroy(event.target);
     });
 }

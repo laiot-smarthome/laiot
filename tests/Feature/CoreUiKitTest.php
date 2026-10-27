@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ * 2026-10-27 — проверяются новые примеры форм и таблицы.
  */
 final class CoreUiKitTest extends TestCase
 {
@@ -40,5 +41,10 @@ final class CoreUiKitTest extends TestCase
         self::assertStringContainsString('/assets/vendor/yoyo/yoyo.js', $html);
         self::assertStringContainsString('blade-demo-modal', $html);
         self::assertStringContainsString('$store.mdModal', $html);
+        self::assertStringContainsString('x-data="mdSearchSelect"', $html);
+        self::assertStringContainsString('name="demo_multi[]"', $html);
+        self::assertStringContainsString('mdDataTable(', $html);
+        self::assertStringContainsString('aria-describedby="md-input-', $html);
+        self::assertStringContainsString('Выбор карточками', $html);
     }
 }

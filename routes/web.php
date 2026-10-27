@@ -24,6 +24,7 @@ use MajorDoMo\Http\Controllers\DashboardController;
 use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\LoginController;
 use MajorDoMo\Http\Controllers\MaintenanceController;
+use MajorDoMo\Http\Controllers\ModuleSettingsController;
 use MajorDoMo\Http\Controllers\ModulesPageController;
 use MajorDoMo\Http\Controllers\ProfileController;
 use MajorDoMo\Http\Controllers\RolesController;
@@ -49,6 +50,18 @@ return static function (Router $router): void {
                 ->middleware(['auth', 'can:settings.manage', 'csrf'])
                 ->name('admin.modules.' . $moduleAction);
         }
+        $router->get('/admin/modules/{id}/settings', [ModuleSettingsController::class, 'show'])
+            ->where('id', '[a-z0-9_]+')
+            ->middleware(['auth', 'can:settings.manage'])
+            ->name('admin.modules.settings');
+        $router->post('/admin/modules/{id}/settings', [ModuleSettingsController::class, 'save'])
+            ->where('id', '[a-z0-9_]+')
+            ->middleware(['auth', 'can:settings.manage', 'csrf'])
+            ->name('admin.modules.settings.save');
+        $router->post('/admin/modules/{id}/subscriptions', [ModuleSettingsController::class, 'saveSubscriptions'])
+            ->where('id', '[a-z0-9_]+')
+            ->middleware(['auth', 'can:settings.manage', 'csrf'])
+            ->name('admin.modules.subscriptions');
         $router->get('/admin/api', ApiDocsController::class)
             ->middleware(['auth'])
             ->name('admin.api');
@@ -179,6 +192,7 @@ return static function (Router $router): void {
             $router->post('/journal/{id}/delete', [ActionsLogController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('actions_log.delete');
 
             $router->get('/errors', [SystemErrorsController::class, 'index'])->name('system_errors.index');
+            $router->get('/errors/{id}/file', [SystemErrorsController::class, 'file'])->whereNumber('id')->name('system_errors.file');
             $router->post('/errors/group-delete', [SystemErrorsController::class, 'deleteGroup'])
                 ->middleware('csrf')
                 ->name('system_errors.delete_group');

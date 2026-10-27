@@ -18,6 +18,7 @@ use Throwable;
  * абсолютных путей.
  *
  * 2026-10-27 — писатель создан вместе с файлами ошибок.
+ * 2026-10-27 — read() для просмотра файла в админке.
  */
 final readonly class ErrorFileWriter
 {
@@ -61,6 +62,41 @@ final readonly class ErrorFileWriter
         $path = $this->path($file);
 
         return is_file($path) && @unlink($path);
+    }
+
+    /**
+     * Читает файл ошибки для админки.
+     *
+     * Путь собирается только из имени, а реальный путь обязан остаться внутри
+     * каталога ошибок: запись `log_file` могла быть испорчена вручную.
+     *
+     * @return array{name:string,size:int,modified:string,content:string,truncated:bool}|null
+     */
+    public function read(?string $file, int $limit = 524288): ?array
+    {
+        if ($file === null || $file === '' || basename($file) !== $file) {
+            return null;
+        }
+        $root = realpath($this->directory);
+        $path = realpath($this->path($file));
+        $prefix = $root === false ? '' : rtrim($root, '/\\') . DIRECTORY_SEPARATOR;
+        if ($root === false || $path === false || !str_starts_with($path, $prefix) || !is_file($path)) {
+            return null;
+        }
+
+        $size = (int)filesize($path);
+        $content = file_get_contents($path, false, null, 0, max(1024, $limit));
+        if ($content === false) {
+            return null;
+        }
+
+        return [
+            'name' => $file,
+            'size' => $size,
+            'modified' => date('Y-m-d H:i:s', (int)filemtime($path)),
+            'content' => $content,
+            'truncated' => $size > max(1024, $limit),
+        ];
     }
 
     private function path(string $file): string
