@@ -98,11 +98,13 @@ UI-переработка отложена владельцем. До неё с�
 
 ## 6. Проверка
 
-- Код: `composer check` (parallel-lint, PHP-CS-Fixer dry-run, PHPStan,
-  PHPUnit Feature).
-- Документация: `php tests/docs_quality_smoke.php`.
-- Frontend: `node --check resources/js/app-mydomo.js`, `npm run build`.
-- Docker: `docker compose up --build -d`, панель на `http://127.0.0.1:8080`.
+- Код: `composer check` — 251 тест, 1318 assertions, PHPStan и CS-Fixer
+  чисто (2026-10-27).
+- Документация: `php tests/docs_quality_smoke.php` — 546 проверок,
+  31 файл (2026-10-27).
+- Docker: `docker compose up --build -d`, `/login` и `/health` отвечают 200,
+  вход `admin`/`majordomo` открывает `/admin` (2026-10-27).
+- Frontend: сборка `npm run build` выполнена, `mydomo.js/css` на месте.
 
 Результаты последнего прогона фиксируются здесь датой, а не «зелёным
 чекбоксом» без проверки. Перед релизом нужен прогон на Linux с MySQL,

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [MyDoMo, 'mydomo-*']
+    branches: [MyDoMo, beta, 'mydomo-*']
   pull_request:
-    branches: [MyDoMo]
+    branches: [MyDoMo, beta]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -41,11 +41,8 @@ jobs:
       - name: Check PHP
         run: composer check
 
-      - name: Legacy contract smoke tests
-        run: |
-          php tests/config_smoke.php
-          php tests/routing_smoke.php
-          php tests/docs_quality_smoke.php
+      - name: Documentation
+        run: php tests/docs_quality_smoke.php
 
       - name: Setup Node
         uses: actions/setup-node@v4

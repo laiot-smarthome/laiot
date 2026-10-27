@@ -6,7 +6,7 @@
     "require": {
         "php": ">=8.2",
         "clickfwd/yoyo": "0.15.1",
-        "composer/semver": "3.4",
+        "composer/semver": "^3.4",
         "illuminate/cache": "^12.0",
         "illuminate/collections": "^12.0",
         "illuminate/container": "^12.0",

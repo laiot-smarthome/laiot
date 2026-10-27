@@ -28,6 +28,7 @@
              :aria-hidden="$store.mdModal.open === @js($id) ? 'false' : 'true'"
              :class="{'show': $store.mdModal.open === @js($id)}"
              :style="$store.mdModal.open === @js($id) ? 'display: block' : 'display: none'"
+             x-effect="if ($store.mdModal.open === @js($id)) $nextTick(() => $dispatch('md:panel-opened'))"
              @keydown.escape.window="$store.mdModal.close()"
              @keydown.tab="trap($event)"
              @click.self="$store.mdModal.close()">

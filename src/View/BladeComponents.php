@@ -50,6 +50,7 @@ final class BladeComponents
         'field',
         'file-upload',
         'hint',
+        'history-drawer',
         'icon',
         'icon-button',
         'icon-browser',
@@ -58,6 +59,7 @@ final class BladeComponents
         'last-seen',
         'linked-object',
         'light-control',
+        'logo',
         'meter',
         'modal',
         'page-hero',
@@ -79,6 +81,7 @@ final class BladeComponents
         'thermostat',
         'tooltip',
         'toasts',
+        'trace-drawer',
     ];
 
     public static function register(BladeCompiler $compiler, string $views): void

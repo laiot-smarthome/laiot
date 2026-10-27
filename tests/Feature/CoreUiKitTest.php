@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Tests\Feature;
 
+use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
@@ -46,5 +47,13 @@ final class CoreUiKitTest extends TestCase
         self::assertStringContainsString('mdDataTable(', $html);
         self::assertStringContainsString('aria-describedby="md-input-', $html);
         self::assertStringContainsString('Выбор карточками', $html);
+        self::assertStringContainsString('aria-controls="left_block"', $html);
+        self::assertStringContainsString('yoyo:name="folder-picker"', $html);
+        $entityText = $app->container()->make(Factory::class)->make('components.md.entity-text', [
+            'text' => '<script>alert(1)</script> [[property:Kitchen.Temperature|Температура|javascript:alert]]',
+        ])->render();
+        self::assertStringNotContainsString('<script>', $entityText);
+        self::assertStringNotContainsString('href="javascript:', $entityText);
+        self::assertStringContainsString('Температура', $entityText);
     }
 }

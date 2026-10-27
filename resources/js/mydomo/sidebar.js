@@ -8,9 +8,11 @@ export function initSidebar() {
     if (!toggle || !sidebar) {
         return;
     }
+    const compact = window.matchMedia('(max-width: 991.98px)');
 
     const open = () => {
         document.body.classList.add('md-admin-sidebar-open');
+        sidebar.inert = false;
         toggle.setAttribute('aria-expanded', 'true');
         toggle.setAttribute('aria-label', 'Закрыть меню');
         sidebar.querySelector('a[href], button:not(:disabled)')?.focus();
@@ -18,12 +20,15 @@ export function initSidebar() {
     const close = (restoreFocus = false) => {
         const wasOpen = document.body.classList.contains('md-admin-sidebar-open');
         document.body.classList.remove('md-admin-sidebar-open');
+        sidebar.inert = compact.matches;
         toggle.setAttribute('aria-expanded', 'false');
         toggle.setAttribute('aria-label', 'Открыть меню');
         if (restoreFocus && wasOpen) toggle.focus();
     };
 
     toggle.setAttribute('aria-expanded', 'false');
+    sidebar.inert = compact.matches;
+    compact.addEventListener('change', () => close());
     toggle.addEventListener('click', () => {
         if (document.body.classList.contains('md-admin-sidebar-open')) {
             close(true);
@@ -37,7 +42,7 @@ export function initSidebar() {
     });
     sidebar.querySelectorAll('a[href]').forEach((link) => {
         link.addEventListener('click', () => {
-            if (window.matchMedia('(max-width: 991px)').matches) {
+            if (compact.matches) {
                 close();
             }
         });

@@ -16,6 +16,7 @@
     <section id="foundations" class="md-kit-section">
         <x-md.section-heading eyebrow="01 · Основы" title="Дизайн-система" description="Цвета, типографика, иконки и состояния используют общие токены панели." />
         <x-md.card title="Цвета и иконки">
+            <x-md.logo />
             <div class="md-ui-actions">
                 <x-md.badge tone="primary">Основной</x-md.badge><x-md.badge tone="success">Успех</x-md.badge><x-md.badge tone="warning">Внимание</x-md.badge><x-md.badge tone="danger">Ошибка</x-md.badge><x-md.badge tone="info">Информация</x-md.badge>
             </div>
@@ -131,6 +132,7 @@
     <x-md.card title="Всплывающее уведомление"><div x-data><x-md.button variant="secondary" @click="$store.mdToasts.push({title: 'Сохранено', text: 'Изменения применены', tone: 'success'})">Показать уведомление</x-md.button></div></x-md.card>
 
     <x-md.card title="Модальное окно и боковая панель"><div class="md-ui-actions" x-data><x-md.button @click="$store.mdModal.show('kit-dialog')">Открыть диалог</x-md.button><x-md.button variant="secondary" @click="$store.mdDrawer.show('kit-drawer')">Открыть панель</x-md.button></div></x-md.card>
+    <x-md.card title="История и цепочка событий"><div class="md-ui-actions"><x-md.history-drawer id="kit-history" title="История датчика"><x-md.chart-card title="Температура" unit="°C" :points="[['t' => 1735689600000, 'v' => 21], ['t' => 1735711200000, 'v' => 22]]" /></x-md.history-drawer><x-md.trace-drawer id="kit-trace" :nodes="[['type' => 'property', 'name' => 'Motion.value', 'status' => 'Изменено', 'children' => [['type' => 'method', 'name' => 'Motion.onChange', 'status' => 'Выполнено']]]]" /></div></x-md.card>
     <x-md.modal id="kit-dialog" title="Новое устройство"><x-md.input label="Название" name="kit_modal_name" hint="Введите название устройства" /></x-md.modal>
     <x-md.drawer id="kit-drawer" title="Устройство" subtitle="Пример боковой панели"><p>Здесь могут находиться подробности и действия устройства.</p></x-md.drawer>
     </section>

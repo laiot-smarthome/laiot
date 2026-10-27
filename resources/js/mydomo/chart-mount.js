@@ -12,6 +12,7 @@ async function init(root) {
     const selector = '[data-md-chart]:not([data-md-chart-ready])';
     const nodes = [...(root instanceof Element && root.matches(selector) ? [root] : []), ...root.querySelectorAll(selector)];
     for (const element of nodes) {
+        if (!element.getClientRects().length) continue;
         let points = [];
         try {
             points = JSON.parse(element.dataset.mdChartPoints || '[]');
@@ -43,5 +44,8 @@ export function initChartMounts() {
     });
     document.body.addEventListener('htmx:beforeCleanupElement', (event) => {
         if (event.target instanceof Element) window.MDCharts?.destroy(event.target);
+    });
+    document.body.addEventListener('md:panel-opened', (event) => {
+        if (event.target instanceof Element) requestAnimationFrame(() => { void init(event.target); });
     });
 }

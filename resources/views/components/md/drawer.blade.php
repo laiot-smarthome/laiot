@@ -35,10 +35,11 @@
            :aria-hidden="$store.mdDrawer.open === @js($id) ? 'false' : 'true'"
            :class="{'is-open': $store.mdDrawer.open === @js($id)}"
            x-show="$store.mdDrawer.open === @js($id)"
+           x-effect="if ($store.mdDrawer.open === @js($id)) $nextTick(() => $dispatch('md:panel-opened'))"
            x-cloak
            tabindex="-1"
            @keydown.escape.window="$store.mdDrawer.close()"
-           @keydown.tab="trap($event)"
+           @if ($overlay) @keydown.tab="trap($event)" @endif
            @if ($overlay) role="dialog" aria-modal="true" @endif
            @if ($width !== null) style="--md-admin-drawer-width: {{ $width }}" @endif>
         <div class="md-admin-drawer__header md-drawer__header">

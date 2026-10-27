@@ -35,6 +35,8 @@ body.md-admin-shell .md-admin-main { min-width: 0; padding-bottom: calc(32px + e
 /* Общие плавающие элементы используют те же токены, что и остальные контролы. */
 [x-cloak] { display: none !important; }
 .md-kit-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.md-kit-logo { display: inline-flex; align-items: center; gap: 8px; color: var(--md-ui-text); font-size: 1.1rem; font-weight: 650; }
+.md-kit-logo i { color: var(--md-ui-primary); font-size: 1.5rem; }
 .md-kit-nav a {
     padding: 7px 12px;
     border: 1px solid var(--md-ui-border);
