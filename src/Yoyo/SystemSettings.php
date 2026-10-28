@@ -15,6 +15,7 @@ use RuntimeException;
 /**
  * Форма окружения: значения и секреты не сериализуются в публичное состояние Yoyo.
  *
+ * 2026-10-28 — Notify отправляется событием браузера из ответа Yoyo.
  * 2026-10-27 — разделы, поиск, ошибки полей и сохранение .env через POST.
  */
 final class SystemSettings extends Component
@@ -115,6 +116,13 @@ final class SystemSettings extends Component
                 $field['value'] = $this->input[$key];
             }
             $fields[$key] = $field;
+        }
+
+        if ($this->message !== '') {
+            $this->dispatchBrowserEvent('md:notify', ['tone' => 'success', 'text' => $this->message]);
+        }
+        if ($this->error !== '') {
+            $this->dispatchBrowserEvent('md:notify', ['tone' => 'danger', 'text' => $this->error]);
         }
 
         return $this->view('system-settings', [

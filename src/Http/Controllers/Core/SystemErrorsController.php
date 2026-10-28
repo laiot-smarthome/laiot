@@ -21,6 +21,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Схема MyDoMo хранит только записи, поэтому группа считается на чтении по
  * паре level + message, а удаление группы — одно обновление с тем же условием.
  *
+ * 2026-10-28 — результаты операций передаются Notify без текста в URL.
  * 2026-10-26 — добавлены группировка, поиск по сообщению и удаление группы.
  * 2026-10-27 — просмотр отдельного файла ошибки.
  * 2026-10-27 — список и разбор записи собраны в Yoyo-компонент: фильтры,
@@ -45,7 +46,7 @@ final readonly class SystemErrorsController extends Controller
             'level' => trim((string)$request->query->get('level', '')),
             'message' => $message,
             'flat' => (string)$request->query->get('flat', '') === '1' || $message !== '',
-            'done' => trim((string)$request->query->get('done', '')),
+
         ])->render();
 
         return $this->panel->render(new PanelPage('Ошибки', $content, 'system_errors'));
@@ -83,6 +84,6 @@ final readonly class SystemErrorsController extends Controller
         $message = (string)$request->request->get('message', '');
         $deleted = $this->errors->deleteGroup($level, $message);
 
-        return new RedirectResponse('/errors?done=' . rawurlencode('Удалено записей: ' . $deleted . '.'));
+        return $this->panel->redirect('/errors', 'Удалено записей: ' . $deleted . '.');
     }
 }

@@ -18,7 +18,7 @@
         <x-md.card title="Цвета и иконки">
             <x-md.logo />
             <div class="md-ui-actions">
-                <x-md.badge tone="primary">Основной</x-md.badge><x-md.badge tone="success">Успех</x-md.badge><x-md.badge tone="warning">Внимание</x-md.badge><x-md.badge tone="danger">Ошибка</x-md.badge><x-md.badge tone="info">Информация</x-md.badge>
+                <x-md.badge tone="brand">Фирменный</x-md.badge><x-md.badge tone="primary">Основной</x-md.badge><x-md.badge tone="success">Успех</x-md.badge><x-md.badge tone="warning">Внимание</x-md.badge><x-md.badge tone="danger">Ошибка</x-md.badge><x-md.badge tone="info">Информация</x-md.badge>
             </div>
             <p>Иконки Tabler: <x-md.icon name="home" /> <x-md.icon name="bulb" /> <x-md.icon name="settings" /> <x-md.icon name="chart-line" /> <x-md.icon name="bell" /> <x-md.icon name="wifi" /></p>
         </x-md.card>
@@ -64,7 +64,7 @@
             <x-md.input type="password" name="demo_password" label="Пароль" autocomplete="new-password" password-toggle />
             <x-md.date-time-picker type="date" name="demo_date" label="Дата" />
             <x-md.date-time-picker type="time" name="demo_time" label="Время" />
-            <x-md.input type="color" name="demo_color" label="Цвет" value="#4792d1" />
+            <x-md.input type="color" name="demo_color" label="Цвет" value="#6355eb" />
             <x-md.input type="file" name="demo_file" label="Файл" />
             <x-md.input type="search" name="demo_quick_search" label="Поиск" icon="search" placeholder="Название устройства" />
             <x-md.textarea name="demo_textarea" label="Комментарий" rows="3" />
@@ -116,7 +116,30 @@
         <x-md.skeleton :lines="3" />
     </x-md.card>
 
-    <x-md.card title="Раскрывающийся блок"><x-md.disclosure title="Дополнительные параметры" description="Открывается мышью и клавиатурой"><p>Содержимое блока.</p></x-md.disclosure></x-md.card></section>
+    <x-md.card title="Раскрывающийся блок (Disclosure & Spoiler)" subtitle="Компоненты скрытия/раскрытия контента с плавной анимацией шеврона и поддержкой клавиатуры.">
+        <div style="display: grid; gap: 14px;">
+            <x-md.spoiler title="Информация о модуле" icon="info-circle" badge="Subtle" badge-tone="brand" open>
+                <dl class="md-dash-kv">
+                    <div><dt>ID</dt><dd><code class="md-table__code">mqtt</code></dd></div>
+                    <div><dt>Маршрут</dt><dd><code class="md-table__code">/module/mqtt</code></dd></div>
+                    <div><dt>Таблицы</dt><dd>3</dd></div>
+                    <div><dt>Фоновые задачи</dt><dd>2</dd></div>
+                </dl>
+            </x-md.spoiler>
+
+            <x-md.spoiler title="Дополнительные настройки" variant="card" icon="settings" description="Параметры подключения и таймауты">
+                <p style="margin: 0;">Внутри блока-спойлера можно размещать любые формы, списки и кнопки.</p>
+            </x-md.spoiler>
+
+            <x-md.spoiler title="Показать стек вызова" variant="flush" icon="code">
+                <code class="md-table__code" style="display: block; padding: 8px;">App\Services\Worker::dispatch() at CoreWorker.php:42</code>
+            </x-md.spoiler>
+
+            <x-md.disclosure title="Крупный блок (Disclosure)" description="Открывается мышью и клавиатурой" badge="Accordion">
+                <p>Содержимое крупного раскрывающегося блока.</p>
+            </x-md.disclosure>
+        </div>
+    </x-md.card></section>
     <section id="data" class="md-kit-section"><x-md.section-heading eyebrow="07 · Данные" title="Таблицы и состояния" />
     <x-md.card title="Статусы и бейджи">
         <div class="md-ui-actions">
@@ -154,7 +177,14 @@
             <x-md.alert type="danger" title="Ошибка" text="Что-то пошло не так." />
         </div>
     </x-md.card>
-    <x-md.card title="Всплывающее уведомление"><div x-data><x-md.button variant="secondary" @click="$store.mdToasts.push({title: 'Сохранено', text: 'Изменения применены', tone: 'success'})">Показать уведомление</x-md.button></div></x-md.card>
+        <x-md.card title="Notify — результат операции" subtitle="Справа снизу. Ошибки и предупреждения остаются до закрытия.">
+            <div class="md-ui-actions" x-data>
+                <x-md.button variant="secondary" @click="$store.mdToasts.push({title: 'Сохранено', text: 'Изменения применены', tone: 'success'})">Успех</x-md.button>
+                <x-md.button variant="secondary" @click="$store.mdToasts.push({title: 'Информация', text: 'Данные обновлены', tone: 'info'})">Информация</x-md.button>
+                <x-md.button variant="secondary" @click="$store.mdToasts.push({title: 'Внимание', text: 'Проверьте подключение устройства', tone: 'warning'})">Предупреждение</x-md.button>
+                <x-md.button variant="danger" @click="$store.mdToasts.push({title: 'Не сохранено', text: 'Проверьте параметры подключения', tone: 'danger'})">Ошибка</x-md.button>
+            </div>
+        </x-md.card>
 
     <x-md.card title="Модальное окно и боковая панель"><div class="md-ui-actions" x-data><x-md.button @click="$store.mdModal.show('kit-dialog')">Открыть диалог</x-md.button><x-md.button variant="secondary" @click="$store.mdDrawer.show('kit-drawer')">Открыть панель</x-md.button></div></x-md.card>
     <x-md.card title="История и цепочка событий"><div class="md-ui-actions"><x-md.history-drawer id="kit-history" title="История датчика"><x-md.chart-card title="Температура" unit="°C" :points="[['t' => 1735689600000, 'v' => 21], ['t' => 1735711200000, 'v' => 22]]" /></x-md.history-drawer><x-md.trace-drawer id="kit-trace" :nodes="[['type' => 'property', 'name' => 'Motion.value', 'status' => 'Изменено', 'children' => [['type' => 'method', 'name' => 'Motion.onChange', 'status' => 'Выполнено']]]]" /></div></x-md.card>

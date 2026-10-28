@@ -17,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Роли управляются из пользователей через Yoyo с серверной проверкой прав.
  *
+ * 2026-10-28 — ошибки операций проверяются в событии Notify.
  * 2026-10-27 — вместо справочной страницы проверяется полный CRUD ролей.
  */
 final class RolesPageTest extends TestCase
@@ -73,7 +74,7 @@ final class RolesPageTest extends TestCase
         $this->roles->syncUserRoles(1, [$id]);
         self::assertSame(['settings.manage'], $this->roles->permissionsForUser(1));
         $denied = $this->action('remove', ['actionArgs' => [$id]]);
-        self::assertStringContainsString('Сначала снимите', (string)$denied->getContent());
+        self::assertStringContainsString('Сначала снимите', (string)json_encode(json_decode((string)$denied->headers->get('Yoyo-Browser-Event'), true), JSON_UNESCAPED_UNICODE));
         self::assertNotNull($this->roles->find($id));
         $this->roles->syncUserRoles(1, []);
         $this->action('remove', ['actionArgs' => [$id]]);
@@ -85,10 +86,10 @@ final class RolesPageTest extends TestCase
     {
         $admin = (int)$this->app->database()->connection()->table('roles')->where('name', 'admin')->value('id');
         $response = $this->action('remove', ['actionArgs' => [$admin]]);
-        self::assertStringContainsString('Системную роль', (string)$response->getContent());
+        self::assertStringContainsString('Системную роль', (string)json_encode(json_decode((string)$response->headers->get('Yoyo-Browser-Event'), true), JSON_UNESCAPED_UNICODE));
         self::assertNotNull($this->roles->find($admin));
         $response = $this->action('save', ['role_name' => 'operator', 'role_title' => 'Оператор', 'permission_ids' => [999999]]);
-        self::assertStringContainsString('больше недоступны', (string)$response->getContent());
+        self::assertStringContainsString('больше недоступны', (string)json_encode(json_decode((string)$response->headers->get('Yoyo-Browser-Event'), true), JSON_UNESCAPED_UNICODE));
         self::assertSame(2, count($this->roles->allRoles()));
     }
 
@@ -96,7 +97,7 @@ final class RolesPageTest extends TestCase
     {
         $data = ['role_name' => 'operator', 'role_title' => 'Оператор'];
         $response = $this->action('save', $data, 'GET');
-        self::assertStringContainsString('только POST', (string)$response->getContent());
+        self::assertStringContainsString('только POST', (string)json_encode(json_decode((string)$response->headers->get('Yoyo-Browser-Event'), true), JSON_UNESCAPED_UNICODE));
         self::assertSame(2, count($this->roles->allRoles()));
         self::assertSame(403, $this->action('save', $data, 'POST', false)->getStatusCode());
         $this->roles->syncUserRoles(1, []);

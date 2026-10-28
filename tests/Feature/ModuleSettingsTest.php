@@ -20,6 +20,7 @@ use PHPUnit\Framework\TestCase;
  * Модуль не создаёт свою таблицу настроек: типы проверяет `ModuleSettings`,
  * а экран `/admin/modules/<id>/settings` строится по той же схеме.
  *
+ * 2026-10-28 — выбор подписок перенесён в штатное модальное окно.
  * 2026-10-27 — тест создан вместе с настройками модулей из манифеста.
  */
 final class ModuleSettingsTest extends TestCase
@@ -151,7 +152,7 @@ final class ModuleSettingsTest extends TestCase
             'mode' => 'advanced',
         ]));
         self::assertSame(302, $saved->getStatusCode());
-        self::assertStringContainsString('done=settings', (string)$saved->headers->get('Location'));
+        self::assertSame('/admin/modules/example_sdk/settings', $saved->headers->get('Location'));
 
         $stored = $app->container()->make(\MajorDoMo\Modules\ModuleManager::class)->registry()->settings('example_sdk');
         self::assertSame('Здравствуйте', $stored['greeting']);
@@ -167,7 +168,7 @@ final class ModuleSettingsTest extends TestCase
         ]));
         self::assertSame(302, $invalid->getStatusCode());
         $location = (string)$invalid->headers->get('Location');
-        self::assertStringContainsString('error=', $location);
+        self::assertSame('/admin/modules/example_sdk/settings', $location);
 
         $errorPage = $app->handle(Request::create($location, 'GET'));
         self::assertSame(200, $errorPage->getStatusCode());
@@ -188,7 +189,7 @@ final class ModuleSettingsTest extends TestCase
         $response = $app->handle(Request::create('/admin/modules/example_sdk/settings', 'GET'));
 
         self::assertSame(302, $response->getStatusCode());
-        self::assertStringContainsString('error=', (string)$response->headers->get('Location'));
+        self::assertSame('/admin/modules', $response->headers->get('Location'));
     }
 
     public function testSubscriptionsPageSavesSelection(): void
@@ -204,7 +205,7 @@ final class ModuleSettingsTest extends TestCase
             'properties' => [1, 2],
         ]));
         self::assertSame(302, $saved->getStatusCode());
-        self::assertStringContainsString('done=subscriptions', (string)$saved->headers->get('Location'));
+        self::assertSame('/admin/modules/example_sdk/settings', $saved->headers->get('Location'));
 
         $rows = $app->database()->connection()->table('property_subscriptions')
             ->where('module', 'example_sdk')->orderBy('property_id')->pluck('property_id')->all();
@@ -214,7 +215,8 @@ final class ModuleSettingsTest extends TestCase
         self::assertSame(200, $page->getStatusCode());
         $html = (string)$page->getContent();
         self::assertStringContainsString('temperature', $html);
-        self::assertStringContainsString('Текущие подписки', $html);
+        self::assertStringContainsString('id="module-subscriptions"', $html);
+        self::assertStringContainsString('Настроить подписки', $html);
 
         $removed = $app->handle(Request::create('/admin/modules/example_sdk/subscriptions', 'POST', [
             '_token' => $token,
@@ -231,7 +233,7 @@ final class ModuleSettingsTest extends TestCase
             'properties' => [3],
         ]));
         self::assertSame(302, $foreign->getStatusCode());
-        self::assertStringContainsString('error=', (string)$foreign->headers->get('Location'));
+        self::assertSame('/admin/modules/example_sdk/settings', $foreign->headers->get('Location'));
     }
 
     private function seedHouse(Application $app): void

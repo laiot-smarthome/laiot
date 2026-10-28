@@ -31,7 +31,7 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Не удалось сохранить локацию" :text="$error" />
+        <x-md.notify type="danger" title="Не удалось сохранить локацию" :text="$error" />
     @endif
 
     <form method="post" action="{{ $isNew ? '/locations/create' : '/locations/' . $location['id'] . '/edit' }}" class="md-ui-form">

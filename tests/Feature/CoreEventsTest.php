@@ -7,6 +7,9 @@ namespace MajorDoMo\Tests\Feature;
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
+use MajorDoMo\Events\EventChainService;
+use MajorDoMo\Events\PropertyEventRepository;
+use MajorDoMo\Events\PropertyExecutionRepository;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
@@ -17,6 +20,7 @@ use PHPUnit\Framework\TestCase;
  * Проверяется на SQLite в памяти, без циклов, очередей и внешних сервисов.
  *
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
+ * 2026-10-28 — цепочки, полное дерево, фильтры, страницы и ожидающие команды.
  */
 final class CoreEventsTest extends TestCase
 {
@@ -49,11 +53,17 @@ final class CoreEventsTest extends TestCase
         self::assertSame(200, $page->getStatusCode());
         $html = (string)$page->getContent();
         self::assertStringContainsString('Кухня', $html);
-        self::assertStringContainsString('onTemperature', $html);
+        self::assertStringContainsString('Цепочек на странице: 1', $html);
+        self::assertStringNotContainsString('md-call-flow__tree', $html);
         self::assertStringContainsString('Значение изменено', $html);
         // Форма фильтра передаёт option слотом — компонент x-md.select обязан
         // отрендерить их, а не только массив options.
         self::assertStringContainsString('<option value="handler.method"', $html);
+
+        $detail = $app->handle(Request::create('/events?chain=' . $events[0]['id'], 'GET'));
+        self::assertSame(200, $detail->getStatusCode());
+        self::assertStringContainsString('Кухня.onTemperature', (string)$detail->getContent());
+        self::assertStringContainsString('md-call-flow__tree', (string)$detail->getContent());
     }
 
     public function testWriteIsProcessedByEventsWorkerNotInRequest(): void
@@ -225,6 +235,127 @@ final class CoreEventsTest extends TestCase
             unset($_SERVER['HTTP_HX_REQUEST'], $_SERVER['REQUEST_METHOD']);
             $_REQUEST = [];
         }
+    }
+
+    public function testSearchMatchesChildButKeepsTheWholeChainAndSeparateRuns(): void
+    {
+        [$app] = $this->boot();
+        $events = $app->container()->make(PropertyEventRepository::class);
+        $root = $events->record(['type' => 'property.changed', 'status' => 'changed', 'source' => 'mqtt', 'object_title' => 'Sensor', 'property_title' => 'motion']);
+        $handler = $events->record(['parent_id' => $root, 'type' => 'handler.method', 'status' => 'ok', 'handler' => 'onMotion']);
+        $events->record(['parent_id' => $handler, 'type' => 'module.delivery', 'status' => 'error', 'handler' => 'lamp', 'message' => 'unique failure']);
+        $other = $events->record(['type' => 'property.changed', 'status' => 'changed', 'object_title' => 'Sensor', 'property_title' => 'motion']);
+        $service = $app->container()->make(EventChainService::class);
+
+        $listing = $service->listing('unique failure', 'module.delivery', 'error');
+        self::assertCount(1, $listing['items']);
+        self::assertSame($root, $listing['items'][0]['id']);
+        self::assertSame(3, $listing['items'][0]['count']);
+        self::assertSame('error', $listing['items'][0]['status']);
+        self::assertCount(2, $service->listing()['items']);
+        self::assertSame($other, $service->listing()['items'][0]['id']);
+        self::assertSame('lamp', $service->detail($root)['nodes'][0]['children'][0]['children'][0]['title']);
+        self::assertNull($service->detail($handler));
+    }
+
+    public function testLongChainIsNotCutByTheOldJournalLimit(): void
+    {
+        [$app] = $this->boot();
+        $events = $app->container()->make(PropertyEventRepository::class);
+        $root = $events->record(['type' => 'property.changed', 'status' => 'changed']);
+        for ($index = 0; $index < 510; $index++) {
+            $events->record(['parent_id' => $root, 'type' => 'module.delivery', 'status' => 'ok', 'handler' => 'subscriber-' . $index]);
+        }
+        $service = $app->container()->make(EventChainService::class);
+        self::assertSame(511, $service->listing()['items'][0]['count']);
+        $detail = $service->detail($root);
+        self::assertNotNull($detail);
+        self::assertCount(510, $detail['nodes'][0]['children']);
+        self::assertSame('subscriber-509', $detail['nodes'][0]['children'][509]['title']);
+    }
+
+    public function testDeepChainRendersBeyondTwentyFourLevels(): void
+    {
+        [$app] = $this->boot();
+        $events = $app->container()->make(PropertyEventRepository::class);
+        $root = $events->record(['type' => 'property.changed', 'status' => 'changed']);
+        $parent = $root;
+        for ($depth = 1; $depth <= 60; $depth++) {
+            $parent = $events->record(['parent_id' => $parent, 'type' => 'handler.method', 'status' => 'ok', 'object_title' => 'Depth', 'handler' => 'level' . $depth]);
+        }
+        $response = $app->handle(Request::create('/events?chain=' . $root, 'GET'));
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('Depth.level60', (string)$response->getContent());
+    }
+
+    public function testPendingDescendantPreventsCompletedStatus(): void
+    {
+        [$app] = $this->boot();
+        $events = $app->container()->make(PropertyEventRepository::class);
+        $root = $events->record(['type' => 'property.changed', 'status' => 'changed']);
+        $execution = $app->container()->make(PropertyExecutionRepository::class);
+        $step = $execution->create(0, 'property:1:1');
+        $execution->update($step, ['event_id' => $root, 'status' => 'ok']);
+        $child = $execution->create($step, 'module:lamp');
+        $service = $app->container()->make(EventChainService::class);
+        self::assertSame('running', $service->detail($root)['chain']['status']);
+        self::assertSame(1, $service->detail($root)['chain']['pending']);
+        $execution->update($child, ['status' => 'ok']);
+        self::assertSame('ok', $service->detail($root)['chain']['status']);
+        $execution->fail($child, 'delivery failed');
+        self::assertSame('error', $service->detail($root)['chain']['status']);
+    }
+
+    public function testPaginationAndMissingAncestorsAreExplicit(): void
+    {
+        [$app] = $this->boot();
+        $events = $app->container()->make(PropertyEventRepository::class);
+        $first = $events->record(['type' => 'property.changed', 'status' => 'changed']);
+        for ($index = 0; $index < 25; $index++) {
+            $events->record(['type' => 'property.changed', 'status' => 'changed']);
+        }
+        $service = $app->container()->make(EventChainService::class);
+        self::assertCount(25, $service->listing()['items']);
+        self::assertTrue($service->listing()['more']);
+        self::assertSame($first, $service->listing(page: 2)['items'][0]['id']);
+        self::assertFalse($service->listing(page: 2)['more']);
+
+        $orphan = $events->record(['parent_id' => 99999, 'type' => 'handler.method', 'status' => 'ok', 'handler' => 'survived']);
+        self::assertTrue($service->detail($orphan)['chain']['partial']);
+        $response = $app->handle(Request::create('/events?chain=' . $orphan, 'GET'));
+        self::assertStringContainsString('Начало этой цепочки не сохранилось', (string)$response->getContent());
+        self::assertNull($service->detail(99998));
+    }
+
+    public function testYoyoOpensTreeAndReturnsToFilteredList(): void
+    {
+        [$app] = $this->boot();
+        self::assertTrue(sg('Кухня.temperature', '23.5'));
+        $this->drainEvents($app);
+        $id = (int)$this->events($app)[0]['id'];
+        $update = static function (string $action, int $selectedId, array $args) use ($app): string {
+            $_REQUEST = ['component' => 'events-table/' . $action, 'yoyo-id' => 'test-chain', 'selectedId' => $selectedId,
+                'search' => 'temperature', 'type' => '', 'status' => '', 'page' => 1, 'actionArgs' => $args];
+            $_SERVER['REQUEST_METHOD'] = 'GET';
+            $_SERVER['HTTP_HX_REQUEST'] = 'true';
+            Yoyo::request()->mock($_REQUEST, $_SERVER);
+            try {
+                $response = $app->handle(Request::create('/yoyo', 'GET', $_REQUEST));
+                self::assertSame(200, $response->getStatusCode());
+                return (string)$response->getContent();
+            } finally {
+                Yoyo::request()->reset();
+                unset($_SERVER['HTTP_HX_REQUEST'], $_SERVER['REQUEST_METHOD']);
+                $_REQUEST = [];
+            }
+        };
+        $detail = $update('open', 0, [$id]);
+        self::assertStringContainsString('Кухня.onTemperature', $detail);
+        self::assertStringContainsString('К списку цепочек', $detail);
+        self::assertStringContainsString('name="search" value="temperature"', $detail);
+        $list = $update('back', $id, []);
+        self::assertStringContainsString('Цепочек на странице: 1', $list);
+        self::assertStringNotContainsString('md-call-flow__tree', $list);
     }
 
     /**

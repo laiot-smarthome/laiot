@@ -41,7 +41,7 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Действие не выполнено" :text="$error" />
+        <x-md.notify type="danger" title="Действие не выполнено" :text="$error" />
     @endif
 
     <form method="post" action="{{ $isNew ? '/scripts/create' : '/scripts/' . $script['id'] . '/edit' }}" class="md-ui-form">
@@ -99,7 +99,7 @@
                             <span class="md-table__muted">{{ $runResult['duration_ms'] }} мс</span>
                         </div>
                         @if ($runResult['error'] !== '')
-                            <x-md.alert type="danger" :text="$runResult['error']" />
+                            <x-md.notify type="danger" :text="$runResult['error']" />
                         @endif
                         @if ($runResult['output'] !== '')
                             <div>

@@ -20,9 +20,9 @@ body.md-admin-shell {
   --md-ui-text: #101828;
   --md-ui-text-soft: #344054;
   --md-ui-muted: #667085;
-  --md-ui-primary: #2f7fbd;
-  --md-ui-primary-strong: #2568a1;
-  --md-ui-primary-soft: #e8f2fb;
+  --md-ui-primary: #6355eb;
+  --md-ui-primary-strong: #5142d6;
+  --md-ui-primary-soft: #f2f0ff;
   --md-ui-success: #12915c;
   --md-ui-success-soft: #e6f6ef;
   --md-ui-warning: #b25e09;
@@ -51,9 +51,9 @@ body.md-admin-shell {
   --md-ui-text: #eef4fb;
   --md-ui-text-soft: #cbd5e1;
   --md-ui-muted: #94a3b8;
-  --md-ui-primary: #6cb2e8;
-  --md-ui-primary-strong: #8cc5f0;
-  --md-ui-primary-soft: rgba(71, 146, 209, .16);
+  --md-ui-primary: #8b7bff;
+  --md-ui-primary-strong: #a699ff;
+  --md-ui-primary-soft: rgba(109, 94, 252, .18);
   --md-ui-success: #4ade80;
   --md-ui-success-soft: rgba(18, 145, 92, .16);
   --md-ui-warning: #fbbf24;
@@ -68,7 +68,7 @@ body.md-admin-shell {
 
 [data-bs-theme="dark"] body.md-admin-shell .md-admin-layout {
   background:
-    radial-gradient(circle at 85% -10%, rgba(71, 146, 209, .12), transparent 28rem),
+    radial-gradient(circle at 85% -10%, rgba(109, 94, 252, .14), transparent 28rem),
     var(--md-ui-bg);
 }
 
@@ -194,7 +194,7 @@ body.md-admin-shell .md-admin-topbar__actions {
 .md-admin-topbar__search-input:focus {
   background: var(--md-ui-surface);
   border-color: var(--md-ui-primary);
-  box-shadow: 0 0 0 3px rgba(47, 127, 189, .14);
+  box-shadow: 0 0 0 3px rgba(99, 85, 235, .16);
 }
 
 .md-admin-topbar__search-kbd {
@@ -586,7 +586,7 @@ body.md-admin-shell .md-admin-sidebar__icon-bi {
 
 body.md-admin-shell .md-admin-sidebar__item.active .md-admin-sidebar__icon-bi,
 body.md-admin-shell .md-admin-sidebar__link:hover .md-admin-sidebar__icon-bi {
-  color: #9ccbf0;
+  color: #8b7bff;
 }
 
 body.md-admin-shell .md-admin-sidebar__badge {
@@ -655,7 +655,7 @@ body.md-admin-shell .md-admin-sidebar__avatar {
   width: 32px;
   height: 32px;
   color: #fff;
-  background: linear-gradient(150deg, #4b9ede 0%, #2f7fbd 100%);
+  background: linear-gradient(150deg, #6d5efc 0%, #4f8bf7 55%, #22b8f0 100%);
   border-radius: 50%;
   font-size: .74rem;
   font-weight: 600;
@@ -2291,7 +2291,7 @@ body.md-admin-shell .md-admin-sidebar__profile-logout i {
 .md-obj-field .form-control:focus,
 .md-obj-field .form-select:focus {
   border-color: var(--md-ui-primary);
-  box-shadow: 0 0 0 3px rgba(47, 127, 189, .14);
+  box-shadow: 0 0 0 3px rgba(99, 85, 235, .16);
 }
 
 /* Tom Select: one visual language with Bootstrap inputs and an explicit chevron. */
@@ -2326,7 +2326,7 @@ body.md-admin-shell .ts-wrapper.single .ts-control::after {
 
 body.md-admin-shell .ts-wrapper.focus .ts-control {
   border-color: var(--md-ui-primary);
-  box-shadow: 0 0 0 3px rgba(47, 127, 189, .14);
+  box-shadow: 0 0 0 3px rgba(99, 85, 235, .16);
 }
 
 body.md-admin-shell .ts-dropdown {
@@ -2430,7 +2430,7 @@ body.md-admin-shell .ts-dropdown .active {
 .md-obj-search .form-control:focus,
 .md-obj-filter:focus {
   border-color: var(--md-ui-primary);
-  box-shadow: 0 0 0 3px rgba(47, 127, 189, .14);
+  box-shadow: 0 0 0 3px rgba(99, 85, 235, .16);
 }
 
 .md-obj-toolbar__spacer {

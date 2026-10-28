@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Страница SDK-модулей и управление их жизненным циклом.
  *
+ * 2026-10-28 — результаты операций приходят один раз, без сообщений в URL.
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  * 2026-10-26 — добавлены действия enable/disable/install/remove и проверка CSRF.
  */
@@ -26,7 +27,8 @@ final class ModulesPageTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
         $html = (string)$response->getContent();
         self::assertStringContainsString('Модули', $html);
-        self::assertStringContainsString('Ядро и модули', $html);
+        self::assertStringNotContainsString('Ядро и модули', $html);
+        self::assertStringNotContainsString('То же самое из терминала', $html);
         self::assertStringNotContainsString('Shoutbox', $html);
     }
 
@@ -50,11 +52,14 @@ final class ModulesPageTest extends TestCase
 
         self::assertSame(302, $response->getStatusCode());
         $location = (string)$response->headers->get('Location');
-        self::assertStringStartsWith('/admin/modules?error=', $location);
+        self::assertSame('/admin/modules', $location);
 
         $page = $app->handle(Request::create($location, 'GET'));
-        self::assertSame(422, $page->getStatusCode());
+        self::assertSame(200, $page->getStatusCode());
         self::assertStringContainsString('не найден', (string)$page->getContent());
+        self::assertStringContainsString('data-md-notify data-tone="danger"', (string)$page->getContent());
+        $again = $app->handle(Request::create($location, 'GET'));
+        self::assertStringNotContainsString('data-md-notify data-tone=', (string)$again->getContent());
     }
 
     private function boot(): Application

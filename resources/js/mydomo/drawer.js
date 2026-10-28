@@ -4,6 +4,8 @@
  * Разметка — alpha-классы, поведение — своё: без jQuery, MDJAdminPanel и
  * Bootstrap-модалок. Содержимое передаётся DOM-узлом и возвращается на место
  * при закрытии.
+ * 2026-10-28 — панель остаётся в DOM для выезда; контент возвращается
+ * после завершения закрытия, а не пропадает в начале анимации.
  */
 
 const host = document.getElementById('mdAdminDrawerHost');
@@ -14,15 +16,10 @@ const subtitleNode = document.getElementById('mdAdminDrawerSubtitle');
 const eyebrowNode = document.getElementById('mdAdminDrawerEyebrow');
 
 let current = null;
+let closeTimer = null;
 
-function close(owner) {
-    if (!current || (owner && current.owner !== owner)) {
-        return false;
-    }
-
-    document.body.classList.remove('md-admin-drawer-open');
-    host.setAttribute('aria-hidden', 'true');
-    host.hidden = true;
+function finishClose() {
+    if (!current) return;
     host.style.removeProperty('--md-admin-drawer-width');
 
     if (current.node && current.parent) {
@@ -40,10 +37,18 @@ function close(owner) {
         footer.replaceChildren();
         footer.hidden = true;
     }
-    if (current.focus && current.focus.isConnected) {
-        current.focus.focus();
-    }
     current = null;
+    closeTimer = null;
+}
+
+function close(owner) {
+    if (!current || (owner && current.owner !== owner)) return false;
+    document.body.classList.remove('md-admin-drawer-open');
+    host.setAttribute('aria-hidden', 'true');
+    host.inert = true;
+    if (current.focus?.isConnected) current.focus.focus();
+    window.clearTimeout(closeTimer);
+    closeTimer = window.setTimeout(finishClose, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 240);
 
     return true;
 }
@@ -53,7 +58,8 @@ function open(options) {
         return false;
     }
     if (current) {
-        close(current.owner);
+        window.clearTimeout(closeTimer);
+        finishClose();
     }
 
     const node = options.body;
@@ -89,6 +95,7 @@ function open(options) {
     }
 
     host.hidden = false;
+    host.inert = false;
     host.setAttribute('aria-hidden', 'false');
     document.body.classList.add('md-admin-drawer-open');
     const closeButton = host.querySelector('[data-md-drawer-close]');
@@ -103,6 +110,9 @@ export function initDrawer() {
     if (!host) {
         return;
     }
+    host.hidden = false;
+    host.inert = true;
+    document.querySelectorAll('.md-admin-drawer-backdrop[data-md-drawer-close]').forEach(element => { element.hidden = false; });
     host.querySelectorAll('[data-md-drawer-close]').forEach((button) => {
         button.addEventListener('click', () => close());
     });

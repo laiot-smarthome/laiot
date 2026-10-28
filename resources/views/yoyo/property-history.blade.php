@@ -16,10 +16,16 @@
     </button>
 
     @if ($open && $data !== null)
-        <div class="md-history-overlay" role="dialog" aria-modal="true" aria-labelledby="{{ $dialogId }}">
-            <div class="md-history-backdrop" yoyo:get="close" aria-hidden="true"></div>
+        <div class="md-history-overlay" role="dialog" aria-modal="true" aria-labelledby="{{ $dialogId }}"
+             x-data="{ closing: false, closePanel() {
+                 if (this.closing) return;
+                 this.closing = true;
+                 setTimeout(() => this.$refs.serverClose.click(), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 240);
+             } }" :class="{'is-closing': closing}" @keydown.escape.window="closePanel()">
+            <button type="button" hidden x-ref="serverClose" yoyo:get="close" aria-hidden="true" tabindex="-1"></button>
+            <div class="md-history-backdrop" @click="closePanel()" aria-hidden="true"></div>
 
-            <aside class="md-history-panel">
+            <aside @class(['md-history-panel', 'md-history-panel--enter' => $animate])>
                 <header class="md-history-panel__header">
                     <div class="md-history-panel__heading">
                         <div class="md-history-panel__eyebrow">История значения</div>
@@ -27,7 +33,7 @@
                             {{ $data['object']['title'] }}.{{ $data['property']['title'] }}
                         </h2>
                     </div>
-                    <button type="button" class="md-icon-btn md-icon-btn--sm" yoyo:get="close" aria-label="Закрыть историю">
+                    <button type="button" class="md-icon-btn md-icon-btn--sm" @click="closePanel()" aria-label="Закрыть историю">
                         <i class="ti ti-x" aria-hidden="true"></i>
                     </button>
                 </header>

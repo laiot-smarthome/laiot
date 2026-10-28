@@ -31,7 +31,7 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Не удалось сохранить метод" :text="$error" />
+        <x-md.notify type="danger" title="Не удалось сохранить метод" :text="$error" />
     @endif
 
     @if ($class !== null || $object !== null)

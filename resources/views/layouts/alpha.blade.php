@@ -76,7 +76,7 @@
                     <a class="md-admin-sidebar__brand" href="/admin" aria-label="LaIoT — обзор">
                         <img class="md-admin-sidebar__logo" src="/assets/img/logos/laiot-logo-white.png"
                              srcset="/assets/img/logos/laiot-logo-white@2x.png 2x"
-                             width="150" height="46" alt="LaIoT" decoding="async">
+                             width="114" height="35" alt="LaIoT" decoding="async">
                         <img class="md-admin-sidebar__mark" src="/assets/img/logos/laiot-mark.png"
                              srcset="/assets/img/logos/laiot-mark@2x.png 2x"
                              width="34" height="34" alt="" aria-hidden="true" decoding="async">
@@ -174,9 +174,9 @@
                     <li class="active" aria-current="page">{{ $title }}</li>
                 </ol>
             </div>
-            @if (!empty($notice))
-                <div class="mb-3"><x-md.alert type="success" :text="$notice" /></div>
-            @endif
+            @foreach ($notifications ?? [] as $notification)
+                <x-md.notify :type="$notification['type']" :title="$notification['title']" :text="$notification['text']" />
+            @endforeach
             {{-- Содержимое раздела или SDK-модуля: общие header и меню уже созданы оболочкой. --}}
             {!! $content !!}
         </main>
@@ -248,6 +248,7 @@
 </x-md.modal>
 
 <x-md.toasts />
+<div class="md-notify-attention" data-md-notify-attention aria-hidden="true"></div>
 <script src="/assets/admin/mydomo.js{{ $assetVersion('/assets/admin/mydomo.js') }}" defer></script>
 @stack('scripts')
 </body>

@@ -19,15 +19,6 @@
             @endif
         </form>
 
-        @if ($message !== '')
-            <x-md.alert type="success" title="Сохранено" :text="$message" />
-        @endif
-        @if ($error !== '')
-            <div role="alert" tabindex="-1" x-data="{}" x-init="$el.focus()">
-                <x-md.alert type="danger" title="Настройки не сохранены" :text="$error" />
-            </div>
-        @endif
-
         @if ($search !== '')
             <x-md.card :title="'Результаты поиска: ' . count($fields)">
                 <div class="md-ui-form-stack">

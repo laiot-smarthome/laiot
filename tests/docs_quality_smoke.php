@@ -13,7 +13,7 @@ $root = dirname(__DIR__);
 $docsRoot = str_replace('\\', '/', $root . '/docs');
 
 $allowedCategories = array(
-    'general', 'core', 'data', 'automation', 'ui', 'api',
+    'general', 'core', 'console', 'data', 'automation', 'ui', 'api',
     'integration', 'migration', 'user', 'deploy', 'dev', 'archive', 'agents', 'todo',
 );
 
@@ -97,7 +97,7 @@ foreach ($files as $file) {
     check($cyrillic >= $latin * 0.5, $relative . ': Russian prose must dominate over English');
 }
 
-foreach (array('general', 'core', 'data', 'ui', 'api', 'automation', 'dev', 'agents', 'todo') as $category) {
+foreach (array('general', 'core', 'console', 'data', 'ui', 'api', 'automation', 'dev', 'agents', 'todo') as $category) {
     check(isset($categories[$category]), 'Category "' . $category . '" must contain at least one document');
 }
 

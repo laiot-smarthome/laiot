@@ -27,7 +27,7 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Не удалось сохранить пользователя" :text="$error" />
+        <x-md.notify type="danger" title="Не удалось сохранить пользователя" :text="$error" />
     @endif
 
     <form method="post" action="{{ $isNew ? '/users/create' : '/users/' . $user['id'] . '/edit' }}" class="md-ui-form">

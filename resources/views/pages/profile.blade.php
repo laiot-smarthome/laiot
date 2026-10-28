@@ -19,7 +19,7 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Не удалось сохранить профиль" :text="$error" />
+        <x-md.notify type="danger" title="Не удалось сохранить профиль" :text="$error" />
     @endif
 
     <form method="post" action="/admin/profile" class="md-ui-form">

@@ -43,7 +43,7 @@
                         <td>
                             <div class="md-ui-actions">
                                 @foreach (explode(', ', $route['methods']) as $method)
-                                    <x-md.badge :tone="in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true) ? 'warning' : 'info'">
+                                    <x-md.badge :tone="in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true) ? 'warning' : 'primary'">
                                         {{ $method }}
                                     </x-md.badge>
                                 @endforeach

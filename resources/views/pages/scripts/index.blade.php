@@ -16,12 +16,6 @@
         </x-slot:actions>
     </x-md.page-hero>
 
-    @if ($message !== '')
-        <x-md.alert type="success" :text="$message" />
-    @endif
-    @if ($error !== '')
-        <x-md.alert type="danger" title="Действие не выполнено" :text="$error" />
-    @endif
 
     <x-md.table label="Скрипты">
         <x-slot:toolbar>

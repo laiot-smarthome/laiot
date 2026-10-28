@@ -20,6 +20,7 @@ use RuntimeException;
 /**
  * Настройки окружения: реальная запись только во временный файл, БД — SQLite.
  *
+ * 2026-10-28 — результаты действий проверяются в событии Notify.
  * 2026-10-27 — проверяется UI .env вместо CRUD таблицы settings.
  */
 final class CoreSettingsTest extends TestCase
@@ -89,7 +90,7 @@ final class CoreSettingsTest extends TestCase
             'values' => ['APP_TIMEZONE' => 'UTC', 'APP_DEBUG' => '1'],
         ]);
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('Настройки сохранены', (string)$response->getContent());
+        self::assertStringContainsString('Настройки сохранены', (string)json_encode(json_decode((string)$response->headers->get('Yoyo-Browser-Event'), true), JSON_UNESCAPED_UNICODE));
         $contents = (string)file_get_contents($this->path());
         self::assertStringContainsString('# локальная конфигурация', $contents);
         self::assertStringContainsString('CUSTOM_KEY=keep-me', $contents);
@@ -151,7 +152,7 @@ final class CoreSettingsTest extends TestCase
             'group' => 'general', 'revision' => $this->revision(),
             'values' => ['APP_TIMEZONE' => 'UTC', 'APP_DEBUG' => '1'],
         ], 'GET');
-        self::assertStringContainsString('только через POST', (string)$response->getContent());
+        self::assertStringContainsString('только через POST', (string)json_encode(json_decode((string)$response->headers->get('Yoyo-Browser-Event'), true), JSON_UNESCAPED_UNICODE));
         self::assertSame($this->original, file_get_contents($this->path()));
     }
 

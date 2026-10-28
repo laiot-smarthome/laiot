@@ -75,10 +75,10 @@
     </header>
 
     @if ($done !== '')
-        <x-md.alert type="success" :text="$done" />
+        <x-md.notify type="success" :text="$done" />
     @endif
     @if ($error !== '')
-        <x-md.alert type="danger" title="Топик не сохранён" :text="$error" />
+        <x-md.notify type="danger" title="Топик не сохранён" :text="$error" />
     @endif
 
     <form method="post" action="{{ $isNew ? '/module/mqtt/topics' : '/module/mqtt/topics/' . $id }}" class="md-ui-form">

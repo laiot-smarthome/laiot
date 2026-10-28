@@ -14,7 +14,6 @@ use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Mqtt\RuntimeState;
 use MajorDoMo\Mqtt\Settings;
 use MajorDoMo\Mqtt\TopicService;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -24,6 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
  * но в том же дизайне `md-card`/`md-field`. После сохранения цикл приёма
  * переподключается сам (версия настроек в кэше).
  *
+ * 2026-10-28 — результаты операций передаются Notify без текста в URL.
  * 2026-10-27 — страница настроек MQTT.
  */
 final readonly class SettingsController extends Controller
@@ -51,17 +51,17 @@ final readonly class SettingsController extends Controller
             return $this->render($request, $error->getMessage(), '', 422);
         }
 
-        return new RedirectResponse('/module/mqtt/settings?done=' . rawurlencode('Настройки сохранены, цикл переподключится.'));
+        return $this->panel->redirect('/module/mqtt/settings', 'Настройки сохранены, цикл переподключится.');
     }
 
     public function test(): Response
     {
         $error = $this->service->testConnection();
         if ($error !== null) {
-            return new RedirectResponse('/module/mqtt/settings?error=' . rawurlencode('Брокер недоступен: ' . $error));
+            return $this->panel->redirect('/module/mqtt/settings', 'Брокер недоступен: ' . $error, 'danger');
         }
 
-        return new RedirectResponse('/module/mqtt/settings?done=' . rawurlencode('Соединение с брокером установлено.'));
+        return $this->panel->redirect('/module/mqtt/settings', 'Соединение с брокером установлено.');
     }
 
     private function render(Request $request, string $error, string $done, int $status = 200): Response
@@ -70,8 +70,8 @@ final readonly class SettingsController extends Controller
             'values' => $this->settings->all(),
             'schema' => Settings::schema(),
             'status' => $this->runtime->status(),
-            'error' => $error !== '' ? $error : trim((string)$request->query->get('error', '')),
-            'done' => $done !== '' ? $done : trim((string)$request->query->get('done', '')),
+            'error' => $error,
+            'done' => $done,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 

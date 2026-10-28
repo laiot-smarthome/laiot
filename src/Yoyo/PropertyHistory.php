@@ -14,6 +14,7 @@ use MajorDoMo\History\PropertyHistoryService;
  * себя в drawer и меняет период без отдельного JSON-эндпоинта. Данные считает
  * PropertyHistoryService, график рисует ленивый чанк ApexCharts по data-атрибуту.
  *
+ * 2026-10-28 — анимация выезда запускается только при открытии истории.
  * 2026-10-27 — компонент заменил отдельный /api/v1/panel/history.
  */
 final class PropertyHistory extends Component
@@ -32,6 +33,7 @@ final class PropertyHistory extends Component
     protected $props = ['objectId', 'propertyId', 'title', 'range', 'open'];
 
     private ?PropertyHistoryService $history = null;
+    private bool $animate = false;
 
     public function mount(
         PropertyHistoryService $history,
@@ -48,6 +50,7 @@ final class PropertyHistory extends Component
     public function open(): void
     {
         $this->open = true;
+        $this->animate = true;
     }
 
     public function close(): void
@@ -72,6 +75,7 @@ final class PropertyHistory extends Component
             'data' => $data,
             'title' => $this->title,
             'range' => $this->range,
+            'animate' => $this->animate,
         ]);
     }
 }

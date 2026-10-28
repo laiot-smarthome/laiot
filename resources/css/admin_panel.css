@@ -495,9 +495,9 @@ html[data-bs-theme="dark"] {
 
 /* Modern MajorDoMo admin shell */
 :root {
-  --md-admin-primary: #4792d1;
-  --md-admin-primary-rgb: 71, 146, 209;
-  --md-admin-primary-strong: #2f7fbd;
+  --md-admin-primary: #6355eb;
+  --md-admin-primary-rgb: 99, 85, 235;
+  --md-admin-primary-strong: #5142d6;
   --md-admin-bg: #f5f8fb;
   --md-admin-surface: #ffffff;
   --md-admin-surface-rgb: 255, 255, 255;

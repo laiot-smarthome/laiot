@@ -29,12 +29,6 @@
                     <button type="button" class="btn-close" x-ref="close" yoyo:get="close" aria-label="Закрыть"></button>
                 </div>
                 <div class="modal-body">
-                    @if ($message !== '')
-                        <x-md.alert type="success" :text="$message" />
-                    @endif
-                    @if ($error !== '')
-                        <x-md.alert type="danger" title="Действие не выполнено" :text="$error" />
-                    @endif
 
                     @if ($isForm)
                         <form class="md-ui-form md-ui-form-stack" yoyo:post="save">

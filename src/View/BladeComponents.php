@@ -12,6 +12,7 @@ use Illuminate\View\Compilers\BladeCompiler;
  * Один список и для нового kernel, и для временного BladeRenderer: иначе
  * компонент работает в тесте, но падает на живой странице.
  *
+ * 2026-10-28 — Notify доступен в kernel и standalone-рендерере.
  * 2026-10-27 — зарегистрированы типографика и хлебные крошки.
  * 2026-10-27 — зарегистрированы дерево объектов и просмотр JSON.
  * 2026-10-27 — зарегистрирован календарь и выбор времени.
@@ -68,6 +69,7 @@ final class BladeComponents
         'logo',
         'meter',
         'modal',
+        'notify',
         'object-tree',
         'page-hero',
         'progress',

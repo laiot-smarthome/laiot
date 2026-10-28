@@ -15,7 +15,7 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Не удалось удалить локацию" :text="$error" />
+        <x-md.notify type="danger" title="Не удалось удалить локацию" :text="$error" />
     @endif
 
     <x-md.table label="Локации">

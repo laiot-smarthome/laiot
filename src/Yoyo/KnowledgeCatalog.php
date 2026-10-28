@@ -18,8 +18,8 @@ final class KnowledgeCatalog extends Component
 
     public string $category = '';
 
-    /** @var list<string> */
-    protected $props = ['search', 'category'];
+    /** @var list<string> Поиск приходит из input: hx-vals не должен перекрывать его старым значением. */
+    protected $props = ['category'];
 
     private KnowledgeBase $docs;
 

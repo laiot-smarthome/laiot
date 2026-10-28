@@ -14,6 +14,7 @@ use MajorDoMo\Auth\RoleRepository;
 /**
  * Роли и разрешения внутри раздела пользователей.
  *
+ * 2026-10-28 — Notify отправляется событием браузера из ответа Yoyo.
  * 2026-10-27 — список, форма и подтверждение удаления в одном диалоге;
  * каждый запрос проверяет право, изменения доступны только через POST.
  */
@@ -147,6 +148,13 @@ final class UserRoles extends Component
             $this->name = $role['name'] ?? '';
             $this->title = $role['title'] ?? '';
             $this->selected = $this->roles?->permissionsByRole()[$this->editing] ?? [];
+        }
+
+        if ($this->message !== '') {
+            $this->dispatchBrowserEvent('md:notify', ['tone' => 'success', 'text' => $this->message]);
+        }
+        if ($this->error !== '') {
+            $this->dispatchBrowserEvent('md:notify', ['tone' => 'danger', 'text' => $this->error]);
         }
 
         return $this->view('user-roles', [

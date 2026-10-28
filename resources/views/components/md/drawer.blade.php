@@ -24,7 +24,7 @@
         <div class="md-admin-drawer-backdrop"
              :class="{'is-open': $store.mdDrawer.open === @js($id)}"
              x-cloak
-             x-show="$store.mdDrawer.open === @js($id)"
+             aria-hidden="true"
              @click="$store.mdDrawer.close()"></div>
     @endif
 
@@ -34,7 +34,7 @@
            aria-labelledby="{{ $titleId }}"
            :aria-hidden="$store.mdDrawer.open === @js($id) ? 'false' : 'true'"
            :class="{'is-open': $store.mdDrawer.open === @js($id)}"
-           x-show="$store.mdDrawer.open === @js($id)"
+           :inert="$store.mdDrawer.open !== @js($id)"
            x-effect="if ($store.mdDrawer.open === @js($id)) $nextTick(() => $dispatch('md:panel-opened'))"
            x-cloak
            tabindex="-1"

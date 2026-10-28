@@ -12,7 +12,6 @@ use MajorDoMo\Http\PanelPage;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Modules\ModuleInstaller;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -24,6 +23,7 @@ use Throwable;
  * идут теми же сервисами, что и CLI `module:*`. Core-разделы ядра (объекты,
  * сценарии, пользователи) модулями не являются и здесь не отображаются.
  *
+ * 2026-10-28 — результаты действий передаются Notify через сессию.
  * 2026-10-26 — страница переведена с простого списка `ModuleManager::all()`
  * на реестр установленных модулей и действия enable/disable/install/remove.
  */
@@ -39,17 +39,12 @@ final readonly class ModulesPageController extends Controller
 
     public function __invoke(Request $request): Response
     {
-        $message = trim((string)$request->query->get('done', ''));
-        $error = trim((string)$request->query->get('error', ''));
-
         $content = $this->view->make('pages.modules', [
             'modules' => $this->sortedModules(),
-            'message' => $message,
-            'error' => $error,
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
-        return $this->panel->render(new PanelPage('Модули', $content, 'modules'), $error !== '' ? 422 : 200);
+        return $this->panel->render(new PanelPage('Модули', $content, 'modules'));
     }
 
     public function enable(string $id): Response
@@ -83,12 +78,12 @@ final readonly class ModulesPageController extends Controller
                 default => throw new InvalidArgumentException('Неизвестное действие.'),
             };
         } catch (InvalidArgumentException $error) {
-            return new RedirectResponse('/admin/modules?error=' . rawurlencode($error->getMessage()));
+            return $this->panel->redirect('/admin/modules', $error->getMessage(), 'danger');
         } catch (Throwable $error) {
-            return new RedirectResponse('/admin/modules?error=' . rawurlencode('Не удалось выполнить действие: ' . $error->getMessage()));
+            return $this->panel->redirect('/admin/modules', 'Не удалось выполнить действие: ' . $error->getMessage(), 'danger');
         }
 
-        return new RedirectResponse('/admin/modules?done=' . rawurlencode($success));
+        return $this->panel->redirect('/admin/modules', $success);
     }
 
     /**

@@ -56,7 +56,7 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Не удалось сохранить класс" :text="$error" />
+        <x-md.notify type="danger" title="Не удалось сохранить класс" :text="$error" />
     @endif
 
     @if (!$isNew)

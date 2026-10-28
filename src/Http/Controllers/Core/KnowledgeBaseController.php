@@ -62,5 +62,4 @@ final readonly class KnowledgeBaseController extends Controller
 
         return $this->panel->render(new PanelPage($document['title'], $content, 'knowledge_base'));
     }
-
 }

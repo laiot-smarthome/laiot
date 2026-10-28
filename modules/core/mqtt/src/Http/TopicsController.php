@@ -14,7 +14,6 @@ use MajorDoMo\Mqtt\BindingIndex;
 use MajorDoMo\Mqtt\RuntimeState;
 use MajorDoMo\Mqtt\Settings;
 use MajorDoMo\Mqtt\TopicRepository;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -23,6 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Список живёт в Yoyo-компоненте `mqtt-topics`; здесь только шапка,
  * избранные действия и включение автообновления значений.
  *
+ * 2026-10-28 — результаты операций передаются Notify без текста в URL.
  * 2026-10-27 — страница MQTT вместо alpha `panel/mqtt.html`.
  */
 final readonly class TopicsController extends Controller
@@ -43,8 +43,8 @@ final readonly class TopicsController extends Controller
         $content = $this->view->make('mqtt::index', [
             'settings' => $this->settings->all(),
             'status' => $this->runtime->status(),
-            'done' => trim((string)$request->query->get('done', '')),
-            'error' => trim((string)$request->query->get('error', '')),
+
+
             'csrf' => $this->session->csrfToken(),
             'queries' => $this->settings->queries(),
         ])->render();
@@ -57,13 +57,13 @@ final readonly class TopicsController extends Controller
         $removed = $this->topics->clearTrash();
         $this->bindings->invalidate();
 
-        return new RedirectResponse('/module/mqtt?done=' . rawurlencode('Удалено топиков без привязки: ' . $removed));
+        return $this->panel->redirect('/module/mqtt', 'Удалено топиков без привязки: ' . $removed);
     }
 
     public function pruneHistory(): Response
     {
         $removed = $this->topics->pruneHistory($this->settings->int('history_keep_days'));
 
-        return new RedirectResponse('/module/mqtt?done=' . rawurlencode('История старше срока удалена: ' . $removed));
+        return $this->panel->redirect('/module/mqtt', 'История старше срока удалена: ' . $removed);
     }
 }

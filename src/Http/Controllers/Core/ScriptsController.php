@@ -26,6 +26,7 @@ use Symfony\Component\HttpFoundation\Response;
  * на странице списка: отдельной страницы и форм на главной больше нет.
  *
  * Изменения:
+ * 2026-10-28 — результаты операций передаются Notify без текста в URL.
  * 2026-10-27 — кнопка «Выполнить» и выбор окружения с ядром/без ядра;
  *              синхронный запуск отпускает блокировку сессии.
  * 2026-10-27 — категории вынесены в модалку, вместо расписания — системное событие;
@@ -65,8 +66,8 @@ final readonly class ScriptsController extends Controller
             'categoryCounts' => $this->scripts->categoryCounts(),
             'search' => $search,
             'categoryId' => $categoryId,
-            'message' => trim((string)$request->query->get('done', '')),
-            'error' => trim((string)$request->query->get('error', '')),
+
+
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
@@ -101,7 +102,7 @@ final readonly class ScriptsController extends Controller
 
         $json = json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
-            return new RedirectResponse('/scripts?error=' . rawurlencode('Не удалось сформировать JSON.'));
+            return $this->panel->redirect('/scripts', 'Не удалось сформировать JSON.', 'danger');
         }
 
         return new Response($json, 200, [
@@ -124,7 +125,7 @@ final readonly class ScriptsController extends Controller
         $payload = trim((string)$request->request->get('payload', ''));
         $decoded = json_decode($payload, true);
         if (!is_array($decoded) || !array_is_list($decoded)) {
-            return new RedirectResponse('/scripts/import?error=' . rawurlencode('Ожидается JSON-массив сценариев.'));
+            return $this->panel->redirect('/scripts/import', 'Ожидается JSON-массив сценариев.', 'danger');
         }
 
         $created = 0;
@@ -162,7 +163,7 @@ final readonly class ScriptsController extends Controller
             $created++;
         }
 
-        $query = 'done=' . rawurlencode('Импортировано сценариев: ' . $created . '.');
+        $this->panel->notify('Импортировано сценариев: ' . $created . '.');
         $problems = [];
         if ($invalid !== []) {
             $problems[] = 'Не сохранены: ' . implode('; ', array_slice($invalid, 0, 5));
@@ -171,10 +172,10 @@ final readonly class ScriptsController extends Controller
             $problems[] = 'Пропущены (уже есть): ' . implode(', ', array_slice($skipped, 0, 5));
         }
         if ($problems !== []) {
-            $query .= '&error=' . rawurlencode(implode(' ', $problems));
+            $this->panel->notify(implode(' ', $problems), 'warning');
         }
 
-        return new RedirectResponse('/scripts?' . $query);
+        return new RedirectResponse('/scripts');
     }
 
     public function store(Request $request): Response

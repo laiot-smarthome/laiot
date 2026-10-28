@@ -13,11 +13,13 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Не удалось выпустить токен" :text="$error" />
+        <x-md.notify type="danger" title="Не удалось выпустить токен" :text="$error" />
     @endif
     @if ($issued !== null)
-        <x-md.alert type="success" title="Токен выпущен — скопируйте сейчас"
-                    :text="'Повторно он не показывается: ' . $issued" />
+        <x-md.notify type="success" title="Токен выпущен" text="Скопируйте его: повторно он не показывается." />
+        <x-md.card title="Новый токен">
+            <x-md.code-sample :code="$issued" title="Сохраните токен сейчас" />
+        </x-md.card>
     @endif
 
     <x-md.card title="Выпустить токен" subtitle="Токен действует от имени выбранного пользователя и его ролей">

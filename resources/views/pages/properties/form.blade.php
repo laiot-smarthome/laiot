@@ -43,7 +43,7 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Не удалось сохранить свойство" :text="$error" />
+        <x-md.notify type="danger" title="Не удалось сохранить свойство" :text="$error" />
     @endif
 
     @if ($class !== null || $object !== null)

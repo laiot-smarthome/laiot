@@ -12,7 +12,7 @@
     </x-md.page-hero>
 
     @if (($error ?? '') !== '')
-        <x-md.alert type="danger" title="Импорт не выполнен" :text="$error" />
+        <x-md.notify type="danger" title="Импорт не выполнен" :text="$error" />
     @endif
 
     <form method="post" action="/scripts/import" class="md-ui-form">

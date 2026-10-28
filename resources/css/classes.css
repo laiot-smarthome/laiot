@@ -107,8 +107,8 @@ body.md-admin-shell .md-classes-object-row .md-classes-object-cell::after {
 }
 
 body.md-admin-shell .md-classes-object-icon {
-    color: var(--md-ui-info);
-    background: var(--md-ui-info-soft);
+    color: var(--md-ui-primary);
+    background: var(--md-ui-primary-soft);
 }
 
 body.md-admin-shell .md-classes-object-location {

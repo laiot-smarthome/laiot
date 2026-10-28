@@ -1,114 +1,75 @@
-@php
-    $formatTime = static fn (?string $value): string => ($value === null || $value === '' || strlen($value) < 16)
-        ? '—'
-        : substr($value, 8, 2) . '.' . substr($value, 5, 2) . ' · ' . substr($value, 11, 5);
-    $handled = 0;
-    $failed = 0;
-    foreach ($rows as $row) {
-        if ($row['type'] === 'handler.method') {
-            $handled++;
-        }
-        if (in_array($row['status'], ['error', 'missing'], true)) {
-            $failed++;
-        }
-    }
-@endphp
-
 <div>
-    <div class="md-table-wrap" aria-label="Журнал событий">
-        <div class="md-table__toolbar">
+    <x-md.table label="Цепочки событий">
+        <x-slot:toolbar>
             <div class="md-ui-search">
-                <input class="md-input" type="search" name="search" value="{{ $search }}"
-                       placeholder="Объект, свойство, обработчик или значение"
-                       aria-label="Поиск событий" autocomplete="off"
-                       yoyo:on="keyup delay:300ms changed">
-                <select class="md-table__filter" name="type" aria-label="Тип события" yoyo>
-                    <option value="">Все типы</option>
-                    @foreach (array_keys($typeLabels) as $value)
-                        <option value="{{ $value }}" @selected($type === $value)>{{ $typeLabels[$value] }}</option>
+                <x-md.input type="search" name="search" id="event-chain-search" :value="$search"
+                            placeholder="ID цепочки, источник, объект или действие" aria-label="Поиск цепочек"
+                            autocomplete="off" yoyo:get="filter" yoyo:on="input delay:300ms changed" />
+                <select class="md-table__filter" name="type" aria-label="Тип шага в цепочке" yoyo:get="filter">
+                    <option value="">Все типы шагов</option>
+                    @foreach ($typeLabels as $value => $label)
+                        <option value="{{ $value }}" @selected($type === $value)>{{ $label }}</option>
                     @endforeach
                 </select>
-                <select class="md-table__filter" name="status" aria-label="Статус события" yoyo>
-                    <option value="">Все статусы</option>
-                    @foreach (array_keys($statusLabels) as $value)
-                        <option value="{{ $value }}" @selected($status === $value)>{{ $statusLabels[$value] }}</option>
+                <select class="md-table__filter" name="status" aria-label="Статус шага в цепочке" yoyo:get="filter">
+                    <option value="">Все статусы шагов</option>
+                    @foreach ($statusLabels as $value => $label)
+                        <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
                     @endforeach
                 </select>
-                <button type="button" class="md-btn md-btn--secondary" yoyo:get="reset" aria-label="Сбросить фильтры">
-                    <i class="ti ti-filter-off" aria-hidden="true"></i><span class="md-btn__label">Сбросить</span>
-                </button>
+                <x-md.button variant="secondary" icon="filter-off" yoyo:get="reset">Сбросить</x-md.button>
             </div>
-            <div class="md-table__meta">
-                Шагов: {{ count($rows) }} · обработчиков: {{ $handled }} · с ошибкой: {{ $failed }}
-            </div>
-        </div>
-
-        @if ($rows === [])
-            <div class="md-empty">
-                <span class="md-empty__icon"><i class="ti ti-bolt" aria-hidden="true"></i></span>
-                <div class="md-empty__title">Событий не найдено</div>
-                <p class="md-empty__text">Измените фильтры или сбросьте поиск.</p>
-            </div>
-        @else
-            <div class="md-table__scroll">
-                <table class="md-table">
-                    <thead>
+            <div class="md-table__meta" role="status" aria-live="polite">Цепочек на странице: {{ count($chains) }}</div>
+        </x-slot:toolbar>
+        @if ($chains !== [])
+            <x-slot:head>
+                <th scope="col">Цепочка</th>
+                <th scope="col">Запущена</th>
+                <th scope="col">Источник</th>
+                <th scope="col">Первое действие</th>
+                <th scope="col">Шагов</th>
+                <th scope="col">Состояние</th>
+                <th scope="col"><span class="visually-hidden">Действия</span></th>
+            </x-slot:head>
+            <x-slot:body>
+                @foreach ($chains as $chain)
                     <tr>
-                        <th scope="col">Время</th>
-                        <th scope="col">Тип</th>
-                        <th scope="col">Объект / свойство</th>
-                        <th scope="col">Значение</th>
-                        <th scope="col">Обработчик</th>
-                        <th scope="col">Статус</th>
+                        <td><strong>#{{ $chain['id'] }}</strong>
+                            @if ($chain['partial'])<div class="md-table__muted">Часть цепочки</div>@endif
+                        </td>
+                        <td>{{ \MajorDoMo\Events\EventChainService::formatTime($chain['root']['created_at']) }}</td>
+                        <td><span title="{{ $chain['root']['source'] }}">{{ \MajorDoMo\Events\EventChainService::sourceLabel($chain['root']['source']) }}</span></td>
+                        <td>
+                            <strong>{{ $chain['root']['object_title'] }}.{{ $chain['root']['type'] === 'property.changed' ? $chain['root']['property_title'] : $chain['root']['handler'] }}</strong>
+                            @if ($chain['root']['type'] === 'property.changed')
+                                <div class="md-table__muted">{{ $chain['root']['old_value'] === '' ? '∅' : $chain['root']['old_value'] }} → {{ $chain['root']['new_value'] === '' ? '∅' : $chain['root']['new_value'] }}</div>
+                            @endif
+                        </td>
+                        <td>{{ $chain['count'] }}</td>
+                        <td><x-md.badge :tone="$chainTones[$chain['status']]">{{ $chainLabels[$chain['status']] }}</x-md.badge></td>
+                        <td>
+                            <a class="md-btn md-btn--secondary md-btn--sm"
+                               href="/events?{{ http_build_query($context + ['chain' => $chain['id']]) }}"
+                               yoyo:get="open({{ $chain['id'] }})" aria-label="Подробнее о цепочке #{{ $chain['id'] }}">
+                                <span class="md-btn__label">Подробнее</span><x-md.icon name="arrow-right" />
+                            </a>
+                        </td>
                     </tr>
-                    </thead>
-                    <tbody>
-                    @foreach ($rows as $row)
-                        <tr @if ($row['chain'] !== []) title="Цепочка: {{ implode(' → ', $row['chain']) }}" @endif>
-                            <td>
-                                <span class="md-table__muted">{{ $formatTime($row['created_at']) }}</span>
-                                @if ($row['depth'] > 0)
-                                    <span class="md-table__muted">· шаг {{ $row['depth'] }}</span>
-                                @endif
-                            </td>
-                            <td><span class="md-badge md-badge--{{ $row['type'] === 'property.changed' ? 'info' : 'neutral' }}">{{ $typeLabels[$row['type']] ?? $row['type'] }}</span></td>
-                            <td>
-                                <div class="md-table__name">
-                                    <span class="md-table__icon"><i class="ti ti-box" aria-hidden="true"></i></span>
-                                    <div>
-                                        <strong>{{ $row['object_title'] !== '' ? $row['object_title'] : '—' }}</strong>
-                                        <small>{{ $row['property_title'] !== '' ? $row['property_title'] : '—' }}</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                @if ($row['type'] === 'property.changed')
-                                    <span class="md-table__muted">{{ $row['old_value'] !== '' ? $row['old_value'] : '—' }}</span>
-                                    <i class="ti ti-arrow-right" aria-hidden="true"></i>
-                                @endif
-                                <span class="md-table__value">{{ $row['new_value'] !== '' ? $row['new_value'] : '—' }}</span>
-                            </td>
-                            <td>
-                                @if ($row['handler'] !== '')
-                                    <code class="md-table__code">{{ $row['handler'] }}</code>
-                                @endif
-                                @if ($row['message'] !== '')
-                                    <div class="md-table__muted" title="{{ $row['message'] }}">{{ mb_strimwidth($row['message'], 0, 70, '…') }}</div>
-                                @endif
-                            </td>
-                            <td>
-                                <span class="md-badge md-badge--{{ $statusTones[$row['status']] ?? 'neutral' }}">
-                                    {{ $statusLabels[$row['status']] ?? $row['status'] }}
-                                </span>
-                                @if ($row['source'] !== '')
-                                    <div class="md-table__muted">{{ $row['source'] }}</div>
-                                @endif
-                            </td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
+                @endforeach
+            </x-slot:body>
+        @else
+            <x-slot:empty>
+                <x-md.empty-state icon="route" title="Цепочки не найдены"
+                                  text="Измените запрос или сбросьте фильтры. Новые цепочки появятся после обработки изменений свойств." />
+            </x-slot:empty>
         @endif
-    </div>
+        <x-slot:footer>
+            <span>Поиск и фильтры находят цепочку по любому её шагу.</span>
+            <div class="md-ui-actions">
+                <x-md.button variant="ghost" size="sm" icon="chevron-left" yoyo:get="previousPage" :disabled="$page <= 1">Назад</x-md.button>
+                <span>Страница {{ $page }}</span>
+                <x-md.button variant="ghost" size="sm" icon-after="chevron-right" yoyo:get="nextPage" :disabled="!$more">Далее</x-md.button>
+            </div>
+        </x-slot:footer>
+    </x-md.table>
 </div>

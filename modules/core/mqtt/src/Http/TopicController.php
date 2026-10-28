@@ -15,7 +15,6 @@ use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Locations\LocationRepository;
 use MajorDoMo\Mqtt\TopicRepository;
 use MajorDoMo\Mqtt\TopicService;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -25,6 +24,7 @@ use Throwable;
  * Форма сохраняется обычным POST с CSRF (это изменяющая операция, а не
  * состояние UI). Список топиков справа/ниже обновляет Yoyo-компонент.
  *
+ * 2026-10-28 — результаты операций передаются Notify без текста в URL.
  * 2026-10-27 — редактор топика вместо alpha `edit_mqtt`.
  */
 final readonly class TopicController extends Controller
@@ -48,10 +48,10 @@ final readonly class TopicController extends Controller
     {
         $topic = $this->topics->find($id);
         if ($topic === null) {
-            return new RedirectResponse('/module/mqtt?error=' . rawurlencode('Топик не найден.'));
+            return $this->panel->redirect('/module/mqtt', 'Топик не найден.', 'danger');
         }
 
-        return $this->form($topic, $id, '', trim((string)$request->query->get('done', '')));
+        return $this->form($topic, $id, '', '');
     }
 
     public function store(Request $request): Response
@@ -68,7 +68,7 @@ final readonly class TopicController extends Controller
     {
         $this->service->delete($id);
 
-        return new RedirectResponse('/module/mqtt?done=' . rawurlencode('Топик удалён.'));
+        return $this->panel->redirect('/module/mqtt', 'Топик удалён.');
     }
 
     public function publish(int $id, Request $request): Response
@@ -77,12 +77,10 @@ final readonly class TopicController extends Controller
         try {
             $this->service->publishTest($id, $value);
         } catch (Throwable $error) {
-            return new RedirectResponse(
-                '/module/mqtt/topics/' . $id . '/edit?error=' . rawurlencode('Команда не отправлена: ' . $error->getMessage())
-            );
+            return $this->panel->redirect('/module/mqtt/topics/' . $id . '/edit', 'Команда не отправлена: ' . $error->getMessage(), 'danger');
         }
 
-        return new RedirectResponse('/module/mqtt/topics/' . $id . '/edit?done=' . rawurlencode('Команда отправлена.'));
+        return $this->panel->redirect('/module/mqtt/topics/' . $id . '/edit', 'Команда отправлена.');
     }
 
     private function save(int $id, Request $request): Response
@@ -98,7 +96,7 @@ final readonly class TopicController extends Controller
             return $this->form($input, $id, 'Топик не сохранён: путь уже занят или данные некорректны.', '');
         }
 
-        return new RedirectResponse('/module/mqtt/topics/' . (int)$saved['id'] . '/edit?done=' . rawurlencode('Топик сохранён.'));
+        return $this->panel->redirect('/module/mqtt/topics/' . (int)$saved['id'] . '/edit', 'Топик сохранён.');
     }
 
     /**

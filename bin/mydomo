@@ -10,41 +10,6 @@ if (PHP_SAPI !== 'cli') {
 
 $app = require dirname(__DIR__) . '/bootstrap/app.php';
 
-$console = new Symfony\Component\Console\Application(
-    'MyDoMo',
-    (string)$app->config('version', 'dev')
-);
-$console->add(new MajorDoMo\Console\AboutCommand($app));
-$console->add(new MajorDoMo\Console\DoctorCommand($app));
-$console->add(new MajorDoMo\Console\MaintenanceCommand(new MajorDoMo\Support\MaintenanceMode($app->root())));
-$console->add(new MajorDoMo\Console\TimeoutRunCommand(
-    $app->container()->make(MajorDoMo\Runtime\TimeoutRepository::class),
-    $app->container()->make(MajorDoMo\Runtime\CodeRunner::class)
-));
-$console->add(new MajorDoMo\Console\HealthCommand($app));
-$console->add(new MajorDoMo\Console\CacheClearCommand($app));
-$installer = $app->container()->make(MajorDoMo\Modules\ModuleInstaller::class);
-$console->add(new MajorDoMo\Console\ModuleListCommand($installer));
-$console->add(new MajorDoMo\Console\ModuleInstallCommand($installer));
-$console->add(new MajorDoMo\Console\ModuleEnableCommand($installer));
-$console->add(new MajorDoMo\Console\ModuleDisableCommand($installer));
-$console->add(new MajorDoMo\Console\ModuleRemoveCommand($installer));
-$console->add(new MajorDoMo\Console\ModuleValidateCommand($app->root()));
-$console->add(new MajorDoMo\Console\ModuleCheckCommand(
-    $app->container()->make(MajorDoMo\Modules\ModuleManager::class),
-    $app->container()->make(MajorDoMo\Modules\ModuleChecker::class)
-));
-$console->add(new MajorDoMo\Console\WorkerCommand($app->container()->make(MajorDoMo\Worker\Worker::class)));
-$console->add(new MajorDoMo\Console\CoreWorkerCommand($app->container()->make(MajorDoMo\Worker\CoreWorker::class)));
-$console->add(new MajorDoMo\Console\PruneCommand($app->container()->make(MajorDoMo\Maintenance\RetentionPruner::class)));
-$console->add(new MajorDoMo\Console\RouteListCommand($app));
-$console->add(new MajorDoMo\Console\QueueStatsCommand($app));
-$console->add(new MajorDoMo\Console\QueueWorkCommand($app));
-$console->add(new MajorDoMo\Console\QueueFailedCommand($app));
-$console->add(new MajorDoMo\Console\QueueRetryCommand($app));
-$console->add(new MajorDoMo\Console\ApiTokenCommand($app));
-$console->add(new MajorDoMo\Console\UserCreateCommand($app->container()->make(MajorDoMo\Auth\UserRepository::class)));
-$console->add(new MajorDoMo\Console\MigrateCommand($app));
-$console->add(new MajorDoMo\Console\MigrateStatusCommand($app));
+$console = MajorDoMo\Console\ConsoleFactory::make($app);
 
 exit($console->run());

@@ -25,7 +25,7 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Класс не удалён" :text="$error" />
+        <x-md.notify type="danger" title="Класс не удалён" :text="$error" />
     @endif
 
     @if (!$hasClasses)

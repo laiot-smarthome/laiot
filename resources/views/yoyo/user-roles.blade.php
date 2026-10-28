@@ -18,8 +18,6 @@
                     @if (!$allowed)
                         <x-md.alert type="danger" text="Требуется право управления пользователями." />
                     @else
-                        @if ($error !== '')<x-md.alert type="danger" title="Действие не выполнено" :text="$error" />@endif
-                        @if ($message !== '')<x-md.alert type="success" :text="$message" />@endif
                         @if ($editingForm)
                             <form class="md-ui-form md-ui-form-stack" yoyo:post="save">
                                 <x-md.input name="role_title" label="Название роли" :value="$title" required maxlength="191" autofocus />

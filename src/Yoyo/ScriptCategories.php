@@ -16,6 +16,7 @@ use MajorDoMo\Scripts\ScriptRepository;
  * перерисовывает Yoyo, страница не перезагружается. Изменяющие действия
  * отправляются POST с CSRF, поэтому бизнес-операция не выполняется по GET.
  *
+ * 2026-10-28 — Notify отправляется событием браузера из ответа Yoyo.
  * 2026-10-27 — список и форма стали двумя состояниями модалки.
  * 2026-10-27 — категории вынесены с главной страницы сценариев в модалку.
  */
@@ -33,9 +34,9 @@ final class ScriptCategories extends Component
 
     public int $confirming = 0;
 
-    public string $error = '';
+    private string $error = '';
 
-    public string $message = '';
+    private string $message = '';
 
     /**
      * Название для формы.
@@ -47,7 +48,7 @@ final class ScriptCategories extends Component
     private string $title = '';
 
     /** @var list<string> */
-    protected $props = ['open', 'view', 'editing', 'confirming', 'error', 'message'];
+    protected $props = ['open', 'view', 'editing', 'confirming'];
 
     private ?ScriptRepository $scripts = null;
 
@@ -186,6 +187,13 @@ final class ScriptCategories extends Component
 
     public function render(): mixed
     {
+        if ($this->message !== '') {
+            $this->dispatchBrowserEvent('md:notify', ['tone' => 'success', 'text' => $this->message]);
+        }
+        if ($this->error !== '') {
+            $this->dispatchBrowserEvent('md:notify', ['tone' => 'danger', 'text' => $this->error]);
+        }
+
         return $this->view('script-categories', [
             'categories' => $this->scripts?->categories() ?? [],
             'counts' => $this->scripts?->categoryCounts() ?? [],

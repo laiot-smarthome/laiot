@@ -1,7 +1,7 @@
 @props(['tone' => 'neutral', 'dot' => false])
 
 @php
-    $tones = ['neutral', 'primary', 'info', 'success', 'warning', 'danger', 'outline'];
+    $tones = ['neutral', 'primary', 'info', 'success', 'warning', 'danger', 'outline', 'brand'];
     $tone = in_array($tone, $tones, true) ? $tone : 'neutral';
 @endphp
 

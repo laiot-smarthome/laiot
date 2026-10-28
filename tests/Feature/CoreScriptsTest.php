@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Сценарии: CRUD, проверка синтаксиса, категории в модалке, экспорт и импорт.
  *
+ * 2026-10-28 — результаты действий проверяются в событии Notify.
  * 2026-10-27 — категории управляются Yoyo-компонентом, вместо расписания —
  *              системное событие; невалидный код не сохраняется.
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
@@ -23,6 +24,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class CoreScriptsTest extends TestCase
 {
+    private string $browserEventText = '';
+
     protected function tearDown(): void
     {
         Yoyo::request()->reset();
@@ -222,7 +225,7 @@ final class CoreScriptsTest extends TestCase
             'view' => 'form',
             'title' => 'Освещение',
         ]);
-        self::assertStringContainsString('Категория создана.', $list);
+        self::assertStringContainsString('Категория создана.', $this->browserEventText);
         self::assertStringContainsString('Всего категорий: 1', $list);
         $categoryId = (int)$app->database()->connection()->table('script_categories')->value('id');
         self::assertGreaterThan(0, $categoryId);
@@ -250,7 +253,7 @@ final class CoreScriptsTest extends TestCase
             'title' => 'Свет',
         ]);
         self::assertSame('Свет', $app->database()->connection()->table('script_categories')->value('title'));
-        self::assertStringContainsString('Категория переименована.', $renamed);
+        self::assertStringContainsString('Категория переименована.', $this->browserEventText);
         self::assertStringContainsString('Всего категорий: 1', $renamed);
 
         $deleted = $this->yoyo($app, $session, [
@@ -260,7 +263,7 @@ final class CoreScriptsTest extends TestCase
             'confirming' => (string)$categoryId,
             'actionArgs' => json_encode([$categoryId], JSON_THROW_ON_ERROR),
         ]);
-        self::assertStringContainsString('Категория удалена', $deleted);
+        self::assertStringContainsString('Категория удалена', $this->browserEventText);
         self::assertNull($app->database()->connection()->table('script_categories')->whereNull('deleted_at')->first());
         self::assertSame(0, (int)$app->database()->connection()->table('scripts')->where('id', $scriptId)->value('category_id'));
     }
@@ -298,16 +301,18 @@ final class CoreScriptsTest extends TestCase
         self::assertTrue($scripts->findByTitle('Импортированный')['use_core']);
         self::assertNull($scripts->findByTitle('Сломанный'));
         self::assertSame(2, (int)$app->database()->connection()->table('scripts')->whereNull('deleted_at')->count());
-        $location = rawurldecode((string)$import->headers->get('Location'));
-        self::assertStringContainsString('Пропущены (уже есть): Утренний свет', $location);
-        self::assertStringContainsString('Не сохранены: Сломанный', $location);
+        $location = (string)$import->headers->get('Location');
+        self::assertSame('/scripts', $location);
+        $result = (string)$app->handle(Request::create($location, 'GET'))->getContent();
+        self::assertStringContainsString('Пропущены (уже есть): Утренний свет', $result);
+        self::assertStringContainsString('Не сохранены: Сломанный', $result);
 
         $bad = $app->handle(Request::create('/scripts/import', 'POST', [
             '_token' => $session->csrfToken(),
             'payload' => 'не json',
         ]));
         self::assertSame(302, $bad->getStatusCode());
-        self::assertStringContainsString('/scripts/import?error=', (string)$bad->headers->get('Location'));
+        self::assertSame('/scripts/import', $bad->headers->get('Location'));
     }
 
     /**
@@ -326,6 +331,7 @@ final class CoreScriptsTest extends TestCase
         ]));
         self::assertSame(200, $response->getStatusCode());
 
+        $this->browserEventText = (string)json_encode(json_decode((string)$response->headers->get('Yoyo-Browser-Event'), true), JSON_UNESCAPED_UNICODE);
         Yoyo::request()->reset();
 
         return (string)$response->getContent();

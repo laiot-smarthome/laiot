@@ -24,7 +24,7 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Не удалось сохранить webhook" :text="$error" />
+        <x-md.notify type="danger" title="Не удалось сохранить webhook" :text="$error" />
     @endif
 
     <form method="post" action="{{ $webhook === null ? '/api' : '/api/' . $webhook['id'] }}" class="md-ui-form">

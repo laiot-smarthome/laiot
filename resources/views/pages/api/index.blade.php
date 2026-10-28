@@ -15,11 +15,11 @@
     </x-md.page-hero>
 
     @if ($message !== '')
-        <x-md.alert type="success" :text="$message" />
+        <x-md.notify type="success" :text="$message" />
     @endif
 
     @if ($newSecret !== null)
-        <x-md.alert type="warning" title="Секрет создан и показывается один раз"
+        <x-md.notify type="warning" title="Секрет создан и показывается один раз"
                     text="Сохраните его сейчас: целиком он больше не отображается." />
         <x-md.card title="URL для вызова" subtitle="Передайте секрет в URL; методы и обработчик заданы в webhook">
             <code class="md-table__code">/api/v1/webhooks/{{ $newSecret }}</code>

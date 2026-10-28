@@ -18,6 +18,7 @@ use League\CommonMark\MarkdownConverter;
  * базы знаний, картинки и прочие файлы — в `/docs/...`. Заголовки получают
  * id, по ним строится оглавление.
  *
+ * 2026-10-28 — блоки кода получили кнопки копирования в базе знаний.
  * 2026-10-26 — модуль knowledge_base на новом ядре MyDoMo.
  */
 final class MarkdownRenderer
@@ -101,6 +102,25 @@ final class MarkdownRenderer
             if ($url !== null) {
                 $image->setAttribute('src', $url);
             }
+        }
+
+        foreach ($xpath->query('.//pre[code]', $root) ?: [] as $pre) {
+            if (!$pre instanceof DOMElement) {
+                continue;
+            }
+            $wrapper = $dom->createElement('div');
+            $wrapper->setAttribute('class', 'md-code-sample');
+            $head = $dom->createElement('div');
+            $head->setAttribute('class', 'md-code-sample__head');
+            $button = $dom->createElement('button', 'Копировать');
+            $button->setAttribute('type', 'button');
+            $button->setAttribute('class', 'md-code-sample__copy');
+            $button->setAttribute('data-kb-copy', '');
+            $button->setAttribute('aria-live', 'polite');
+            $head->appendChild($button);
+            $pre->parentNode?->replaceChild($wrapper, $pre);
+            $wrapper->appendChild($head);
+            $wrapper->appendChild($pre);
         }
 
         $output = '';

@@ -33,6 +33,15 @@
 - Статика — `public/assets`, исходники — `resources/js` и `resources/css`;
   сборка `npm run build`. Библиотеки локально через npm, без CDN и новых
   script/link на библиотеки в шаблоне.
+- Результат любой операции админки — через Notify (`x-md.notify` или
+  `$store.mdToasts.push()`), справа снизу; не через баннер в контенте.
+  Ошибки полей остаются рядом с полями. Постоянные состояния страницы —
+  отдельные информационные блоки. Контракт — [ui-kit.md](docs/mydomo/ui-kit.md).
+- Текст Notify не передавать в GET: Yoyo отправляет `md:notify` через
+  `dispatchBrowserEvent()`, обычный POST/redirect — одноразовую сессию
+  через `PanelRenderer::redirect()`.
+- Новую или изменённую CLI-команду сразу описывать в
+  [console.md](docs/mydomo/console.md): параметры, умолчания, пример.
 - Конфигурация — `.env` + Config со схемой; не добавлять define/getenv в
   модули. Текущие параметры — [configuration.md](docs/mydomo/configuration.md).
 - Пользовательские обёртки нового ядра — `src/Support/helpers`, справочник

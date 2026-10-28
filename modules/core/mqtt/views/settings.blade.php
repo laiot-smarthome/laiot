@@ -21,10 +21,10 @@
     </x-md.page-hero>
 
     @if ($done !== '')
-        <x-md.alert type="success" :text="$done" />
+        <x-md.notify type="success" :text="$done" />
     @endif
     @if ($error !== '')
-        <x-md.alert type="danger" title="Настройки не сохранены" :text="$error" />
+        <x-md.notify type="danger" title="Настройки не сохранены" :text="$error" />
     @endif
 
     <div class="md-mqtt-connection">

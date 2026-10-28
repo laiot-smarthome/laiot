@@ -13,10 +13,44 @@
 @import 'ui-system.css';
 @import 'admin_panel.css';
 @import 'classes.css';
+@import 'knowledge-base.css';
+@import 'events.css';
+
+/* Панели перекрывают страницу от правого края; display не прерывает выезд. */
+body.md-admin-shell :is(.md-admin-drawer, .md-admin-search-drawer) {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    margin: 0;
+    width: min(var(--md-admin-drawer-width, 720px), 100%);
+    max-height: 100dvh;
+    border: 0;
+    border-left: 1px solid var(--md-ui-border);
+    border-radius: 0;
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform 240ms cubic-bezier(.2, .7, .2, 1), visibility 0s linear 240ms;
+}
+body.md-admin-shell .md-admin-drawer.is-open,
+body.md-admin-shell.md-admin-drawer-open > #mdAdminDrawerHost,
+body.md-admin-shell.md-admin-search-open .md-admin-search-drawer {
+    transform: translateX(0);
+    visibility: visible;
+    transition-delay: 0s;
+}
+@media (max-width: 767.98px) {
+    body.md-admin-shell :is(.md-admin-drawer, .md-admin-search-drawer) { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    body.md-admin-shell :is(.md-admin-drawer, .md-admin-search-drawer, .md-admin-drawer-backdrop, .md-admin-search-backdrop) { transition: none; }
+}
 
 /* Оболочка общая для ядра и модулей: отступы и фокус задаются один раз. */
-body.md-admin-shell { --md-shell-nav-text: #f8fafc; --md-shell-nav-accent: #9ccbf0; --md-shell-nav-muted: rgba(226, 232, 240, .68); --md-shell-nav-accent-bg: rgba(108, 178, 232, .16); font-family: var(--md-ui-font); line-height: 1.5; letter-spacing: 0; }
+body.md-admin-shell { --md-shell-nav-text: #f8fafc; --md-shell-nav-accent: #8b7bff; --md-shell-nav-muted: rgba(226, 232, 240, .68); --md-shell-nav-accent-bg: rgba(109, 94, 252, .18); font-family: var(--md-ui-font); line-height: 1.5; letter-spacing: 0; }
 .md-shell-skip { position: fixed; z-index: 2000; top: 8px; left: 8px; padding: 10px 14px; transform: translateY(-160%); border-radius: var(--md-ui-radius-sm); background: var(--md-ui-surface); color: var(--md-ui-text); box-shadow: var(--md-ui-shadow-pop); }
+/* main принимает фокус skip-ссылки и восстановления страницы, но не является контролом. */
+body.md-admin-shell .md-admin-main:focus { outline: none; }
 .md-shell-skip:focus { transform: translateY(0); }
 body.md-admin-shell .md-admin-topbar { border-radius: var(--md-ui-radius-md); background: var(--md-ui-surface); box-shadow: var(--md-ui-shadow); }
 @supports (backdrop-filter: blur(14px)) and (background: color-mix(in srgb, white 85%, transparent)) {
@@ -558,6 +592,18 @@ body.md-admin-shell .md-data-table__grid.tabulator .tabulator-footer { padding: 
     white-space: normal;
 }
 
+.md-modules-grid .md-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.md-modules-grid .md-card__body > .md-ui-actions:last-child {
+    margin-top: auto;
+}
+
+
+
 @media (max-width: 575.98px) {
     .md-modules-grid {
         grid-template-columns: minmax(0, 1fr);
@@ -581,6 +627,7 @@ body.md-admin-shell .md-data-table__grid.tabulator .tabulator-footer { padding: 
     position: absolute;
     inset: 0;
     background: rgba(8, 15, 25, .52);
+    transition: opacity 240ms ease;
 }
 
 .md-history-panel {
@@ -592,6 +639,16 @@ body.md-admin-shell .md-data-table__grid.tabulator .tabulator-footer { padding: 
     background: var(--md-ui-surface);
     border-left: 1px solid var(--md-ui-border);
     box-shadow: var(--md-ui-shadow-pop);
+    transition: transform 240ms cubic-bezier(.2, .7, .2, 1);
+}
+
+.md-history-panel--enter { animation: md-drawer-enter 240ms cubic-bezier(.2, .7, .2, 1); }
+.md-history-overlay.is-closing .md-history-panel { transform: translateX(100%); }
+.md-history-overlay.is-closing .md-history-backdrop { opacity: 0; }
+@keyframes md-drawer-enter { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) {
+    .md-history-panel, .md-history-backdrop { transition: none; }
+    .md-history-panel--enter { animation: none; }
 }
 
 .md-history-panel__header {
@@ -1320,6 +1377,7 @@ body.md-admin-shell .md-admin-sidebar__brand-shell {
 body.md-admin-shell .md-admin-sidebar__brand {
     display: flex;
     width: 100%;
+    max-width: 125px;
     min-height: 0;
     align-items: center;
     justify-content: flex-start;
@@ -1333,7 +1391,7 @@ body.md-admin-shell .md-admin-sidebar__brand {
 body.md-admin-shell .md-admin-sidebar__logo {
     display: block;
     flex: 0 0 auto;
-    width: 142px;
+    width: 114px;
     max-width: 100%;
     height: auto;
     opacity: .98;
@@ -1407,8 +1465,8 @@ body.md-admin-shell .md-nav__group {
 }
 
 body.md-admin-shell .md-nav__group + .md-nav__group {
-    border-top: 1px solid var(--md-nav-line);
-    padding-top: 5px;
+    border-top: none;
+    padding-top: 4px;
 }
 
 body.md-admin-shell .md-nav__group-toggle {
@@ -1609,7 +1667,7 @@ body.md-admin-shell .md-nav__catalog.is-active > .md-nav__sub > .md-nav__catalog
 }
 
 body.md-admin-shell .md-nav__catalog.is-active > .md-nav__sub > .md-nav__catalog-toggle .md-nav__catalog-icon {
-    color: #9ccbf0;
+    color: #8b7bff;
 }
 
 body.md-admin-shell .md-nav__list--sub {
@@ -1929,10 +1987,11 @@ body.md-admin-shell .md-sidebar-toggle-glyph--expand {
 
     body.md-admin-shell .md-admin-sidebar__brand {
         width: auto;
+        max-width: none;
     }
 
     body.md-admin-shell .md-admin-sidebar__logo {
-        width: 132px;
+        width: 106px;
     }
 
     body.md-admin-shell .md-admin-sidebar__close {
@@ -1958,4 +2017,149 @@ body.md-admin-shell .md-sidebar-toggle-glyph--expand {
     body.md-admin-shell .md-admin-sidebar__profile {
         padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
     }
+}
+
+
+/* --- Спойлер / компактный раскрывающийся блок ------------------------ */
+
+body.md-admin-shell .md-spoiler {
+    display: block;
+    margin: 4px 0;
+    padding: 0;
+    border-radius: var(--md-ui-radius, 12px);
+    transition: border-color .15s ease, background-color .15s ease;
+}
+
+body.md-admin-shell .md-spoiler summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+}
+
+body.md-admin-shell .md-spoiler summary::-webkit-details-marker {
+    display: none;
+}
+
+body.md-admin-shell .md-spoiler summary::marker {
+    content: "";
+    display: none;
+}
+
+body.md-admin-shell .md-spoiler__summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    color: var(--md-ui-muted);
+    font-size: var(--md-ui-fs-sm);
+    font-weight: 500;
+    border-radius: inherit;
+    transition: color .15s ease, background-color .15s ease;
+}
+
+body.md-admin-shell .md-spoiler__summary:hover {
+    color: var(--md-ui-text);
+}
+
+body.md-admin-shell .md-spoiler__summary:focus-visible {
+    outline: 2px solid var(--md-ui-primary);
+    outline-offset: 2px;
+}
+
+body.md-admin-shell .md-spoiler__icon {
+    flex: 0 0 auto;
+    font-size: 1.05em;
+    color: var(--md-ui-primary);
+}
+
+body.md-admin-shell .md-spoiler__header {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+}
+
+body.md-admin-shell .md-spoiler__title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.md-admin-shell .md-spoiler__description {
+    margin-top: 2px;
+    color: var(--md-ui-muted);
+    font-size: var(--md-ui-fs-xs);
+    font-weight: 400;
+}
+
+body.md-admin-shell .md-spoiler__chevron {
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: var(--md-ui-muted);
+    font-size: .9em;
+    transition: transform .18s ease, color .15s ease;
+}
+
+body.md-admin-shell .md-spoiler[open] > .md-spoiler__summary .md-spoiler__chevron {
+    transform: rotate(180deg);
+    color: var(--md-ui-primary);
+}
+
+body.md-admin-shell .md-spoiler[open] > .md-spoiler__summary {
+    color: var(--md-ui-text);
+}
+
+body.md-admin-shell .md-spoiler__body {
+    padding: 10px 12px 12px;
+    font-size: var(--md-ui-fs-sm);
+    color: var(--md-ui-text);
+}
+
+/* Вариант subtle (по умолчанию) */
+body.md-admin-shell .md-spoiler--subtle {
+    background: var(--md-ui-surface-2);
+    border: 1px solid var(--md-ui-border);
+}
+
+body.md-admin-shell .md-spoiler--subtle[open] {
+    border-color: rgba(99, 85, 235, .25);
+}
+
+body.md-admin-shell .md-spoiler--subtle[open] > .md-spoiler__summary {
+    border-bottom: 1px solid var(--md-ui-border);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Вариант card — самостоятельный блок-аккордеон */
+body.md-admin-shell .md-spoiler--card {
+    background: var(--md-ui-surface);
+    border: 1px solid var(--md-ui-border);
+    box-shadow: var(--md-ui-shadow-xs);
+}
+
+body.md-admin-shell .md-spoiler--card[open] {
+    box-shadow: var(--md-ui-shadow);
+}
+
+body.md-admin-shell .md-spoiler--card[open] > .md-spoiler__summary {
+    border-bottom: 1px solid var(--md-ui-border);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Вариант flush — компактная ссылка-спойлер без рамки */
+body.md-admin-shell .md-spoiler--flush {
+    background: transparent;
+    border: 0;
+}
+
+body.md-admin-shell .md-spoiler--flush .md-spoiler__summary {
+    padding: 4px 0;
+}
+
+body.md-admin-shell .md-spoiler--flush .md-spoiler__body {
+    padding: 8px 0 8px 14px;
+    margin-left: 4px;
+    border-left: 2px solid var(--md-ui-border);
 }

@@ -29,6 +29,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Подписки выбирает пользователь: страница показывает действующие свойства
  * выбранного объекта, а не заставляет модуль рисовать собственную таблицу.
  *
+ * 2026-10-28 — результаты сохранения передаются одноразовым Notify.
  * 2026-10-27 — общий экран настроек и подписок вместо самодельных форм модулей.
  */
 final readonly class ModuleSettingsController extends Controller
@@ -87,8 +88,6 @@ final readonly class ModuleSettingsController extends Controller
             'objectId' => $objectId,
             'properties' => $properties,
             'attached' => $attached,
-            'done' => (string)$request->query->get('done', ''),
-            'error' => trim((string)$request->query->get('error', '')),
             'csrf' => $this->session->csrfToken(),
         ])->render();
 
@@ -114,7 +113,7 @@ final readonly class ModuleSettingsController extends Controller
 
         $this->modules->registry()->saveSettings($id, $values);
 
-        return new RedirectResponse('/admin/modules/' . $id . '/settings?done=settings');
+        return $this->panel->redirect('/admin/modules/' . $id . '/settings', 'Настройки сохранены. Для работающей интеграции изменения вступят в силу после её перезапуска.');
     }
 
     public function saveSubscriptions(string $id, Request $request): Response
@@ -169,9 +168,7 @@ final readonly class ModuleSettingsController extends Controller
             return $this->settingsError($id, $error->getMessage());
         }
 
-        return new RedirectResponse(
-            '/admin/modules/' . $id . '/settings?done=subscriptions&object_id=' . $objectId
-        );
+        return $this->panel->redirect('/admin/modules/' . $id . '/settings', 'Подписки обновлены.');
     }
 
     /**
@@ -216,11 +213,11 @@ final readonly class ModuleSettingsController extends Controller
 
     private function fail(string $message): RedirectResponse
     {
-        return new RedirectResponse('/admin/modules?error=' . rawurlencode($message));
+        return $this->panel->redirect('/admin/modules', $message, 'danger');
     }
 
     private function settingsError(string $id, string $message): RedirectResponse
     {
-        return new RedirectResponse('/admin/modules/' . $id . '/settings?error=' . rawurlencode($message));
+        return $this->panel->redirect('/admin/modules/' . $id . '/settings', $message, 'danger');
     }
 }

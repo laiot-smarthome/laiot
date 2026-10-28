@@ -64,9 +64,9 @@ body.md-admin-shell {
   --md-ui-muted-2: #98a2b3;
 
   /* brand and semantics */
-  --md-ui-primary: #2f7fbd;
-  --md-ui-primary-strong: #2568a1;
-  --md-ui-primary-soft: #e8f2fb;
+  --md-ui-primary: #6355eb;
+  --md-ui-primary-strong: #5142d6;
+  --md-ui-primary-soft: #f2f0ff;
   --md-ui-primary-contrast: #ffffff;
   --md-ui-success: #12915c;
   --md-ui-success-soft: #e6f6ef;
@@ -74,15 +74,15 @@ body.md-admin-shell {
   --md-ui-warning-soft: #fdf3e5;
   --md-ui-danger: #c4322b;
   --md-ui-danger-soft: #fdeceb;
-  --md-ui-info: #2570a8;
-  --md-ui-info-soft: #e8f1fb;
+  --md-ui-info: #4361ee;
+  --md-ui-info-soft: #eef2ff;
   --md-ui-neutral: #667085;
   --md-ui-neutral-soft: #f2f4f7;
 
   /* focus, selection, states */
-  --md-ui-focus: rgba(47, 127, 189, .18);
+  --md-ui-focus: rgba(99, 85, 235, .20);
   --md-ui-focus-danger: rgba(196, 50, 43, .16);
-  --md-ui-selected: #eef6fd;
+  --md-ui-selected: #f3f1fe;
 
   /* radii */
   --md-ui-radius-xs: 6px;
@@ -127,6 +127,7 @@ body.md-admin-shell {
   --md-ui-shadow-xs: 0 1px 2px rgba(16, 24, 40, .04);
   --md-ui-shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 1px 3px rgba(16, 24, 40, .04);
   --md-ui-shadow-pop: 0 12px 32px rgba(16, 24, 40, .14);
+  --md-ui-filter-notify: drop-shadow(0 10px 14px rgba(16, 24, 40, .22)) drop-shadow(0 2px 4px rgba(16, 24, 40, .12));
   --md-ui-shadow-dialog: 0 24px 64px rgba(16, 24, 40, .22);
 
   --md-ui-transition: .15s ease;
@@ -147,28 +148,29 @@ body.md-admin-shell {
   --md-ui-muted: #94a3b8;
   --md-ui-muted-2: #64748b;
 
-  --md-ui-primary: #6cb2e8;
-  --md-ui-primary-strong: #8cc5f0;
-  --md-ui-primary-soft: rgba(71, 146, 209, .16);
-  --md-ui-primary-contrast: #06121f;
+  --md-ui-primary: #8b7bff;
+  --md-ui-primary-strong: #a699ff;
+  --md-ui-primary-soft: rgba(109, 94, 252, .18);
+  --md-ui-primary-contrast: #080a14;
   --md-ui-success: #4ade80;
   --md-ui-success-soft: rgba(18, 145, 92, .16);
   --md-ui-warning: #fbbf24;
   --md-ui-warning-soft: rgba(178, 94, 9, .18);
   --md-ui-danger: #f87171;
   --md-ui-danger-soft: rgba(196, 50, 43, .18);
-  --md-ui-info: #60a5fa;
-  --md-ui-info-soft: rgba(37, 112, 168, .18);
+  --md-ui-info: #6384fa;
+  --md-ui-info-soft: rgba(79, 139, 247, .18);
   --md-ui-neutral: #94a3b8;
   --md-ui-neutral-soft: rgba(255, 255, 255, .06);
 
-  --md-ui-focus: rgba(108, 178, 232, .2);
+  --md-ui-focus: rgba(139, 123, 255, .22);
   --md-ui-focus-danger: rgba(248, 113, 113, .18);
-  --md-ui-selected: rgba(71, 146, 209, .12);
+  --md-ui-selected: rgba(109, 94, 252, .14);
 
   --md-ui-shadow-xs: 0 1px 2px rgba(0, 0, 0, .3);
   --md-ui-shadow: 0 1px 2px rgba(0, 0, 0, .32);
   --md-ui-shadow-pop: 0 16px 40px rgba(0, 0, 0, .45);
+  --md-ui-filter-notify: drop-shadow(0 10px 14px rgba(0, 0, 0, .5)) drop-shadow(0 2px 4px rgba(0, 0, 0, .3));
   --md-ui-shadow-dialog: 0 28px 72px rgba(0, 0, 0, .55);
 }
 
@@ -605,6 +607,13 @@ body.md-admin-shell .md-badge {
   font-weight: 500;
   line-height: 1.45;
   white-space: nowrap;
+}
+
+body.md-admin-shell .md-badge--brand {
+  color: #fff;
+  background: linear-gradient(135deg, #6d5efc 0%, #4f8bf7 55%, #22b8f0 100%);
+  border: 0;
+  box-shadow: 0 1px 3px rgba(109, 94, 252, .24);
 }
 
 body.md-admin-shell .md-badge--primary {
@@ -3627,18 +3636,40 @@ body.md-admin-shell .md-alert__close:hover {
 
 body.md-admin-shell .md-toast-stack {
   position: fixed;
-  right: 18px;
-  top: calc(var(--md-shell-header-height, 68px) + 12px + env(safe-area-inset-top, 0px));
+  inset: auto;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  right: 2px;
+  bottom: calc(2px + env(safe-area-inset-bottom, 0px));
   z-index: 1090;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: min(360px, calc(100vw - 24px));
+  width: min(392px, calc(100% - 4px));
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
+  filter: var(--md-ui-filter-notify);
   pointer-events: none;
+}
+
+body.md-admin-shell .md-toast-stack::backdrop { display: none; }
+body.md-admin-shell .md-toast-stack[popover]:not(:popover-open) { display: none; }
+
+body.md-admin-shell .md-notify-attention {
+  position: fixed;
+  inset: 0;
+  z-index: 1089;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: inset 0 0 48px 12px var(--md-ui-focus);
 }
 
 body.md-admin-shell .md-toast {
   display: flex;
+  flex-shrink: 0;
   align-items: flex-start;
   gap: 10px;
   padding: 11px 12px;
@@ -3647,8 +3678,8 @@ body.md-admin-shell .md-toast {
   border: 1px solid var(--md-ui-border);
   border-left: 3px solid var(--md-ui-primary);
   border-radius: var(--md-ui-radius-sm);
-  box-shadow: var(--md-ui-shadow-pop);
-  font-size: var(--md-ui-fs-xs);
+  box-shadow: none;
+  font-size: var(--md-ui-fs-sm);
   pointer-events: auto;
 }
 
@@ -3686,6 +3717,10 @@ body.md-admin-shell .md-toast__text {
 }
 
 body.md-admin-shell .md-toast__close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  min-height: 32px;
   padding: 0;
   color: var(--md-ui-muted);
   background: transparent;
@@ -6464,9 +6499,15 @@ body.md-admin-shell .md-ui-page-footer a:hover {
   }
 
   body.md-admin-shell .md-toast-stack {
-    right: 10px;
-    top: calc(var(--md-shell-header-height, 68px) + 10px + env(safe-area-inset-top, 0px));
-    width: calc(100vw - 20px);
+    left: 0;
+    right: 0;
+    bottom: env(safe-area-inset-bottom, 0px);
+    width: auto;
+  }
+
+  body.md-admin-shell .md-toast__close {
+    flex-basis: 44px;
+    min-height: 44px;
   }
 
   body.md-admin-shell .md-ui-type-row {
@@ -9633,14 +9674,20 @@ body.md-admin-shell .md-entity-text__body {
 body.md-admin-shell .md-call-flow {
   --md-flow-dot: 22px;
   --md-flow-rail: 11px;
-  --md-flow-indent: 22px;
-  --md-flow-indent-neg: -22px;
+  --md-flow-indent: 26px;
+  --md-flow-indent-neg: -26px;
   --md-flow-gap: 10px;
   --md-flow-gap-neg: -10px;
   --md-flow-hit: 13px;
+  --md-flow-line: color-mix(in srgb, var(--md-ui-border-strong) 80%, var(--md-ui-primary) 20%);
+  --md-flow-line-active: var(--md-ui-primary);
   --md-flow-tone: var(--md-ui-neutral);
   --md-flow-soft: var(--md-ui-neutral-soft);
   min-width: 0;
+}
+
+[data-bs-theme="dark"] body.md-admin-shell .md-call-flow {
+  --md-flow-line: color-mix(in srgb, rgba(255, 255, 255, .18) 80%, var(--md-ui-primary) 20%);
 }
 
 body.md-admin-shell .md-call-flow__head {
@@ -9712,6 +9759,7 @@ body.md-admin-shell .md-call-flow__stat b {
 
 body.md-admin-shell .md-call-flow__body {
   padding: 14px 18px 18px;
+  overflow-x: auto;
 }
 
 body.md-admin-shell .md-call-flow__tree,
@@ -9727,7 +9775,7 @@ body.md-admin-shell .md-call-flow__node {
   min-width: 0;
 }
 
-body.md-admin-shell .md-call-flow__node + .md-call-flow__node {
+body.md-admin-shell .md-call-flow__tree > .md-call-flow__node + .md-call-flow__node {
   margin-top: var(--md-flow-gap);
 }
 
@@ -9740,10 +9788,114 @@ body.md-admin-shell .md-call-flow__row {
 }
 
 body.md-admin-shell .md-call-flow__rail {
+  position: relative;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: var(--md-flow-dot);
+  min-width: var(--md-flow-dot);
+  align-self: stretch;
   padding-top: 2px;
+}
+
+body.md-admin-shell .md-call-flow__node--has-children.is-expanded > .md-call-flow__row > .md-call-flow__rail::after,
+body.md-admin-shell .md-call-flow__node--has-children:not(.is-collapsed) > .md-call-flow__row > .md-call-flow__rail::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: calc(var(--md-flow-dot) + 2px);
+  bottom: -2px;
+  width: 2px;
+  background: var(--md-flow-line);
+  pointer-events: none;
+  transition: background-color var(--md-ui-transition);
+}
+
+body.md-admin-shell .md-call-flow__toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  border-radius: 8px;
+}
+
+body.md-admin-shell .md-call-flow__toggle:hover .md-call-flow__dot {
+  border-color: var(--md-ui-primary);
+  box-shadow: 0 0 0 3px var(--md-ui-focus);
+}
+
+body.md-admin-shell .md-call-flow__expander {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  background: var(--md-ui-surface);
+  color: var(--md-ui-muted);
+  border: 1px solid var(--md-ui-border-strong);
+  border-radius: 50%;
+  font-size: 9px;
+  line-height: 1;
+  box-shadow: var(--md-ui-shadow-xs);
+  transition: transform .18s ease, background-color var(--md-ui-transition), color var(--md-ui-transition), border-color var(--md-ui-transition);
+  z-index: 2;
+}
+
+body.md-admin-shell .md-call-flow__toggle:hover .md-call-flow__expander {
+  background: var(--md-ui-primary);
+  color: var(--md-ui-primary-contrast);
+  border-color: var(--md-ui-primary);
+}
+
+body.md-admin-shell .md-call-flow__expander.is-rotated {
+  transform: rotate(-90deg);
+}
+
+body.md-admin-shell .md-call-flow__collapsed-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  color: var(--md-ui-primary);
+  background: var(--md-ui-primary-soft);
+  border: 1px dashed color-mix(in srgb, var(--md-ui-primary) 50%, transparent);
+  border-radius: var(--md-ui-radius-pill);
+  font-size: var(--md-ui-fs-caption);
+  font-weight: 500;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background-color var(--md-ui-transition), color var(--md-ui-transition), transform var(--md-ui-transition);
+}
+
+body.md-admin-shell .md-call-flow__collapsed-tag:hover {
+  background: var(--md-ui-primary);
+  color: var(--md-ui-primary-contrast);
+  border-style: solid;
+  transform: translateY(-1px);
+}
+
+body.md-admin-shell .md-call-flow__head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+body.md-admin-shell .md-call-flow__tool-btn {
+  font-size: var(--md-ui-fs-xs);
+  gap: 4px;
+  padding: 0 8px;
+  height: 28px;
 }
 
 body.md-admin-shell .md-call-flow__dot {
@@ -9758,6 +9910,7 @@ body.md-admin-shell .md-call-flow__dot {
   border: 1px solid color-mix(in srgb, var(--md-flow-tone) 30%, transparent);
   border-radius: 7px;
   font-size: 12px;
+  transition: border-color var(--md-ui-transition), box-shadow var(--md-ui-transition), transform var(--md-ui-transition);
 }
 
 body.md-admin-shell .md-call-flow__main {
@@ -9970,61 +10123,161 @@ body.md-admin-shell .md-call-flow__payload {
   overflow-x: auto;
 }
 
-/* Ветки: линия-ответвление идёт от узла-условия к заголовку ветки. */
+/* Контейнер дочерних вызовов */
+body.md-admin-shell .md-call-flow__subflow {
+  position: relative;
+  min-width: 0;
+}
+
 body.md-admin-shell .md-call-flow__children,
 body.md-admin-shell .md-call-flow__branches {
   position: relative;
   min-width: 0;
-  margin: var(--md-flow-gap) 0 0 var(--md-flow-rail);
-  padding-left: var(--md-flow-indent);
+  margin: 0 0 0 10px;
+  padding: 0 0 0 var(--md-flow-indent);
+  list-style: none;
 }
 
-body.md-admin-shell .md-call-flow__children > *,
-body.md-admin-shell .md-call-flow__branches > * {
+/* Дочерний узел в дереве */
+body.md-admin-shell .md-call-flow__children > .md-call-flow__node {
   position: relative;
   min-width: 0;
+  padding-top: var(--md-flow-gap);
+  margin-top: 0;
 }
 
-body.md-admin-shell .md-call-flow__children > *::before,
-body.md-admin-shell .md-call-flow__branches > *::before {
+/* Линия-ответвление от ствола к точке дочернего узла */
+body.md-admin-shell .md-call-flow__children > .md-call-flow__node::before {
   content: "";
   position: absolute;
-  top: var(--md-flow-gap-neg);
-  left: var(--md-flow-indent-neg);
-  width: var(--md-flow-indent);
-  height: calc(var(--md-flow-gap) + var(--md-flow-hit));
-  border-bottom: 1px solid var(--md-ui-border-strong);
-  border-left: 1px solid var(--md-ui-border-strong);
+  left: calc(-1 * var(--md-flow-indent));
+  top: -2px;
+  width: calc(var(--md-flow-indent) + 2px);
+  height: calc(var(--md-flow-gap) + var(--md-flow-hit) + 2px);
+  border-left: 2px solid var(--md-flow-line);
+  border-bottom: 2px solid var(--md-flow-line);
+  border-bottom-left-radius: 6px;
+  background: transparent !important;
   pointer-events: none;
+  transition: border-color var(--md-ui-transition);
 }
 
-body.md-admin-shell .md-call-flow__children > *:first-child::before,
-body.md-admin-shell .md-call-flow__branches > *:first-child::before {
-  top: var(--md-flow-hit);
-  height: 0;
-  border-left: 0;
-}
-
-body.md-admin-shell .md-call-flow__children > *:not(:last-child)::after,
-body.md-admin-shell .md-call-flow__branches > *:not(:last-child)::after {
+/* Вертикальное продолжение ствола к следующим узлам */
+body.md-admin-shell .md-call-flow__children > .md-call-flow__node:not(:last-child)::after {
   content: "";
   position: absolute;
-  top: var(--md-flow-hit);
-  bottom: var(--md-flow-gap-neg);
-  left: var(--md-flow-indent-neg);
-  border-left: 1px solid var(--md-ui-border-strong);
+  left: calc(-1 * var(--md-flow-indent));
+  top: calc(var(--md-flow-gap) + var(--md-flow-hit));
+  bottom: -2px;
+  width: 0;
+  border-left: 2px solid var(--md-flow-line);
+  background: transparent !important;
   pointer-events: none;
+  transition: border-color var(--md-ui-transition);
 }
 
+/* Ветка условия (branches) */
 body.md-admin-shell .md-call-flow__branch {
-  padding: 8px 10px;
+  position: relative;
+  margin-top: var(--md-flow-gap);
+  padding: 10px 12px;
   background: var(--md-ui-surface-2);
   border: 1px solid var(--md-ui-border);
   border-radius: var(--md-ui-radius-sm);
 }
 
-body.md-admin-shell .md-call-flow__branch + .md-call-flow__branch {
-  margin-top: var(--md-flow-gap);
+/* Первая ветка подключается к стволу сверху */
+body.md-admin-shell .md-call-flow__branches > .md-call-flow__branch:first-child::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--md-flow-indent));
+  top: calc(-1 * var(--md-flow-gap) - 2px);
+  width: calc(var(--md-flow-indent) + 2px);
+  height: calc(var(--md-flow-gap) + 18px + 2px);
+  border-left: 2px solid var(--md-flow-line);
+  border-bottom: 2px solid var(--md-flow-line);
+  border-bottom-left-radius: 6px;
+  background: transparent !important;
+  pointer-events: none;
+  transition: border-color var(--md-ui-transition);
+}
+
+/* Последующие ветки берут ствол от ::after предыдущей без дублирования в зазоре */
+body.md-admin-shell .md-call-flow__branches > .md-call-flow__branch:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--md-flow-indent));
+  top: -2px;
+  width: calc(var(--md-flow-indent) + 2px);
+  height: 20px;
+  border-left: 2px solid var(--md-flow-line);
+  border-bottom: 2px solid var(--md-flow-line);
+  border-bottom-left-radius: 6px;
+  background: transparent !important;
+  pointer-events: none;
+  transition: border-color var(--md-ui-transition);
+}
+
+body.md-admin-shell .md-call-flow__branches > .md-call-flow__branch:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--md-flow-indent));
+  top: 18px;
+  bottom: calc(-1 * var(--md-flow-gap) - 2px);
+  width: 0;
+  border-left: 2px solid var(--md-flow-line);
+  background: transparent !important;
+  pointer-events: none;
+  transition: border-color var(--md-ui-transition);
+}
+
+/* Внутри ветки условия: если есть дочерние шаги, соединяем со списком */
+body.md-admin-shell .md-call-flow__branch--has-children .md-call-flow__branch-head {
+  position: relative;
+}
+
+body.md-admin-shell .md-call-flow__branch--has-children .md-call-flow__branch-head::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 20px;
+  bottom: -10px;
+  width: 2px;
+  background: var(--md-flow-line);
+  pointer-events: none;
+}
+
+body.md-admin-shell .md-call-flow__branch-subflow {
+  position: relative;
+  margin-top: 4px;
+}
+
+body.md-admin-shell .md-call-flow__branch-subflow > .md-call-flow__children {
+  margin: 0;
+  padding: 0 0 0 20px;
+}
+
+body.md-admin-shell .md-call-flow__branch-subflow > .md-call-flow__children > .md-call-flow__node::before {
+  left: -20px;
+  width: 22px;
+}
+
+body.md-admin-shell .md-call-flow__branch-subflow > .md-call-flow__children > .md-call-flow__node:not(:last-child)::after {
+  left: -20px;
+}
+
+/* Подсветка линий при наведении */
+body.md-admin-shell .md-call-flow__node:hover > .md-call-flow__row > .md-call-flow__rail::after {
+  background-color: var(--md-flow-line-active);
+}
+
+body.md-admin-shell .md-call-flow__children > .md-call-flow__node:hover::before,
+body.md-admin-shell .md-call-flow__children > .md-call-flow__node:hover::after,
+body.md-admin-shell .md-call-flow__branches > .md-call-flow__branch:hover::before,
+body.md-admin-shell .md-call-flow__branches > .md-call-flow__branch:hover::after {
+  border-color: var(--md-flow-line-active);
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* Выполненная ветка не заливает зелёным всё поддерево: цвет остаётся
@@ -10257,18 +10510,32 @@ body.md-admin-shell .md-call-flow--compact .md-call-flow__dot {
   /* В узкой колонке глубина дерева важнее широких отступов: без этого
      вложенная ветка оставляет тексту 40–60 px и он ломается по буквам. */
   body.md-admin-shell .md-call-flow {
-    --md-flow-dot: 16px;
-    --md-flow-rail: 8px;
-    --md-flow-indent: 12px;
-    --md-flow-indent-neg: -12px;
+    --md-flow-dot: 18px;
+    --md-flow-rail: 9px;
+    --md-flow-indent: 18px;
+    --md-flow-indent-neg: -18px;
     --md-flow-gap: 8px;
     --md-flow-gap-neg: -8px;
-    --md-flow-hit: 10px;
+    --md-flow-hit: 11px;
   }
 
-  body.md-admin-shell .md-call-flow__node.is-deep {
-    --md-flow-indent: 8px;
-    --md-flow-indent-neg: -8px;
+  body.md-admin-shell .md-call-flow__children,
+  body.md-admin-shell .md-call-flow__branches {
+    margin-left: 8px;
+    padding-left: var(--md-flow-indent);
+  }
+
+  body.md-admin-shell .md-call-flow__node--has-children.is-expanded > .md-call-flow__row > .md-call-flow__rail::after,
+  body.md-admin-shell .md-call-flow__node--has-children:not(.is-collapsed) > .md-call-flow__row > .md-call-flow__rail::after {
+    left: 8px;
+  }
+
+  body.md-admin-shell .md-call-flow__expander {
+    width: 12px;
+    height: 12px;
+    font-size: 8px;
+    right: -4px;
+    bottom: -3px;
   }
 
   body.md-admin-shell .md-call-flow__head {

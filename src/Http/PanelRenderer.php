@@ -9,6 +9,7 @@ use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Panel\CoreSections;
 use MajorDoMo\Panel\PanelAttention;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -16,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Новый дизайн не создаётся: layout использует alpha-классы и admin.css.
  *
+ * 2026-10-28 — одноразовые Notify хранятся в сессии, без текста в URL.
  * 2026-10-27 — меню собирается здесь: ключи раскрытия, счётчики внимания и
  * активная группа передаются в layout готовыми, шаблон не ищет разделы сам.
  */
@@ -39,7 +41,12 @@ final readonly class PanelRenderer
         $notice = $this->session->get('panel.notice');
         if ($notice !== null) {
             $this->session->forget('panel.notice');
+            if (is_string($notice) && $notice !== '') {
+                $this->notify($notice);
+            }
         }
+        $notifications = $this->session->get('panel.notifications', []);
+        $this->session->forget('panel.notifications');
         $html = $this->view->make('layouts.alpha', [
             'title' => $page->title,
             'content' => $page->content,
@@ -49,10 +56,25 @@ final readonly class PanelRenderer
             'csrf' => $this->session->csrfToken(),
             'user' => $this->session->user(),
             'menu' => $menu,
-            'notice' => is_string($notice) && $notice !== '' ? $notice : null,
+            'notifications' => is_array($notifications) ? $notifications : [],
         ])->render();
 
         return new Response($html, $status);
+    }
+
+    public function notify(string $text, string $tone = 'success', string $title = ''): void
+    {
+        $notifications = $this->session->get('panel.notifications', []);
+        $notifications = is_array($notifications) ? $notifications : [];
+        $notifications[] = ['text' => $text, 'type' => $tone, 'title' => $title];
+        $this->session->set('panel.notifications', $notifications);
+    }
+
+    public function redirect(string $url, string $text, string $tone = 'success'): RedirectResponse
+    {
+        $this->notify($text, $tone);
+
+        return new RedirectResponse($url);
     }
 
     /**

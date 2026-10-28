@@ -33,12 +33,6 @@
         </x-slot:actions>
     </x-md.page-hero>
 
-    @if ($done !== '')
-        <x-md.alert type="success" :text="$done" />
-    @endif
-    @if ($error !== '')
-        <x-md.alert type="danger" title="Действие не выполнено" :text="$error" />
-    @endif
 
     <div class="md-mqtt-connection">
         <x-md.badge :tone="$connected ? 'success' : 'warning'" dot>

@@ -1,0 +1,7 @@
+/* Список использует x-md.table, дерево — штатный x-md.call-flow из UI Kit. */
+.md-events-detail-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+/* Детали используют готовый call-flow без изменения его размеров и оформления. */
+.md-events-back { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; font-size: var(--md-ui-fs-sm); }
+@media (max-width: 767.98px) {
+    .md-events-back { min-height: 44px; }
+}

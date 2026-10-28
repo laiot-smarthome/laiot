@@ -1,9 +1,10 @@
-<div class="md-ui-page md-ui-page--stack">
+<div class="md-ui-page md-ui-page--stack" x-data @module-subscriptions-open.window="$store.mdModal.show('module-subscriptions')"
+     @if ($objectId > 0) x-init="$nextTick(() => $store.mdModal.show('module-subscriptions'))" @endif>
     <x-md.page-hero
         eyebrow="Модули"
         icon="settings"
         :title="$module['name'] . ' — настройки'"
-        lede="Параметры из module.json и подписки на свойства дома. Значения читает модуль, подписки выбирает пользователь."
+        lede="Параметры подключения и свойства, с которыми работает модуль."
         :meta="[
             ['icon' => 'puzzle', 'label' => 'ID', 'value' => $module['id']],
             ['icon' => 'tag', 'label' => 'Версия', 'value' => 'v' . $module['version']],
@@ -16,20 +17,12 @@
         </x-slot:actions>
     </x-md.page-hero>
 
-    @if ($done === 'settings')
-        <x-md.alert type="success" title="Настройки сохранены" text="Новый HTTP-запрос увидит значения сразу; запущенный worker модуля нужно перезапустить." />
-    @elseif ($done === 'subscriptions')
-        <x-md.alert type="success" title="Подписки обновлены" text="Модуль получит следующие изменения выбранных свойств." />
-    @endif
-    @if ($error !== '')
-        <x-md.alert type="danger" title="Не сохранено" :text="$error" />
-    @endif
 
     @if ($schema !== [])
         <form method="post" action="/admin/modules/{{ $module['id'] }}/settings" class="md-ui-form">
             <input type="hidden" name="_token" value="{{ $csrf }}">
 
-            <x-md.card title="Параметры" subtitle="Типы и умолчания заданы манифестом модуля.">
+            <x-md.card title="Параметры" icon="settings">
                 <div class="md-ui-form-stack">
                     @foreach ($schema as $name => $field)
                         @if ($field['type'] === 'bool')
@@ -73,8 +66,30 @@
     @endif
 
     @if ($hasSubscriber)
-        <x-md.card title="Подписки на свойства"
-                   subtitle="Модуль получает изменения только выбранных свойств. Список строится по действующим свойствам объекта.">
+        <x-md.card title="Подписки на свойства" icon="link" subtitle="Какие изменения передавать модулю.">
+            <div class="md-ui-actions">
+                <x-md.button variant="secondary" icon="adjustments" @click="$store.mdModal.show('module-subscriptions')">Настроить подписки</x-md.button>
+                <x-md.badge tone="neutral">{{ count($subscriptions) }}</x-md.badge>
+            </div>
+            @if ($subscriptions === [])
+                <x-md.empty-state icon="link" title="Подписок пока нет" text="Выберите объект и отметьте нужные свойства." />
+            @else
+                <x-md.table label="Подписки модуля">
+                    <x-slot:head><th scope="col">Объект</th><th scope="col">Свойство</th><th scope="col"></th></x-slot:head>
+                    <x-slot:body>
+                        @foreach ($subscriptions as $subscription)
+                            <tr>
+                                <td>{{ $subscription['object_title'] }}</td>
+                                <td><code class="md-table__code">{{ $subscription['property_title'] }}</code></td>
+                                <td><x-md.button :href="'/admin/modules/' . $module['id'] . '/settings?object_id=' . $subscription['object_id']" variant="ghost" size="sm" icon="edit">Изменить</x-md.button></td>
+                            </tr>
+                        @endforeach
+                    </x-slot:body>
+                </x-md.table>
+            @endif
+        </x-md.card>
+
+        <x-md.modal id="module-subscriptions" title="Настроить подписки" size="lg">
             @if ($objects === [])
                 <x-md.empty-state icon="box" title="Объектов пока нет"
                                   text="Создайте объект и свойства в разделе «Классы», затем вернитесь сюда." />
@@ -114,27 +129,6 @@
                     @endif
                 @endif
             @endif
-        </x-md.card>
-
-        <x-md.card title="Текущие подписки" subtitle="Все объекты и свойства, которые обслуживает модуль.">
-            @if ($subscriptions === [])
-                <p class="md-ui-muted">Модуль пока не подписан ни на одно свойство.</p>
-            @else
-                <x-md.table label="Подписки модуля">
-                    <x-slot:head>
-                        <th scope="col">Объект</th>
-                        <th scope="col">Свойство</th>
-                    </x-slot:head>
-                    <x-slot:body>
-                        @foreach ($subscriptions as $subscription)
-                            <tr>
-                                <td>{{ $subscription['object_title'] }}</td>
-                                <td><code class="md-table__code">{{ $subscription['property_title'] }}</code></td>
-                            </tr>
-                        @endforeach
-                    </x-slot:body>
-                </x-md.table>
-            @endif
-        </x-md.card>
+        </x-md.modal>
     @endif
 </div>

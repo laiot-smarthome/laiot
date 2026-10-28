@@ -15,9 +15,9 @@
   --md-codeeditor-text-soft: var(--md-ui-text-soft, #344054);
   --md-codeeditor-muted: var(--md-ui-muted, #667085);
   --md-codeeditor-muted-2: var(--md-ui-muted-2, #98a2b3);
-  --md-codeeditor-accent: var(--md-ui-primary, #2f7fbd);
-  --md-codeeditor-accent-strong: var(--md-ui-primary-strong, #2568a1);
-  --md-codeeditor-accent-soft: var(--md-ui-primary-soft, #e8f2fb);
+  --md-codeeditor-accent: var(--md-ui-primary, #6355eb);
+  --md-codeeditor-accent-strong: var(--md-ui-primary-strong, #5142d6);
+  --md-codeeditor-accent-soft: var(--md-ui-primary-soft, #f2f0ff);
   --md-codeeditor-focus: var(--md-ui-focus, rgba(47, 127, 189, .18));
   --md-codeeditor-danger: var(--md-ui-danger, #c4322b);
   --md-codeeditor-danger-soft: var(--md-ui-danger-soft, #fdeceb);
@@ -27,7 +27,7 @@
   --md-codeeditor-gutter-bg: var(--md-ui-surface-2, #f8fafc);
   --md-codeeditor-active-line: rgba(47, 127, 189, .06);
   --md-codeeditor-selection: rgba(47, 127, 189, .18);
-  --md-codeeditor-caret: var(--md-ui-primary, #2f7fbd);
+  --md-codeeditor-caret: var(--md-ui-primary, #6355eb);
   --md-codeeditor-match: rgba(47, 127, 189, .14);
   --md-codeeditor-match-border: rgba(47, 127, 189, .36);
   --md-codeeditor-search-match: rgba(245, 158, 11, .24);
@@ -78,9 +78,9 @@
   --md-codeeditor-text-soft: var(--md-ui-text-soft, #cbd5e1);
   --md-codeeditor-muted: var(--md-ui-muted, #94a3b8);
   --md-codeeditor-muted-2: var(--md-ui-muted-2, #64748b);
-  --md-codeeditor-accent: var(--md-ui-primary, #6cb2e8);
-  --md-codeeditor-accent-strong: var(--md-ui-primary-strong, #8cc5f0);
-  --md-codeeditor-accent-soft: var(--md-ui-primary-soft, rgba(71, 146, 209, .16));
+  --md-codeeditor-accent: var(--md-ui-primary, #8b7bff);
+  --md-codeeditor-accent-strong: var(--md-ui-primary-strong, #a699ff);
+  --md-codeeditor-accent-soft: var(--md-ui-primary-soft, rgba(109, 94, 252, .18));
   --md-codeeditor-focus: var(--md-ui-focus, rgba(108, 178, 232, .2));
   --md-codeeditor-danger: #f87171;
   --md-codeeditor-danger-soft: rgba(248, 113, 113, .12);
@@ -90,7 +90,7 @@
   --md-codeeditor-gutter-bg: var(--md-ui-surface-2, #162235);
   --md-codeeditor-active-line: rgba(108, 178, 232, .07);
   --md-codeeditor-selection: rgba(108, 178, 232, .22);
-  --md-codeeditor-caret: #8cc5f0;
+  --md-codeeditor-caret: #a699ff;
   --md-codeeditor-match: rgba(108, 178, 232, .15);
   --md-codeeditor-match-border: rgba(108, 178, 232, .4);
   --md-codeeditor-search-match: rgba(251, 191, 36, .2);

@@ -59,7 +59,7 @@
     </x-md.page-hero>
 
     @if ($error !== null)
-        <x-md.alert type="danger" title="Не удалось сохранить объект" :text="$error" />
+        <x-md.notify type="danger" title="Не удалось сохранить объект" :text="$error" />
     @endif
 
     @if (!$isNew)
@@ -187,7 +187,6 @@
                     <div class="md-ui-form-actions">
                         <x-md.button type="submit" icon="check">Сохранить значения</x-md.button>
                     </div>
-                    <p class="md-ui-muted">Запись идёт через общий сервис: значение, история, журнал и OnChange срабатывают одинаково с панелью и сценарием.</p>
                 </form>
             @endif
         </x-md.card>
