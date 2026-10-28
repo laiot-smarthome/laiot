@@ -6,6 +6,8 @@ namespace MajorDoMo\Modules;
 
 use Illuminate\Container\Container;
 use MajorDoMo\Events\SystemEvents;
+use MajorDoMo\Files\FileStorage;
+use MajorDoMo\Files\LocalFiles;
 
 /**
  * Контекст, который SDK передаёт в entrypoint модуля.
@@ -14,6 +16,7 @@ use MajorDoMo\Events\SystemEvents;
  * таблицы напрямую недоступны. Настройки и подписки на свойства выдаются
  * сервисами, привязанными к id модуля: подписаться за соседний модуль нельзя.
  *
+ * 2026-10-28 — files() выдаёт только файловый каталог текущего модуля.
  * 2026-10-27 — подписка модуля на системные события.
  * 2026-10-27 — settings() и subscriptions() вместо доступа к реестру напрямую.
  */
@@ -61,6 +64,11 @@ final readonly class ModuleContext
     public function subscriptions(): ModuleSubscriptions
     {
         return $this->subscriptions;
+    }
+
+    public function files(): LocalFiles
+    {
+        return $this->container->make(FileStorage::class)->module($this->id());
     }
 
     public function onSystemEvent(string $event, callable $listener): void

@@ -6,6 +6,7 @@ namespace MajorDoMo\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Connection;
+use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Database\Schema\Builder;
 use Throwable;
 
@@ -15,6 +16,9 @@ use Throwable;
  * Пока это один менеджер на приложение. Он не открывает соединение в
  * конструкторе: health-check и тесты без БД не должны падать на boot.
  * Старый mysqli-слой остаётся в alpha и в новом коде не используется.
+ *
+ * Изменения:
+ * 2026-10-28 — общий resolver доступен валидатору без открытия соединения.
  */
 final class DatabaseManager
 {
@@ -49,6 +53,12 @@ final class DatabaseManager
         }
 
         return $connection;
+    }
+
+    /** Общий менеджер соединений для компонентов Illuminate без подключения к БД. */
+    public function resolver(): ConnectionResolverInterface
+    {
+        return $this->capsule()->getDatabaseManager();
     }
 
     public function schema(): Builder

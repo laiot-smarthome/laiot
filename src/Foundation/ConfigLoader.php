@@ -12,6 +12,7 @@ namespace MajorDoMo\Foundation;
  * в одном массиве.
  *
  * Изменения:
+ * 2026-10-28 — отдельная конфигурация шифрования и файлового хранилища.
  * 2026-10-27 — секция retention.
  * 2026-10-26 — список сервис-провайдеров загружается из config/providers.php.
  */
@@ -27,7 +28,7 @@ final class ConfigLoader
             return [];
         }
 
-        foreach (['cache', 'queue', 'logging', 'retention', 'providers'] as $section) {
+        foreach (['cache', 'queue', 'logging', 'retention', 'encryption', 'files', 'providers'] as $section) {
             $file = $root . '/config/' . $section . '.php';
             if (is_file($file)) {
                 $value = require $file;

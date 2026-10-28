@@ -123,8 +123,16 @@ final class Module extends \MajorDoMo\Modules\Module
 ```
 
 `ModuleContext` даёт `db()`, `bus()`, `container()`, `root()`, `id()`,
-`version()`, `settings()` и `subscriptions()`. Прямой доступ к PDO/`$db` ядра
+`version()`, `settings()`, `subscriptions()` и `files()`. Прямой доступ к PDO/`$db` ядра
 запрещён.
+
+`files()` даёт локальный диск только в `var/files/modules/<id>`: read/write,
+потоки, списки, copy/move и удаление с относительными путями. Фоновая задача
+использует `$taskContext->module->files()`. Не сохраняйте файлы в коде модуля
+или общем var; абсолютные пути, `..` и символические ссылки запрещены.
+При выключении файлы остаются, при удалении модуля удаляются без `--purge`.
+Полный контракт — [files.md](files.md). Контекст остаётся доверенным PHP,
+это не изоляция процесса.
 
 ### Yoyo в модуле
 

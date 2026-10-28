@@ -7,6 +7,7 @@ namespace MajorDoMo\Tests\Feature;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
+use MajorDoMo\Files\FileStorage;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use MajorDoMo\Modules\ModuleInstaller;
@@ -16,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * MyDoMo SDK: манифест, реестр, install/enable/disable/remove, миграции и
  * подключение установленного стороннего модуля.
+ * 2026-10-28 — удаление модуля очищает только его файловый диск без --purge.
  */
 final class ModuleSdkTest extends TestCase
 {
@@ -85,6 +87,35 @@ final class ModuleSdkTest extends TestCase
             self::assertNull($app->database()->connection()->table('module_registry')->where('module_id', 'example_sdk')->whereNull('deleted_at')->first());
         } finally {
             @unlink($database);
+        }
+    }
+
+    public function testModuleFilesSurviveDisableAndAreRemovedWithModule(): void
+    {
+        $database = $this->databaseFile();
+        try {
+            $app = $this->boot($database);
+            $installer = $app->container()->make(ModuleInstaller::class);
+            $installer->install('example_sdk');
+            $files = $app->modules()->context('example_sdk')->files();
+            $files->write('reports/result.txt', 'module');
+            $storage = $app->container()->make(FileStorage::class);
+            $storage->core()->write('keep.txt', 'core');
+            $storage->module('neighbor')->write('keep.txt', 'neighbor');
+            $installer->disable('example_sdk');
+            self::assertSame('module', $files->read('reports/result.txt'));
+            $installer->remove('example_sdk');
+            self::assertFalse($files->fileExists('reports/result.txt'));
+            self::assertSame('core', $storage->core()->read('keep.txt'));
+            self::assertSame('neighbor', $storage->module('neighbor')->read('keep.txt'));
+        } finally {
+            (new \Illuminate\Filesystem\Filesystem())->deleteDirectory($database . '.files');
+            if (isset($app)) {
+                $app->database()->connection()->disconnect();
+            }
+            if (is_file($database)) {
+                unlink($database);
+            }
         }
     }
 
@@ -174,6 +205,7 @@ final class ModuleSdkTest extends TestCase
             'log' => 'php://stderr',
             'session' => new ArraySession(),
             'cache' => ['driver' => 'array'],
+            'files' => ['root' => $database . '.files'],
             'database' => ['driver' => 'sqlite', 'database' => $database, 'prefix' => ''],
         ]);
         $app->boot();

@@ -6,6 +6,7 @@ namespace MajorDoMo\Modules;
 
 use Illuminate\Filesystem\Filesystem;
 use InvalidArgumentException;
+use MajorDoMo\Files\FileStorage;
 use Throwable;
 
 /**
@@ -18,6 +19,7 @@ use Throwable;
  * публикуются ассеты; при удалении они убираются. `--purge` дополнительно
  * удаляет объявленные таблицы модуля и его SQLite-данные.
  *
+ * 2026-10-28 — файлы var/files/modules/<id> удаляются и без --purge.
  * 2026-10-27 — permissions/assets из манифеста и purge данных при удалении.
  * 2026-10-27 — в списке видны настройки и подписчик модуля.
  * 2026-10-27 — core: enable/disable разрешены, install/remove запрещены.
@@ -28,7 +30,8 @@ final readonly class ModuleInstaller
         private ModuleManager $modules,
         private string $mydomoVersion,
         private ModulePermissions $permissions,
-        private ModuleAssets $assets
+        private ModuleAssets $assets,
+        private FileStorage $files
     ) {
     }
 
@@ -127,6 +130,7 @@ final readonly class ModuleInstaller
         }
         $manifest = $this->manifest($module);
         $this->entrypoint($id, 'uninstall');
+        $this->files->removeModule($id);
         $registry->remove($id);
         $this->permissions->forget($id, (array)$manifest->data['permissions']);
         $this->assets->remove($id);

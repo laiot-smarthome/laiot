@@ -15,6 +15,18 @@
   Процессы, pcntl и systemd проверяются в Linux.
 - PHP MyDoMo — 8.2+, Illuminate 12 components. Это не полный Laravel;
   фактические версии/возможности проверять по файлам текущей задачи.
+- Входные данные проверять через `illuminate/validation` и общий
+  `Illuminate\Contracts\Validation\Factory` из DI. Сначала штатные правила
+  и `Rule::*`, без собственных движков и повторов required/email/min/max.
+  Предметные правила — только при отсутствии штатного аналога; авторизация
+  проверяется отдельно. Контракт — [validation.md](docs/mydomo/validation.md).
+- Секреты интеграций шифровать общим Illuminate Encrypter; модели используют
+  штатные `encrypted`/`encrypted:array` и `$hidden`. APP_KEY автоматически
+  создаётся установщиком, повторно не генерируется. Контракт —
+  [encryption.md](docs/mydomo/encryption.md).
+- Файлы сохранять через `LocalFiles`; модуль использует только
+  `$context->files()` в `var/files/modules/<id>`. При удалении модуля его
+  файлы удаляются без `--purge`. Контракт — [files.md](docs/mydomo/files.md).
 - Ядровые страницы объектов, пользователей, журналов, API и настроек живут
   в `src/Http/Controllers/Core`, `src/Api`, `resources/views/pages`.
   Они не являются модулями, не получают module.json и ModuleDb.

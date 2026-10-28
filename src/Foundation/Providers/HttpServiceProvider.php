@@ -21,6 +21,7 @@ use MajorDoMo\Http\Middleware\VerifyCsrfToken;
 use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\NativeSession;
 use MajorDoMo\Http\Session\SessionStore;
+use MajorDoMo\Install\InstallService;
 use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Logging\LoggerFactory;
 use MajorDoMo\Logging\RequestContext;
@@ -66,7 +67,9 @@ final class HttpServiceProvider extends ServiceProvider
             $container->make(RequestContext::class),
             $container->make(ErrorRepository::class),
             $container->make(MaintenanceMode::class),
-            $container->make(ViewFactory::class)
+            $container->make(ViewFactory::class),
+            $container->make(InstallService::class),
+            (bool)$this->app->config('install_guard', false)
         ));
     }
 

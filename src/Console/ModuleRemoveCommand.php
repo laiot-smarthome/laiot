@@ -13,6 +13,12 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
+/**
+ * Удаление стороннего модуля с очисткой его файлов и опциональным purge БД.
+ *
+ * Изменения:
+ * 2026-10-28 — справка предупреждает об удалении файлов без --purge.
+ */
 #[AsCommand(name: 'module:remove', description: 'Удалить сторонний модуль из реестра')]
 final class ModuleRemoveCommand extends Command
 {
@@ -25,7 +31,7 @@ final class ModuleRemoveCommand extends Command
     {
         $this->addArgument('id', InputArgument::REQUIRED, 'ID модуля');
         $this->addOption('purge', null, InputOption::VALUE_NONE, 'Удалить таблицы модуля и SQLite-данные');
-        $this->setHelp('По умолчанию данные модуля сохраняются. --purge удаляет объявленные таблицы и data-каталог; код модуля остаётся.');
+        $this->setHelp('Файлы var/files/modules/<id> удаляются всегда. Таблицы и SQLite/data-каталог сохраняются, если не указан --purge; код модуля остаётся.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

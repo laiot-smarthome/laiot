@@ -11,6 +11,7 @@ use MajorDoMo\Foundation\ConfigLoader;
 /**
  * Единый каталог редактируемых параметров и их привязок к конфигурации ядра.
  *
+ * 2026-10-28 — ключи шифрования читаются из окружения, не редактируются в UI.
  * 2026-10-27 — UI и bootstrap используют одни ключи, типы и значения по умолчанию.
  */
 final class SettingsSchema
@@ -65,7 +66,7 @@ final class SettingsSchema
     {
         $config = ConfigLoader::load($root);
         $defaults = [];
-        foreach (self::fields() as $key => $field) {
+        foreach (self::environmentFields() as $key => $field) {
             $defaults[$key] = Arr::get($config, (string)$field['path'], $field['default'] ?? '');
         }
 
@@ -77,8 +78,12 @@ final class SettingsSchema
     {
         $defaults = self::defaults($root);
         $config = [];
-        foreach (self::fields() as $key => $field) {
+        foreach (self::environmentFields() as $key => $field) {
             $value = match ($field['type']) {
+                'csv' => array_values(array_filter(
+                    array_map('trim', explode(',', Config::string($key))),
+                    static fn (string $value): bool => $value !== ''
+                )),
                 'bool' => Config::bool($key, (bool)$defaults[$key]),
                 'int' => Config::int($key, (int)$defaults[$key]),
                 default => Config::string($key, (string)$defaults[$key]),
@@ -87,5 +92,16 @@ final class SettingsSchema
         }
 
         return $config;
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    public static function environmentFields(): array
+    {
+        // Ключ создаёт установщик. Общая форма настроек не должна позволять
+        // случайно заменить его и потерять доступ к зашифрованным данным.
+        return self::fields() + [
+            'APP_KEY' => ['path' => 'encryption.key', 'type' => 'secret'],
+            'APP_PREVIOUS_KEYS' => ['path' => 'encryption.previous_keys', 'type' => 'csv'],
+        ];
     }
 }

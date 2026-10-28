@@ -39,6 +39,7 @@ order: 8
 | Команда | Эффект |
 | --- | --- |
 | `db:migrate` | Применяет миграции, меняет схему/данные |
+| `install` | `install`-часть: `.env`, миграции, администратор; см. раздел ниже |
 | `user:create <username> <name> <password> [--admin]` | Создаёт пользователя, объект Users и стандартную роль |
 | `api:token <user_id> <name> [--ttl=<секунды>]` | Записывает и показывает токен |
 | `maintenance on` / `maintenance off` | Создаёт/удаляет `var/maintenance.flag` |
@@ -46,7 +47,7 @@ order: 8
 | `queue:retry <id>` | Возвращает failed-задание к обработке |
 | `module:install <id>` | Реестр, миграции и install/enabled hooks |
 | `module:disable <id>` / `module:enable <id>` | Меняет состояние SDK-модуля |
-| `module:remove <id> [--purge]` | Uninstall hook, реестр, права и ассеты; `--purge` — таблицы и данные |
+| `module:remove <id> [--purge]` | Uninstall hook, реестр, права, ассеты и файлы модуля; `--purge` — таблицы и SQLite/data |
 | `db:prune [--dry-run]` | Удаляет устаревшие историю, журнал, задания, таймеры и ошибки по `config/retention.php` |
 
 Не запускайте эту таблицу как готовый скрипт на рабочей установке.
@@ -257,7 +258,8 @@ php bin/mydomo module:disable <id>
 
 Удалить сторонний модуль из реестра.
 
-По умолчанию данные модуля сохраняются. --purge удаляет объявленные таблицы и data-каталог; код модуля остаётся.
+Папка `var/files/modules/<id>` удаляется всегда. Таблицы и SQLite/data-каталог
+по умолчанию сохраняются; --purge удаляет и их. Код модуля остаётся.
 
 | Параметр | Описание | Обязателен | По умолчанию |
 | --- | --- | --- | --- |
@@ -411,6 +413,43 @@ php bin/mydomo queue:retry <id>
 ```bash
 php bin/mydomo api:token <user_id> <name> --ttl=3600
 ```
+
+### install
+
+Установить MyDoMo: база, кэш и администратор.
+
+Команда делает то же, что страница `/install`: проверяет PHP, расширения,
+права, подключение к БД и Redis, пишет `.env`, выполняет миграции и создаёт
+администратора. После успеха появляется `var/installed.lock`, а ключ
+`var/install.key` удаляется. Системную часть (systemd-юниты, права) делает
+[deploy.md](deploy.md), а не эта команда.
+
+| Параметр | Описание | Обязателен | По умолчанию |
+| --- | --- | --- | --- |
+| `--db-host` | Сервер MySQL/MariaDB | нет | 127.0.0.1 |
+| `--db-port` | Порт базы данных | нет | 3306 |
+| `--db-name` | Имя базы данных | нет | — |
+| `--db-user` | Пользователь базы данных | нет | — |
+| `--db-password` | Пароль базы данных | нет | — |
+| `--db-create` | Создать базу, если её нет | нет | нет |
+| `--cache-driver` | Кэш: redis или file | нет | redis |
+| `--redis-host` | Сервер Redis | нет | 127.0.0.1 |
+| `--redis-port` | Порт Redis | нет | 6379 |
+| `--redis-db` | Номер базы Redis | нет | 0 |
+| `--redis-password` | Пароль Redis | нет | — |
+| `--admin-login` | Логин администратора | нет | — |
+| `--admin-name` | Имя администратора | нет | Администратор |
+| `--admin-password` | Пароль администратора | нет | — |
+| `--timezone` | Часовой пояс | нет | Europe/Moscow |
+
+```bash
+php bin/mydomo install --db-name=mydomo --db-user=mydomo --db-password='...' \
+  --db-create --admin-login=sysadmin --admin-name='Администратор' --admin-password='...'
+```
+
+Пароль в аргументах остаётся в истории оболочки. На сервере предпочтительнее
+страница `/install`, команда нужна для восстановления доступа и автоматизации.
+Повторный запуск на установленной системе отклоняется.
 
 ### user:create
 

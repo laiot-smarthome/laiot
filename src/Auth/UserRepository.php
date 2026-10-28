@@ -15,6 +15,7 @@ use Throwable;
  * password_hash/password_verify.
  *
  * Изменения:
+ * 2026-10-28 — правила логина, имени и пароля доступны установщику статически.
  * 2026-10-27 — учётная запись, роли и объект Users сохраняются атомарно;
  * логин от восьми символов, пароль требует специальный символ.
  * 2026-10-27 — логин соответствует правилам имени объекта пользователя.
@@ -240,23 +241,24 @@ final readonly class UserRepository
     }
 
     /**
-     * @return array{0:string,1:string}
+     * Проверка логина без обращения к БД: установщик валидирует форму до
+     * миграций, когда таблицы `users` ещё нет.
      */
-    private function validate(string $username, string $name): array
+    public static function assertUsername(string $username): void
     {
-        $username = trim($username);
-        $name = trim($name);
         if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]{7,63}$/D', $username)) {
             throw new InvalidArgumentException('Логин: 8–64 символа, латиница, цифры и _, первый символ — буква или _.');
         }
+    }
+
+    public static function assertDisplayName(string $name): void
+    {
         if ($name === '' || mb_strlen($name) > 191) {
             throw new InvalidArgumentException('Имя обязательно, до 191 символа.');
         }
-
-        return [$username, $name];
     }
 
-    private function validatePassword(string $password): void
+    public static function assertPassword(string $password): void
     {
         if (mb_strlen($password) < 8 || preg_match('/[\p{P}\p{S}]/u', $password) !== 1) {
             throw new InvalidArgumentException('Пароль — минимум 8 символов, включая хотя бы один специальный символ.');
@@ -264,6 +266,24 @@ final readonly class UserRepository
         if (strlen($password) > 72 || str_contains($password, "\0")) {
             throw new InvalidArgumentException('Пароль должен быть не длиннее 72 байт и не содержать нулевой символ.');
         }
+    }
+
+    /**
+     * @return array{0:string,1:string}
+     */
+    private function validate(string $username, string $name): array
+    {
+        $username = trim($username);
+        $name = trim($name);
+        self::assertUsername($username);
+        self::assertDisplayName($name);
+
+        return [$username, $name];
+    }
+
+    private function validatePassword(string $password): void
+    {
+        self::assertPassword($password);
     }
 
     private function exists(string $username, ?int $exceptId = null): bool

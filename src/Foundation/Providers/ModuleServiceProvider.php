@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Routing\Router;
 use Illuminate\View\Factory;
 use MajorDoMo\Database\DatabaseManager;
+use MajorDoMo\Files\FileStorage;
 use MajorDoMo\Foundation\ServiceProvider;
 use MajorDoMo\Modules\ModuleAssets;
 use MajorDoMo\Modules\ModuleInstaller;
@@ -21,6 +22,7 @@ use MajorDoMo\Support\HelperLoader;
  * Обнаружение SDK-модулей и подключение их маршрутов/представлений.
  *
  * Изменения:
+ * 2026-10-28 — удаление модуля очищает его отдельный файловый каталог.
  * 2026-10-27 — регистрация обработчиков изменений свойств из манифестов.
  * 2026-10-26 — модули запускаются после регистрации зависимостей всех провайдеров.
  */
@@ -41,7 +43,8 @@ final class ModuleServiceProvider extends ServiceProvider
             $container->make(ModuleManager::class),
             (string)$this->app->config('version', '0.0.0'),
             $container->make(ModulePermissions::class),
-            $container->make(ModuleAssets::class)
+            $container->make(ModuleAssets::class),
+            $container->make(FileStorage::class)
         ));
     }
 

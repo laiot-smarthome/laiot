@@ -47,11 +47,17 @@ boot во время запуска отклоняется. Ошибка не п
 | Провайдер | Регистрация и действия |
 | --- | --- |
 | InfrastructureServiceProvider | Clock, логгер, БД, кэш, Queue/JobRegistry, события; каталоги, timezone, core helpers в boot |
+| ValidationServiceProvider | Общая фабрика Illuminate Validation, русский Translator и unique/exists через общую БД; без запросов при регистрации |
+| EncryptionServiceProvider | Ленивый Encrypter, ключи из конфигурации и шифрование атрибутов моделей |
+| FilesServiceProvider | Диски ядра/модулей на Flysystem; каталоги создаются при записи |
 | DomainServiceProvider | Репозитории, авторизация, операции свойств, сценариев, API и панельные сервисы |
 | ViewServiceProvider | Blade, именованные aliases, Yoyo и компоненты; подготовка Yoyo в boot |
 | HttpServiceProvider | Сессия, Router/middleware, Kernel, PanelRenderer; ядровые web/API-маршруты в boot |
 | ModuleServiceProvider | ModuleManager/Installer; подключение SDK-маршрутов и представлений |
 | RuntimeServiceProvider | Worker, CoreWorker и состояние; процессы не запускаются при загрузке |
+
+Использование общей фабрики и правила проверки входных данных —
+[validation.md](validation.md).
 
 Общие сервисы регистрируются singleton: повторное разрешение в рамках
 одного Application возвращает тот же объект. Особенно важен

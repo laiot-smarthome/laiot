@@ -13,6 +13,8 @@ return [
     'version' => '2.0.0-dev',
     'timezone' => 'Europe/Moscow',
     'debug' => false,
+    // Включается в bootstrap/app.php: до установки все страницы ведут в мастер.
+    'install_guard' => false,
     'views' => __DIR__ . '/../resources/views',
     'view_cache' => __DIR__ . '/../var/cache/views',
     'log' => __DIR__ . '/../var/log/mydomo.log',

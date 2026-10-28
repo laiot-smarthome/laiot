@@ -22,6 +22,7 @@ use MajorDoMo\Http\Controllers\Core\UiKitController;
 use MajorDoMo\Http\Controllers\Core\UsersController;
 use MajorDoMo\Http\Controllers\DashboardController;
 use MajorDoMo\Http\Controllers\HealthController;
+use MajorDoMo\Http\Controllers\InstallController;
 use MajorDoMo\Http\Controllers\LoginController;
 use MajorDoMo\Http\Controllers\MaintenanceController;
 use MajorDoMo\Http\Controllers\ModuleSettingsController;
@@ -34,6 +35,13 @@ use MajorDoMo\Http\Controllers\YoyoDemoController;
 
 return static function (Router $router): void {
     $router->middleware(['request-id'])->group(function (Router $router): void {
+        // Первая установка: страница живёт до появления .env и базы и
+        // закрывается собственным ключом из var/install.key.
+        $router->get('/install', [InstallController::class, 'show'])->name('install');
+        $router->post('/install', [InstallController::class, 'apply'])
+            ->middleware('csrf')
+            ->name('install.apply');
+
         // Корень ведёт в новый вход; legacy-панели в MyDoMo нет.
         $router->get('/', [LoginController::class, 'show'])->name('home');
         $router->get('/health', [HealthController::class, '__invoke'])->name('health');

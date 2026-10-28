@@ -6,6 +6,7 @@ namespace MajorDoMo\Console;
 
 use MajorDoMo\Auth\UserRepository;
 use MajorDoMo\Foundation\Application;
+use MajorDoMo\Install\InstallService;
 use MajorDoMo\Maintenance\RetentionPruner;
 use MajorDoMo\Modules\ModuleChecker;
 use MajorDoMo\Modules\ModuleInstaller;
@@ -61,6 +62,7 @@ final class ConsoleFactory
         $console->add(new QueueRetryCommand($app));
         $console->add(new ApiTokenCommand($app));
         $console->add(new UserCreateCommand($app->container()->make(UserRepository::class)));
+        $console->add(new InstallCommand($app->container()->make(InstallService::class)));
         $console->add(new MigrateCommand($app));
         $console->add(new MigrateStatusCommand($app));
 

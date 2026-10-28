@@ -28,6 +28,12 @@ uppercase-поля не читаются через runtime-адаптер. От
 
 ## Карта схемы
 
+Базовая `MajorDoMo\Database\Model` поддерживает родные casts `encrypted`,
+`encrypted:array` и соседние строковые encrypted-типы через общий шифратор
+приложения. Секретные атрибуты нужно добавлять в `$hidden`; колонка обычно
+TEXT. Query Builder и ModuleDb автоматически их не шифруют. Контракт и
+создание ключа — [encryption.md](encryption.md).
+
 | Область | Таблицы |
 | --- | --- |
 | Пользователи и доступ | users, roles, permissions, user_roles, role_permissions, api_tokens |
