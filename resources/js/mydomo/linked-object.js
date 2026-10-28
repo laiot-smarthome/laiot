@@ -1,123 +1,133 @@
 /*
- * x-md.linked-object: поиск объекта и контекст свойств/методов.
- *
- * Новый Alpine-компонент ядра; старый modules/linkedobject и его jQuery-
- * контроллер не используются.
+ * Редактор связей в оформлении alpha: combobox и списки в верхнем слое.
+ * 2026-10-28 — данные через Yoyo и защита от устаревших ответов.
  */
-
 import Alpine from 'alpinejs';
-import {get} from './api.js';
 
 Alpine.data('mdLinkedObject', (config = {}) => ({
-    query: config.value || '',
-    object: config.value || '',
-    property: config.property || '',
-    method: config.method || '',
-    propertyName: config.propertyName || '',
-    methodName: config.methodName || '',
-    open: false,
-    loading: false,
-    results: [],
-    context: null,
-    active: 0,
-    error: '',
-    timer: 0,
-    controller: null,
-
+    values: {object: config.value || '', property: config.property || '', method: config.method || ''},
+    objects: [], context: null, kind: '', active: -1, filter: '',
+    loading: false, error: '', sequence: 0, timer: 0, positionHandler: null,
     init() {
-        if (this.object !== '') {
-            this.loadContext();
-        }
+        this.positionHandler = () => this.position();
+        window.addEventListener('resize', this.positionHandler);
+        window.addEventListener('scroll', this.positionHandler, true);
     },
-
-    onInput() {
-        this.open = true;
-        this.active = 0;
-        window.clearTimeout(this.timer);
-        this.timer = window.setTimeout(() => this.search(), 180);
+    destroy() {
+        clearTimeout(this.timer);
+        window.removeEventListener('resize', this.positionHandler);
+        window.removeEventListener('scroll', this.positionHandler, true);
     },
-
-    async search() {
-        const query = this.query.trim();
-        if (query === '') {
-            this.results = [];
-            return;
-        }
-        if (this.controller) {
-            this.controller.abort();
-        }
-        this.controller = new AbortController();
+    get matches() {
+        const items = this.kind === 'object' ? this.objects : (this.context?.[this.kind === 'property' ? 'properties' : 'methods'] || []);
+        const normalize = value => String(value).toLocaleLowerCase().replaceAll('ё', 'е');
+        const query = normalize(this.filter.trim());
+        const matches = items.filter(item => !query || normalize(`${item.title} ${item.description || ''} ${item.class || ''}`).includes(query));
+        return this.kind === 'object'
+            ? matches.sort((a, b) => (a.class || 'Без класса').localeCompare(b.class || 'Без класса', 'ru') || a.title.localeCompare(b.title, 'ru'))
+            : matches;
+    },
+    show(kind) {
+        this.kind = kind;
+        this.filter = '';
+        this.active = -1;
+        this.$nextTick(() => {
+            const menu = this.$refs.menu;
+            if (menu.showPopover && !menu.matches(':popover-open')) menu.showPopover();
+            this.position();
+        });
+        if (kind === 'object') this.request('');
+    },
+    toggle(kind) { if (this.kind === kind) this.close(); else { this.$refs[kind].focus(); this.show(kind); } },
+    onInput(kind) {
+        if (this.kind !== kind) this.show(kind);
+        this.filter = this.values[kind];
+        this.active = -1;
+        if (kind !== 'object') return;
+        this.context = null;
+        this.values.property = '';
+        this.values.method = '';
+        // Ответ предыдущего поиска устаревает ещё до завершения debounce.
+        this.sequence++;
+        this.objects = [];
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => this.request(this.values.object), 180);
+    },
+    request(query = this.values.object) {
+        clearTimeout(this.timer);
+        const source = this.$root.querySelector('[data-md-linked-data]');
+        if (!source) return;
         this.loading = true;
         this.error = '';
-        try {
-            const data = await get('/api/v1/panel/linked-object', {q: query, limit: 20}, this.controller.signal);
-            this.results = data && Array.isArray(data.objects) ? data.objects : [];
-        } catch (error) {
-            if (error.name !== 'AbortError') {
-                this.error = error.message;
-                this.results = [];
-            }
-        } finally {
+        const params = {query, object: this.values.object, sequence: ++this.sequence};
+        // Yoyo помещает props в hx-vals; они имеют приоритет над значениями input.
+        const state = JSON.parse(source.getAttribute('hx-vals') || '{}');
+        source.setAttribute('hx-vals', JSON.stringify({...state, ...params}));
+        Object.entries(params).forEach(([name, value]) => { source.querySelector(`[name="${name}"]`).value = value; });
+        source.querySelector('[data-md-linked-load]').click();
+    },
+    receive(data) {
+        if (data.sequence !== this.sequence || data.object !== this.values.object) return;
+        this.objects = data.objects;
+        this.context = data.context;
+        this.loading = false;
+        this.error = '';
+        this.$nextTick(() => this.position());
+    },
+    failed() { this.loading = false; this.error = 'Не удалось загрузить список. Повторите обновление.'; },
+    choose(item) {
+        const kind = this.kind;
+        if (!kind) return;
+        if (kind === 'object' && this.values.object !== item.title) {
+            this.values.property = '';
+            this.values.method = '';
+            this.context = null;
+        }
+        this.values[kind] = item.title;
+        this.close();
+        this.notify(kind);
+        if (kind === 'object') this.request(item.title);
+        this.$refs[kind].focus();
+    },
+    clear(kind) {
+        this.values[kind] = '';
+        if (kind === 'object') {
+            this.sequence++;
+            clearTimeout(this.timer);
+            this.context = null;
+            this.values.property = '';
+            this.values.method = '';
+            this.objects = [];
             this.loading = false;
         }
+        this.close();
+        this.notify(kind);
+        this.$refs[kind].focus();
     },
-
-    async loadContext() {
-        if (this.object === '') {
-            this.context = null;
-            return;
-        }
-        try {
-            this.context = await get('/api/v1/panel/linked-object', {object: this.object});
-        } catch (error) {
-            this.context = null;
-        }
-    },
-
-    choose(item) {
-        this.object = item.title;
-        this.query = item.title;
-        this.open = false;
-        this.active = 0;
-        this.syncInput();
-        this.loadContext();
-    },
-
-    clear() {
-        this.object = '';
-        this.query = '';
-        this.property = '';
-        this.method = '';
-        this.context = null;
-        this.results = [];
-        this.open = false;
-        this.syncInput();
-    },
-
-    syncInput() {
-        const input = this.$refs.input;
-        if (!input) {
-            return;
-        }
-        input.value = this.query;
-        input.dispatchEvent(new Event('input', {bubbles: true}));
-        input.dispatchEvent(new Event('change', {bubbles: true}));
-    },
-
+    notify(kind) { this.$nextTick(() => this.$refs[kind].dispatchEvent(new Event('change', {bubbles: true}))); },
     move(delta) {
-        if (!this.results.length) {
-            return;
-        }
-        this.active = Math.max(0, Math.min(this.results.length - 1, this.active + delta));
+        if (!this.kind) return;
+        this.active = Math.max(0, Math.min(this.matches.length - 1, this.active + delta));
+        this.$nextTick(() => this.$refs.menu.querySelector('[aria-selected="true"]')?.scrollIntoView({block: 'nearest'}));
     },
-
-    selectActive() {
-        if (this.results[this.active]) {
-            this.choose(this.results[this.active]);
-        }
-    },
-
+    selectActive() { if (this.matches[this.active]) this.choose(this.matches[this.active]); else this.close(); },
     close() {
-        this.open = false;
+        this.kind = '';
+        const menu = this.$refs.menu;
+        if (menu?.hidePopover && menu.matches(':popover-open')) menu.hidePopover();
+    },
+    position() {
+        if (!this.kind) return;
+        const box = this.$refs[this.kind].closest('.md-linkedobject__shell').getBoundingClientRect();
+        const menu = this.$refs.menu;
+        const height = Math.min(320, window.innerHeight - 16);
+        const below = window.innerHeight - box.bottom - 8;
+        const above = below < 180 && box.top > below;
+        Object.assign(menu.style, {
+            left: `${Math.max(8, Math.min(box.left, window.innerWidth - box.width - 8))}px`,
+            top: `${above ? Math.max(8, box.top - Math.min(menu.scrollHeight, height) - 4) : box.bottom + 4}px`,
+            width: `${Math.min(box.width, window.innerWidth - 16)}px`,
+            maxHeight: `${Math.max(80, Math.min(height, above ? box.top - 12 : below))}px`,
+        });
     },
 }));

@@ -5,8 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ $csrf }}">
-    <title>{{ $title }} — MyDoMo</title>
-    <link rel="stylesheet" href="/assets/admin/mydomo.css">
+    <title>{{ $title }} — LaIoT</title>
+    @php
+        // После npm run build браузер должен получить новый файл, а не старый
+        // из кэша: версия — время изменения собранного ассета.
+        $assetVersion = static function (string $path): string {
+            $root = \MajorDoMo\Support\AppContext::get()?->root();
+            $file = $root !== null ? $root . '/public' . $path : '';
+            return $file !== '' && is_file($file) ? '?v=' . filemtime($file) : '';
+        };
+    @endphp
+    <link rel="stylesheet" href="/assets/admin/mydomo.css{{ $assetVersion('/assets/admin/mydomo.css') }}">
     @yoyo_scripts
     <script>
         (function () {
@@ -23,7 +32,9 @@
         <header class="md-admin-topbar" aria-label="Верхняя панель">
             <div class="md-admin-topbar__left">
                 <button type="button" class="md-admin-topbar__menu-toggle md-topbar-action" data-md-admin-sidebar-toggle aria-label="Открыть меню" aria-controls="left_block" aria-expanded="false">
-                    <i class="ti ti-list" aria-hidden="true"></i>
+                    <i class="ti ti-list md-sidebar-toggle-glyph md-sidebar-toggle-glyph--open" aria-hidden="true"></i>
+                    <i class="ti ti-layout-sidebar-left-collapse md-sidebar-toggle-glyph md-sidebar-toggle-glyph--collapse" aria-hidden="true"></i>
+                    <i class="ti ti-layout-sidebar-left-expand md-sidebar-toggle-glyph md-sidebar-toggle-glyph--expand" aria-hidden="true"></i>
                 </button>
                 <div class="md-admin-topbar__search" data-md-header-search>
                     <i class="ti ti-search md-admin-topbar__search-icon" aria-hidden="true"></i>
@@ -59,30 +70,83 @@
             </div>
         </header>
 
-        <aside class="col-lg-2 col-md-3 col-sm-4 col-xs-12 md-admin-sidebar" id="left_block" aria-label="Боковая панель">
+        <aside class="md-admin-sidebar" id="left_block" aria-label="Боковая панель">
             <div class="md-admin-sidebar__inner">
                 <div class="md-admin-sidebar__brand-shell">
-                    <a class="md-admin-sidebar__brand" href="/admin" aria-label="MyDoMo — обзор"><i class="ti ti-smart-home" aria-hidden="true"></i><span>MyDoMo</span></a>
+                    <a class="md-admin-sidebar__brand" href="/admin" aria-label="LaIoT — обзор">
+                        <img class="md-admin-sidebar__logo" src="/assets/img/logos/laiot-logo-white.png"
+                             srcset="/assets/img/logos/laiot-logo-white@2x.png 2x"
+                             width="150" height="46" alt="LaIoT" decoding="async">
+                        <img class="md-admin-sidebar__mark" src="/assets/img/logos/laiot-mark.png"
+                             srcset="/assets/img/logos/laiot-mark@2x.png 2x"
+                             width="34" height="34" alt="" aria-hidden="true" decoding="async">
+                    </a>
+                    <button type="button" class="md-admin-sidebar__close" data-md-sidebar-close aria-label="Закрыть меню">
+                        <i class="ti ti-x" aria-hidden="true"></i>
+                    </button>
                 </div>
+
                 <div class="md-admin-sidebar__scroll">
-                    <nav class="md-admin-sidebar__nav" aria-label="Разделы панели">
+                    {{-- Группы и каталоги — нативные details/summary: аккордеон
+                         работает без JavaScript, а клик по ссылке не сворачивает
+                         раздел. Состояние запоминает sidebar.js. --}}
+                    <nav class="md-nav" aria-label="Разделы панели">
                         @foreach ($menu ?? [] as $group)
-                            <section class="md-admin-sidebar__group">
-                                @if (!empty($group['label']))<div class="md-admin-sidebar__group-title">{{ $group['label'] }}</div>@endif
-                                <ul class="md-admin-sidebar__list">
-                                    @foreach ($group['items'] ?? [] as $item)
-                                        <li @class(['md-admin-sidebar__item', 'active' => ($active ?? '') === ($item['id'] ?? '')])>
-                                            <a class="md-admin-sidebar__link leftmenutab" href="{{ $item['href'] }}" @if (($active ?? '') === ($item['id'] ?? '')) aria-current="page" @endif>
-                                                <i class="md-admin-sidebar__icon-bi ti {{ $item['icon'] ?? 'ti-point' }}" aria-hidden="true"></i>
-                                                <span class="md-admin-sidebar__label">{{ $item['label'] }}</span>
-                                            </a>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </section>
+                            @php($groupKey = $group['key'] ?? ('group-' . $loop->index))
+                            @php($groupActive = ($active_group ?? null) === $groupKey)
+                            @php($groupBadge = $group['badge'] ?? null)
+                            <details class="md-nav__group @if ($groupActive) is-active @endif"
+                                     data-md-nav-key="{{ $groupKey }}" data-md-nav-scope
+                                     @if ($groupActive) open @endif>
+                                <summary class="md-nav__group-toggle">
+                                    <span class="md-nav__group-label">{{ $group['label'] ?? '' }}</span>
+                                    <span @class(['md-nav__badge', 'md-nav__badge--group', 'md-nav__badge--' . ($groupBadge['tone'] ?? 'info')])
+                                          data-md-attention-group data-md-count="{{ $groupBadge['count'] ?? 0 }}"
+                                          data-md-tone="{{ $groupBadge['tone'] ?? 'info' }}"
+                                          title="{{ $groupBadge['title'] ?? '' }}"
+                                          @if (empty($groupBadge['count'])) hidden @endif>{{ $groupBadge['label'] ?? '0' }}</span>
+                                    <i class="ti ti-chevron-down md-nav__chevron" aria-hidden="true"></i>
+                                </summary>
+                                <div class="md-nav__panel">
+                                    <ul class="md-nav__list">
+                                        @foreach ($group['items'] ?? [] as $item)
+                                            @if (!empty($item['items']))
+                                                @php($catalogKey = $item['key'] ?? ('catalog-' . $loop->index))
+                                                @php($catalogActive = ($active_catalog ?? null) === $catalogKey)
+                                                @php($catalogBadge = $item['badge'] ?? null)
+                                                <li class="md-nav__catalog @if ($catalogActive) is-active @endif">
+                                                    <details class="md-nav__sub" data-md-nav-key="{{ $catalogKey }}" data-md-nav-scope
+                                                             @if ($catalogActive) open @endif>
+                                                        <summary class="md-nav__catalog-toggle">
+                                                            <i class="ti {{ $item['icon'] ?? 'ti-folder' }} md-nav__catalog-icon" aria-hidden="true"></i>
+                                                            <span class="md-nav__label">{{ $item['label'] ?? '' }}</span>
+                                                            <span @class(['md-nav__badge', 'md-nav__badge--group', 'md-nav__badge--' . ($catalogBadge['tone'] ?? 'info')])
+                                                                  data-md-attention-group data-md-count="{{ $catalogBadge['count'] ?? 0 }}"
+                                                                  data-md-tone="{{ $catalogBadge['tone'] ?? 'info' }}"
+                                                                  title="{{ $catalogBadge['title'] ?? '' }}"
+                                                                  @if (empty($catalogBadge['count'])) hidden @endif>{{ $catalogBadge['label'] ?? '0' }}</span>
+                                                            <i class="ti ti-chevron-down md-nav__chevron" aria-hidden="true"></i>
+                                                        </summary>
+                                                        <div class="md-nav__panel md-nav__panel--sub">
+                                                            <ul class="md-nav__list md-nav__list--sub">
+                                                                @foreach ($item['items'] as $child)
+                                                                    @include('layouts.partials.sidebar-item', ['item' => $child, 'active' => $active ?? ''])
+                                                                @endforeach
+                                                            </ul>
+                                                        </div>
+                                                    </details>
+                                                </li>
+                                            @else
+                                                @include('layouts.partials.sidebar-item', ['item' => $item, 'active' => $active ?? ''])
+                                            @endif
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </details>
                         @endforeach
                     </nav>
                 </div>
+
                 <div class="md-admin-sidebar__profile">
                     <a class="md-admin-sidebar__account" href="/admin/profile" title="Профиль и смена пароля">
                         <span class="md-admin-sidebar__avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr((string)($user['name'] ?? '?'), 0, 1)) }}</span>
@@ -91,7 +155,7 @@
                             <span class="md-admin-sidebar__account-role">{{ ($user['is_admin'] ?? false) ? 'Администратор' : 'Пользователь' }}</span>
                         </span>
                     </a>
-                    <form method="post" action="/logout" class="md-inline-form">
+                    <form method="post" action="/logout" class="md-admin-sidebar__logout-form">
                         <input type="hidden" name="_token" value="{{ $csrf }}">
                         <button type="submit" class="md-admin-sidebar__logout" aria-label="Выйти" title="Выйти">
                             <i class="ti ti-logout" aria-hidden="true"></i>
@@ -184,7 +248,7 @@
 </x-md.modal>
 
 <x-md.toasts />
-<script src="/assets/admin/mydomo.js" defer></script>
+<script src="/assets/admin/mydomo.js{{ $assetVersion('/assets/admin/mydomo.js') }}" defer></script>
 @stack('scripts')
 </body>
 </html>

@@ -75,7 +75,8 @@ final class CoreWorker
         }
         try {
             if (!$this->state->acquireTask('core', $task, $pid)) {
-                throw new RuntimeException('Core-worker уже запущен: ' . $task);
+                // ProcessLock уже наш: это остаток рестарта, не второй процесс.
+                $this->state->takeoverTask('core', $task, $pid);
             }
             try {
                 $this->installSignals();

@@ -6,9 +6,9 @@
  */
 
 import '../css/mydomo.css';
+import '../css/mqtt.css';
 
 import Alpine from 'alpinejs';
-import TomSelect from 'tom-select';
 import 'tom-select/dist/css/tom-select.css';
 import {TabulatorFull} from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
@@ -18,11 +18,13 @@ import {initSidebar} from './mydomo/sidebar.js';
 import {initDrawer} from './mydomo/drawer.js';
 import {initSearch} from './mydomo/search.js';
 import {initNotifications} from './mydomo/notifications.js';
+import {initMenuAttention} from './mydomo/menu-attention.js';
 import {initConfirm} from './mydomo/confirm.js';
 import {initCodeEditors} from './mydomo/code-editor.js';
 import {initChartMounts} from './mydomo/chart-mount.js';
 import {initYoyoCsrf} from './mydomo/yoyo.js';
 import './mydomo/linked-object.js';
+import {initSelects} from './mydomo/selects.js';
 import {registerClassesTree} from './mydomo/classes-tree.js';
 import {registerNameCheck} from './mydomo/name-check.js';
 
@@ -78,15 +80,8 @@ Alpine.data('mdFileUpload', () => ({
 }));
 
 Alpine.data('mdSearchSelect', () => ({
-    control: null,
     init() {
-        this.control = new TomSelect(this.$el, {
-            plugins: this.$el.multiple ? ['remove_button'] : [],
-            allowEmptyOption: true,
-        });
-    },
-    destroy() {
-        this.control?.destroy();
+        this.$el.dataset.mdSearchable = 'true';
     },
 }));
 
@@ -203,6 +198,7 @@ initSidebar();
 initDrawer();
 initSearch();
 initNotifications();
+initMenuAttention();
 initCodeEditors();
 initChartMounts();
 initYoyoCsrf();
@@ -210,3 +206,4 @@ registerClassesTree(Alpine);
 registerNameCheck(Alpine);
 
 Alpine.start();
+initSelects();

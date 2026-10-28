@@ -267,6 +267,19 @@ AppContext отправляет информационное уведомлен�
 
 Лимит, дедупликация и прочтение — [notifications.md](notifications.md).
 
+## MQTT
+
+Helpers модуля MQTT доступны, пока модуль включён, и работают через его
+сервисы.
+
+| Функция | Возврат и назначение |
+| --- | --- |
+| `mqtt_publish(string $topic, mixed $value, int $qos = 0, bool $retain = false)` | bool; отправить команду. Ошибка брокера возвращает false и попадает в RuntimeState |
+| `mqtt_value(string $path)` | Последнее известное значение топика или null |
+| `mqtt_connected()` | bool; соединение приёма активно и worker запущен |
+
+Устройство и ограничения — [mqtt.md](mqtt.md).
+
 ## Helpers модулей и отсутствие контекста
 
 HelperLoader загружает core-файлы и helpers включённых SDK-модулей.

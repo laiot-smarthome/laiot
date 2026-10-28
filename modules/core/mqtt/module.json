@@ -1,0 +1,39 @@
+{
+    "id": "mqtt",
+    "type": "core",
+    "name": "MQTT",
+    "version": "1.0.0",
+    "description": "Обмен с MQTT-брокером: топики, привязки к свойствам и методам объектов, история сообщений.",
+    "namespace": "MajorDoMo\\Mqtt\\",
+    "entrypoint": "Module",
+    "property_subscriber": "PropertyPublisher",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "helpers": "helpers.php",
+    "storage": {
+        "driver": "mysql",
+        "tables": ["topics", "history", "settings"]
+    },
+    "menu": {
+        "title": "MQTT",
+        "order": 110,
+        "icon": "ti-radio"
+    },
+    "tasks": {
+        "serve": {
+            "method": "serve",
+            "interval": 1,
+            "timeout": 3600
+        },
+        "maintenance": {
+            "method": "maintenance",
+            "interval": 60,
+            "timeout": 30
+        }
+    },
+    "requires": {
+        "mydomo": ">=2.0.0-dev",
+        "php": ">=8.2"
+    }
+}

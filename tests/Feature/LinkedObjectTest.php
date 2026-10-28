@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Tests\Feature;
 
+use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use MajorDoMo\Foundation\Application;
@@ -14,10 +15,18 @@ use PHPUnit\Framework\TestCase;
 /**
  * Ядровой linked-object: поиск, контекст класса, API и Alpine-компонент.
  *
+ * 2026-10-28 — варианты и контекст редактора проверяются через Yoyo.
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  */
 final class LinkedObjectTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        Yoyo::request()->reset();
+        unset($_SERVER['HTTP_HX_REQUEST']);
+        $_REQUEST = [];
+    }
+
     public function testSearchAndContext(): void
     {
         $app = $this->boot();
@@ -36,6 +45,9 @@ final class LinkedObjectTest extends TestCase
 
         self::assertNull($service->context('Нет такого'));
         self::assertSame([], $service->search('  '));
+        self::assertSame('Кухня', $service->suggestions()[0]['title']);
+        self::assertSame('Кухня', $service->suggestions('Комната')[0]['title']);
+        self::assertSame(1, $context['id']);
     }
 
     public function testApiRequiresSessionAndReturnsJson(): void
@@ -69,10 +81,39 @@ final class LinkedObjectTest extends TestCase
         $html = (string)$page->getContent();
         self::assertStringContainsString('md-linked-object', $html);
         self::assertStringContainsString('mdLinkedObject', $html);
+        self::assertStringContainsString('yoyo:name="linked-object-data"', $html);
+        self::assertStringContainsString('role="combobox"', $html);
+    }
+
+    public function testYoyoSearchReturnsContextAndKeepsRequestSequence(): void
+    {
+        $app = $this->boot(true);
+        $params = [
+            'component' => 'linked-object-data/render', 'yoyo-id' => 'linked-fixture',
+            'query' => 'Кух', 'object' => 'Кухня', 'sequence' => 7,
+        ];
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_HX_REQUEST'] = 'true';
+        Yoyo::request()->mock($params, $_SERVER);
+        $response = $app->handle(Request::create('/yoyo', 'GET', $params));
+        self::assertSame(200, $response->getStatusCode());
+        $html = (string)$response->getContent();
+        self::assertStringContainsString('temperature', $html);
+        self::assertStringContainsString('onAlarm', $html);
+        self::assertStringContainsString('value="7"', $html);
+    }
+
+    public function testYoyoDataRequiresAuthentication(): void
+    {
+        $response = $this->boot()->handle(Request::create('/yoyo', 'GET', [
+            'component' => 'linked-object-data/render', 'object' => 'Кухня',
+        ]));
+        self::assertSame(302, $response->getStatusCode());
     }
 
     private function boot(bool $login = false): Application
     {
+        Yoyo::request()->reset();
         $session = new ArraySession();
         if ($login) {
             $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Администратор', 'is_admin' => true]);

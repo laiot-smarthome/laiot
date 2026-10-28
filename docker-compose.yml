@@ -1,4 +1,40 @@
+# Локальный стенд MyDoMo.
+#
+# app — php-fpm для nginx; worker-events и worker-mqtt — фоновые процессы,
+# которые в production запускаются через systemd. init выполняет миграции и
+# создание администратора один раз, остальные сервисы ждут его завершения.
+#
+# 2026-10-27 — MQTT и события свойства работают в контейнерах, а не только вручную.
+
+x-mydomo-app: &mydomo-app
+  build: ./docker/app
+  volumes:
+    - ./:/var/www/html
+
+x-mydomo-env: &mydomo-env
+  APP_ENV: local
+  APP_DEBUG: "true"
+  APP_TIMEZONE: Europe/Moscow
+  DB_HOST: db
+  DB_PORT: "3306"
+  DB_NAME: mydomo
+  DB_USER: mydomo
+  DB_PASSWORD: mydomo
+  CACHE_DRIVER: file
+  MYDOMO_ADMIN_USER: sysadmin
+  MYDOMO_ADMIN_NAME: Администратор
+  MYDOMO_ADMIN_PASSWORD: majordomo!
+
 services:
+  init:
+    <<: *mydomo-app
+    command: ["true"]
+    environment: *mydomo-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   web:
     image: nginx:1.27-alpine
     ports:
@@ -10,27 +46,37 @@ services:
       - app
 
   app:
-    build: ./docker/app
+    <<: *mydomo-app
     expose:
       - "9000"
-    volumes:
-      - ./:/var/www/html
-    environment:
-      APP_ENV: local
-      APP_DEBUG: "true"
-      APP_TIMEZONE: Europe/Moscow
-      DB_HOST: db
-      DB_PORT: "3306"
-      DB_NAME: mydomo
-      DB_USER: mydomo
-      DB_PASSWORD: mydomo
-      CACHE_DRIVER: file
-      MYDOMO_ADMIN_USER: sysadmin
-      MYDOMO_ADMIN_NAME: Администратор
-      MYDOMO_ADMIN_PASSWORD: majordomo!
+    environment: *mydomo-env
     depends_on:
-      db:
-        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+
+  # События свойства: OnChange, история и постановка доставки в module.mqtt.
+  worker-events:
+    <<: *mydomo-app
+    entrypoint: ["php"]
+    command: ["bin/mydomo", "core-worker", "events"]
+    environment: *mydomo-env
+    user: "www-data"
+    restart: unless-stopped
+    depends_on:
+      init:
+        condition: service_completed_successfully
+
+  # Приём и отправка MQTT: одно долгоживущее соединение с брокером.
+  worker-mqtt:
+    <<: *mydomo-app
+    entrypoint: ["php"]
+    command: ["bin/mydomo", "worker", "mqtt"]
+    environment: *mydomo-env
+    user: "www-data"
+    restart: unless-stopped
+    depends_on:
+      init:
+        condition: service_completed_successfully
 
   db:
     image: mariadb:11

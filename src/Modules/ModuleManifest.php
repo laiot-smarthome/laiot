@@ -17,6 +17,7 @@ use JsonException;
  * Никаких legacy-полей `project_modules` здесь нет.
  *
  * 2026-10-27 — необязательная схема `settings` с типами и умолчаниями.
+ * 2026-10-27 — пустой settings из toArray() принимается при повторной сборке.
  */
 final readonly class ModuleManifest
 {
@@ -282,6 +283,11 @@ final readonly class ModuleManifest
     private static function normalizeSettings(mixed $raw): array
     {
         if ($raw === null) {
+            return [];
+        }
+        if ($raw === []) {
+            // toArray() всегда содержит пустой settings; повторная сборка
+            // манифеста (installer, CLI) не должна считать это ошибкой.
             return [];
         }
         if (!is_array($raw) || array_is_list($raw)) {

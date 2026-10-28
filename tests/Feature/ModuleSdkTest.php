@@ -75,8 +75,8 @@ final class ModuleSdkTest extends TestCase
             self::assertSame(1, (int)$app->database()->connection()->table('module_registry')->where('module_id', 'example_sdk')->value('enabled'));
 
             try {
-                $installer->disable('shoutbox');
-                self::fail('Core-модуль нельзя выключить');
+                $installer->remove('mqtt');
+                self::fail('Core-модуль нельзя удалить');
             } catch (InvalidArgumentException $error) {
                 self::assertNotEmpty($error->getMessage());
             }
@@ -235,7 +235,9 @@ final class ModuleSdkTest extends TestCase
         }
         @unlink($file);
         $database = $file . '.sqlite';
-        touch($database);
+        // Переиспользованный tempnam-путь мог оставить старый файл: пустая
+        // SQLite-база не должна содержать строку реестра прошлого прогона.
+        file_put_contents($database, '');
 
         return $database;
     }

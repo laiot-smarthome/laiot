@@ -10,6 +10,7 @@ use MajorDoMo\Http\Controllers\HealthController;
 use MajorDoMo\Http\Controllers\LinkedObjectController;
 use MajorDoMo\Http\Controllers\ModulesController;
 use MajorDoMo\Http\Controllers\NotificationsController;
+use MajorDoMo\Http\Controllers\PanelAttentionController;
 use MajorDoMo\Http\Controllers\PanelSearchController;
 
 return static function (Router $router): void {
@@ -31,6 +32,10 @@ return static function (Router $router): void {
         $router->post('/panel/notifications/dismiss', [NotificationsController::class, 'dismiss'])
             ->middleware(['auth', 'csrf'])
             ->name('api.panel.notifications.dismiss');
+        // Бейджи бокового меню: ошибки, сбойные задания, непрочитанные.
+        $router->get('/panel/attention', PanelAttentionController::class)
+            ->middleware('auth')
+            ->name('api.panel.attention');
         // Редактор связей: поиск объектов и свойства/методы выбранного класса.
         $router->get('/panel/linked-object', LinkedObjectController::class)
             ->middleware('auth')

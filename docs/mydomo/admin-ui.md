@@ -33,6 +33,9 @@ routes/web.php
 - SDK-модули (MQTT, Zigbee, сторонние) добавляют свои пункты через
   `ModuleManager::menuItems()` и живут на `/module/<id>`.
 - Новые страницы не создают layout, токены и вторую библиотеку иконок.
+- Подключение `mydomo.css`/`mydomo.js` содержит `?v=<filemtime>`: после
+  `npm run build` браузер получает новый файл, а не старый из кэша. Не
+  убирайте версию при правке layout.
 
 ## 2. Общие компоненты
 
@@ -44,9 +47,21 @@ routes/web.php
 
 Компонент — класс в `src/Yoyo` + шаблон `resources/views/yoyo/<name>.blade.php`.
 Имя `kebab-case` Yoyo сам разрешает в класс `MajorDoMo\Yoyo\StudlyCase` по
-namespace из конфигурации, поэтому ручной `Yoyo::registerComponent()` не
-нужен. Состояние — публичные свойства, действие — метод, данные — сервис
-ядра; компонент ничего не знает про HTTP-роуты.
+namespace из конфигурации, поэтому для ядровых компонентов ручной
+`Yoyo::registerComponent()` не нужен. Модуль регистрирует свои компоненты
+сам в `boot()` и кладёт шаблон в свой namespace — см.
+[SDK](sdk.md); пример — `mqtt-topics` и `mqtt-status` в MQTT.
+Состояние — публичные свойства, действие — метод, данные — сервис ядра;
+компонент ничего не знает про HTTP-роуты.
+
+«Чистая» Yoyo-обёртка (`class="yoyo-wrapper"`, без классов корня) внутри
+`.md-ui-page` имеет `display: contents`: компонент с несколькими корневыми
+блоками получает `gap` страницы, как если бы его блоки были её детьми.
+Если шаблон однокорневой, Yoyo переносит классы корня на обёртку — её
+нельзя делать `display: contents`, иначе пропадёт карточка/кнопка. Поэтому
+не добавляйте собственную обёртку вокруг нескольких корней: отступы снова
+пропадут. Правило закреплено в `resources/css/mydomo.css` и проверяется
+`AdminAssetsTest`.
 
 | Компонент | Назначение |
 | --- | --- |
@@ -86,6 +101,35 @@ namespace из конфигурации, поэтому ручной `Yoyo::regi
 правила тулбара. Стили дерева классов, строк объектов и живой проверки имени
 вынесены в `resources/css/classes.css` (подключён после `admin_panel.css`).
 
+### Боковое меню и оболочка
+
+Меню собирает `CoreSections::structure()` (группы и каталоги), а
+`CoreSections::prepare()` добавляет стабильные ключи, активные ветки и
+счётчики. Верхние группы — «Обзор», «Дом», «Автоматизация», «Система» плюс
+группа страниц SDK-модулей «Интеграции». Внутри «Системы» три каталога:
+«Диагностика» (журнал, ошибки), «API и доступ» (webhook, документация,
+токены) и «Сервис» (оповещения, обслуживание, UI Kit).
+
+Группы и каталоги свёрстаны нативными `details/summary`: аккордеон работает
+без JavaScript, `sidebar.js` только запоминает раскрытые ветки в
+`localStorage` и всегда раскрывает ветку с текущей страницей. Активный пункт
+помечается `aria-current="page"`, у групп и каталогов есть фокус-рамка.
+
+В шапке панели — логотип LaIoT (`laiot-logo-white*.png`, в компактном режиме
+знак `laiot-mark*.png`). На ПК кнопка меню сворачивает панель до иконок
+(`body.md-sidebar-compact`, ширина 86 px, подписи скрыты, у ссылок остаётся
+`title`); на телефоне та же кнопка открывает drawer, у которого есть кнопка
+закрытия и отступ под safe-area. Подвал с профилем и выходом имеет
+фиксированную высоту 66 px, кнопки — 46 px, поэтому высота панели не
+меняется от длины имени или появления бейджа.
+
+Счётчики внимания считает `PanelAttention` (`src/Panel/PanelAttention.php`):
+ошибки за последние сутки, задания с ошибкой в очереди, непрочитанные
+уведомления. Бейдж пункта виден сразу, бейдж группы — сумма вложенных, с
+приоритетом тона danger → warning → info. Оболочка обновляет их через
+`GET /api/v1/panel/attention` каждые 90 секунд и при возврате на вкладку;
+счётчик больше 99 показывается как `99+`.
+
 ## 3. Разделы и данные
 
 | Раздел | Маршрут | Источник данных | Возможности |
@@ -102,8 +146,9 @@ namespace из конфигурации, поэтому ручной `Yoyo::regi
 | Пользователи и роли | `/users` | `UserRepository`, `UserObjects`, `RoleRepository` | поиск, создание/редактирование пользователя, роли и их разрешения в Yoyo-диалоге, состояние дома/Wi-Fi, переход к объекту Users, удаление вместе с объектом и историей значений |
 | Настройки | `/settings` | `.env`, `SettingsSchema`, `SettingsService` | шесть вкладок, поиск по ключу/описанию, формы Yoyo с проверкой значений, скрытые секреты; право `settings.manage` |
 | Журнал | `/journal` | `ActionLogRepository` | фильтр типа, поиск, удаление записи |
-| Ошибки | `/errors` | `ErrorRepository` | группы одинаковых сообщений, поиск, плоский список, удаление записи или группы |
-| Модули | `/admin/modules` | `ModuleInstaller` | состояние модуля (ядро / включён / выключен / не установлен), установка, включение, отключение, удаление из реестра |
+| Ошибки | `/errors` | `ErrorRepository` | Yoyo-экран из двух режимов: список групп/записей, затем отдельные детали — когда, где, класс, число повторов, стек, контекст, raw-файл; копирование отчёта для AI |
+| Модули | `/admin/modules` | `ModuleInstaller` | состояние модуля (ядро / включён / выключен / не установлен), установка, включение, отключение, удаление из реестра; core-модуль можно выключить, но не удалить |
+| MQTT | `/module/mqtt` | `Mqtt\TopicRepository`, `Mqtt\RuntimeState` | Yoyo-компоненты `mqtt-topics` (поиск, группы, страницы, автообновление значений) и `mqtt-status`; карточка топика, привязка через `x-md.linked-object`, настройки брокера, история. Устройство — [mqtt.md](mqtt.md) |
 | Настройки модуля | `/admin/modules/<id>/settings` | `ModuleSettingsController` | форма по схеме `module.json`, значения в реестре, выбор подписок на свойства объекта |
 | API и webhook | `/api` | `WebhookService` | список, секрет один раз, методы, перевыпуск |
 | API-документация | `/admin/api` | `Router` | живой список маршрутов и правила авторизации |
@@ -223,6 +268,11 @@ worker'ы с уже загруженным кодом нужно перезап�
   файлы модулей.
 - `tests/Feature/PropertyRepeatPolicyTest.php` — повтор значения с
   `only_new_values` не запускает цепочку, без галочки — запускает.
+- `tests/Feature/SidebarMenuTest.php` — группы и каталоги меню, ключи
+  раскрытия, сумма бейджей по группе и предел `99+`; не поднимает приложение.
+- `tests/Feature/PanelAttentionTest.php` — ошибки только за сутки и без
+  удалённых, тон уведомлений, `GET /api/v1/panel/attention` и отказ гостю.
+- `tests/Feature/AlphaLayoutTest.php` — оболочка и разметка боковой панели.
 - Профильные тесты разделов (`CoreObjectsTest`, `CorePropertiesTest`,
   `CoreMethodsTest`, `CoreEventsTest`, `CoreJobsTest`, `CoreScriptsTest`,
   `CoreUsersTest`, `CoreSettingsTest`, `CoreActionsLogTest`,
@@ -259,6 +309,8 @@ Yoyo-компоненты интерактивных блоков (`events-table
 php vendor/bin/phpunit --filter AdminSectionsTest
 php vendor/bin/phpunit --filter ClassesUiTest
 php vendor/bin/phpunit --filter PropertyHistoryTest
+php vendor/bin/phpunit --filter SidebarMenuTest
+php vendor/bin/phpunit --filter PanelAttentionTest
 php vendor/bin/phpunit
 php vendor/bin/phpstan analyse --memory-limit=1G
 php vendor/bin/php-cs-fixer fix --dry-run --config=.php-cs-fixer.dist.php

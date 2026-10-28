@@ -26,6 +26,7 @@ use Throwable;
  *
  * Изменения:
  * 2026-10-27 — настройки и подписки в ModuleContext.
+ * 2026-10-27 — core-модуль читает enabled из строки реестра и выключается.
  * 2026-10-26 — загрузка без конфигурации БД не обращается к реестру в БД.
  */
 final class ModuleManager
@@ -331,8 +332,12 @@ final class ModuleManager
                 $module['manifest'] = $manifest->toArray();
                 $module['core'] = $manifest->isCore();
                 $module['installed'] = $manifest->isCore() || isset($registry[$manifest->id()]);
+                // Core-модуль встроен и не удаляется, но его можно выключить:
+                // строка реестра с enabled=0 означает «выключен», отсутствие
+                // строки — обычное включённое состояние поставки.
                 $module['enabled'] = $manifest->isCore()
-                    || (isset($registry[$manifest->id()]) && (int)$registry[$manifest->id()]['enabled'] === 1);
+                    ? (!isset($registry[$manifest->id()]) || (int)$registry[$manifest->id()]['enabled'] === 1)
+                    : (isset($registry[$manifest->id()]) && (int)$registry[$manifest->id()]['enabled'] === 1);
 
                 $this->moduleSettings[$manifest->id()] = ModuleSettings::fromStored(
                     $manifest->settingsSchema(),

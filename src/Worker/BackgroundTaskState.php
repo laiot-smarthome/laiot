@@ -27,9 +27,26 @@ final readonly class BackgroundTaskState
         return $this->cache->add($this->lockKey($module), $pid, self::LOCK_TTL);
     }
 
+    /**
+     * Перехват кэш-блокировки после рестарта процесса.
+     *
+     * Файловая ProcessLock уже подтвердила, что worker на этой установке
+     * один; оставшийся ключ — след жёсткого kill/рестарта контейнера, а не
+     * второго процесса. Ждать его TTL 120 секунд не нужно.
+     */
+    public function takeover(string $module, int $pid): void
+    {
+        $this->cache->put($this->lockKey($module), $pid, self::LOCK_TTL);
+    }
+
     public function acquireTask(string $module, string $task, int $pid): bool
     {
         return $this->cache->add($this->taskLockKey($module, $task), $pid, self::LOCK_TTL);
+    }
+
+    public function takeoverTask(string $module, string $task, int $pid): void
+    {
+        $this->cache->put($this->taskLockKey($module, $task), $pid, self::LOCK_TTL);
     }
 
     public function refresh(string $module, int $pid): void

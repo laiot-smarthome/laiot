@@ -17,6 +17,8 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Читает `docs/**\/*.md` через core-сервис `KnowledgeBase`: отдельной таблицы
  * нет, источники — те же Markdown-файлы, что у агентов.
+ *
+ * 2026-10-28 — поиск передан Yoyo; статья сохраняет контекст возврата к списку.
  */
 final readonly class KnowledgeBaseController extends Controller
 {
@@ -31,14 +33,7 @@ final readonly class KnowledgeBaseController extends Controller
     {
         $search = trim((string)$request->query->get('q', ''));
         $category = trim((string)$request->query->get('category', ''));
-        $documents = [];
-        foreach ($this->docs->search($search, $category) as $document) {
-            $documents[] = $document + ['url' => self::url($document['id'])];
-        }
-
         $content = $this->view->make('pages.knowledge_base.index', [
-            'documents' => $documents,
-            'categories' => $this->docs->categories(),
             'search' => $search,
             'category' => $category,
         ])->render();
@@ -46,7 +41,7 @@ final readonly class KnowledgeBaseController extends Controller
         return $this->panel->render(new PanelPage('База знаний', $content, 'knowledge_base'));
     }
 
-    public function show(string $doc): Response
+    public function show(Request $request, string $doc): Response
     {
         $document = $this->docs->find($doc);
         if ($document === null) {
@@ -59,13 +54,13 @@ final readonly class KnowledgeBaseController extends Controller
 
         $content = $this->view->make('pages.knowledge_base.show', [
             'document' => $document,
+            'backUrl' => '/knowledge-base?' . http_build_query([
+                'q' => trim((string)$request->query->get('q', '')),
+                'category' => trim((string)$request->query->get('category', '')),
+            ]),
         ])->render();
 
         return $this->panel->render(new PanelPage($document['title'], $content, 'knowledge_base'));
     }
 
-    private static function url(string $id): string
-    {
-        return '/knowledge-base/' . implode('/', array_map('rawurlencode', explode('/', $id)));
-    }
 }

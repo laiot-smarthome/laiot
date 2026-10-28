@@ -83,7 +83,7 @@ body.md-admin-shell .md-date-picker__control .md-input { padding-right: 42px; }
 .md-date-picker__time label { display: grid; gap: 5px; flex: 1; color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); }
 
 body.md-admin-shell .ts-wrapper.single .ts-control { align-items: center; }
-body.md-admin-shell .ts-wrapper.single .ts-control { padding-left: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 10px center; }
+body.md-admin-shell .ts-wrapper.single.md-select--searchable .ts-control { padding-left: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 10px center; }
 body.md-admin-shell .ts-wrapper .ts-control input { min-width: 5ch; }
 .md-kit-upload { padding: 20px; border: 1px dashed var(--md-ui-border); border-radius: 12px; background: var(--md-ui-surface-2); }
 .md-kit-upload.is-dragging { border-color: var(--md-ui-primary); background: var(--md-ui-selected); }
@@ -124,6 +124,20 @@ body.md-admin-shell .md-app-dialog .md-table__actions { gap: 6px; }
 
 /* Yoyo-обёртка не должна ломать flex шапки: кнопка остаётся прямой flex-единицей. */
 body.md-admin-shell .md-ui-hero__actions > .yoyo-wrapper { display: contents; }
+
+/*
+ * Yoyo-обёртка на странице не создаёт собственный блок: несколько корневых
+ * элементов компонента становятся детьми md-ui-page и получают её gap.
+ * Без этого компонент из двух и более блоков «слипался» в один столбец без
+ * отступов — это повторялось в каждом новом модуле.
+ *
+ * Только «чистая» обёртка: если шаблон компонента однокорневой, Yoyo
+ * переносит классы корня на саму обёртку (например, md-card у статуса), и
+ * display:contents уничтожил бы карточку. Один корень работает как раньше;
+ * обёртка остаётся целью htmx-обновления.
+ */
+body.md-admin-shell .md-ui-page > .yoyo-wrapper[class="yoyo-wrapper"] { display: contents; }
+
 
 /* Ошибка серверного валидатора кода: строка известна до открытия редактора. */
 .md-code-editor__error { display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .5rem; padding: .625rem .75rem; border: 1px solid var(--md-ui-danger); border-radius: .5rem; background: var(--md-ui-danger-soft); color: var(--md-ui-danger); font-size: var(--md-ui-fs-xs); line-height: 1.45; }
@@ -791,105 +805,1157 @@ body.md-admin-shell .md-data-table__grid.tabulator .tabulator-footer { padding: 
     box-shadow: inset 0 0 0 2px var(--bs-primary-bg-subtle);
 }
 
-/* x-md.linked-object: поиск объекта и контекст свойств/методов. */
-[x-cloak] {
-    display: none !important;
+/* Linked Property использует готовое оформление alpha и верхний слой popover. */
+.md-linkedobject-editor { display: grid; gap: 16px; min-width: 0; }
+body.md-admin-shell .md-linkedobject-editor__menu {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 0;
+    visibility: visible;
+    z-index: 1200;
+}
+body.md-admin-shell .md-linkedobject-editor__menu .md-linkedobject-popover__list { min-height: 0; }
+body.md-admin-shell .md-linkedobject-editor__menu .md-linkedobject-popover__option { width: 100%; border: 0; background: transparent; text-align: left; font: inherit; }
+body.md-admin-shell .md-linkedobject-editor__menu .md-linkedobject-popover__option:hover,
+body.md-admin-shell .md-linkedobject-editor__menu .md-linkedobject-popover__option.is-active { background: var(--md-ui-surface-2); }
+body.md-admin-shell .md-linkedobject-editor__menu:not(:popover-open) { display: none; }
+body.md-admin-shell .md-linkedobject-editor__menu:popover-open { display: flex; }
+/* Фокус не добавляет внешнее кольцо; клавиатура меняет только цвет рамки. */
+body.md-admin-shell .md-ui-page input:focus,
+body.md-admin-shell .md-ui-page select:focus,
+body.md-admin-shell .md-ui-page textarea:focus,
+body.md-admin-shell .md-input-shell:focus-within,
+body.md-admin-shell .ts-wrapper.focus .ts-control {
+    outline: none;
+    box-shadow: none;
+    border-color: var(--md-ui-border-strong);
+}
+body.md-admin-shell .md-ui-page input:focus-visible,
+body.md-admin-shell .md-ui-page select:focus-visible,
+body.md-admin-shell .md-ui-page textarea:focus-visible,
+body.md-admin-shell .md-input-shell:has(input:focus-visible),
+body.md-admin-shell .ts-wrapper:has(:focus-visible) .ts-control { border-color: var(--md-ui-muted); }
+body.md-admin-shell .ts-wrapper .ts-control { cursor: pointer; }
+body.md-admin-shell .ts-wrapper .ts-control input { color: var(--md-ui-text); }
+body.md-admin-shell .ts-dropdown { z-index: 1200; }
+body.md-admin-shell .ts-dropdown .no-results { padding: 10px; color: var(--md-ui-muted); }
+
+/* ---------------------------------------------------------------------------
+ * Ошибки: отдельный экран списка и отдельный экран разбора.
+ * Список — строки на всю ширину; детали — карточки с воздухом между блоками.
+ * ------------------------------------------------------------------------- */
+
+.md-errors-list-screen,
+.md-errors-detail-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
 
-.md-linked-object__control {
-    position: relative;
+.md-errors-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--md-ui-border);
+    border-radius: 16px;
+    background: var(--md-ui-surface);
 }
 
-.md-linked-object__input {
-    padding-right: 2.5rem;
+.md-errors-toolbar .md-ui-search {
+    flex: 1 1 520px;
 }
 
-.md-linked-object__clear {
-    position: absolute;
-    top: 50%;
-    right: .5rem;
+.md-errors-toolbar .md-table__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.md-errors-back {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 1.75rem;
-    height: 1.75rem;
+    gap: 4px;
     padding: 0;
     border: 0;
-    border-radius: .375rem;
-    color: var(--bs-secondary-color);
-    background: transparent;
-    transform: translateY(-50%);
+    background: none;
+    color: var(--md-ui-primary);
+    font: inherit;
+    font-size: .78rem;
+    cursor: pointer;
 }
 
-.md-linked-object__clear:hover {
-    color: var(--bs-body-color);
-    background: var(--bs-tertiary-bg);
-}
-
-.md-linked-object__menu {
-    position: absolute;
-    z-index: 1080;
-    right: 0;
-    left: 0;
-    max-height: 18rem;
-    margin-top: .25rem;
-    overflow: auto;
-    border: 1px solid var(--bs-border-color);
-    border-radius: .5rem;
-    background: var(--bs-body-bg);
-    box-shadow: 0 .75rem 2rem rgba(0, 0, 0, .16);
-}
-
-.md-linked-object__option {
+.md-errors-list {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    width: 100%;
-    padding: .625rem .75rem;
+    flex-direction: column;
+    gap: 0;
+    max-height: 70vh;
+    padding: 0;
+    overflow: auto;
+}
+
+.md-errors-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    padding-right: 14px;
+    border-bottom: 1px solid var(--md-ui-border);
+}
+
+.md-errors-row:last-child {
+    border-bottom: 0;
+}
+
+.md-errors-item {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 14px 16px;
     border: 0;
-    color: inherit;
     background: transparent;
-    text-align: left;
+    color: var(--md-ui-text);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
 }
 
-.md-linked-object__option:hover,
-.md-linked-object__option.is-active {
-    background: var(--bs-tertiary-bg);
+.md-errors-item:hover {
+    background: var(--md-ui-surface-2);
 }
 
-.md-linked-object__title {
+.md-errors-item:focus-visible,
+.md-errors-occurrence:focus-visible,
+.md-errors-back:focus-visible {
+    outline: 2px solid var(--md-ui-primary);
+    outline-offset: -2px;
+}
+
+.md-errors-item__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.md-errors-item__badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.md-errors-item__count {
+    color: var(--md-ui-muted);
+    font-size: .72rem;
+    font-weight: 500;
+}
+
+.md-errors-item__time {
+    color: var(--md-ui-muted);
+    font-size: .74rem;
+    white-space: nowrap;
+}
+
+.md-errors-item__message {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--md-ui-text);
+    font-size: .9rem;
+    font-weight: 600;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.md-errors-item__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-height: 1.2rem;
+    color: var(--md-ui-muted);
+    font-size: .75rem;
+}
+
+.md-errors-row__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.md-errors-list__empty {
+    padding: 14px;
+}
+
+.md-errors-detail__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.md-errors-detail__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.md-errors-detail__heading {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0 2px;
+}
+
+.md-errors-detail__eyebrow {
+    color: var(--md-ui-primary);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.md-errors-detail__title {
+    margin: 0;
+    color: var(--md-ui-text);
+    font-size: 1.35rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.md-errors-detail__subtitle {
+    margin: 0;
+    color: var(--md-ui-muted);
+    font-size: .9rem;
+    overflow-wrap: anywhere;
+}
+
+.md-errors-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.md-errors-summary__item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border: 1px solid var(--md-ui-border);
+    border-radius: 14px;
+    background: var(--md-ui-surface);
+}
+
+.md-errors-summary__label {
+    color: var(--md-ui-muted);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.md-errors-summary__value {
+    color: var(--md-ui-text);
+    font-size: 1.05rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.md-errors-summary__hint {
+    color: var(--md-ui-muted);
+    font-size: .7rem;
+    line-height: 1.4;
+}
+
+.md-errors-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 20px;
+    margin: 0;
+}
+
+.md-errors-meta dt {
+    color: var(--md-ui-muted);
+    font-size: .72rem;
+}
+
+.md-errors-meta dd {
+    margin: 3px 0 0;
+    color: var(--md-ui-text);
+    font-size: .84rem;
+    overflow-wrap: anywhere;
+}
+
+.md-errors-frames {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 48vh;
+    margin: 0;
+    padding: 0;
+    overflow: auto;
+    list-style: none;
+}
+
+.md-errors-frame {
+    display: flex;
+    gap: 10px;
+    padding: 9px 11px;
+    border: 1px solid var(--md-ui-border);
+    border-radius: 10px;
+    background: var(--md-ui-surface-2);
+}
+
+.md-errors-frame__index {
+    flex: 0 0 auto;
+    color: var(--md-ui-primary);
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+.md-errors-frame__body {
+    min-width: 0;
+}
+
+.md-errors-code {
+    color: var(--md-ui-text);
+    font-size: .78rem;
+    overflow-wrap: anywhere;
+}
+
+.md-errors-frame__call {
+    margin-top: 3px;
+    color: var(--md-ui-muted);
+    font-size: .76rem;
+    overflow-wrap: anywhere;
+}
+
+.md-errors-codeblock {
+    max-height: 48vh;
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    border: 1px solid var(--md-ui-border);
+    border-radius: 12px;
+    background: var(--md-ui-surface-2);
+    color: var(--md-ui-text);
+    font-size: .78rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.md-errors-codeblock--raw {
+    max-height: 64vh;
+}
+
+.md-errors-occurrences {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.md-errors-occurrence {
+    display: grid;
+    grid-template-columns: 10.5rem 4.5rem minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    padding: 9px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--md-ui-border);
+    background: transparent;
+    color: var(--md-ui-text);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+
+.md-errors-occurrence:last-child {
+    border-bottom: 0;
+}
+
+.md-errors-occurrence:hover {
+    background: var(--md-ui-surface-2);
+}
+
+.md-errors-occurrence.is-active {
+    background: var(--md-ui-selected);
+    box-shadow: inset 3px 0 var(--md-ui-primary);
+}
+
+.md-errors-occurrence__time {
+    color: var(--md-ui-muted);
+    font-size: .78rem;
+}
+
+.md-errors-occurrence__id {
+    color: var(--md-ui-primary);
+    font-size: .78rem;
     font-weight: 600;
 }
 
-.md-linked-object__meta {
-    color: var(--bs-secondary-color);
-    font-size: .8125rem;
+.md-errors-occurrence__request {
+    color: var(--md-ui-muted);
+    font-size: .78rem;
+    overflow-wrap: anywhere;
 }
 
-.md-linked-object__state {
-    padding: .625rem .75rem;
-    color: var(--bs-secondary-color);
-    font-size: .875rem;
+.md-errors-raw {
+    padding-top: 0;
+    border-top: 0;
 }
 
-.md-linked-object__context {
-    margin-top: .5rem;
-    padding: .75rem;
-    border: 1px solid var(--bs-border-color);
-    border-radius: .5rem;
-    background: var(--bs-tertiary-bg);
+.md-errors-raw__summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    color: var(--md-ui-text);
+    font-size: .84rem;
+    font-weight: 600;
+    cursor: pointer;
 }
 
-.md-linked-object__context-head {
+.md-errors-raw[open] .md-errors-raw__summary {
+    margin-bottom: 12px;
+}
+
+.md-errors-muted {
+    color: var(--md-ui-muted);
+    font-size: .78rem;
+}
+
+@media (max-width: 991.98px) {
+    .md-errors-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .md-errors-row {
+        flex-wrap: wrap;
+        padding: 0 8px 0 0;
+    }
+
+    .md-errors-row__actions {
+        padding-bottom: 8px;
+    }
+
+    .md-errors-occurrence {
+        grid-template-columns: 1fr auto;
+    }
+
+    .md-errors-occurrence__request {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .md-errors-meta,
+    .md-errors-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .md-errors-detail__actions {
+        width: 100%;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+ * Боковое меню (2026-10-27).
+ *
+ * Группы и каталоги — нативные details/summary: аккордеон работает и без JS,
+ * а сам <details> держит раскрытие. Бейджи считает PanelAttention: счётчик
+ * группы виден, даже когда её пункты свёрнуты.
+ *
+ * Высоты зафиксированы (бренд 68, пункт 38, каталог 36, подвал 66): раньше
+ * подпись роли и бейджи меняли высоту подвала, и меню «прыгало».
+ * ------------------------------------------------------------------------- */
+
+body.md-admin-shell {
+    --md-nav-bg: #0b1626;
+    --md-nav-bg-2: #0e1d31;
+    --md-nav-line: rgba(255, 255, 255, .075);
+    --md-nav-fg: #d5e2f2;
+    --md-nav-muted: #8298b3;
+    --md-nav-accent: #6d5efc;
+    --md-nav-accent-2: #22b8f0;
+}
+
+body.md-admin-shell .md-admin-sidebar {
+    background:
+        radial-gradient(circle at 16% 0%, rgba(109, 94, 252, .30), transparent 18rem),
+        radial-gradient(circle at 100% 94%, rgba(34, 184, 240, .10), transparent 16rem),
+        linear-gradient(180deg, var(--md-nav-bg) 0%, var(--md-nav-bg-2) 54%, #0a1524 100%);
+    border-right: 1px solid rgba(255, 255, 255, .05);
+}
+
+body.md-admin-shell .md-admin-sidebar__inner {
+    background: transparent;
+}
+
+/* Бренд: логотип LaIoT, без текстовой подписи. */
+body.md-admin-shell .md-admin-sidebar__brand-shell {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    min-height: 68px;
+    padding: 12px 16px;
+    background: transparent;
+    border-bottom: 1px solid var(--md-nav-line);
+}
+
+body.md-admin-shell .md-admin-sidebar__brand {
+    display: flex;
+    width: 100%;
+    min-height: 0;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    text-decoration: none;
+}
+
+body.md-admin-shell .md-admin-sidebar__logo {
+    display: block;
+    flex: 0 0 auto;
+    width: 142px;
+    max-width: 100%;
+    height: auto;
+    opacity: .98;
+    object-fit: contain;
+}
+
+body.md-admin-shell .md-admin-sidebar__mark {
+    display: none;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+}
+
+body.md-admin-shell .md-admin-sidebar__close {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    z-index: 4;
+    display: none;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    color: var(--md-nav-muted);
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid var(--md-nav-line);
+    border-radius: 10px;
+    font-size: 1.1rem;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+body.md-admin-shell .md-admin-sidebar__close:hover,
+body.md-admin-shell .md-admin-sidebar__close:focus-visible {
+    color: #fff;
+    background: rgba(255, 255, 255, .12);
+}
+
+body.md-admin-shell .md-admin-sidebar__scroll {
+    padding: 10px 10px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+
+/* --- Аккордеон --------------------------------------------------------- */
+
+body.md-admin-shell .md-nav {
+    display: grid;
+    gap: 4px;
+}
+
+body.md-admin-shell .md-nav details {
+    margin: 0;
+}
+
+body.md-admin-shell .md-nav summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+}
+
+body.md-admin-shell .md-nav summary::-webkit-details-marker {
+    display: none;
+}
+
+body.md-admin-shell .md-nav summary::marker {
+    content: "";
+}
+
+body.md-admin-shell .md-nav__group {
+    border-radius: 12px;
+}
+
+body.md-admin-shell .md-nav__group + .md-nav__group {
+    border-top: 1px solid var(--md-nav-line);
+    padding-top: 5px;
+}
+
+body.md-admin-shell .md-nav__group-toggle {
     display: flex;
     align-items: center;
-    gap: .5rem;
-    margin-bottom: .5rem;
+    gap: 8px;
+    min-height: 34px;
+    margin: 0;
+    padding: 7px 10px;
+    color: var(--md-nav-muted);
+    border-radius: 10px;
+    font-size: .68rem;
+    font-weight: 650;
+    letter-spacing: .1em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    transition: color .15s ease, background-color .15s ease;
 }
 
-.md-linked-object__context-grid {
+body.md-admin-shell .md-nav__group-toggle:hover {
+    color: #eaf2fb;
+    background: rgba(255, 255, 255, .05);
+}
+
+body.md-admin-shell .md-nav__group-toggle:focus-visible,
+body.md-admin-shell .md-nav__catalog-toggle:focus-visible {
+    outline: 2px solid var(--md-nav-accent-2);
+    outline-offset: 2px;
+}
+
+body.md-admin-shell .md-nav__group-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+body.md-admin-shell .md-nav__group.is-active > .md-nav__group-toggle {
+    color: #e7effb;
+}
+
+body.md-admin-shell .md-nav__chevron {
+    flex: 0 0 auto;
+    color: currentColor;
+    font-size: .9rem;
+    opacity: .55;
+    transition: transform .18s ease, opacity .18s ease;
+}
+
+body.md-admin-shell .md-nav__group[open] > .md-nav__group-toggle .md-nav__chevron,
+body.md-admin-shell .md-nav__sub[open] > .md-nav__catalog-toggle .md-nav__chevron {
+    transform: rotate(180deg);
+    opacity: .85;
+}
+
+body.md-admin-shell .md-nav__panel {
+    animation: md-nav-reveal .16s ease-out;
+}
+
+body.md-admin-shell .md-nav__list {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-    gap: .75rem;
+    gap: 2px;
+    margin: 2px 0 8px;
+    padding: 0;
+    list-style: none;
+}
+
+body.md-admin-shell .md-nav__item {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* --- Пункт меню -------------------------------------------------------- */
+
+body.md-admin-shell .md-nav__link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 38px;
+    margin: 0;
+    padding: 6px 10px;
+    color: var(--md-nav-fg);
+    border-radius: 10px;
+    font-size: .84rem;
+    font-weight: 450;
+    line-height: 1.3;
+    text-decoration: none;
+    transition: color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+
+body.md-admin-shell .md-nav__link:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, .06);
+    text-decoration: none;
+}
+
+body.md-admin-shell .md-nav__link:focus-visible {
+    outline: 2px solid var(--md-nav-accent-2);
+    outline-offset: 2px;
+}
+
+body.md-admin-shell .md-nav__link:hover,
+body.md-admin-shell .md-nav__link:focus-visible {
+    text-decoration: none;
+}
+
+body.md-admin-shell .md-nav__item.active > .md-nav__link {
+    color: #fff;
+    background: linear-gradient(100deg, rgba(109, 94, 252, .34), rgba(34, 184, 240, .16) 72%, rgba(34, 184, 240, .05));
+    box-shadow: inset 0 0 0 1px rgba(139, 150, 255, .22);
+}
+
+body.md-admin-shell .md-nav__item.active > .md-nav__link::before {
+    content: "";
+    position: absolute;
+    top: 9px;
+    bottom: 9px;
+    left: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #8b7bff, #22b8f0);
+    border-radius: 0 3px 3px 0;
+}
+
+body.md-admin-shell .md-nav__icon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    color: #93a7c2;
+    background: rgba(255, 255, 255, .045);
+    border-radius: 8px;
+    font-size: .95rem;
+    line-height: 1;
+    transition: color .15s ease, background-color .15s ease;
+}
+
+body.md-admin-shell .md-nav__link:hover .md-nav__icon {
+    color: #cfe8ff;
+    background: rgba(109, 94, 252, .18);
+}
+
+body.md-admin-shell .md-nav__item.active .md-nav__icon {
+    color: #b9e6ff;
+    background: linear-gradient(140deg, rgba(109, 94, 252, .5), rgba(34, 184, 240, .28));
+}
+
+body.md-admin-shell .md-nav__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* --- Каталог внутри группы --------------------------------------------- */
+
+body.md-admin-shell .md-nav__catalog {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+body.md-admin-shell .md-nav__catalog-toggle {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 36px;
+    margin: 0;
+    padding: 6px 10px;
+    color: #a9bcd4;
+    border-radius: 10px;
+    font-size: .82rem;
+    font-weight: 500;
+    line-height: 1.25;
+    transition: color .15s ease, background-color .15s ease;
+}
+
+body.md-admin-shell .md-nav__catalog-toggle:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, .05);
+}
+
+body.md-admin-shell .md-nav__catalog-icon {
+    flex: 0 0 auto;
+    width: 20px;
+    color: #8ba2bd;
+    font-size: .95rem;
+    line-height: 1;
+    text-align: center;
+}
+
+body.md-admin-shell .md-nav__catalog.is-active > .md-nav__sub > .md-nav__catalog-toggle {
+    color: #eaf4ff;
+}
+
+body.md-admin-shell .md-nav__catalog.is-active > .md-nav__sub > .md-nav__catalog-toggle .md-nav__catalog-icon {
+    color: #9ccbf0;
+}
+
+body.md-admin-shell .md-nav__list--sub {
+    margin: 2px 0 4px 15px;
+    padding-left: 11px;
+    border-left: 1px solid rgba(255, 255, 255, .09);
+}
+
+body.md-admin-shell .md-nav__list--sub .md-nav__link {
+    min-height: 34px;
+    font-size: .8rem;
+}
+
+body.md-admin-shell .md-nav__list--sub .md-nav__icon {
+    width: 22px;
+    height: 22px;
+    background: transparent;
+    font-size: .82rem;
+}
+
+/* --- Бейджи внимания --------------------------------------------------- */
+
+body.md-admin-shell .md-nav__badge {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 19px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-style: normal;
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    letter-spacing: 0;
+    line-height: 1;
+    text-transform: none;
+}
+
+body.md-admin-shell .md-nav__badge[hidden] {
+    display: none !important;
+}
+
+body.md-admin-shell .md-nav__badge--danger {
+    color: #fff;
+    background: #e5484d;
+    box-shadow: 0 0 0 3px rgba(229, 72, 77, .14);
+}
+
+body.md-admin-shell .md-nav__badge--warning {
+    color: #3b2703;
+    background: #f5b942;
+}
+
+body.md-admin-shell .md-nav__badge--info {
+    color: #04283a;
+    background: #4cc4f0;
+}
+
+body.md-admin-shell .md-nav__badge--success {
+    color: #052e1b;
+    background: #4ade80;
+}
+
+body.md-admin-shell .md-nav__badge--group {
+    min-width: 18px;
+    height: 18px;
+    font-size: .66rem;
+}
+
+/* --- Подвал: профиль и выход одной высоты ------------------------------ */
+
+body.md-admin-shell .md-admin-sidebar__profile {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 66px;
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(180deg, rgba(11, 22, 38, .78), #09131f 70%);
+    border-top: 1px solid var(--md-nav-line);
+    box-shadow: 0 -10px 18px rgba(4, 9, 17, .28);
+}
+
+body.md-admin-shell .md-admin-sidebar__account {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    min-height: 46px;
+    padding: 7px 10px;
+    color: #e8eef7;
+    background: rgba(255, 255, 255, .055);
+    border: 1px solid rgba(255, 255, 255, .075);
+    border-radius: 12px;
+    text-align: left;
+    text-decoration: none;
+}
+
+body.md-admin-shell .md-admin-sidebar__account:hover,
+body.md-admin-shell .md-admin-sidebar__account:focus-visible {
+    color: #fff;
+    background: rgba(255, 255, 255, .09);
+    border-color: rgba(255, 255, 255, .16);
+}
+
+body.md-admin-shell .md-admin-sidebar__avatar {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(150deg, #6d5efc 0%, #4f8bf7 55%, #22b8f0 100%);
+}
+
+body.md-admin-shell .md-admin-sidebar__logout-form {
+    display: flex;
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+body.md-admin-shell .md-admin-sidebar__logout {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    min-height: 46px;
+    margin: 0;
+    padding: 0;
+    color: #f08a94;
+    background: rgba(240, 86, 101, .10);
+    border: 1px solid rgba(240, 86, 101, .22);
+    border-radius: 12px;
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: color .15s ease, background-color .15s ease, border-color .15s ease;
+}
+
+body.md-admin-shell .md-admin-sidebar__logout:hover,
+body.md-admin-shell .md-admin-sidebar__logout:focus-visible {
+    color: #fff;
+    background: rgba(240, 86, 101, .82);
+    border-color: transparent;
+}
+
+body.md-admin-shell .md-admin-sidebar__logout:focus-visible {
+    outline: 2px solid #ff9aa3;
+    outline-offset: 2px;
+}
+
+body.md-admin-shell .md-admin-sidebar__logout i {
+    font-size: 1.05rem;
+}
+
+/* Кнопка меню в шапке: на ПК это «свернуть/развернуть», на телефоне — drawer. */
+body.md-admin-shell .md-sidebar-toggle-glyph--collapse,
+body.md-admin-shell .md-sidebar-toggle-glyph--expand {
+    display: none;
+}
+
+/* На ПК кнопка скрыта общим правилом topbar — возвращаем её: без неё
+   компактный режим было не открыть. */
+@media (min-width: 992px) {
+    body.md-admin-shell .md-admin-topbar__menu-toggle {
+        display: inline-flex;
+    }
+
+    body.md-admin-shell .md-sidebar-toggle-glyph--open {
+        display: none;
+    }
+
+    body.md-admin-shell .md-sidebar-toggle-glyph--collapse {
+        display: inline-block;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-sidebar-toggle-glyph--collapse {
+        display: none;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-sidebar-toggle-glyph--expand {
+        display: inline-block;
+    }
+}
+
+@keyframes md-nav-reveal {
+    from {
+        opacity: 0;
+        transform: translateY(-2px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.md-admin-shell .md-nav__panel,
+    body.md-admin-shell .md-nav__chevron {
+        animation: none;
+        transition: none;
+    }
+}
+
+/* --- Компактный режим на ПК ------------------------------------------- */
+
+@media (min-width: 992px) {
+    body.md-admin-shell.md-sidebar-compact {
+        --md-shell-sidebar-width: 86px;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-admin-sidebar__brand {
+        justify-content: center;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-admin-sidebar__logo {
+        display: none;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-admin-sidebar__mark {
+        display: block;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-nav__group-toggle,
+    body.md-admin-shell.md-sidebar-compact .md-nav__catalog-toggle {
+        display: none;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-nav {
+        gap: 0;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-nav__list {
+        margin: 0;
+        gap: 4px;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-nav__list--sub {
+        margin: 2px 0 0;
+        padding-left: 0;
+        border-left: 0;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-nav__link {
+        justify-content: center;
+        min-height: 42px;
+        padding: 6px;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-nav__label {
+        display: none;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-nav__icon {
+        width: 30px;
+        height: 30px;
+        background: transparent;
+        font-size: 1rem;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-nav__item.active > .md-nav__link {
+        background: linear-gradient(135deg, rgba(109, 94, 252, .45), rgba(34, 184, 240, .22));
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-nav__item.active > .md-nav__link::before {
+        display: none;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-nav__badge {
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        font-size: .6rem;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-nav__group + .md-nav__group {
+        margin-top: 2px;
+        padding-top: 6px;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-admin-sidebar__profile {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-admin-sidebar__account {
+        justify-content: center;
+        padding: 7px;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-admin-sidebar__account-text {
+        display: none;
+    }
+
+    body.md-admin-shell.md-sidebar-compact .md-admin-sidebar__logout-form,
+    body.md-admin-shell.md-sidebar-compact .md-admin-sidebar__logout {
+        width: 100%;
+    }
+}
+
+/* --- Мобильный drawer -------------------------------------------------- */
+
+@media (max-width: 991.98px) {
+    body.md-admin-shell .md-admin-sidebar {
+        width: min(88vw, 330px) !important;
+        max-width: min(88vw, 330px) !important;
+    }
+
+    body.md-admin-shell .md-admin-sidebar__brand-shell {
+        min-height: 66px;
+        padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+        justify-content: flex-start;
+    }
+
+    body.md-admin-shell .md-admin-sidebar__brand {
+        width: auto;
+    }
+
+    body.md-admin-shell .md-admin-sidebar__logo {
+        width: 132px;
+    }
+
+    body.md-admin-shell .md-admin-sidebar__close {
+        display: grid;
+    }
+
+    body.md-admin-shell .md-admin-sidebar__scroll {
+        padding: 8px 10px calc(12px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.md-admin-shell .md-nav__link {
+        min-height: 42px;
+    }
+
+    body.md-admin-shell .md-nav__group-toggle {
+        min-height: 38px;
+    }
+
+    body.md-admin-shell .md-nav__catalog-toggle {
+        min-height: 40px;
+    }
+
+    body.md-admin-shell .md-admin-sidebar__profile {
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    }
 }

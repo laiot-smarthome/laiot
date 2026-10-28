@@ -158,7 +158,11 @@ final class ErrorRepository
     /**
      * Одна запись для страницы файла ошибки.
      *
-     * @return array{id:int,level:string,message:string,request_id:string,created_at:string,log_file:string}|null
+     * `context` возвращается сырым JSON: разбор и показ делает админка, а
+     * репозиторий остаётся хранилищем. Старые схемы без колонки дают пустую
+     * строку.
+     *
+     * @return array{id:int,level:string,message:string,request_id:string,created_at:string,log_file:string,context:string}|null
      */
     public function find(int $id): ?array
     {
@@ -180,6 +184,7 @@ final class ErrorRepository
             'request_id' => (string)$row->request_id,
             'created_at' => (string)$row->created_at,
             'log_file' => $this->hasLogFile() ? (string)($row->log_file ?? '') : '',
+            'context' => (string)($row->context ?? ''),
         ];
     }
 
@@ -192,6 +197,30 @@ final class ErrorRepository
         return (int)$this->database->connection()->table('system_errors')
             ->where('created_at', '<', $cutoff)
             ->count();
+    }
+
+    /**
+     * Точное число повторов группы и период, без ограничения выборки списка.
+     *
+     * @return array{count:int,first_at:string,last_at:string}
+     */
+    public function groupStats(string $level, string $message): array
+    {
+        if (!$this->available()) {
+            return ['count' => 0, 'first_at' => '', 'last_at' => ''];
+        }
+        $row = $this->database->connection()->table('system_errors')
+            ->where('level', $level)
+            ->where('message', $message)
+            ->whereNull('deleted_at')
+            ->selectRaw('COUNT(*) AS aggregate, MIN(created_at) AS first_at, MAX(created_at) AS last_at')
+            ->first();
+
+        return [
+            'count' => (int)($row->aggregate ?? 0),
+            'first_at' => (string)($row->first_at ?? ''),
+            'last_at' => (string)($row->last_at ?? ''),
+        ];
     }
 
     /**

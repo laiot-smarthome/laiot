@@ -1,11 +1,168 @@
-/* 2026-10-22 — ширина логотипа через токен: на 280 px подпись бренда была
-   нечитаема, поэтому логотип идёт без неё и чуть компактнее. */
-/* 2026-10-22 — фирменный логотип вместо иконки и текстового названия. */
-.md-auth { min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: 24px 16px; background: var(--md-ui-bg); }
-.md-auth__main { width: 100%; max-width: 420px; }
-.md-auth__brand { display: flex; align-items: center; justify-content: center; margin-bottom: 28px; }
-.md-auth__brand .md-logo { --md-logo-width: 248px; }
-.md-auth__title { font-size: 24px; line-height: 1.3; text-align: center; color: var(--md-ui-text); }
-.md-auth__subtitle { margin: 12px 0 28px; text-align: center; color: var(--md-ui-muted); }
-.md-auth__reveal { margin-top: 12px; min-height: 44px; }
-.md-auth__submit { width: 100%; min-height: 44px; }
+/* Страница входа.
+   2026-10-27 — логотип LaIoT вместо старого вордмарка, переключатель темы
+   прямо на форме и мягкий фирменный фон; размеры вынесены в токены, чтобы
+   светлая и тёмная темы показывали один и тот же логотип нужного цвета. */
+body.md-admin-shell.md-auth {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: 32px 16px calc(32px + env(safe-area-inset-bottom, 0px));
+    background:
+        radial-gradient(circle at 10% 6%, rgba(109, 94, 252, .20), transparent 34rem),
+        radial-gradient(circle at 94% 92%, rgba(34, 184, 240, .18), transparent 32rem),
+        var(--md-ui-bg);
+}
+
+[data-bs-theme="dark"] body.md-admin-shell.md-auth {
+    background:
+        radial-gradient(circle at 10% 6%, rgba(109, 94, 252, .30), transparent 34rem),
+        radial-gradient(circle at 94% 92%, rgba(34, 184, 240, .16), transparent 30rem),
+        var(--md-ui-bg);
+}
+
+.md-auth__theme {
+    position: fixed;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    right: 16px;
+    z-index: 5;
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    background: color-mix(in srgb, var(--md-ui-surface) 86%, transparent);
+    border: 1px solid var(--md-ui-border);
+    border-radius: 999px;
+    box-shadow: var(--md-ui-shadow);
+    backdrop-filter: blur(12px);
+}
+
+.md-auth__theme label {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    margin: 0;
+    color: var(--md-ui-muted);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: color .15s ease, background-color .15s ease;
+}
+
+.md-auth__theme label:hover {
+    color: var(--md-ui-text);
+    background: var(--md-ui-surface-2);
+}
+
+.md-auth__theme .btn-check:checked + label {
+    color: #fff;
+    background: linear-gradient(135deg, #6d5efc 0%, #4f8bf7 55%, #22b8f0 100%);
+}
+
+.md-auth__theme .btn-check:focus-visible + label {
+    outline: 2px solid var(--md-ui-primary);
+    outline-offset: 2px;
+}
+
+.md-auth__main {
+    display: flex;
+    width: 100%;
+    max-width: 440px;
+    flex-direction: column;
+    align-items: center;
+}
+
+.md-auth__brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 26px;
+}
+
+.md-auth__brand .md-logo {
+    --md-logo-width: 250px;
+}
+
+/* У нового вордмарка другая пропорция, чем у прежнего логотипа: без этого
+   правила `md-logo` зажимал его в чужой aspect-ratio и оставлял поля. */
+.md-auth__brand .md-logo img {
+    aspect-ratio: 333 / 101;
+}
+
+.md-auth__panel {
+    width: 100%;
+    text-align: center;
+}
+
+.md-auth__title {
+    margin: 0;
+    color: var(--md-ui-text);
+    font-size: clamp(1.35rem, 2.4vw, 1.6rem);
+    font-weight: 650;
+    letter-spacing: -.02em;
+    line-height: 1.3;
+}
+
+.md-auth__subtitle {
+    margin: 8px 0 22px;
+    color: var(--md-ui-muted);
+    font-size: .92rem;
+}
+
+.md-auth__panel .md-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, .10);
+    text-align: left;
+}
+
+/* Фирменная полоса: связывает карточку с логотипом, не добавляя иконок. */
+.md-auth__panel .md-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: linear-gradient(90deg, #6d5efc, #4f8bf7 55%, #22b8f0);
+}
+
+.md-auth__panel .md-ui-form-stack {
+    gap: 16px;
+}
+
+.md-auth__submit {
+    width: 100%;
+    min-height: 46px;
+}
+
+.md-auth__foot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 18px 0 0;
+    color: var(--md-ui-muted);
+    font-size: .78rem;
+}
+
+.md-auth__foot i {
+    font-size: .95rem;
+}
+
+@media (max-width: 575.98px) {
+    body.md-admin-shell.md-auth {
+        padding: 24px 14px calc(24px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .md-auth__brand {
+        margin-bottom: 20px;
+    }
+
+    .md-auth__brand .md-logo {
+        --md-logo-width: 200px;
+    }
+
+    .md-auth__panel .md-card {
+        border-radius: 18px;
+    }
+}

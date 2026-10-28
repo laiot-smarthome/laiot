@@ -11,6 +11,9 @@ use MajorDoMo\Modules\ModuleContext;
  * Контекст одного прохода фоновой задачи.
  *
  * Метод модуля получает этот объект и не управляет циклом/интервалом.
+ *
+ * 2026-10-27 — флаг once: разовый `worker <id> --once` не должен запускать
+ *              длинный цикл интеграции на весь timeout задачи.
  */
 final readonly class BackgroundTaskContext
 {
@@ -23,7 +26,8 @@ final readonly class BackgroundTaskContext
         public string $method,
         public float $startedAt,
         public int $timeout,
-        private Closure $shouldStop
+        private Closure $shouldStop,
+        public bool $once = false
     ) {
     }
 

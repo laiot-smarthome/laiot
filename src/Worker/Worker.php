@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Worker;
 
+use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Events\PropertyEventQueue;
 use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Modules\ModuleManager;
@@ -28,6 +29,8 @@ use Throwable;
  * 2026-10-27 — отдельный процесс привязок получает исключительную очередь.
  * 2026-10-27 — worker обслуживает очередь доставки модуля.
  * 2026-10-27 — блокировка процесса удерживается при длительных обработчиках.
+ * 2026-10-27 — PDO закрывается до fork: ребёнок не наследует сокет родителя.
+ * 2026-10-27 — SIGTERM родителя пересылается дочерней задаче.
  */
 final class Worker
 {
@@ -44,7 +47,8 @@ final class Worker
         private readonly LoggerInterface $logger,
         private readonly ProcessLock $processLock,
         private readonly ProcessLock $deliveryLock,
-        private readonly ErrorRepository $errors
+        private readonly ErrorRepository $errors,
+        private readonly DatabaseManager $database
     ) {
     }
 
@@ -97,7 +101,13 @@ final class Worker
         try {
             $stateAcquired = $this->state->acquire($moduleId, $pid);
             if (!$stateAcquired) {
-                throw new RuntimeException('Worker уже запущен для модуля: ' . $moduleId);
+                // ProcessLock уже удерживается: это остаток жёсткого рестарта,
+                // а не второй worker. TTL кэш-ключа ждать бессмысленно.
+                $this->logger->warning('Worker: перехват устаревшей блокировки состояния', [
+                    'module' => $moduleId,
+                ]);
+                $this->state->takeover($moduleId, $pid);
+                $stateAcquired = true;
             }
             $next = [];
             $now = microtime(true);
@@ -119,7 +129,7 @@ final class Worker
                         break;
                     }
                     $task = $tasks[$name];
-                    $this->runTask($moduleId, $name, $task, $instance);
+                    $this->runTask($moduleId, $name, $task, $instance, $once);
                     $next[$name] = microtime(true) + $task['interval'];
                 }
                 $worked = $this->drainDeliveries($moduleId) > 0;
@@ -175,7 +185,7 @@ final class Worker
     /**
      * @param array{method:string,interval:int,timeout:int,enabled:bool} $task
      */
-    private function runTask(string $moduleId, string $taskName, array $task, object $instance): void
+    private function runTask(string $moduleId, string $taskName, array $task, object $instance, bool $once): void
     {
         $started = microtime(true);
         $nextRun = date('Y-m-d H:i:s', (int)($started + $task['interval']));
@@ -187,7 +197,8 @@ final class Worker
             $task['method'],
             $started,
             $task['timeout'],
-            fn (): bool => $this->stop
+            fn (): bool => $this->stop,
+            $once
         );
 
         $error = null;
@@ -219,6 +230,13 @@ final class Worker
             return;
         }
 
+        // PDO родителя нельзя наследовать дочернему процессу: два процесса на
+        // одном TCP-сокете сдвигают состояние протокола, и следующий запрос
+        // worker-а после fork получает чужие ответы. Закрываем соединение до
+        // fork; оба процесса откроют своё при первом запросе. SQLite в памяти
+        // не трогаем — данные принадлежат процессу.
+        $this->disconnectBeforeFork();
+
         $pid = pcntl_fork();
         if ($pid === -1) {
             throw new RuntimeException('Не удалось создать процесс задачи.');
@@ -234,7 +252,15 @@ final class Worker
         }
 
         $deadline = $context->deadline();
+        $forwarded = false;
         while (true) {
+            if ($this->stop && !$forwarded) {
+                // Docker stop приходит только PID 1 (этому процессу). Задаче
+                // нужно передать SIGTERM, иначе её длинный цикл (MQTT)
+                // останется сиротой и будет держать блокировки.
+                posix_kill($pid, SIGTERM);
+                $forwarded = true;
+            }
             $result = pcntl_waitpid($pid, $status, WNOHANG);
             if ($result === $pid) {
                 break;
@@ -248,6 +274,23 @@ final class Worker
         }
         if (!pcntl_wifexited($status) || pcntl_wexitstatus($status) !== 0) {
             throw new RuntimeException('Процесс задачи завершился с ошибкой.');
+        }
+    }
+
+    private function disconnectBeforeFork(): void
+    {
+        try {
+            if (!$this->database->isConfigured()) {
+                return;
+            }
+            $config = $this->database->config();
+            if ((string)($config['driver'] ?? '') === 'sqlite'
+                && (string)($config['database'] ?? '') === ':memory:') {
+                return;
+            }
+            $this->database->connection()->disconnect();
+        } catch (Throwable) {
+            // Соединение ещё не открывалось: делить с ребёнком нечего.
         }
     }
 

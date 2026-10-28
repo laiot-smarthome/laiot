@@ -19,6 +19,7 @@
         "monolog/monolog": "^3.9",
         "nesbot/carbon": "^3.8.4",
         "neuron-core/neuron-ai": "~4.1.13",
+        "php-mqtt/client": "^2.3",
         "phpmailer/phpmailer": "^7.0",
         "predis/predis": "^2.4",
         "symfony/console": "^7.4",

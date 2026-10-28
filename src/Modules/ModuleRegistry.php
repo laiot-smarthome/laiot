@@ -11,6 +11,7 @@ use MajorDoMo\Database\DatabaseManager;
  * Реестр сторонних модулей и применённых миграций.
  *
  * 2026-10-27 — чтение и сохранение `settings` модуля в колонке реестра.
+ * 2026-10-27 — ensure() заводит строку core-модуля без install и миграций.
  */
 final readonly class ModuleRegistry
 {
@@ -102,6 +103,18 @@ final readonly class ModuleRegistry
     }
 
     public function install(ModuleManifest $manifest, bool $enabled = true): void
+    {
+        $this->ensure($manifest, $enabled);
+    }
+
+    /**
+     * Запись реестра без миграций и install-хуков.
+     *
+     * Нужна core-модулям: их нельзя установить или удалить, но выключение
+     * и обратное включение должны где-то храниться. Для сторонних модулей
+     * остаётся установка через ModuleInstaller.
+     */
+    public function ensure(ModuleManifest $manifest, bool $enabled): void
     {
         $now = date('Y-m-d H:i:s');
         $data = [

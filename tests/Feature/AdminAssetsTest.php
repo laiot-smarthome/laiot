@@ -27,6 +27,10 @@ final class AdminAssetsTest extends TestCase
         self::assertFileExists($file);
         self::assertFileExists($root . '/public/assets/admin/mydomo.css');
         self::assertFileDoesNotExist($root . '/public/assets/admin/admin.js');
+        $css = (string)file_get_contents($root . '/public/assets/admin/mydomo.css');
+        // Yoyo-обёртка на странице не создаёт отдельный блок: иначе компонент
+        // из нескольких корней теряет gap страницы и блоки «слипаются».
+        self::assertStringContainsString('md-ui-page>.yoyo-wrapper[class=yoyo-wrapper]{display:contents}', $css);
         $bundle = (string)file_get_contents($file);
         foreach ([
             'jQuery JavaScript Library',
@@ -46,6 +50,9 @@ final class AdminAssetsTest extends TestCase
         $admin = (string)$this->boot(true)->handle(Request::create('/admin', 'GET'))->getContent();
         self::assertStringContainsString('/assets/admin/mydomo.css', $admin);
         self::assertStringContainsString('/assets/admin/mydomo.js', $admin);
+        // После npm run build ссылка должна содержать версию файла, иначе
+        // браузер продолжает показывать старый CSS.
+        self::assertMatchesRegularExpression('~/assets/admin/mydomo\.(css|js)\?v=\d+~', $admin);
         self::assertStringNotContainsString('/assets/admin/admin.js', $admin);
         self::assertStringNotContainsString('/assets/admin/admin.css', $admin);
 

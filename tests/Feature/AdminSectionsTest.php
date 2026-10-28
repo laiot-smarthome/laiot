@@ -232,7 +232,11 @@ final class AdminSectionsTest extends TestCase
                      '/errors', '/api', '/admin/modules', '/status', '/notifications'] as $url) {
             $response = $app->handle(Request::create($url, 'GET'));
             self::assertSame(200, $response->getStatusCode(), 'Страница ' . $url . ' должна открываться.');
-            self::assertStringNotContainsString('"/module/', (string)$response->getContent(), 'Ссылка на legacy /module/ в ' . $url);
+            // /module/<id> — действующий маршрут SDK-модулей (MQTT), а не
+            // legacy alpha. Проверяем, что в ядровых страницах нет других
+            // старых module-ссылок.
+            $html = (string)preg_replace('~"/module/(mqtt|example_sdk)(?:[^"]*)"~', '""', (string)$response->getContent());
+            self::assertStringNotContainsString('"/module/', $html, 'Ссылка на legacy /module/ в ' . $url);
         }
     }
 }

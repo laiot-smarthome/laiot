@@ -12,6 +12,9 @@ use Illuminate\Support\Collection;
  *
  * Здесь только операции над уже проверенной своей таблицей. Нет join(),
  * raw(), whereRaw(), selectRaw() и доступа к произвольному SQL.
+ *
+ * 2026-10-27 — whereGroup/orWhere для поиска без смешивания OR с фильтрами.
+ * 2026-10-27 — insert принимает пакет строк: история пишется одной вставкой.
  */
 final class ModuleQuery
 {
@@ -22,6 +25,28 @@ final class ModuleQuery
     public function where(string $column, mixed $operator = null, mixed $value = null): self
     {
         $this->query->where($column, $operator, $value);
+
+        return $this;
+    }
+
+    /**
+     * Условия в скобках: поиск по нескольким полям не должен смешиваться
+     * с фильтрами, которые добавлены до или после него.
+     *
+     * @param callable(self):void $callback
+     */
+    public function whereGroup(callable $callback): self
+    {
+        $this->query->where(static function ($query) use ($callback): void {
+            $callback(new self($query));
+        });
+
+        return $this;
+    }
+
+    public function orWhere(string $column, mixed $operator = null, mixed $value = null): self
+    {
+        $this->query->orWhere($column, $operator, $value);
 
         return $this;
     }
@@ -108,7 +133,10 @@ final class ModuleQuery
     }
 
     /**
-     * @param array<string, mixed> $values
+     * Одна строка (`column => value`) или список строк: пакетная вставка
+     * истории не должна превращаться в N отдельных запросов.
+     *
+     * @param array<array-key, mixed> $values
      */
     public function insert(array $values): bool
     {

@@ -15,6 +15,7 @@ use MajorDoMo\Properties\PropertyRepository;
  * Новый Alpine-компонент `x-md.linked-object` не использует старый
  * `modules/linkedobject` и его JS.
  *
+ * 2026-10-28 — начальный список и ссылки для нового редактора связей.
  * 2026-10-27 — контекст объекта включает объектные и унаследованные члены.
  */
 final readonly class LinkedObjectService
@@ -36,6 +37,18 @@ final readonly class LinkedObjectService
         if ($query === '') {
             return [];
         }
+
+        return $this->suggestions($query, $limit);
+    }
+
+    /**
+     * Начальные варианты доступны и без ввода имени, как в панели alpha.
+     *
+     * @return list<array{title:string,class:string,description:string}>
+     */
+    public function suggestions(string $query = '', int $limit = 50): array
+    {
+        $query = mb_substr(trim($query), 0, 191);
         $limit = max(1, min(50, $limit));
         $classes = [];
         foreach ($this->classes->all() as $class) {
@@ -43,13 +56,20 @@ final readonly class LinkedObjectService
         }
 
         $items = [];
-        foreach ($this->objects->all($query) as $object) {
+        foreach ($this->objects->all() as $object) {
+            $classTitle = $classes[(int)$object['class_id']] ?? '';
+            if ($query !== '' && !str_contains(
+                mb_strtolower(str_replace('ё', 'е', $object['title'] . ' ' . $object['description'] . ' ' . $classTitle)),
+                mb_strtolower(str_replace('ё', 'е', $query))
+            )) {
+                continue;
+            }
             if (count($items) >= $limit) {
                 break;
             }
             $items[] = [
                 'title' => (string)$object['title'],
-                'class' => $classes[(int)$object['class_id']] ?? '',
+                'class' => $classTitle,
                 'description' => $object['description'],
             ];
         }
@@ -58,7 +78,7 @@ final readonly class LinkedObjectService
     }
 
     /**
-     * @return array{object:string,class:string,properties:list<array{title:string,data_type:string}>,methods:list<array{title:string,description:string}>}|null
+     * @return array{id:int,object:string,class:string,properties:list<array{title:string,data_type:string}>,methods:list<array{title:string,description:string}>}|null
      */
     public function context(string $title): ?array
     {
@@ -81,6 +101,7 @@ final readonly class LinkedObjectService
         }
 
         return [
+            'id' => (int)$object['id'],
             'object' => (string)$object['title'],
             'class' => (string)($class['title'] ?? ''),
             'properties' => $properties,

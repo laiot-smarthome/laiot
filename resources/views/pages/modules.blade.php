@@ -85,7 +85,19 @@
                             @endif
 
                             @if ($isCore)
-                                <span class="md-table__muted">Ядровый модуль нельзя выключить или удалить.</span>
+                                @if ($enabled)
+                                    <form method="post" action="/admin/modules/{{ $module['id'] }}/disable" class="md-inline-form"
+                                          data-md-confirm="Выключить ядровый модуль «{{ $module['name'] }}»? Его страницы и фоновая задача перестанут работать до включения.">
+                                        <input type="hidden" name="_token" value="{{ $csrf }}">
+                                        <x-md.button type="submit" variant="secondary" size="sm" icon="player-pause">Выключить</x-md.button>
+                                    </form>
+                                @else
+                                    <form method="post" action="/admin/modules/{{ $module['id'] }}/enable" class="md-inline-form">
+                                        <input type="hidden" name="_token" value="{{ $csrf }}">
+                                        <x-md.button type="submit" variant="primary" size="sm" icon="player-play">Включить</x-md.button>
+                                    </form>
+                                @endif
+                                <span class="md-table__muted">Ядровый модуль входит в поставку: удалить его нельзя.</span>
                             @elseif (!$installed)
                                 <form method="post" action="/admin/modules/{{ $module['id'] }}/install" class="md-inline-form">
                                     <input type="hidden" name="_token" value="{{ $csrf }}">

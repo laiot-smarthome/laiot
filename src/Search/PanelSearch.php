@@ -306,7 +306,7 @@ final readonly class PanelSearch
                 'type' => 'section',
                 'title' => $section['label'],
                 'url' => $section['href'],
-                'description' => $section['group'],
+                'description' => CoreSections::groupLabel($section['group']),
                 'meta' => ['ядро'],
                 'action' => '',
                 '_score' => $this->score($section['label'], $section['id'], [], $query, $tokens) + 20,

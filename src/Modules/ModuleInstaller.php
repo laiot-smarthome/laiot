@@ -20,6 +20,7 @@ use Throwable;
  *
  * 2026-10-27 — permissions/assets из манифеста и purge данных при удалении.
  * 2026-10-27 — в списке видны настройки и подписчик модуля.
+ * 2026-10-27 — core: enable/disable разрешены, install/remove запрещены.
  */
 final readonly class ModuleInstaller
 {
@@ -68,28 +69,45 @@ final readonly class ModuleInstaller
     public function enable(string $id): void
     {
         $module = $this->requireAvailable($id);
-        if ((string)$module['type'] === 'core' || (bool)($module['core'] ?? false)) {
-            throw new InvalidArgumentException('Core-модуль всегда включён.');
-        }
         $manifest = $this->manifest($module);
-        $row = $this->registry();
-        if ($row->find($id) === null) {
+        $registry = $this->registry();
+        $row = $registry->find($id);
+        if ((bool)($module['core'] ?? false)) {
+            // Core-модуль поставляется включённым: строки реестра может не
+            // быть. Enable возвращает его после выключения и не трогает
+            // миграции/ассеты — они обновляются вместе с приложением.
+            $this->assertCompatible($manifest);
+            $this->assertDependencies($manifest);
+            if ($row !== null) {
+                $registry->ensure($manifest, true);
+                $this->entrypoint($id, 'enabled');
+            }
+
+            return;
+        }
+        if ($row === null) {
             throw new InvalidArgumentException('Модуль не установлен.');
         }
         $this->assertCompatible($manifest);
         $this->assertDependencies($manifest);
         $this->sync($id, $manifest, $module);
-        $row->setEnabled($id, true);
+        $registry->setEnabled($id, true);
         $this->entrypoint($id, 'enabled');
     }
 
     public function disable(string $id): void
     {
         $module = $this->requireAvailable($id);
-        if ((bool)($module['core'] ?? false)) {
-            throw new InvalidArgumentException('Core-модуль нельзя выключить.');
-        }
+        $manifest = $this->manifest($module);
         $registry = $this->registry();
+        if ((bool)($module['core'] ?? false)) {
+            // Строка реестра появляется при первом выключении: до этого
+            // core-модуль считается включённым по поставке.
+            $this->entrypoint($id, 'disabled');
+            $registry->ensure($manifest, false);
+
+            return;
+        }
         if ($registry->find($id) === null) {
             throw new InvalidArgumentException('Модуль не установлен.');
         }
@@ -176,7 +194,7 @@ final readonly class ModuleInstaller
                 'subscriber' => is_string($manifest['property_subscriber'] ?? null) && $manifest['property_subscriber'] !== '',
                 'core' => (bool)($module['core'] ?? false),
                 'installed' => (bool)($module['core'] ?? false) || $row !== null,
-                'enabled' => (bool)($module['core'] ?? false) || ($row !== null && (int)$row['enabled'] === 1),
+                'enabled' => (bool)($module['enabled'] ?? false),
                 'path' => (string)($module['path'] ?? ''),
             ];
         }
@@ -189,7 +207,7 @@ final readonly class ModuleInstaller
      */
     private function manifest(array $module): ModuleManifest
     {
-        return ModuleManifest::fromArray($module['manifest'], (string)$module['path'], 'module');
+        return ModuleManifest::fromArray($module['manifest'], (string)$module['path'], (string)($module['type'] ?? 'module'));
     }
 
     /**
