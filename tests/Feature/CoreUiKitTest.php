@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
  * 2026-10-27 — проверяются экранирование JSON и безопасные ссылки дерева.
  * 2026-10-27 — проверяются цепочка с источником и изменением значения.
  * 2026-10-27 — проверяются новые примеры форм и таблицы.
+ * 2026-10-28 — проверяются ссылки без подчёркивания и внешние адреса.
  */
 final class CoreUiKitTest extends TestCase
 {
@@ -40,6 +41,10 @@ final class CoreUiKitTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
         self::assertStringContainsString('UI Kit', $html);
         self::assertStringContainsString('md-kpi', $html);
+        self::assertStringContainsString('md-kit-links', $html);
+        self::assertStringContainsString('md-link md-link--primary', $html);
+        self::assertStringContainsString('md-link md-link--hint', $html);
+        self::assertStringContainsString('md-link md-link--action', $html);
         self::assertStringContainsString('hx-get="increment"', $html);
         self::assertStringContainsString('yoyo:name="counter"', $html);
         self::assertStringContainsString('/assets/vendor/yoyo/yoyo.js', $html);
@@ -87,5 +92,22 @@ final class CoreUiKitTest extends TestCase
             'items' => [['label' => 'Опасная ссылка', 'href' => 'javascript:alert(1)'], ['label' => 'Текущая']],
         ])->render();
         self::assertStringNotContainsString('href="javascript:', $unsafeBreadcrumb);
+
+        $externalLink = $app->container()->make(Factory::class)->make('components.md.link', [
+            'href' => 'https://example.com/docs',
+            'variant' => 'muted',
+            'slot' => 'Документация',
+        ])->render();
+        self::assertStringContainsString('target="_blank"', $externalLink);
+        self::assertStringContainsString('rel="noopener noreferrer"', $externalLink);
+        self::assertStringContainsString('ti-external-link', $externalLink);
+        self::assertStringContainsString('md-link--muted', $externalLink);
+
+        $unsafeLink = $app->container()->make(Factory::class)->make('components.md.link', [
+            'href' => 'javascript:alert(1)',
+            'slot' => 'Опасная ссылка',
+        ])->render();
+        self::assertStringNotContainsString('href="javascript:', $unsafeLink);
+        self::assertStringContainsString('aria-disabled="true"', $unsafeLink);
     }
 }

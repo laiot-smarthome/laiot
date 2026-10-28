@@ -8,10 +8,39 @@
     </section>
 
     <nav class="md-kit-nav" aria-label="Разделы UI Kit">
-        @foreach (['foundations' => 'Основы', 'buttons' => 'Кнопки', 'forms' => 'Формы', 'linkedobject' => 'Связи', 'navigation' => 'Навигация', 'cards' => 'Карточки', 'data' => 'Данные', 'feedback' => 'Диалоги', 'blocks' => 'Лента и код', 'smarthome' => 'Умный дом', 'patterns' => 'Паттерны', 'ai-chat' => 'ИИ-чат'] as $anchor => $caption)
+        @foreach (['mascots' => 'Маскот', 'foundations' => 'Основы', 'buttons' => 'Кнопки', 'forms' => 'Формы', 'linkedobject' => 'Связи', 'navigation' => 'Навигация', 'cards' => 'Карточки', 'data' => 'Данные', 'loading' => 'Загрузка', 'feedback' => 'Диалоги', 'blocks' => 'Лента и код', 'smarthome' => 'Умный дом', 'patterns' => 'Паттерны', 'ai-chat' => 'ИИ-чат'] as $anchor => $caption)
             <a href="#{{ $anchor }}">{{ $caption }}</a>
         @endforeach
     </nav>
+
+    <section id="mascots" class="md-kit-section">
+        <x-md.section-heading title="Маскот" description="Небольшой акцент в оформлении и спутник пустых состояний. Достаточно одного на блок." />
+        <x-md.card title="Когда использовать">
+            <p>Маскот — спокойный акцент: один образ на блок, обычно один на экран. Он помогает объяснить состояние и не конкурирует с данными и основным действием.</p>
+            <ul>
+                <li>Пустые состояния: нет уведомлений, результатов поиска или ещё не добавлены устройства. Рядом — короткий текст, а при необходимости — полезное действие.</li>
+                <li>Приветствие на главной, первое знакомство с разделом, справка и необязательные подсказки.</li>
+                <li>Завершение длительной настройки — если результат уже подтверждён системой.</li>
+            </ul>
+            <p>Не используем в каждой карточке, строках таблиц, полях форм, кнопках и каждом Notify. Маскот не заменяет подпись, индикатор загрузки или статус устройства.</p>
+            <p>В критических ошибках, предупреждениях безопасности и подтверждениях удаления важнее причина и действие: без весёлых иллюстраций. Не показываем успех или спокойствие, если состояние системы неизвестно.</p>
+            <p>Размер: 64–88 px как акцент на главной, 120–150 px в пустом блоке. Без постоянной анимации; проверяем светлую и тёмную темы. На телефоне уменьшаем изображение, сохраняя место для текста.</p>
+        </x-md.card>
+        <x-md.card title="Все образы">
+            @php($mascotUses = ['drink' => 'Ненавязчивый перерыв', 'error' => 'Восстановимая ошибка с понятным действием', 'find' => 'Поиск и отсутствие результатов', 'nothing' => 'Пустой список', 'hello' => 'Приветствие и первый вход', 'hide' => 'Пока нет содержимого', 'idea' => 'Необязательная подсказка', 'joy' => 'Завершённая настройка', 'love_home' => 'Акцент на главной', 'love' => 'Благодарность', 'message' => 'Знакомство с уведомлениями', 'music' => 'Раздел аудио', 'quest' => 'Справка и вопросы', 'read' => 'Документация', 'sleep' => 'Нет новых событий', 'success' => 'Подтверждённое завершение', 'todo' => 'Первый список задач', 'work' => 'Настройка и начало работы', 'wow' => 'Знакомство с новой возможностью'])
+            <div class="md-mascot-gallery">
+                @foreach (['drink' => 'Перерыв', 'error' => 'Ошибка', 'find' => 'Поиск', 'nothing' => 'Пусто', 'hello' => 'Приветствие', 'hide' => 'Прятки', 'idea' => 'Идея', 'joy' => 'Радость', 'love_home' => 'Дом', 'love' => 'Любовь', 'message' => 'Сообщение', 'music' => 'Музыка', 'quest' => 'Вопрос', 'read' => 'Чтение', 'sleep' => 'Сон', 'success' => 'Успех', 'todo' => 'Задачи', 'work' => 'Работа', 'wow' => 'Удивление'] as $pose => $label)
+                    <figure class="md-mascot-gallery__item">
+                        <x-md.mascot :pose="$pose" loading="lazy" />
+                        <figcaption>{{ $label }}<code>{{ $pose }}</code><small>{{ $mascotUses[$pose] }}</small></figcaption>
+                    </figure>
+                @endforeach
+            </div>
+        </x-md.card>
+        <x-md.card title="Пустое состояние">
+            <x-md.mascot-empty />
+        </x-md.card>
+    </section>
 
     <section id="foundations" class="md-kit-section">
         <x-md.section-heading eyebrow="01 · Основы" title="Дизайн-система" description="Цвета, типографика, иконки и состояния используют общие токены панели." />
@@ -86,6 +115,28 @@
     <section id="navigation" class="md-kit-section"><x-md.section-heading eyebrow="05 · Навигация" title="Навигация и всплывающие элементы" />
     <x-md.card title="Хлебные крошки" subtitle="Показывают путь к текущей странице; последний пункт не является ссылкой.">
         <x-md.breadcrumbs :items="[['label' => 'Панель', 'href' => '/admin'], ['label' => 'Классы', 'href' => '/classes'], ['label' => 'Датчики']]" />
+    </x-md.card>
+    <x-md.card title="Ссылки" subtitle="Без подчёркивания: состояние показывают цвет и фон. Пунктир — только у подсказки.">
+        <div class="md-kit-link-demo">
+            <div class="md-kit-links">
+                <x-md.link href="/classes">Обычная ссылка</x-md.link>
+                <x-md.link href="/classes" icon="hierarchy">Со значком</x-md.link>
+                <x-md.link href="/classes" variant="muted">Приглушённая</x-md.link>
+                <x-md.link href="/classes" variant="danger" icon="trash">Опасное действие</x-md.link>
+                <x-md.link href="/events" variant="action" icon="arrow-right">Ссылка-действие</x-md.link>
+                <x-md.link href="https://example.com" icon-after="external-link">Внешняя ссылка</x-md.link>
+                <x-md.link href="/classes" disabled>Недоступная</x-md.link>
+            </div>
+            <p>В строке текста: <x-md.link href="/status">состояние системы</x-md.link> — ссылка без подчёркивания.</p>
+            <p><x-md.link href="/classes" variant="subtle" icon="hierarchy">Ссылка-заголовок</x-md.link> наследует цвет строки и подсвечивается при наведении.</p>
+            <p>
+                <x-md.tooltip text="Подсказка появляется при наведении и по фокусу с клавиатуры.">
+                    <x-md.link href="#navigation" variant="hint">Ссылка-подсказка</x-md.link>
+                </x-md.tooltip>
+                — пунктир означает пояснение, а не обычный переход.
+            </p>
+            <p class="md-kit-note">Для кнопок используйте <code>x-md.button</code>: у них нет подчёркивания. Для действия в строке — <code>variant="action"</code>.</p>
+        </div>
     </x-md.card>
     <x-md.card title="Всплывающие элементы">
         <div class="md-ui-actions">
@@ -168,6 +219,58 @@
     <x-md.card title="Компактный график"><x-md.sparkline label="Активность" :points="[['t' => 1735689600000, 'v' => 3], ['t' => 1735711200000, 'v' => 8], ['t' => 1735732800000, 'v' => 5]]" /></x-md.card>
     @php($tableExample = '<' . 'x-md.data-table :columns="$columns" :rows="$rows" label="Устройства" />')
     <x-md.code-sample title="Пример таблицы" :code="$tableExample" />
+    </section>
+    <section id="loading" class="md-kit-section">
+        <x-md.section-heading title="Загрузка" description="Один индикатор для одной операции. Показываем сразу, снимаем и при успехе, и при ошибке; повторный запрос не стирает уже полученные данные." />
+        <x-md.card title="Единый лоадер" subtitle="Маленький — в поле и кнопке, обычный — рядом с действием, большой — при первом открытии блока.">
+            <div class="md-ui-actions"><x-md.loader size="sm" /><x-md.loader /><x-md.loader size="lg" /></div>
+            <p>Без выдуманных процентов и искусственной задержки в рабочем интерфейсе. Текст загрузки доступен скринридеру, а настройка уменьшения движения отключает вращение.</p>
+        </x-md.card>
+        <div class="md-ui-card-grid">
+            <x-md.card title="Кнопка и обновление" subtitle="Нажмите: запрос имитируется локально в течение 1,6 секунды.">
+                <div class="md-ui-actions" x-data="{busy: false}">
+                    <button type="button" class="md-btn md-btn--primary" :disabled="busy" :aria-busy="busy.toString()" @click="busy = true; setTimeout(() => busy = false, 1600)">
+                        <span x-show="busy" x-cloak><x-md.loader size="sm" label="Сохранение" /></span>
+                        <span class="md-btn__label" x-text="busy ? 'Сохраняем' : 'Сохранить'">Сохранить</span>
+                    </button>
+                    <button type="button" class="md-icon-btn" :disabled="busy" :aria-busy="busy.toString()" aria-label="Обновить пример" @click="busy = true; setTimeout(() => busy = false, 1600)">
+                        <i class="ti ti-refresh" :class="{'md-spin': busy}" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </x-md.card>
+            <x-md.card title="Поле поиска" subtitle="Введите текст: поле остаётся доступным, индикатор расположен справа.">
+                <div x-data="{searching: false, timer: null, destroy() { clearTimeout(this.timer) }}">
+                    <x-md.field label="Поиск устройства" for="kit-loading-search">
+                        <div class="md-loading-field">
+                            <x-md.input id="kit-loading-search" placeholder="Начните вводить название" :wrap="false" ::aria-busy="searching.toString()" @input="searching = true; clearTimeout(timer); timer = setTimeout(() => searching = false, 1200)" />
+                            <x-md.loader size="sm" label="Поиск устройств" x-show="searching" x-cloak />
+                        </div>
+                    </x-md.field>
+                </div>
+            </x-md.card>
+        </div>
+        <x-md.card title="Первое открытие боковой панели" subtitle="Лоадер занимает место будущего содержимого. Пустое состояние появляется только после ответа.">
+            <div x-data="{busy: false}">
+                <x-md.button variant="secondary" @click="busy = true; $store.mdDrawer.show('kit-loading-drawer'); setTimeout(() => busy = false, 1600)">Открыть пример</x-md.button>
+                <x-md.drawer id="kit-loading-drawer" title="Уведомления" subtitle="Демонстрация загрузки">
+                    <div :aria-busy="busy.toString()">
+                        <x-md.loader block size="lg" label="Загрузка уведомлений" class="md-notifications-loading" x-show="busy" />
+                        <div x-show="!busy" x-cloak><x-md.mascot-empty /></div>
+                    </div>
+                </x-md.drawer>
+            </div>
+        </x-md.card>
+        <x-md.card title="Карточка или таблица" subtitle="Скелетон повторяет структуру будущего блока. При фоновом обновлении сохраняем данные и крутим иконку обновления.">
+            <div class="md-loading-demo" x-data="{busy: false}">
+                <x-md.button variant="secondary" ::disabled="busy" @click="busy = true; setTimeout(() => busy = false, 1600)">Показать загрузку</x-md.button>
+                <div class="md-loading-demo__surface" :aria-busy="busy.toString()">
+                    <div x-show="busy" x-cloak role="status"><span class="visually-hidden">Загрузка устройств</span><x-md.skeleton :lines="4" /></div>
+                    <div x-show="!busy"><x-md.entity name="Основной свет" /><p>Кухня · устройство подключено</p></div>
+                </div>
+            </div>
+        </x-md.card>
+        @php($loaderExample = '<' . 'x-md.loader block size="lg" label="Загрузка уведомлений" />')
+        <x-md.code-sample title="Индикатор блока" :code="$loaderExample" />
     </section>
     <section id="feedback" class="md-kit-section"><x-md.section-heading eyebrow="08 · Обратная связь" title="Сообщения и диалоги" />
     <x-md.card title="Сообщения">

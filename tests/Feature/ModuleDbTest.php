@@ -72,6 +72,30 @@ final class ModuleDbTest extends TestCase
         self::assertNotContains('selectRaw', $methods);
     }
 
+    public function testTransactionRollsBackAndReturnsValue(): void
+    {
+        $value = $this->db->transaction(function (): string {
+            $this->db->table('messages')->insert(['MESSAGE' => 'kept']);
+
+            return 'result';
+        });
+        self::assertSame('result', $value);
+        self::assertSame(1, $this->db->table('messages')->count());
+
+        try {
+            $this->db->transaction(function (): void {
+                $this->db->table('messages')->insert(['MESSAGE' => 'rolled back']);
+                throw new RuntimeException('stop');
+            });
+        } catch (RuntimeException $error) {
+            // Ожидаемо: граница транзакции не глотает ошибку модуля.
+            self::assertSame('stop', $error->getMessage());
+        }
+
+        // Если исключение не вышло, вставка осталась бы в таблице.
+        self::assertSame(0, $this->db->table('messages')->where('MESSAGE', 'rolled back')->count());
+    }
+
     public function testSqliteFileIsCreatedInModuleDataDirectory(): void
     {
         $this->db->table('messages')->insert(['MESSAGE' => 'persisted']);

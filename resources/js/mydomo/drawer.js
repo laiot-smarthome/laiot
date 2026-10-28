@@ -73,6 +73,10 @@ function open(options) {
     };
 
     titleNode.textContent = options.title || '';
+    const notificationsRefresh = host.querySelector('[data-md-notifications-refresh]');
+    if (notificationsRefresh) {
+        notificationsRefresh.hidden = current.owner !== 'module-notifications';
+    }
     if (subtitleNode) {
         subtitleNode.textContent = options.subtitle || '';
         subtitleNode.hidden = !options.subtitle;

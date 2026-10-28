@@ -70,6 +70,12 @@ final class Module extends BaseModule
             $c->make(\MajorDoMo\Cache\CacheStore::class),
             $c->make(Settings::class)
         ));
+        // Реестр интеграций общий для процесса. Модуль-интеграция может
+        // зарегистрироваться раньше MQTT-модуля: уже созданный экземпляр не
+        // перетирается повторной привязкой singleton.
+        if (!$container->bound(Integrations::class)) {
+            $container->singleton(Integrations::class);
+        }
         $container->singleton(Broker::class, static fn (Container $c): Broker => new Broker($c->make(Settings::class)));
         $container->singleton(Publisher::class, static fn (Container $c): Publisher => new Publisher(
             $c->make(Settings::class),
@@ -143,10 +149,37 @@ final class Module extends BaseModule
         $broker = $container->make(Broker::class);
         /** @var InboundHandler $inbound */
         $inbound = $container->make(InboundHandler::class);
+        /** @var LoggerInterface $logger */
+        $logger = $container->make(LoggerInterface::class);
         /** @var Publisher $publisher */
         $publisher = $container->make(Publisher::class);
         $publisher->useSharedBroker(true);
         $settings->refresh(0);
+
+        /** @var Integrations $integrations */
+        $integrations = $container->make(Integrations::class);
+        // Сообщение сначала получает владелец топика: интеграция сама решает,
+        // как доставить его своему worker-у. Только «ничей» топик попадает в
+        // привязки MQTT, поэтому дерево топиков не засоряется чужими пакетами.
+        $onMessage = function (string $topic, string $payload) use ($inbound, $integrations, $runtime, $logger): void {
+            try {
+                if ($integrations->dispatch($topic, $payload)) {
+                    $runtime->count('integration');
+
+                    return;
+                }
+            } catch (Throwable $error) {
+                $runtime->error('MQTT-интеграция ' . $topic . ': ' . $error->getMessage());
+                $logger->warning('MQTT: сообщение не передано интеграции', [
+                    'topic' => $topic,
+                    'error' => $error->getMessage(),
+                ]);
+
+                return;
+            }
+            $inbound->handle($topic, $payload);
+        };
+        $lastIntegrationHash = $this->integrationHash($integrations);
 
         $stop = false;
         $this->installSignals($stop);
@@ -196,7 +229,7 @@ final class Module extends BaseModule
                     $lastConnectAttempt = $now;
                     try {
                         $settings->refresh(1.0);
-                        $broker->connect([$inbound, 'handle']);
+                        $broker->connect($onMessage, $this->integrationTopics($integrations));
                         $connected = true;
                         $reconnectDelay = 0.5;
                         $runtime->setConnected(true);
@@ -234,12 +267,17 @@ final class Module extends BaseModule
 
                 if ($now - $lastSettingsCheck >= 5.0) {
                     $lastSettingsCheck = $now;
-                    if ($settings->refresh(5.0)) {
+                    // Добавленный экземпляр Zigbee меняет фильтры подписки.
+                    // Отпечаток дешевле полного опроса настроек и срабатывает
+                    // без перезапуска MQTT-цикла.
+                    $integrationHash = $this->integrationHash($integrations);
+                    if ($settings->refresh(5.0) || $integrationHash !== $lastIntegrationHash) {
                         // Сохранение формы меняет брокера/подписки: чистое
                         // переподключение дешевле, чем точечная синхронизация.
                         $broker->close();
                         $connected = false;
                         $reconnectDelay = 0.5;
+                        $lastIntegrationHash = $integrationHash;
                     }
                 }
             }
@@ -312,6 +350,30 @@ final class Module extends BaseModule
         } catch (Throwable) {
             // Подключение ещё не открывалось — переоткрывать нечего.
         }
+    }
+
+    /**
+     * Фильтры интеграций; недоступная таблица модуля не должна ронять цикл.
+     *
+     * @return list<string>
+     */
+    private function integrationTopics(Integrations $integrations): array
+    {
+        try {
+            return $integrations->topics();
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * Отпечаток набора фильтров: изменение переподключает подписку.
+     */
+    private function integrationHash(Integrations $integrations): string
+    {
+        $topics = $this->integrationTopics($integrations);
+
+        return hash('sha256', implode("\n", $topics));
     }
 
     private function moduleEnabled(Container $container): bool

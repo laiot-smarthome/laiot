@@ -113,6 +113,12 @@ namespace из конфигурации, поэтому для ядровых к
 правила тулбара. Стили дерева классов, строк объектов и живой проверки имени
 вынесены в `resources/css/classes.css` (подключён после `admin_panel.css`).
 
+Ссылки не подчёркиваются ни в покое, ни при наведении: состояние показывают
+цвет и фон. Единственное исключение — `md-link--hint` с пунктиром для
+подсказки. Кнопки всегда без подчёркивания; в строке текста используйте
+`x-md.link variant="action"`, для формы — `x-md.button`. Контракт и примеры —
+[UI Kit](ui-kit.md#ссылки), живой раздел — `/ui-kit`.
+
 ### Боковое меню и оболочка
 
 Меню собирает `CoreSections::structure()` (группы и каталоги), а
@@ -141,6 +147,17 @@ namespace из конфигурации, поэтому для ядровых к
 приоритетом тона danger → warning → info. Оболочка обновляет их через
 `GET /api/v1/panel/attention` каждые 90 секунд и при возврате на вкладку;
 счётчик больше 99 показывается как `99+`.
+
+### Страницы ошибок
+
+Kernel отдаёт браузеру автономную страницу `resources/views/errors/page.blade.php`
+для 404, 405, 500 и 503; JSON-клиент получает прежний конверт `ErrorResponse`.
+Страница не использует `PanelRenderer` и не читает БД: логотип, тема из
+cookie, маскот (`find`/`error`/`work`), код ответа, объяснение, путь,
+request id для 5xx и действия «Повторить» / «В панель» / «Назад». В debug
+добавляется раскрывающийся блок с текстом исключения, но без trace. Если
+Blade недоступен, kernel возвращает текст с request id. Стили — раздел
+Error pages в `ui-system.css`.
 
 ## 3. Разделы и данные
 
@@ -285,6 +302,10 @@ worker'ы с уже загруженным кодом нужно перезап�
 - `tests/Feature/PanelAttentionTest.php` — ошибки только за сутки и без
   удалённых, тон уведомлений, `GET /api/v1/panel/attention` и отказ гостю.
 - `tests/Feature/AlphaLayoutTest.php` — оболочка и разметка боковой панели.
+- `tests/Feature/HttpKernelTest.php` — HTML-страницы 404/500 с маскотом и
+  request id, скрытие подробностей вне debug и JSON для API.
+- `tests/Feature/MaintenanceTest.php` — 503-страница обслуживания, `Retry-After`
+  и разрешённые маршруты управления.
 - Профильные тесты разделов (`CoreObjectsTest`, `CorePropertiesTest`,
   `CoreMethodsTest`, `CoreEventsTest`, `CoreJobsTest`, `CoreScriptsTest`,
   `CoreUsersTest`, `CoreSettingsTest`, `CoreActionsLogTest`,

@@ -205,13 +205,26 @@ body.md-admin-shell .md-ui-page p {
   margin: 0;
 }
 
-body.md-admin-shell .md-ui-page a {
+body.md-admin-shell .md-ui-page a:where(:not(.md-link)) {
   color: var(--md-ui-primary);
   text-decoration: none;
 }
 
-body.md-admin-shell .md-ui-page a:hover {
+body.md-admin-shell .md-ui-page a:where(:not(.md-link)):hover {
   color: var(--md-ui-primary-strong);
+}
+
+/* Ссылки панели не подчёркиваются ни в покое, ни при наведении: акцент
+   даёт цвет и фон. Пунктир — только у явной подсказки `.md-link--hint`,
+   чтобы он читался как справка, а не как обычная ссылка. */
+body.md-admin-shell a,
+body.md-admin-shell a:hover,
+body.md-admin-shell a:focus-visible {
+  text-decoration: none;
+}
+
+body.md-admin-shell .btn-link {
+  text-decoration: none;
 }
 
 body.md-admin-shell .md-ui-page code,
@@ -293,6 +306,7 @@ body.md-admin-shell .md-btn {
   letter-spacing: -.005em;
   white-space: nowrap;
   cursor: pointer;
+  text-decoration: none;
   user-select: none;
   transition: background-color var(--md-ui-transition), border-color var(--md-ui-transition), color var(--md-ui-transition), box-shadow var(--md-ui-transition);
 }
@@ -488,6 +502,113 @@ body.md-admin-shell .md-btn:disabled {
   pointer-events: none;
   cursor: not-allowed;
   filter: none;
+}
+
+/* --------------------------------------------------------------------------
+   Links
+
+   Ссылка не подчёркивается: её видно по цвету, а состояние — по смене
+   оттенка или фона. Пунктир оставлен только для подсказки `.md-link--hint`.
+   Кнопки и ссылки-действия используют `.md-btn` / `variant="action"`.
+   -------------------------------------------------------------------------- */
+
+body.md-admin-shell .md-link {
+  display: inline;
+  color: var(--md-ui-primary);
+  font: inherit;
+  text-decoration: none;
+  border-radius: var(--md-ui-radius-xs);
+  transition: color var(--md-ui-transition), background-color var(--md-ui-transition);
+}
+
+body.md-admin-shell .md-link:hover,
+body.md-admin-shell .md-link:focus-visible {
+  color: var(--md-ui-primary-strong);
+  text-decoration: none;
+}
+
+body.md-admin-shell .md-link:focus-visible {
+  outline: 2px solid var(--md-ui-primary);
+  outline-offset: 2px;
+}
+
+body.md-admin-shell .md-link__icon {
+  display: inline-block;
+  margin-inline-end: 4px;
+  font-size: .95em;
+  line-height: 1;
+  vertical-align: -.08em;
+}
+
+body.md-admin-shell .md-link__icon--after {
+  margin-inline: 4px 0;
+}
+
+body.md-admin-shell .md-link--muted {
+  color: var(--md-ui-muted);
+}
+
+body.md-admin-shell .md-link--muted:hover,
+body.md-admin-shell .md-link--muted:focus-visible {
+  color: var(--md-ui-text);
+}
+
+body.md-admin-shell .md-link--subtle {
+  color: inherit;
+}
+
+body.md-admin-shell .md-link--subtle:hover,
+body.md-admin-shell .md-link--subtle:focus-visible {
+  color: var(--md-ui-primary);
+}
+
+body.md-admin-shell .md-link--danger {
+  color: var(--md-ui-danger);
+}
+
+body.md-admin-shell .md-link--danger:hover,
+body.md-admin-shell .md-link--danger:focus-visible {
+  color: var(--md-ui-danger);
+  opacity: .82;
+}
+
+body.md-admin-shell .md-link--hint {
+  color: var(--md-ui-text-soft);
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-color: var(--md-ui-muted);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  cursor: help;
+}
+
+body.md-admin-shell .md-link--hint:hover,
+body.md-admin-shell .md-link--hint:focus-visible {
+  color: var(--md-ui-primary);
+  text-decoration-color: var(--md-ui-primary);
+}
+
+body.md-admin-shell .md-link--action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: -4px -8px;
+  padding: 4px 8px;
+  color: var(--md-ui-text-soft);
+  font-weight: 500;
+}
+
+body.md-admin-shell .md-link--action:hover,
+body.md-admin-shell .md-link--action:focus-visible {
+  color: var(--md-ui-text);
+  background: var(--md-ui-surface-2);
+}
+
+body.md-admin-shell .md-link.is-disabled {
+  color: var(--md-ui-muted-2);
+  text-decoration: none;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 body.md-admin-shell .md-icon-btn {
@@ -2226,8 +2347,6 @@ body.md-admin-shell .md-linkedobject__retry {
   background: none;
   border: 0;
   font: 600 var(--md-ui-fs-xs)/1.4 var(--md-ui-font);
-  text-decoration: underline;
-  text-underline-offset: 2px;
   cursor: pointer;
 }
 
@@ -2508,8 +2627,6 @@ body.md-admin-shell .md-linkedobject-popover__empty-action {
   background: none;
   border: 0;
   font: 600 var(--md-ui-fs-xs)/1.4 var(--md-ui-font);
-  text-decoration: underline;
-  text-underline-offset: 2px;
   cursor: pointer;
 }
 
@@ -7803,7 +7920,7 @@ body.md-admin-shell .md-ui-icon-browser__footer {
 
 
 /* --------------------------------------------------------------------------
-   404 page
+   Error pages (404/405/500/503)
    -------------------------------------------------------------------------- */
 
 body.md-admin-shell.md-error-page {
@@ -7835,15 +7952,81 @@ body.md-admin-shell .md-error-page__card {
   text-align: center;
 }
 
+body.md-admin-shell .md-error-page__brand {
+  display: inline-flex;
+  margin-bottom: var(--md-ui-space-6);
+  --md-logo-width: 190px;
+}
+
+/* Маскот и код — один спокойный акцент: иллюстрация не заменяет
+   объяснение и не изображает успех. Размер совпадает с пустым состоянием. */
+body.md-admin-shell .md-error-page__scene {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 190px;
+  height: 174px;
+  max-width: 100%;
+  margin: 0 auto var(--md-ui-space-5);
+}
+
+body.md-admin-shell .md-error-page__scene::before {
+  content: '';
+  position: absolute;
+  inset: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--md-ui-primary) 15%, transparent);
+  border-radius: 50%;
+  background: var(--md-ui-primary-soft);
+}
+
+body.md-admin-shell .md-error-page__card--warning .md-error-page__scene::before {
+  background: var(--md-ui-warning-soft);
+}
+
+body.md-admin-shell .md-error-page__card--danger .md-error-page__scene::before {
+  background: var(--md-ui-danger-soft);
+}
+
+body.md-admin-shell .md-error-page__scene .md-mascot {
+  position: relative;
+  width: 150px;
+}
+
 body.md-admin-shell .md-error-page__code {
-  font-size: clamp(56px, 12vw, 96px);
-  line-height: 1;
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  min-width: 52px;
+  height: 34px;
+  padding: 0 var(--md-ui-space-3);
+  border: 4px solid var(--md-ui-surface);
+  border-radius: var(--md-ui-radius-pill);
+  background: var(--md-ui-text);
+  color: var(--md-ui-surface);
+  font-family: var(--md-ui-font);
+  font-size: var(--md-ui-fs-sm);
   font-weight: 700;
-  letter-spacing: -.04em;
-  color: var(--md-ui-primary);
-  opacity: .16;
-  margin-bottom: calc(var(--md-ui-space-4) * -1);
+  line-height: 1;
+  letter-spacing: .02em;
   user-select: none;
+}
+
+body.md-admin-shell .md-error-page__title {
+  margin: 0;
+  color: var(--md-ui-text);
+  font-size: var(--md-ui-fs-2xl);
+  font-weight: 600;
+  letter-spacing: -.02em;
+}
+
+body.md-admin-shell .md-error-page__text {
+  max-width: 440px;
+  margin: var(--md-ui-space-2) auto 0;
+  color: var(--md-ui-muted);
+  font-size: var(--md-ui-fs-md);
+  line-height: 1.6;
 }
 
 body.md-admin-shell .md-error-page__path {
@@ -7861,11 +8044,59 @@ body.md-admin-shell .md-error-page__path {
   white-space: nowrap;
 }
 
+body.md-admin-shell .md-error-page__request {
+  margin: var(--md-ui-space-3) 0 0;
+  color: var(--md-ui-muted);
+  font-size: var(--md-ui-fs-sm);
+}
+
+body.md-admin-shell .md-error-page__request code {
+  padding: 2px 6px;
+  border-radius: var(--md-ui-radius-xs);
+  background: var(--md-ui-surface-2);
+  color: var(--md-ui-text-soft);
+  font-family: var(--md-ui-font-mono);
+  font-size: var(--md-ui-fs-xs);
+}
+
+body.md-admin-shell .md-error-page__debug {
+  max-width: 520px;
+  margin: var(--md-ui-space-5) auto 0;
+  text-align: start;
+}
+
+body.md-admin-shell .md-error-page__debug summary {
+  color: var(--md-ui-muted);
+  font-size: var(--md-ui-fs-sm);
+  cursor: pointer;
+}
+
+body.md-admin-shell .md-error-page__debug summary:hover {
+  color: var(--md-ui-text-soft);
+}
+
+body.md-admin-shell .md-error-page__debug pre {
+  max-height: 180px;
+  margin: var(--md-ui-space-2) 0 0;
+  padding: var(--md-ui-space-3);
+  overflow: auto;
+  border: 1px solid var(--md-ui-border);
+  border-radius: var(--md-ui-radius-sm);
+  background: var(--md-ui-surface-2);
+  color: var(--md-ui-text-soft);
+  font-family: var(--md-ui-font-mono);
+  font-size: var(--md-ui-fs-xs);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 body.md-admin-shell .md-error-page__actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: var(--md-ui-space-2);
-  margin-top: var(--md-ui-space-4);
+  margin-top: var(--md-ui-space-6);
 }
 
 body.md-admin-shell .md-error-state {
@@ -7903,8 +8134,30 @@ body.md-admin-shell .md-error-state .md-empty__actions {
 }
 
 @media (max-width: 575.98px) {
+  body.md-admin-shell .md-error-page__main {
+    padding: var(--md-ui-space-4);
+  }
+
   body.md-admin-shell .md-error-page__card {
     padding: var(--md-ui-space-8) var(--md-ui-space-4);
+  }
+
+  body.md-admin-shell .md-error-page__scene {
+    width: 164px;
+    height: 150px;
+  }
+
+  body.md-admin-shell .md-error-page__scene .md-mascot {
+    width: 126px;
+  }
+
+  body.md-admin-shell .md-error-page__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body.md-admin-shell .md-error-page__actions .md-btn {
+    width: 100%;
   }
 
   body.md-admin-shell .md-error-state .md-empty__actions {
@@ -8463,7 +8716,6 @@ body.md-admin-shell .md-trace__event-title a {
 body.md-admin-shell .md-trace__event-title a:hover,
 body.md-admin-shell .md-trace__event-title a:focus-visible {
   color: var(--md-ui-primary);
-  text-decoration: underline;
 }
 
 body.md-admin-shell .md-trace__event-subtitle {
@@ -8764,8 +9016,6 @@ body.md-admin-shell .md-activity__title-link {
 
 body.md-admin-shell .md-activity__title-link:hover {
   color: var(--md-ui-primary);
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }
 
 body.md-admin-shell .md-activity__unread {

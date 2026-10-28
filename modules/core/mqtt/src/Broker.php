@@ -31,8 +31,10 @@ final class Broker
 
     /**
      * @param (callable(string, string, bool, array<int, string>): void)|null $onMessage
+     * @param list<string>|null $filters Дополнительные фильтры интеграций;
+     *        null — только фильтры из настроек модуля.
      */
-    public function connect(?callable $onMessage = null): bool
+    public function connect(?callable $onMessage = null, ?array $filters = null): bool
     {
         $this->close();
         $host = trim($this->settings->string('host')) ?: 'localhost';
@@ -71,7 +73,7 @@ final class Broker
 
         $client->connect($connection, true);
 
-        $filters = $this->settings->queries();
+        $filters = $this->subscriptionFilters($filters);
         if ($onMessage !== null) {
             // php-mqtt принимает только Closure, а не произвольный callable.
             $callback = $onMessage instanceof \Closure ? $onMessage : \Closure::fromCallable($onMessage);
@@ -136,6 +138,25 @@ final class Broker
         }
         $this->client = null;
         $this->configuration = null;
+    }
+
+    /**
+     * Настройки подписки плюс фильтры интеграций без повторов.
+     *
+     * @param list<string>|null $extra
+     * @return list<string>
+     */
+    private function subscriptionFilters(?array $extra): array
+    {
+        $filters = $this->settings->queries();
+        foreach ($extra ?? [] as $filter) {
+            $filter = trim((string)$filter);
+            if ($filter !== '' && !in_array($filter, $filters, true)) {
+                $filters[] = $filter;
+            }
+        }
+
+        return $filters;
     }
 
     /**

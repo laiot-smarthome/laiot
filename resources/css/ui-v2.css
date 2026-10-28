@@ -883,8 +883,10 @@ body.md-admin-shell .md-admin-sidebar__profile-logout i {
 .md-dash__status-link {
   color: inherit;
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+}
+
+.md-dash__status-link:hover {
+  color: var(--md-ui-primary-strong);
 }
 
 .md-dash__actions {
@@ -1087,8 +1089,6 @@ body.md-admin-shell .md-admin-sidebar__profile-logout i {
 
 .md-dash-card__link:hover {
   color: var(--md-ui-primary-strong);
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }
 
 .md-dash-card__body {
@@ -1543,8 +1543,7 @@ body.md-admin-shell .md-admin-sidebar__profile-logout i {
 }
 
 .md-dash-system__reset:hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: var(--md-ui-primary-strong);
 }
 
 /* --------------------------------------------------------------------------
@@ -2723,8 +2722,7 @@ body.md-admin-shell .ts-dropdown .active {
 }
 
 .md-obj-class:hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: var(--md-ui-primary-strong);
 }
 
 .md-obj-location {

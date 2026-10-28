@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace MajorDoMo\View;
 
-use Clickfwd\Yoyo\Blade\YoyoBladeDirectives;
 use Clickfwd\Yoyo\Blade\YoyoBladeCompilerEngine;
+use Clickfwd\Yoyo\Blade\YoyoBladeDirectives;
 use Clickfwd\Yoyo\Services\Configuration;
 use Clickfwd\Yoyo\ViewProviders\BladeViewProvider;
 use Clickfwd\Yoyo\Yoyo;

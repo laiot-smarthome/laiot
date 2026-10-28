@@ -16,8 +16,8 @@ order: 11
 
 Модуль — интеграция или внешнее расширение с `module.json`: например,
 MQTT, Zigbee, сторонний сетевой адаптер. Базовый SDK уже реализован,
-это не будущий контракт. Пример — `modules/example_sdk`; встроенный MQTT
-живёт в `modules/core/mqtt`.
+это не будущий контракт. Пример — `modules/example_sdk`; встроенные MQTT и
+Zigbee живут в `modules/core/mqtt` и `modules/core/zigbee`.
 
 ## Типы
 

@@ -20,8 +20,8 @@ uppercase-поля и `modules/<id>/<id>.class.php` не используютс�
 Ядровые страницы объектов, пользователей, журналов и API не являются
 SDK-модулями: они находятся в `src`/`resources/views/pages` и перечислены
 в [core-sections.md](core-sections.md). Каталог `modules/core` — для
-встроенных интеграций; MQTT уже там ([mqtt.md](mqtt.md)), Zigbee и остальные
-переносятся отдельно.
+встроенных интеграций; MQTT и Zigbee уже там ([mqtt.md](mqtt.md),
+[zigbee.md](zigbee.md)), остальные переносятся отдельно.
 
 ## 1. Структура
 
@@ -173,7 +173,9 @@ namespace модуля (`weather::yoyo.forecast`); `render()` переопред
 `storage.tables` — логические имена. Физические таблицы получают префикс
 `module_<id>_`, например `storage.tables: ["forecasts"]` →
 `module_weather_forecasts`. Работать с ними можно только через
-`ModuleDb::table('forecasts')`; чужие таблицы запрещены.
+`ModuleDb::table('forecasts')`; чужие таблицы запрещены. Несколько изменений
+своих таблиц атомарно выполняет `ModuleDb::transaction(callable)`: это граница
+транзакции, а не доступ к соединению ядра.
 
 Миграции — `migrations/*.php`, файл возвращает `callable(Connection)`.
 Они выполняются один раз при `module:install`; факт фиксируется в

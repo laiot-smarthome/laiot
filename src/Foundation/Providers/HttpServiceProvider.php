@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MajorDoMo\Foundation\Providers;
 
 use Illuminate\Container\Container;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Routing\CallableDispatcher;
 use Illuminate\Routing\Contracts\CallableDispatcher as CallableDispatcherContract;
@@ -29,6 +30,7 @@ use MajorDoMo\Support\MaintenanceMode;
  * Сессия, HTTP-kernel, middleware и ядровые маршруты.
  *
  * Изменения:
+ * 2026-10-28 — kernel получает ViewFactory для HTML-страниц ошибок.
  * 2026-10-26 — kernel использует общие ErrorRepository и MaintenanceMode.
  */
 final class HttpServiceProvider extends ServiceProvider
@@ -63,7 +65,8 @@ final class HttpServiceProvider extends ServiceProvider
             (bool)$this->app->config('debug', false),
             $container->make(RequestContext::class),
             $container->make(ErrorRepository::class),
-            $container->make(MaintenanceMode::class)
+            $container->make(MaintenanceMode::class),
+            $container->make(ViewFactory::class)
         ));
     }
 

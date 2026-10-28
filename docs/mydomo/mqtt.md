@@ -89,6 +89,42 @@ id — для подписки и доставки; переименование
 `mqtt` и не отправляет команду обратно. Это защищает от петли
 «брокер → свойство → брокер».
 
+## Интеграции на общем соединении
+
+Модуль-интеграция не открывает второй клиент: он регистрирует владельца топика
+в реестре `MajorDoMo\Mqtt\Integrations` при своём boot.
+
+```php
+use MajorDoMo\Mqtt\Integration;
+use MajorDoMo\Mqtt\Integrations;
+
+final class Bridge implements Integration
+{
+    public function id(): string { return 'example'; }
+    public function topics(): array { return ['example/zigbee2mqtt/#']; }
+    public function owns(string $topic): bool { return str_starts_with($topic, 'example/zigbee2mqtt/'); }
+    public function enqueue(string $topic, string $payload): void
+    {
+        // Быстро и долговечно: цикл приёма не ждёт разбора сообщения.
+        $this->queue->push('module.example', 'example.message', compact('topic', 'payload'));
+    }
+}
+
+$integrations->addLazy('example', static fn (): Bridge => $container->make(Bridge::class));
+```
+
+Цикл подписывается на настройки MQTT плюс `topics()` всех интеграций и отдаёт
+каждое сообщение владельцу до разбора привязок `stripmode`. «Ничей» топик
+обрабатывает сам MQTT, поэтому чужие пакеты не попадают в дерево топиков.
+Ответственность за очередь и worker несёт интеграция: реестр не хранит
+сообщения и не повторяет их. Регистрация ленивая — сервисы интеграции могут
+зависеть от `ModuleManager`, который в момент boot ещё собирается.
+
+Пример — Zigbee: `Module::boot` регистрирует интеграцию, MQTT-цикл ставит
+задание `zigbee.message` в `module.zigbee`, а `worker zigbee` или
+`core-worker module.zigbee` разбирает пакет. Устройство —
+[zigbee.md](zigbee.md).
+
 ## Настройки
 
 | Ключ | Смысл |
@@ -161,8 +197,9 @@ RuntimeState; исключение в сценарий не летит. Функ
 - MQTT 3.1 и 3.1.1; MQTT 5 не используется.
 - Один процесс приёма: параллелизм есть у событий свойства, но разбор
   входящего потока одного брокера последовательный.
-- Нет API подписки сторонних модулей на MQTT-сообщения и нет импорта данных
-  alpha `mqtt`/`mqtt_history`.
+- Импорта данных alpha `mqtt`/`mqtt_history` нет; сторонние модули
+  подключаются к сообщениям через `Integrations` (см. выше), а не общим
+  брокером внутри процесса.
 - Переименование объекта/свойства не ломает запись по id, но подпись в
   карточке топика и вызов привязанного метода используют сохранённое имя:
   после переименования объекта или метода откройте топик и сохраните

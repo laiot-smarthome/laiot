@@ -16,6 +16,45 @@
 @import 'knowledge-base.css';
 @import 'events.css';
 
+/* Маскот дополняет текст состояния, поэтому изображение декоративное. */
+.md-mascot { display: block; width: 120px; max-width: 100%; height: auto; object-fit: contain; }
+.md-mascot-empty { display: grid; justify-items: center; align-content: center; gap: 24px; min-height: 340px; padding: 36px 20px; border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-lg); background: radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--md-ui-primary) 8%, transparent), transparent 70%), var(--md-ui-surface); text-align: center; }
+.md-mascot-empty__scene { position: relative; display: grid; place-items: center; width: 190px; height: 174px; max-width: 100%; }
+.md-mascot-empty__scene::before { content: ''; position: absolute; inset: 4px 12px; border: 1px solid color-mix(in srgb, var(--md-ui-primary) 15%, transparent); border-radius: 50%; background: color-mix(in srgb, var(--md-ui-primary) 4%, transparent); }
+.md-mascot-empty .md-mascot { position: relative; width: 160px; }
+.md-mascot-empty__badge { position: absolute; right: 12px; bottom: 4px; display: grid; place-items: center; width: 34px; height: 34px; border: 4px solid var(--md-ui-surface); border-radius: 50%; background: var(--md-ui-selected); color: var(--md-ui-primary); }
+.md-mascot-empty__copy { max-width: 300px; }
+.md-mascot-empty__copy h3 { margin: 0; color: var(--md-ui-text); font-size: var(--md-ui-fs-lg); font-weight: 600; }
+.md-mascot-empty__copy p { margin: 8px 0 0; color: var(--md-ui-muted); font-size: var(--md-ui-fs-sm); line-height: 1.6; }
+
+/* Единый индикатор: текст доступен скринридеру, размер не меняется при загрузке. */
+.md-loader { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--md-ui-primary); vertical-align: middle; }
+.md-loader .md-spinner { width: 22px; height: 22px; border-width: 2px; opacity: 1; }
+.md-loader--sm .md-spinner { width: 16px; height: 16px; }
+.md-loader--lg .md-spinner { width: 36px; height: 36px; border-width: 3px; }
+.md-loader--block { display: flex; width: 100%; min-height: 160px; }
+.md-btn .md-loader { color: inherit; }
+.md-notifications-loading { min-height: 340px; }
+.md-loading-field { position: relative; }
+.md-loading-field > .md-loader { position: absolute; inset-inline-end: 12px; top: 50%; transform: translateY(-50%); }
+body.md-admin-shell .md-loading-field .md-input { padding-inline-end: 42px; }
+.md-loading-demo { display: grid; gap: 16px; }
+.md-loading-demo__surface { padding: 20px; border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-md); }
+.md-loading-demo__surface > p { margin: 0 0 16px; color: var(--md-ui-muted); }
+@media (prefers-reduced-motion: reduce) {
+    .md-loader .md-spinner, [data-md-notifications-refresh] .md-spin { animation: none; }
+}
+.md-mascot-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; }
+.md-mascot-gallery__item { display: grid; justify-items: center; gap: 12px; margin: 0; padding: 16px; border: 1px solid var(--md-ui-border); border-radius: 12px; }
+.md-mascot-gallery__item figcaption { text-align: center; color: var(--md-ui-text); }
+.md-mascot-gallery__item code { display: block; margin-top: 4px; color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); }
+.md-mascot-gallery__item small { display: block; margin-top: 8px; color: var(--md-ui-muted); }
+.md-dash__heading .md-dash__mascot { float: inline-end; width: 88px; margin-inline-start: 20px; }
+.md-drawer__header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+@media (max-width: 575px) {
+    .md-dash__heading .md-dash__mascot { width: 64px; margin-inline-start: 12px; }
+}
+
 /* Панели перекрывают страницу от правого края; display не прерывает выезд. */
 body.md-admin-shell :is(.md-admin-drawer, .md-admin-search-drawer) {
     top: 0;
@@ -81,6 +120,9 @@ body.md-admin-shell .md-admin-main { min-width: 0; padding-bottom: calc(32px + e
     text-decoration: none;
 }
 .md-kit-nav a:hover, .md-kit-nav a:focus-visible { background: var(--md-ui-selected); }
+.md-kit-link-demo { display: grid; gap: 12px; }
+.md-kit-links { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; }
+.md-kit-note { color: var(--md-ui-muted); font-size: var(--md-ui-fs-sm); }
 .md-kit-section { display: grid; gap: 16px; scroll-margin-top: 88px; }
 .md-kit-section .md-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
 .md-kit-password { display: flex; align-items: center; gap: 4px; }
@@ -491,8 +533,7 @@ body.md-admin-shell .md-data-table__grid.tabulator .tabulator-footer { padding: 
 
 .md-prose a {
     color: var(--md-ui-primary);
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    text-decoration: none;
 }
 
 .md-prose a:hover {

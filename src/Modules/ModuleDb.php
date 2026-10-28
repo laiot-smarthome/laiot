@@ -87,6 +87,35 @@ final class ModuleDb
         $this->connection()->getSchemaBuilder()->dropIfExists($this->physicalName($logical));
     }
 
+    /**
+     * Транзакция над таблицами модуля.
+     *
+     * Модулю нужна атомарность своих изменений (например, пакетное добавление
+     * устройств), но прямой доступ к соединению ядра запрещён. Метод даёт
+     * только границу транзакции: SQL внутри по-прежнему идёт через table().
+     *
+     * 2026-10-28 — граница транзакции добавлена в SDK для Zigbee.
+     *
+     * @template T
+     * @param callable():T $work
+     * @return T
+     */
+    public function transaction(callable $work): mixed
+    {
+        $connection = $this->connection();
+        $connection->beginTransaction();
+        try {
+            $result = $work();
+            $connection->commit();
+
+            return $result;
+        } catch (\Throwable $error) {
+            $connection->rollBack();
+
+            throw $error;
+        }
+    }
+
     public function physicalName(string $logical): string
     {
         if (!preg_match('/^[a-z][a-z0-9_]{1,63}$/D', $logical)) {

@@ -186,12 +186,13 @@
 <div class="md-admin-drawer-backdrop" data-md-drawer-close hidden></div>
 
 <div id="mdNotificationsContent" hidden>
-    <div class="md-notifications-toolbar">
-        <p class="text-body-secondary mb-0" data-md-notifications-status role="status">Загружаем уведомления…</p>
-        <button type="button" class="md-btn md-btn--secondary md-btn--sm" data-md-notifications-refresh>
-            <i class="ti ti-refresh" aria-hidden="true"></i><span class="md-btn__label">Обновить</span>
-        </button>
-    </div>
+    <p class="text-body-secondary mb-0" data-md-notifications-status role="status" hidden></p>
+    <template data-md-notifications-loading>
+        <x-md.loader block size="lg" label="Загрузка уведомлений" class="md-notifications-loading" />
+    </template>
+    <template data-md-notifications-empty>
+        <x-md.mascot-empty />
+    </template>
     <div class="md-notifications-list" data-md-notifications-list></div>
     <div class="md-notifications-toolbar" data-md-notifications-pages hidden>
         <button type="button" class="md-btn md-btn--secondary md-btn--sm" data-md-notifications-page="-1">Назад</button>
@@ -208,9 +209,14 @@
             <h2 class="md-drawer__title" id="mdAdminDrawerTitle"></h2>
             <div class="md-admin-drawer__subtitle md-drawer__subtitle" id="mdAdminDrawerSubtitle" hidden></div>
         </div>
-        <button type="button" class="md-icon-btn md-admin-drawer__close" data-md-drawer-close aria-label="Закрыть">
-            <i class="ti ti-x" aria-hidden="true"></i>
-        </button>
+        <div class="md-drawer__header-actions">
+            <button type="button" class="md-icon-btn" data-md-notifications-refresh hidden aria-label="Обновить уведомления" title="Обновить уведомления">
+                <i class="ti ti-refresh" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="md-icon-btn md-admin-drawer__close" data-md-drawer-close aria-label="Закрыть">
+                <i class="ti ti-x" aria-hidden="true"></i>
+            </button>
+        </div>
     </div>
     <div class="md-admin-drawer__body md-drawer__body" id="mdAdminDrawerBody"></div>
     <div class="md-admin-drawer__footer md-drawer__footer" id="mdAdminDrawerFooter" hidden></div>

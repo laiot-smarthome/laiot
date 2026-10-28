@@ -3,6 +3,7 @@
  *
  * Свой рендер на DOM, без alpha-модулей. Открытие списка не отмечает
  * прочитанным: только кнопка «Прочитано».
+ * 2026-10-28 — загрузка панели с индикатором и защитой от устаревших ответов.
  */
 
 import {get, post} from './api.js';
@@ -24,6 +25,7 @@ const TYPE_LABELS = {
 let offset = 0;
 let filter = '';
 let bound = false;
+let drawerRequest = 0;
 
 function escapeHtml(value) {
     return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, (char) => ({
@@ -57,10 +59,8 @@ function renderList(target, items, preview) {
     }
     target.replaceChildren();
     if (!items.length) {
-        const empty = document.createElement('p');
-        empty.className = 'text-body-secondary mb-0';
-        empty.textContent = 'Непрочитанных уведомлений нет.';
-        target.append(empty);
+        const template = content().querySelector('[data-md-notifications-empty]');
+        target.append(template.content.cloneNode(true));
         return;
     }
     items.forEach((note) => {
@@ -154,19 +154,19 @@ async function refresh() {
     if (!contentNode) {
         return;
     }
+    const drawerRefresh = drawer.getCurrentOwner() === 'module-notifications' ? loadDrawer() : Promise.resolve();
     try {
         const data = await get('/api/v1/panel/notifications');
         updateBadge(data);
         document.querySelectorAll('[data-md-notifications-preview]').forEach((target) => {
             renderList(target, (data.items || []).slice(0, 5), true);
         });
-        if (drawer.getCurrentOwner() === 'module-notifications') {
-            await loadDrawer();
-        }
     } catch (error) {
         document.querySelectorAll('[data-md-notifications-preview]').forEach((target) => {
             target.textContent = 'Не удалось загрузить уведомления: ' + error.message;
         });
+    } finally {
+        await drawerRefresh;
     }
 }
 
@@ -179,14 +179,30 @@ async function loadDrawer() {
     const list = contentNode.querySelector('[data-md-notifications-list]');
     const pages = contentNode.querySelector('[data-md-notifications-pages]');
     const range = contentNode.querySelector('[data-md-notifications-range]');
+    const requestId = ++drawerRequest;
+    const refreshButton = document.querySelector('[data-md-notifications-refresh]');
+    const refreshIcon = refreshButton?.querySelector('i');
+    const initial = !list.childElementCount || !!list.querySelector('.md-notifications-loading');
+    list.setAttribute('aria-busy', 'true');
+    status.hidden = true;
+    if (initial) {
+        list.replaceChildren();
+        list.append(contentNode.querySelector('[data-md-notifications-loading]').content.cloneNode(true));
+    }
+    if (refreshButton) {
+        refreshButton.disabled = true;
+        refreshButton.setAttribute('aria-busy', 'true');
+    }
+    refreshIcon?.classList.toggle('md-spin', !initial);
+    contentNode.querySelectorAll('[data-md-notifications-page]').forEach(button => { button.disabled = true; });
     try {
         const data = await get('/api/v1/panel/notifications', {module: filter, offset});
-        if (!data) {
-            return;
-        }
+        if (requestId !== drawerRequest || drawer.getCurrentOwner() !== 'module-notifications') return;
+        if (!data || !Array.isArray(data.items)) throw new Error('Некорректный ответ сервера');
         renderList(list, data.items || [], false);
         if (status) {
-            status.textContent = 'Непрочитанных: ' + data.total + '. Открытие списка не отмечает их прочитанными.';
+            status.hidden = data.total === 0;
+            status.textContent = 'Непрочитанных: ' + data.total;
         }
         if (pages) {
             pages.hidden = data.total <= 50;
@@ -197,8 +213,20 @@ async function loadDrawer() {
         contentNode.querySelector('[data-md-notifications-page="-1"]').disabled = offset === 0;
         contentNode.querySelector('[data-md-notifications-page="1"]').disabled = offset + (data.items || []).length >= data.total;
     } catch (error) {
+        if (requestId !== drawerRequest || drawer.getCurrentOwner() !== 'module-notifications') return;
+        if (initial) list.replaceChildren();
         if (status) {
             status.textContent = 'Не удалось загрузить уведомления: ' + error.message;
+            status.hidden = false;
+        }
+    } finally {
+        if (requestId === drawerRequest) {
+            list.setAttribute('aria-busy', 'false');
+            if (refreshButton) {
+                refreshButton.disabled = false;
+                refreshButton.removeAttribute('aria-busy');
+            }
+            refreshIcon?.classList.remove('md-spin');
         }
     }
 }
@@ -210,6 +238,11 @@ function open(module = '') {
     }
     filter = typeof module === 'string' ? module : '';
     offset = 0;
+    const status = contentNode.querySelector('[data-md-notifications-status]');
+    if (status) {
+        status.hidden = true;
+        status.textContent = '';
+    }
     const list = contentNode.querySelector('[data-md-notifications-list]');
     if (list) {
         list.replaceChildren();

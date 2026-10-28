@@ -30,6 +30,7 @@
 
     <header class="md-dash__header">
         <div class="md-dash__heading">
+            <x-md.mascot pose="love_home" class="md-dash__mascot" />
             <p class="md-dash__eyebrow"><span class="md-dash__live-dot" aria-hidden="true"></span>Обзор системы</p>
             <h1 class="md-dash__title">Панель управления</h1>
             <p class="md-dash__subtitle">{{ $now->format('d.m.Y') }} · сводка состояния умного дома</p>

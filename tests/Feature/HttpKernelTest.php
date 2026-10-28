@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Tests\Feature;
 
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Http\Request;
 use MajorDoMo\Foundation\Application;
+use MajorDoMo\Http\ErrorResponse;
+use MajorDoMo\Http\Kernel;
 use MajorDoMo\Http\Session\ArraySession;
+use MajorDoMo\Logging\RequestContext;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 
 /**
  * 2026-10-26 — действующая сессия и проверка скрытия деталей ошибок вне debug.
@@ -72,7 +77,14 @@ final class HttpKernelTest extends TestCase
         $response = $this->app->handle(Request::create('/missing', 'GET'));
 
         self::assertSame(404, $response->getStatusCode());
-        self::assertStringContainsString('Not Found', (string)$response->getContent());
+        self::assertStringContainsString('text/html', (string)$response->headers->get('Content-Type'));
+
+        $html = (string)$response->getContent();
+        self::assertStringContainsString('md-error-page', $html);
+        self::assertStringContainsString('Страница не найдена', $html);
+        self::assertStringContainsString('/assets/img/maskot/find.png', $html);
+        self::assertStringContainsString('data-error-code="not_found"', $html);
+        self::assertStringContainsString('/missing', $html);
         self::assertNotEmpty($response->headers->get('X-Request-Id'));
     }
 
@@ -82,6 +94,7 @@ final class HttpKernelTest extends TestCase
 
         self::assertSame(405, $response->getStatusCode());
         self::assertStringContainsString('POST', (string)$response->headers->get('Allow'));
+        self::assertStringContainsString('Метод не поддерживается', (string)$response->getContent());
     }
 
     public function testNotFoundReturnsJsonForApiRequest(): void
@@ -98,6 +111,39 @@ final class HttpKernelTest extends TestCase
         self::assertNotEmpty($payload['request_id']);
     }
 
+    public function testErrorFallsBackToTextWithoutView(): void
+    {
+        // Middleware и отдельные kernel-конструкторы могут работать без
+        // ViewFactory: ответ обязан сохранить статус и request id.
+        $kernel = new Kernel($this->app->router(), new NullLogger(), context: new RequestContext());
+
+        $response = $kernel->handle(Request::create('/missing', 'GET'));
+
+        self::assertSame(404, $response->getStatusCode());
+        self::assertStringContainsString('text/plain', (string)$response->headers->get('Content-Type'));
+        self::assertStringContainsString('Not Found', (string)$response->getContent());
+        self::assertStringContainsString('request_id:', (string)$response->getContent());
+    }
+
+    public function testBrokenViewFallsBackToText(): void
+    {
+        $view = $this->createMock(ViewFactory::class);
+        $view->method('make')->willThrowException(new \RuntimeException('view down'));
+
+        $response = ErrorResponse::make(
+            Request::create('/missing', 'GET'),
+            404,
+            'not_found',
+            'Not Found',
+            'req-1',
+            view: $view
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+        self::assertStringContainsString('text/plain', (string)$response->headers->get('Content-Type'));
+        self::assertStringContainsString('request_id: req-1', (string)$response->getContent());
+    }
+
     public function testInternalErrorDoesNotExposeTrace(): void
     {
         $this->app->router()->get('/boom', static function (): never {
@@ -107,9 +153,18 @@ final class HttpKernelTest extends TestCase
         $response = $this->app->handle(Request::create('/boom', 'GET'));
 
         self::assertSame(500, $response->getStatusCode());
-        self::assertStringContainsString('boom detail', (string)$response->getContent());
-        self::assertStringNotContainsString('#0', (string)$response->getContent());
-        self::assertStringNotContainsString(__FILE__, (string)$response->getContent());
+
+        $html = (string)$response->getContent();
+        $requestId = (string)$response->headers->get('X-Request-Id');
+        self::assertStringContainsString('Внутренняя ошибка', $html);
+        self::assertStringContainsString('/assets/img/maskot/error.png', $html);
+        self::assertStringContainsString('data-error-code="server_error"', $html);
+        self::assertStringContainsString('Код запроса', $html);
+        self::assertStringContainsString($requestId, $html);
+        // Debug показывает текст исключения, но не trace и не пути.
+        self::assertStringContainsString('boom detail', $html);
+        self::assertStringNotContainsString('#0', $html);
+        self::assertStringNotContainsString(__FILE__, $html);
     }
 
     public function testNamedRouteIsRegistered(): void

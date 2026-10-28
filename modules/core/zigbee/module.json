@@ -1,0 +1,42 @@
+{
+    "id": "zigbee",
+    "type": "core",
+    "name": "Zigbee",
+    "version": "1.0.0",
+    "description": "Устройства Zigbee2MQTT на общем MQTT-соединении: обнаружение, привязки к свойствам, команды, комнаты и мониторинг.",
+    "namespace": "MajorDoMo\\Zigbee\\",
+    "entrypoint": "Module",
+    "property_subscriber": "PropertySubscriber",
+    "src": "src",
+    "routes": "routes.php",
+    "views": "views",
+    "storage": {
+        "driver": "mysql",
+        "tables": [
+            "bridges",
+            "devices",
+            "properties",
+            "bindings",
+            "events",
+            "health_settings",
+            "health_state"
+        ]
+    },
+    "menu": {
+        "title": "Zigbee",
+        "order": 115,
+        "icon": "ti-network"
+    },
+    "tasks": {
+        "monitor": {
+            "method": "monitor",
+            "interval": 60,
+            "timeout": 30
+        }
+    },
+    "dependencies": ["mqtt"],
+    "requires": {
+        "mydomo": ">=2.0.0-dev",
+        "php": ">=8.2"
+    }
+}
