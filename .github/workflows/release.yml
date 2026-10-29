@@ -2,44 +2,72 @@ name: Build release
 
 on:
   push:
+    branches: [main, beta]
     tags: ['main-*', 'beta-*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Номер без канала, например 0.0.3 или 0.1.0-beta.1'
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ startsWith(github.ref_name, 'main') && 'main' || 'beta' }}
   cancel-in-progress: false
 
 jobs:
   release:
+    if: github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' || contains(github.event.head_commit.message, '[release:')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Resolve release identity
+        id: release
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync, appendFileSync} from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          import {releaseIdentity} from './.github/release.mjs';
+          const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+          const release = releaseIdentity({refType: process.env.GITHUB_REF_TYPE, refName: process.env.GITHUB_REF_NAME, message: event.head_commit?.message, version: process.env.INPUT_VERSION});
+          const sha = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
+          appendFileSync(process.env.GITHUB_OUTPUT, 'channel=' + release.channel + '\ntag=' + release.tag + '\nsha=' + sha + '\n');
+          NODE
       - name: Validate release origin
-        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_CHANNEL: ${{ steps.release.outputs.channel }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_COMMIT: ${{ steps.release.outputs.sha }}
         run: |
           set -euo pipefail
-          channel=${GITHUB_REF_NAME%%-*}
-          case "$channel" in main|beta) ;; *) exit 1 ;; esac
-          git merge-base --is-ancestor "$GITHUB_SHA" "origin/$channel"
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            echo 'An existing numbered release must not be overwritten.' >&2
-            exit 1
+          git merge-base --is-ancestor "$RELEASE_COMMIT" "origin/$RELEASE_CHANNEL"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const releases = JSON.parse(readFileSync(process.env.RUNNER_TEMP + '/releases.json', 'utf8')).flat();
+          if (releases.some(release => release.tag_name === process.env.RELEASE_TAG)) throw new Error('Этот номер уже опубликован или существует как черновик. Используйте новый номер.');
+          NODE
+          if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$RELEASE_COMMIT"
           fi
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           extensions: mbstring, intl, curl, pdo_mysql, pdo_sqlite, zip, pcntl, posix
           coverage: none
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
       - name: Install and verify
         run: |
           composer install --no-interaction --prefer-dist
@@ -47,19 +75,41 @@ jobs:
           php tests/docs_quality_smoke.php
           npm ci
           npm run test:ui
+          npm run test:release
           npm run build
+      - name: Collect commit descriptions
+        env:
+          RELEASE_CHANNEL: ${{ steps.release.outputs.channel }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_COMMIT: ${{ steps.release.outputs.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync, writeFileSync, appendFileSync} from 'node:fs';
+          import {releaseNotes} from './.github/release.mjs';
+          const releases = JSON.parse(readFileSync(process.env.RUNNER_TEMP + '/releases.json', 'utf8')).flat();
+          const result = releaseNotes({channel: process.env.RELEASE_CHANNEL, tag: process.env.RELEASE_TAG, sha: process.env.RELEASE_COMMIT, repository: process.env.GITHUB_REPOSITORY, releases});
+          writeFileSync(process.env.RUNNER_TEMP + '/release-notes.md', result.notes);
+          writeFileSync(process.env.RUNNER_TEMP + '/CHANGELOG.md', result.changelog);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, result.notes);
+          NODE
       - name: Build production package
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
           composer check-platform-reqs --no-dev
-          php bin/laiot release:build "$GITHUB_REF_NAME" --output "$RUNNER_TEMP/laiot-release"
+          php bin/laiot release:build "$RELEASE_TAG" --output "$RUNNER_TEMP/laiot-release"
       - name: Publish numbered release
-        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_CHANNEL: ${{ steps.release.outputs.channel }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_COMMIT: ${{ steps.release.outputs.sha }}
         run: |
           set -euo pipefail
           options=()
-          if [[ $GITHUB_REF_NAME == beta-* ]]; then options+=(--prerelease); fi
-          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP/laiot-release/laiot.zip" "$RUNNER_TEMP/laiot-release/laiot-release.json" \
-            --verify-tag --title "$GITHUB_REF_NAME" --generate-notes "${options[@]}"
+          if [[ $RELEASE_CHANNEL == beta ]]; then options+=(--prerelease); fi
+          if [[ $GITHUB_REF_TYPE == tag ]]; then options+=(--verify-tag); fi
+          gh release create "$RELEASE_TAG" "$RUNNER_TEMP/laiot-release/laiot.zip" "$RUNNER_TEMP/laiot-release/laiot-release.json" "$RUNNER_TEMP/CHANGELOG.md" \
+            --draft --target "$RELEASE_COMMIT" --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" "${options[@]}"
+          gh release edit "$RELEASE_TAG" --draft=false --latest="$([[ $RELEASE_CHANNEL == main ]] && echo true || echo false)"

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [beta, 'laiot-*']
+    branches: [main, beta, 'laiot-*']
   pull_request:
-    branches: [beta]
+    branches: [main, beta]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,13 +21,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring, intl, curl, pdo_mysql, sqlite3
+          extensions: mbstring, intl, curl, pdo_mysql, sqlite3, pdo_sqlite, zip, pcntl, posix
           coverage: none
 
       - name: Validate Composer
@@ -45,7 +45,7 @@ jobs:
         run: php tests/docs_quality_smoke.php
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -53,4 +53,6 @@ jobs:
       - name: Build assets
         run: |
           npm ci
+          npm run test:ui
+          npm run test:release
           npm run build
