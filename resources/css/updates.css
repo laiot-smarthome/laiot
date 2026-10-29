@@ -184,12 +184,12 @@ body.md-update-recovery { min-height: 100vh; padding: clamp(20px, 4vw, 52px); ba
 @media (max-width: 760px) { .md-upd-console-grid { grid-template-columns: 1fr; } .md-upd-how-grid { grid-template-columns: 1fr 1fr; gap: 24px; } .md-upd-unlock { grid-template-columns: 1fr; gap: 25px; } .md-upd-hero h1 { font-size: 42px; } }
 @media (max-width: 540px) {
     body.md-update-recovery { padding: 16px; } .md-upd-console, .md-updates-page, .md-upd-admin { gap: 18px; }
-    .md-upd-hero { display: block; min-height: 300px; padding: 26px 22px; border-radius: 21px; }
-    .md-upd-hero h1 { max-width: calc(100% - 90px); margin-top: 20px; font-size: 35px; line-height: 1.12; }
+    .md-upd-hero { display: flex; flex-direction: column; align-items: stretch; min-height: 0; padding: 26px 22px; border-radius: 21px; }
+    .md-upd-hero h1 { max-width: 100%; margin-top: 20px; font-size: 35px; line-height: 1.12; overflow-wrap: anywhere; }
     .md-upd-hero__copy > p { font-size: 12px; line-height: 1.8; }
     .md-upd-hero__bottom { gap: 10px; margin-top: 22px; }
     .md-upd-hero .md-upd-kicker { font-size: 8px; letter-spacing: .09em; }
-    .md-upd-mascot-scene { position: absolute; right: -3px; top: 39px; width: 145px; height: 170px; }
+    .md-upd-mascot-scene { position: relative; right: auto; top: auto; width: 145px; height: 145px; margin: 8px auto 0; }
     .md-upd-mascot-scene > img { width: 145px; height: 145px; }
     .md-upd-orbit { width: 140px; height: 140px; } .md-upd-orbit--two { width: 160px; height: 160px; }
     .md-upd-mascot-caption { display: none; } .md-upd-spark--one { left: 4px; top: 24px; } .md-upd-spark--two { right: 5px; bottom: 16px; }

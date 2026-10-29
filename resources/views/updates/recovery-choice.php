@@ -1,6 +1,6 @@
 <?php // 2026-10-29 — выбор восстановления отделён от игровой комнаты и требует явного согласия. ?>
 <section class="md-upd-recovery-choice" data-update-recovery <?= !$problem ? 'hidden' : '' ?>>
-    <div class="md-upd-section-head"><div><span class="md-upd-kicker">ДЕЙСТВИЯ ВОССТАНОВЛЕНИЯ</span><h2>Восстановление после прерывания</h2></div><i class="ti ti-route" aria-hidden="true"></i></div>
+    <div class="md-upd-section-head"><div><span class="md-upd-kicker">ДЕЙСТВИЯ ВОССТАНОВЛЕНИЯ</span><h2>Восстановление после прерывания</h2></div></div>
     <p data-update-interrupted><?= $status === 'interrupted' ? 'Процесс больше не работает. Сервер мог перезагрузиться или завершить службу. Последний завершённый снимок сохранён.' : 'Операция остановлена. Изучите ошибку и выберите повтор или восстановление предыдущей версии.' ?></p>
     <p class="md-upd-error" role="alert" data-update-error <?= ($error ?: ($operation['error'] ?? '')) === '' ? 'hidden' : '' ?>><?= $escape($error ?: ($operation['error'] ?? '')) ?></p>
     <div class="md-upd-choice-grid"><div><span>01</span><h3>Попробовать ещё раз</h3><p>Вернём исходные код и БД, затем повторим обновление с начала.</p></div><div><span>02</span><h3>Вернуть прежнюю версию</h3><p>Будут восстановлены прежний релиз и состояние БД на момент сохранённого снимка.</p></div></div>

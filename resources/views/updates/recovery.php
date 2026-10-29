@@ -28,6 +28,9 @@ $plan = ['Проверка окружения', 'Подготовка релиз
     <?php if (!$authorized): ?>
         <section class="md-upd-unlock"><div><span class="md-upd-kicker">ДОСТУП ВЛАДЕЛЬЦА</span><h2>Ключ восстановления</h2><p>Введите ключ из <code>var/updates/recovery.key</code> на сервере. Основная панель и база для входа не нужны.</p></div><form method="post"><label for="update-recovery-key">Ключ восстановления</label><input class="md-input" id="update-recovery-key" type="password" name="recovery_key" required autocomplete="off"><button class="md-btn md-btn--primary" type="submit">Открыть восстановление <span aria-hidden="true">→</span></button></form></section>
     <?php else: ?>
+        <?php require __DIR__ . '/recovery-choice.php'; ?>
+        <p role="alert" class="md-upd-warning" data-update-warning <?= empty($operation['warning']) ? 'hidden' : '' ?>><?= $escape($operation['warning'] ?? '') ?></p>
+        <div class="md-upd-finished" data-update-finished <?= !$finished ? 'hidden' : '' ?>><i class="ti ti-circle-check" aria-hidden="true"></i><div><h2>Система готова к работе</h2><p>Операция завершена. Доступ к системе восстановлен.</p></div><a class="md-btn md-btn--primary" href="/admin/updates">Вернуться в панель <span aria-hidden="true">→</span></a></div>
         <div class="md-upd-console-grid">
             <section class="md-upd-progress-card"><div class="md-upd-section-head"><div><span class="md-upd-kicker">ХОД ОБНОВЛЕНИЯ</span><h2>Этапы выполнения</h2></div><span class="md-upd-step-count" data-update-counter>Этап <?= $progress['step'] ?> из 8</span></div><progress data-update-progress aria-label="Этапы переключения релиза" max="8" value="<?= $progress['step'] ?>"></progress>
                 <ol class="md-upd-route" data-update-route><?php foreach ($plan as $index => $label): ?><li data-step="<?= $index + 1 ?>" data-state="<?= $index + 1 < $progress['step'] ? 'done' : ($index + 1 === $progress['step'] ? 'current' : 'pending') ?>"><span class="md-upd-route__number"><?= $index + 1 ?></span><span><?= $label ?></span><i class="ti ti-check" aria-hidden="true"></i></li><?php endforeach ?></ol>
@@ -36,9 +39,6 @@ $plan = ['Проверка окружения', 'Подготовка релиз
             </section>
             <aside class="md-upd-waiting"><section class="md-upd-playroom" aria-label="Мини-игра во время ожидания"><?php require __DIR__ . '/snake.php'; ?></section><div class="md-upd-assurance"><i class="ti ti-shield-check" aria-hidden="true"></i><p>Операция выполняется на сервере.<br><strong>Открытая вкладка для работы процесса не требуется.</strong></p></div></aside>
         </div>
-        <?php require __DIR__ . '/recovery-choice.php'; ?>
-        <p role="alert" class="md-upd-warning" data-update-warning <?= empty($operation['warning']) ? 'hidden' : '' ?>><?= $escape($operation['warning'] ?? '') ?></p>
-        <div class="md-upd-finished" data-update-finished <?= !$finished ? 'hidden' : '' ?>><i class="ti ti-circle-check" aria-hidden="true"></i><div><h2>Система готова к работе</h2><p>Операция завершена. Доступ к системе восстановлен.</p></div><a class="md-btn md-btn--primary" href="/admin/updates">Вернуться в панель <span aria-hidden="true">→</span></a></div>
     <?php endif ?>
     <footer class="md-upd-console-footer"><span>LaIOT · управление обновлениями</span><span>Эта страница работает независимо от основной панели</span></footer>
 </main>
