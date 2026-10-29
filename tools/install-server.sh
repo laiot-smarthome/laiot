@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 2026-10-29 — готовая FastPanel, выбор сайта/каталога и права публичного ключа APT.
 # 2026-10-29 — итоговая памятка с доступами и путями повторяется после запуска служб.
 # 2026-10-28 — интерактивная подготовка Ubuntu для веб-установщика MyDoMo.
 set -Eeuo pipefail
@@ -10,6 +11,9 @@ STATE=/root/mydomo-installer
 OWNER=mydomo_usr
 BASE=/var/www/mydomo_usr/data/mydomo
 APP=$BASE/current
+SITE_GROUP=$OWNER
+PANEL_EXISTING=no
+TARGET_MODE=new
 STEP='подготовка'
 
 say() { printf '\n%b\n' "$*"; }
@@ -79,24 +83,127 @@ failed() {
 }
 as_owner() { (umask 022; runuser -u "$OWNER" -- env -u TMPDIR PATH=/opt/mydomo-node/bin:/usr/local/bin:/usr/bin:/bin "$@"); }
 
+save_answers() {
+    local name
+    local names=(MODE DOMAIN SERVER_IP MQTT MQTT_LAN ZIGBEE BROKER BRANCH CLEANUP PANEL_EXISTING TARGET_MODE OWNER SITE_GROUP BASE APP SCHEME)
+    for name in "${names[@]}"; do printf '%s=%q\n' "$name" "${!name-}"; done > "$STATE/answers.new"
+    mv -- "$STATE/answers.new" "$STATE/answers"
+}
+# Пустые aliases в таблице не должны сдвигать колонку владельца.
+site_rows() {
+    LC_ALL=C expand | awk '
+        function trim(v) {sub(/^[ \t]+/, "", v); sub(/[ \t]+$/, "", v); return v}
+        /SERVER_NAME/ && /DOCUMENT_ROOT/ {
+            name=index($0,"SERVER_NAME"); alias=index($0,"ALIASES"); owner=index($0,"OWNER");
+            mode=index($0,"MODE"); ips=index($0,"IPS"); root=index($0,"DOCUMENT_ROOT");
+            if (!(name && alias && owner && mode && ips && root)) exit 1;
+            header=1; next
+        }
+        header && $1 ~ /^[0-9]+$/ {
+            if (trim(substr($0,root)) !~ /^\//) exit 1;
+            print $1 "\t" trim(substr($0,name,alias-name)) "\t" trim(substr($0,owner,mode-owner)) "\t" trim(substr($0,root)) "\t" trim(substr($0,ips,root-ips))
+        }
+        END {if (!header) exit 1}'
+}
+valid_owner() { [[ $1 =~ ^[a-z_][a-z0-9_-]{0,63}$ && $1 != root ]]; }
+valid_base() {
+    local candidate=$1 data=$2 root
+    [[ $candidate == "$data/"* && $candidate =~ ^/[a-zA-Z0-9_./-]+$ ]] || return 1
+    [[ $(realpath -m -- "$candidate") == "$candidate" ]] || return 1
+    # Исходники, vendor и будущий .env не должны оказаться в открытом каталоге сайта.
+    while IFS= read -r root; do
+        [[ -n $root ]] || continue
+        root=$(realpath -m -- "$root")
+        [[ $candidate != "$root" && $candidate != "$root/"* && $root != "$candidate/"* ]] || return 1
+    done <<< "${3:-}"
+    [[ ! -e $candidate || -d $candidate && -z $(find "$candidate" -mindepth 1 -maxdepth 1 -print -quit) ]]
+}
+target_questions() {
+    local choice listing rows row data default_base candidate root_list
+    STEP='выбор сайта и каталога'
+    listing=$(mogwai sites list)
+    rows=$(site_rows <<< "$listing") || die 'Не удалось разобрать список сайтов FastPanel. Проверьте вывод mogwai sites list.'
+    if [[ $PANEL_EXISTING == yes || -n $rows ]]; then
+        say "$listing"
+        while :; do
+            ask choice '1 — выбрать существующий сайт, 2 — создать новый' 1
+            case "$choice" in
+                1)
+                    [[ -n $rows ]] || { say 'В панели пока нет сайтов. Выберите создание нового.'; continue; }
+                    ask choice 'ID сайта из списка выше' ''
+                    row=$(awk -F '\t' -v id="$choice" '$1 == id' <<< "$rows")
+                    [[ -n $row ]] || { say 'Такого ID нет в списке.'; continue; }
+                    IFS=$'\t' read -r choice DOMAIN OWNER candidate root_list <<< "$row"
+                    TARGET_MODE=existing
+                    valid_owner "$OWNER" && id "$OWNER" >/dev/null 2>&1 || die 'У сайта неподходящий системный владелец.'
+                    break ;;
+                2) TARGET_MODE=new; break ;;
+            esac
+        done
+    fi
+    if [[ $TARGET_MODE == new ]]; then
+        if [[ -z ${DOMAIN:-} ]]; then
+            while :; do
+                ask DOMAIN 'Домен нового сайта' "${DOMAIN:-mydomo.home.arpa}"
+                valid_domain "$DOMAIN" && break
+                say 'Укажите корректное доменное имя.'
+            done
+        fi
+        if awk -F '\t' -v domain="$DOMAIN" '$2 == domain {found=1} END {exit !found}' <<< "$rows"; then
+            die 'Сайт с этим доменом уже есть. Выберите его в режиме существующего сайта.'
+        fi
+        say 'Можно указать существующего пользователя FastPanel или имя нового пользователя.'
+        getent passwd | awk -F: '$3 != 0 && $6 ~ /^\/var\/www\// {print "  " $1 " — " $6}'
+        while :; do
+            ask OWNER 'Пользователь сайта (пароль не нужен)' mydomo_usr
+            valid_owner "$OWNER" && break
+            say 'Нужно системное имя пользователя латиницей; root не допускается.'
+        done
+    fi
+    valid_domain "$DOMAIN" || die 'Некорректный домен сайта.'
+    [[ $MODE != public || $DOMAIN != *.home.arpa ]] || die 'Для публичного режима нужен зарегистрированный домен.'
+    data="/var/www/$OWNER/data"
+    if id "$OWNER" >/dev/null 2>&1; then
+        [[ $(id -u "$OWNER") != 0 ]] || die 'Нельзя запускать сайт под UID 0.'
+        [[ -d $data && $(stat -c %u "$data") == "$(id -u "$OWNER")" ]] || die 'Каталог data не принадлежит выбранному пользователю FastPanel.'
+        SITE_GROUP=$(id -gn "$OWNER")
+    else SITE_GROUP=$OWNER; fi
+    default_base="$data/apps/$DOMAIN"
+    root_list=$(cut -f4 <<< "$rows")
+    # Даже для нового сайта стандартная папка www остаётся только публичным корнем.
+    root_list+=$'\n'"$data/www"
+    while :; do
+        ask BASE 'Каталог установки (отдельный пустой каталог, вне www)' "$default_base"
+        valid_base "$BASE" "$data" "$root_list" && break
+        say "Нужен новый или пустой каталог внутри $data, вне корней сайтов и без символических ссылок."
+    done
+    APP=$BASE/current
+    say "Сайт: $DOMAIN; владелец: $OWNER; каталог: $BASE\nВ панели корень сайта потребуется направить на $APP/public."
+    yesno choice 'Использовать выбранный сайт и каталог?' нет
+    [[ $choice == yes ]] || die 'Выбор отменён. Повторный запуск позволит выбрать заново.'
+    save_answers
+    checkpoint target
+}
 questions() {
     local choice default_ip
     say 'Добро пожаловать! Подготовим сервер умного дома за несколько шагов.'
-    say 'Нужна чистая Ubuntu 24.04 x86_64 с доступом в интернет.\nFastPanel и Redis обязательны. Настройку самого MyDoMo завершим в браузере.'
+    say 'Нужна Ubuntu 24.04 x86_64 с доступом в интернет: чистая или с готовой FastPanel.\nFastPanel и Redis обязательны. Настройку самого MyDoMo завершим в браузере.'
     printf '\n1 — Только домашняя сеть (без белого IP и проброса портов)\n2 — Доступ по собственному публичному домену\n'
     while :; do
         ask choice 'Как будете открывать умный дом?' 1
         case "$choice" in 1) MODE=local; break ;; 2) MODE=public; break ;; esac
         say 'Выберите 1 или 2.'
     done
-    while :; do
-        ask DOMAIN 'Имя сайта, без http:// и пути' mydomo.home.arpa
-        valid_domain "$DOMAIN" && break
-        say 'Нужно имя вида mydomo.home.arpa или home.example.ru, латиницей.'
-    done
-    if [[ $MODE == public && $DOMAIN == *.home.arpa ]]; then
-        die 'Для публичного режима нужен ваш зарегистрированный домен. Запустите мастер снова.'
-    fi
+    if [[ $PANEL_EXISTING == no ]]; then
+        while :; do
+            ask DOMAIN 'Имя сайта, без http:// и пути' mydomo.home.arpa
+            valid_domain "$DOMAIN" && break
+            say 'Нужно имя вида mydomo.home.arpa или home.example.ru, латиницей.'
+        done
+        if [[ $MODE == public && $DOMAIN == *.home.arpa ]]; then
+            die 'Для публичного режима нужен ваш зарегистрированный домен. Запустите мастер снова.'
+        fi
+    else DOMAIN=''; fi
     default_ip=$(hostname -I | awk '{print $1}')
     say 'Адреса этого сервера:'
     ip -o -4 addr show scope global | awk '{print $2, $4}'
@@ -105,12 +212,18 @@ questions() {
         if valid_ip "$SERVER_IP" && ip -o -4 addr show | awk '{print $4}' | cut -d/ -f1 | grep -Fxq "$SERVER_IP"; then break; fi
         say 'Выберите IPv4, назначенный этому серверу (список выше).'
     done
-    yesno MQTT 'Установить Mosquitto для MQTT-устройств?' нет
+    if command -v mosquitto >/dev/null; then
+        say 'Mosquitto уже установлен. Его конфигурация и пароль сохраняются; подключение задайте в веб-интерфейсе.'
+        MQTT=no
+    else yesno MQTT 'Установить Mosquitto для MQTT-устройств?' нет; fi
     MQTT_LAN=no
     if [[ $MQTT == yes && $SERVER_IP =~ ^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.) ]]; then
         yesno MQTT_LAN 'Разрешить MQTT-устройствам подключаться через домашнюю сеть с паролем?' да
     fi
-    yesno ZIGBEE 'Установить Zigbee2MQTT для Zigbee-устройств? Нужен отдельный координатор' нет
+    if [[ -e /opt/zigbee2mqtt || -e /etc/systemd/system/zigbee2mqtt.service ]]; then
+        say 'Zigbee2MQTT уже установлен. Используйте существующий экземпляр, его файлы и службу сохраняем.'
+        ZIGBEE=no
+    else yesno ZIGBEE 'Установить Zigbee2MQTT для Zigbee-устройств? Нужен отдельный координатор' нет; fi
     yesno CLEANUP 'Предложить удалить необязательные программы Ubuntu (офис, почту, игры)?' нет
     if [[ $ZIGBEE == yes && $MQTT == no ]]; then
         say 'Zigbee2MQTT нужен MQTT-брокер. Можно использовать уже существующий.'
@@ -122,8 +235,7 @@ questions() {
     [[ $choice == yes ]] || exit 0
     install -d -m 700 "$STATE"
     # Файл принадлежит root; %q сохраняет ответы без исполнения введённого текста.
-    printf 'MODE=%q\nDOMAIN=%q\nSERVER_IP=%q\nMQTT=%q\nMQTT_LAN=%q\nZIGBEE=%q\nBROKER=%q\nBRANCH=%q\nCLEANUP=%q\n' \
-        "$MODE" "$DOMAIN" "$SERVER_IP" "$MQTT" "$MQTT_LAN" "$ZIGBEE" "$BROKER" "$BRANCH" "$CLEANUP" > "$STATE/answers"
+    save_answers
 }
 optional_package() {
     [[ ${1%%:*} =~ ^(libreoffice(-[a-z0-9.+-]+)?|thunderbird(-[a-z0-9.+-]+)?|aisleriot|gnome-mahjongg|gnome-mines|gnome-sudoku|rhythmbox(-[a-z0-9.+-]+)?|shotwell(-[a-z0-9.+-]+)?|simple-scan|transmission-gtk|totem(-[a-z0-9.+-]+)?|cheese(-[a-z0-9.+-]+)?|gnome-tour)$ ]]
@@ -164,15 +276,30 @@ cleanup_apps() {
     fi
     checkpoint cleanup
 }
-panel() {
+repair_panel_apt() {
+    local key=${1:-/etc/apt/trusted.gpg.d/RPM-GPG-KEY-fastpanel.asc}
+    local source_file=${2:-/etc/apt/sources.list.d/fastpanel2.list}
+    local file
+    # Это публичный ключ и список репозиториев, а не секреты установщика.
+    for file in "$key" "$source_file"; do
+        [[ ! -L $file ]] || die "Отказ менять права символической ссылки $file."
+        if [[ -f $file ]]; then chmod 644 -- "$file"; fi
+    done
+}
+panel() (
+    # APT читает публичные файлы от _apt: режим 077 для них непригоден.
+    # Маска меняется только в дочернем процессе официального установщика.
+    umask 022
+    repair_panel_apt
     apt-get update
     apt-get install -y ca-certificates curl wget openssl
     curl --fail --show-error --location --proto '=https' --tlsv1.2 \
         https://repo.fastpanel.direct/install_fastpanel.sh -o "$STATE/fastpanel.sh"
+    chmod 600 "$STATE/fastpanel.sh"
     # Вывод официального установщика содержит доступы: его видно только в SSH.
     bash "$STATE/fastpanel.sh" >&3 2>&3
     command -v mogwai
-}
+)
 packages() {
     apt-get update
     apt-get install -y git unzip xz-utils build-essential libsystemd-dev redis-server \
@@ -186,14 +313,25 @@ packages() {
     fi
 }
 site() {
-    if ! id "$OWNER" >/dev/null 2>&1; then
-        mogwai sites create --server-name="$DOMAIN" --owner="$OWNER" --create-user \
+    local listing rows selected
+    local -a flags=()
+    listing=$(mogwai sites list)
+    rows=$(site_rows <<< "$listing")
+    selected=$(awk -F '\t' -v domain="$DOMAIN" '$2 == domain' <<< "$rows")
+    if [[ -z $selected && $TARGET_MODE == new ]]; then
+        if ! id "$OWNER" >/dev/null 2>&1; then flags+=(--create-user); fi
+        mogwai sites create --server-name="$DOMAIN" --owner="$OWNER" "${flags[@]}" \
             --ip="$SERVER_IP" --handler=php_fpm --handler_version=8.3
+        listing=$(mogwai sites list)
+        rows=$(site_rows <<< "$listing")
+        selected=$(awk -F '\t' -v domain="$DOMAIN" '$2 == domain' <<< "$rows")
     fi
-    mogwai sites list | awk -v domain="$DOMAIN" -v owner="$OWNER" \
-        '$2 == domain && $4 == owner {found=1} END {exit !found}'
-    install -d -o "$OWNER" -g "$OWNER" -m 755 "$BASE"
-    install -d -o "$OWNER" -g "$OWNER" -m 750 "$BASE/shared"
+    [[ $(cut -f3 <<< "$selected") == "$OWNER" ]] || die 'Сайт отсутствует в панели или принадлежит другому пользователю.'
+    SITE_GROUP=$(id -gn "$OWNER")
+    valid_base "$BASE" "/var/www/$OWNER/data" "$(cut -f4 <<< "$rows")" || die 'Каталог установки занят, содержит ссылку или пересекается с корнем сайта.'
+    install -d -o "$OWNER" -g "$SITE_GROUP" -m 755 "$BASE"
+    install -d -o "$OWNER" -g "$SITE_GROUP" -m 750 "$BASE/shared"
+    save_answers
 }
 node_runtime() {
     local archive expected
@@ -208,9 +346,9 @@ node_runtime() {
     chmod -R a+rX /opt/mydomo-node
     local executable
     for executable in node npm npx; do
-        if [[ -e /usr/local/bin/$executable || -L /usr/local/bin/$executable ]]; then
-            [[ $(readlink -f "/usr/local/bin/$executable") == $(readlink -f "/opt/mydomo-node/bin/$executable") ]] || \
-                die "Уже существует /usr/local/bin/$executable. Не перезаписываю чужую установку."
+        if command -v "$executable" >/dev/null || [[ -e /usr/local/bin/$executable || -L /usr/local/bin/$executable ]]; then
+            # Приложение использует /opt через PATH; чужой Node.js не заменяем.
+            continue
         else ln -s "/opt/mydomo-node/bin/$executable" "/usr/local/bin/$executable"; fi
     done
 }
@@ -226,14 +364,17 @@ application() {
     expected=$(curl -fsSL --proto '=https' https://composer.github.io/installer.sig)
     actual=$(php8.3 -r 'echo hash_file("sha384", $argv[1]);' "$STATE/composer-setup.php")
     [[ $expected == "$actual" ]]
-    php8.3 "$STATE/composer-setup.php" --install-dir=/usr/local/bin --filename=composer
-    as_owner php8.3 /usr/local/bin/composer install --working-dir="$APP" --no-dev --prefer-dist --no-interaction --optimize-autoloader
+    install -d -m 755 /opt/mydomo-composer
+    php8.3 "$STATE/composer-setup.php" --install-dir=/opt/mydomo-composer --filename=composer
+    chmod 755 /opt/mydomo-composer/composer
+    if ! command -v composer >/dev/null; then ln -s /opt/mydomo-composer/composer /usr/local/bin/composer; fi
+    as_owner php8.3 /opt/mydomo-composer/composer install --working-dir="$APP" --no-dev --prefer-dist --no-interaction --optimize-autoloader
     (cd "$APP"; as_owner npm ci; as_owner npm run build)
     # Ключ должен совпадать с контрактом веб-мастера; .env здесь не создаётся.
-    install -d -o "$OWNER" -g "$OWNER" -m 750 "$APP/var"
+    install -d -o "$OWNER" -g "$SITE_GROUP" -m 750 "$APP/var"
     if [[ ! -f $APP/var/install.key && ! -f $APP/var/installed.lock ]]; then
         openssl rand -hex 32 > "$APP/var/install.key"
-        chown "$OWNER:$OWNER" "$APP/var/install.key"
+        chown "$OWNER:$SITE_GROUP" "$APP/var/install.key"
         chmod 600 "$APP/var/install.key"
     fi
 }
@@ -307,14 +448,14 @@ EOF
 units() {
     local file
     printf '{"root":"%s","user":"%s","group":"%s","allowed_uid":%s}\n' \
-        "$BASE" "$OWNER" "$OWNER" "$(id -u "$OWNER")" > "$STATE/agent.json"
+        "$BASE" "$OWNER" "$SITE_GROUP" "$(id -u "$OWNER")" > "$STATE/agent.json"
     if [[ -e /etc/mydomo/agent.json ]]; then
         cmp -s "$STATE/agent.json" /etc/mydomo/agent.json || die 'Конфигурация агента отличается. Не перезаписываю её.'
     fi
     install -d -m 755 /etc/mydomo
     install -m 600 "$STATE/agent.json" /etc/mydomo/agent.json
     for file in mydomo-core@.service mydomo-worker@.service mydomo-agent.service; do
-        sed -e "s|@@ROOT@@|$BASE|g" -e "s|@@USER@@|$OWNER|g" -e "s|@@GROUP@@|$OWNER|g" -e 's|/usr/bin/php |/usr/bin/php8.3 |g' \
+        sed -e "s|@@ROOT@@|$BASE|g" -e "s|@@USER@@|$OWNER|g" -e "s|@@GROUP@@|$SITE_GROUP|g" -e 's|/usr/bin/php |/usr/bin/php8.3 |g' \
             "$APP/deploy/systemd/$file" > "/etc/systemd/system/$file"
         chmod 644 "/etc/systemd/system/$file"
     done
@@ -360,7 +501,10 @@ credentials() {
     {
         printf 'MYDOMO — ДОСТУПЫ И ПУТИ\nСохраните эту памятку в надёжном месте.\n\n'
         printf 'Сервер: %s\nДомен: %s\nSSH: root@%s\n\n' "$SERVER_IP" "$DOMAIN" "$SERVER_IP"
-        printf 'FastPanel: https://%s:8888\nЛогин: fastuser\nПароль: %s\n\n' "$SERVER_IP" "$(< "$STATE/panel-password")"
+        printf 'FastPanel: https://%s:8888\n' "$SERVER_IP"
+        if [[ $PANEL_EXISTING == no ]]; then
+            printf 'Логин: fastuser\nПароль: %s\n\n' "$(< "$STATE/panel-password")"
+        else printf 'Используйте свои прежние данные входа в панель.\n\n'; fi
         if [[ $completed == yes ]]; then
             printf 'MyDoMo: %s://%s/login\nУстановка приложения завершена.\n' "$SCHEME" "$DOMAIN"
             printf 'Логин и пароль администратора MyDoMo заданы вами в веб-мастере; Bash их не получает.\n\n'
@@ -445,11 +589,13 @@ main() {
         source "$STATE/answers"
         say "Продолжаем установку $DOMAIN."
     else
-        command -v mogwai >/dev/null && die 'FastPanel уже установлена вне этого мастера. Нужна чистая Ubuntu.'
-        if systemctl is-active --quiet nginx || systemctl is-active --quiet apache2 || systemctl is-active --quiet mysql || systemctl is-active --quiet mariadb; then
-            die 'Обнаружен работающий веб-сервер или БД. Нужна чистая Ubuntu.'
+        if command -v mogwai >/dev/null; then
+            PANEL_EXISTING=yes
+            say 'Обнаружена готовая FastPanel. Переустановка и смена пароля панели не потребуются.'
+        elif systemctl is-active --quiet nginx || systemctl is-active --quiet apache2 || systemctl is-active --quiet mysql || systemctl is-active --quiet mariadb; then
+            die 'Есть серверные приложения, но нет CLI FastPanel. Для установки панели нужна чистая Ubuntu.'
         fi
-        [[ ! -e $BASE && ! -e /etc/mydomo/agent.json && ! -e /opt/zigbee2mqtt ]] || die 'Обнаружены данные предыдущей установки. Автоматическая перезапись запрещена.'
+        [[ ! -e /etc/mydomo/agent.json && ! -e /etc/systemd/system/mydomo-core@.service ]] || die 'Обнаружена другая установка MyDoMo. Автоматическая перезапись запрещена.'
         questions
     fi
     touch "$STATE/details.log"
@@ -464,14 +610,27 @@ main() {
         else run_step panel '1/8 · Устанавливаем FastPanel' panel; fi
     fi
     if [[ ! -f $STATE/license.done ]]; then
-        if [[ ! -f $STATE/panel-password ]]; then secret > "$STATE/panel-password"; fi
-        mogwai chpasswd -u fastuser -p "$(< "$STATE/panel-password")" >> "$STATE/details.log" 2>&1
-        say "Откройте https://$SERVER_IP:8888\nЛогин: fastuser\nПароль: $(< "$STATE/panel-password")\nАктивируйте лицензию по email. В разделе приложений установите PHP 8.3 для сайтов."
+        if [[ $PANEL_EXISTING == no ]]; then
+            if [[ ! -f $STATE/panel-password ]]; then secret > "$STATE/panel-password"; fi
+            mogwai chpasswd -u fastuser -p "$(< "$STATE/panel-password")" >> "$STATE/details.log" 2>&1
+            say "Откройте https://$SERVER_IP:8888\nЛогин: fastuser\nПароль: $(< "$STATE/panel-password")\nАктивируйте лицензию по email. В разделе приложений установите PHP 8.3 для сайтов."
+        else
+            say "Откройте https://$SERVER_IP:8888 под своей учётной записью.\nПроверьте лицензию и наличие PHP 8.3 для сайтов. Прежний пароль панели сохраняется."
+        fi
         pause 'После активации панели и установки PHP вернитесь сюда'
         checkpoint license
     fi
+    if [[ ! -f $STATE/target.done ]]; then
+        if [[ -f $STATE/site.done ]]; then
+            # Состояние старой версии: не спрашиваем новый путь уже созданной установки.
+            SITE_GROUP=$(id -gn "$OWNER")
+            save_answers
+            checkpoint target
+        else target_questions; fi
+    fi
+    repair_panel_apt >> "$STATE/details.log" 2>&1
     run_step packages '2/8 · Устанавливаем PHP и Redis' packages
-    run_step site '3/8 · Создаём сайт' site
+    run_step site '3/8 · Подготавливаем сайт и каталог' site
     run_step node '4/8 · Устанавливаем Node.js 24 LTS' node_runtime
     run_step app '5/8 · Скачиваем и собираем MyDoMo' application
     run_step db '6/8 · Создаём базу данных' database

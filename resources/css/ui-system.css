@@ -98,6 +98,11 @@ body.md-admin-shell {
   --md-ui-control-md: 36px;
   --md-ui-control-lg: 44px;
   --md-ui-row-height: 48px;
+  --md-ui-modal-sm: 300px;
+  --md-ui-modal-md: 500px;
+  --md-ui-modal-lg: 800px;
+  --md-ui-modal-xl: 1140px;
+  --md-ui-confirm-height: 240px;
 
   /* typography */
   --md-ui-font: "Rubik", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -3856,7 +3861,24 @@ body.md-admin-shell .md-toast__close:hover {
   color: var(--md-ui-text);
 }
 
+/* 2026-10-29 — размеры диалогов не зависят от длины сообщения. */
+body.md-admin-shell .md-modal {
+  --md-modal-width: var(--md-ui-modal-md);
+  --bs-modal-margin: 12px;
+}
+
+body.md-admin-shell .md-modal--sm { --md-modal-width: var(--md-ui-modal-sm); }
+body.md-admin-shell .md-modal--lg { --md-modal-width: var(--md-ui-modal-lg); }
+body.md-admin-shell .md-modal--xl { --md-modal-width: var(--md-ui-modal-xl); }
+
+body.md-admin-shell .md-modal .modal-dialog {
+  width: min(var(--md-modal-width), calc(100% - 24px));
+  max-width: none;
+  margin: var(--bs-modal-margin) auto;
+}
+
 body.md-admin-shell .md-modal .modal-content {
+  min-width: 0;
   color: var(--md-ui-text);
   background: var(--md-ui-surface);
   border: 1px solid var(--md-ui-border);
@@ -3865,11 +3887,15 @@ body.md-admin-shell .md-modal .modal-content {
 }
 
 body.md-admin-shell .md-modal .modal-header {
+  gap: 12px;
   padding: 15px 18px 12px;
   border-bottom: 1px solid var(--md-ui-border);
 }
 
 body.md-admin-shell .md-modal .modal-title {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
   color: var(--md-ui-text);
   font-size: var(--md-ui-fs-md);
   font-weight: 600;
@@ -3879,6 +3905,7 @@ body.md-admin-shell .md-modal .modal-body {
   padding: 16px 18px;
   color: var(--md-ui-text-soft);
   font-size: var(--md-ui-fs-sm);
+  overflow-wrap: anywhere;
 }
 
 body.md-admin-shell .md-modal .modal-footer {
@@ -3887,7 +3914,32 @@ body.md-admin-shell .md-modal .modal-footer {
 }
 
 body.md-admin-shell .md-modal .btn-close {
+  flex: 0 0 auto;
+  margin: 0 0 0 auto;
   opacity: .55;
+}
+
+body.md-admin-shell .md-modal--confirm .modal-content {
+  height: min(var(--md-ui-confirm-height), calc(100dvh - 24px));
+}
+
+body.md-admin-shell .md-modal--confirm .modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+@media (max-width: 575.98px) {
+  body.md-admin-shell .md-modal .btn-close {
+    box-sizing: border-box;
+    width: var(--md-ui-control-lg);
+    height: var(--md-ui-control-lg);
+  }
+
+  body.md-admin-shell .md-modal .modal-footer .md-btn {
+    min-height: var(--md-ui-control-lg);
+  }
 }
 
 [data-bs-theme="dark"] body.md-admin-shell .md-modal .btn-close {

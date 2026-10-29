@@ -3,12 +3,14 @@
     'title' => '',
     'footer' => null,
     'actions' => null,
-    'size' => null,
+    'size' => 'md',
 ])
 
 @if ($id !== null)
     @php
-        $size = in_array($size, ['sm', 'lg', 'xl'], true) ? ' modal-' . $size : '';
+        // Ширина задаётся вариантом компонента и не зависит от содержимого.
+        $size = in_array($size, ['sm', 'md', 'lg', 'xl'], true) ? $size : 'md';
+        $dialogSize = $size === 'md' ? '' : ' modal-' . $size;
     @endphp
 
     <div x-data="mdDialog(@js($id))">
@@ -18,7 +20,7 @@
              @click="$store.mdModal.close()"
              aria-hidden="true"></div>
 
-        <div {{ $attributes->class(['modal', 'fade', 'md-modal']) }}
+        <div {{ $attributes->class(['modal', 'fade', 'md-modal', 'md-modal--' . $size]) }}
              id="{{ $id }}"
              x-ref="dialog"
              tabindex="-1"
@@ -32,10 +34,10 @@
              @keydown.escape.window="$store.mdModal.close()"
              @keydown.tab="trap($event)"
              @click.self="$store.mdModal.close()">
-            <div class="modal-dialog modal-dialog-centered{{ $size }}">
+            <div class="modal-dialog modal-dialog-centered{{ $dialogSize }}">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2 class="modal-title fs-5" id="{{ $id }}-title">{{ $title }}</h2>
+                        <h2 class="modal-title" id="{{ $id }}-title">{{ $title }}</h2>
                         <button type="button" class="btn-close" @click="$store.mdModal.close()" aria-label="Закрыть"></button>
                     </div>
                     <div class="modal-body">{{ $slot }}</div>

@@ -292,6 +292,28 @@
     <x-md.card title="Модальное окно и боковая панель"><div class="md-ui-actions" x-data><x-md.button @click="$store.mdModal.show('kit-dialog')">Открыть диалог</x-md.button><x-md.button variant="secondary" @click="$store.mdDrawer.show('kit-drawer')">Открыть панель</x-md.button></div></x-md.card>
     <x-md.card title="История и цепочка событий"><div class="md-ui-actions"><x-md.history-drawer id="kit-history" title="История датчика"><x-md.chart-card title="Температура" unit="°C" :points="[['t' => 1735689600000, 'v' => 21], ['t' => 1735711200000, 'v' => 22]]" /></x-md.history-drawer><x-md.trace-drawer id="kit-trace" :nodes="[['type' => 'property', 'name' => 'Motion.value', 'status' => 'Изменено', 'children' => [['type' => 'method', 'name' => 'Motion.onChange', 'status' => 'Выполнено']]]]" /></div></x-md.card>
     <x-md.modal id="kit-dialog" title="Новое устройство"><x-md.input label="Название" name="kit_modal_name" hint="Введите название устройства" /></x-md.modal>
+    <x-md.card title="Размеры модальных окон" subtitle="Ширина фиксирована вариантом; на узком экране остаются отступы по краям.">
+        <div class="md-ui-actions" x-data>
+            @foreach (['sm' => 'SM · 300 px', 'md' => 'MD · 500 px', 'lg' => 'LG · 800 px', 'xl' => 'XL · 1140 px'] as $modalSize => $modalCaption)
+                <x-md.button variant="secondary" @click="$store.mdModal.show('kit-size-{{ $modalSize }}')">{{ $modalCaption }}</x-md.button>
+                <x-md.modal :id="'kit-size-' . $modalSize" :size="$modalSize" :title="'Размер ' . strtoupper($modalSize)">
+                    <p class="mb-0">Содержимое переносится внутри выбранной ширины окна.</p>
+                    <x-slot:actions><x-md.button @click="$store.mdModal.close()">Закрыть</x-md.button></x-slot:actions>
+                </x-md.modal>
+            @endforeach
+        </div>
+        <div class="md-ui-actions mt-3" x-data="{longMessage: false}">
+            <x-md.button variant="secondary" @click="longMessage = false; $store.mdModal.show('kit-confirm-size')">Короткое подтверждение</x-md.button>
+            <x-md.button variant="secondary" @click="longMessage = true; $store.mdModal.show('kit-confirm-size')">Длинное подтверждение</x-md.button>
+            <x-md.modal id="kit-confirm-size" title="Подтвердите действие" size="md" class="md-modal--confirm">
+                <p class="mb-0" x-text="longMessage ? @js(str_repeat('Удаление затронет выбранный объект, его свойства и историю значений. ', 12)) : 'Удалить выбранную запись?'"></p>
+                <x-slot:actions>
+                    <x-md.button variant="secondary" @click="$store.mdModal.close()">Отмена</x-md.button>
+                    <x-md.button variant="danger" @click="$store.mdModal.close()">Подтвердить</x-md.button>
+                </x-slot:actions>
+            </x-md.modal>
+        </div>
+    </x-md.card>
     <x-md.drawer id="kit-drawer" title="Устройство" subtitle="Пример боковой панели"><p>Здесь могут находиться подробности и действия устройства.</p></x-md.drawer>
     </section>
     <section id="blocks" class="md-kit-section"><x-md.section-heading eyebrow="09 · Блоки" title="Лента, подсказки и код" />

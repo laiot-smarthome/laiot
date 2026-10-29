@@ -249,7 +249,7 @@
     </div>
 </aside>
 
-<x-md.modal id="mdConfirmDialog" title="Подтвердите действие" size="sm">
+<x-md.modal id="mdConfirmDialog" title="Подтвердите действие" size="md" class="md-modal--confirm">
     <p class="mb-0" x-text="$store.mdConfirm.message"></p>
     <x-slot:actions>
         <button type="button" class="md-btn md-btn--secondary" @click="$store.mdConfirm.cancel()">Отмена</button>
