@@ -5,8 +5,9 @@
   "description": "MajorDoMo admin panel asset build",
   "type": "module",
   "scripts": {
-    "build": "vite build --config vite.mydomo.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && node tools/check-admin-assets.mjs",
-    "build:mydomo": "vite build --config vite.mydomo.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && node tools/check-admin-assets.mjs",
+    "test:ui": "node --test tests/Frontend/*.test.mjs",
+    "build": "vite build --config vite.mydomo.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && vite build --config vite.exceptions.config.js && node tools/check-admin-assets.mjs",
+    "build:mydomo": "vite build --config vite.mydomo.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && vite build --config vite.exceptions.config.js && node tools/check-admin-assets.mjs",
     "build:codeeditor": "vite build --config vite.codeeditor.config.js",
     "build:charts": "vite build --config vite.charts.config.js",
     "watch": "vite build --config vite.mydomo.config.js --watch",

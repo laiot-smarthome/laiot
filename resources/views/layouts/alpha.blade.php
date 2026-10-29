@@ -20,7 +20,7 @@
     <script>
         (function () {
             var match = document.cookie.match(/(?:^|;\s*)theme=([^;]+)/);
-            var theme = match ? decodeURIComponent(match[1]) : 'light';
+            var theme = match ? match[1] : 'light';
             document.documentElement.setAttribute('data-bs-theme', theme === 'dark' ? 'dark' : 'light');
         })();
     </script>
@@ -35,6 +35,9 @@
                     <i class="ti ti-list md-sidebar-toggle-glyph md-sidebar-toggle-glyph--open" aria-hidden="true"></i>
                     <i class="ti ti-layout-sidebar-left-collapse md-sidebar-toggle-glyph md-sidebar-toggle-glyph--collapse" aria-hidden="true"></i>
                     <i class="ti ti-layout-sidebar-left-expand md-sidebar-toggle-glyph md-sidebar-toggle-glyph--expand" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="md-topbar-action md-admin-topbar__mobile-search" data-md-search-open aria-label="Поиск по панели" aria-controls="mdmGlobalSearchDrawer">
+                    <i class="ti ti-search" aria-hidden="true"></i>
                 </button>
                 <div class="md-admin-topbar__search" data-md-header-search>
                     <i class="ti ti-search md-admin-topbar__search-icon" aria-hidden="true"></i>
@@ -202,7 +205,7 @@
 </div>
 
 <aside class="md-admin-drawer md-drawer" id="mdAdminDrawerHost" aria-labelledby="mdAdminDrawerTitle"
-       aria-hidden="true" tabindex="-1" hidden>
+       role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1" hidden>
     <div class="md-admin-drawer__header md-drawer__header">
         <div>
             <div class="md-admin-drawer__eyebrow md-drawer__eyebrow" id="mdAdminDrawerEyebrow" hidden></div>
@@ -223,7 +226,7 @@
 </aside>
 
 <div class="md-admin-search-backdrop" data-md-search-close></div>
-<aside class="md-admin-search-drawer" id="mdmGlobalSearchDrawer" aria-labelledby="mdmGlobalSearchTitle" aria-hidden="true">
+<aside class="md-admin-search-drawer" id="mdmGlobalSearchDrawer" aria-labelledby="mdmGlobalSearchTitle" role="dialog" aria-modal="true" tabindex="-1" aria-hidden="true" inert>
     <div class="md-admin-search-drawer__header">
         <div>
             <div class="md-admin-search-drawer__eyebrow">Панель управления</div>
@@ -235,6 +238,7 @@
         <div class="md-admin-search-field">
             <span class="md-admin-search-field__icon" aria-hidden="true"><i class="ti ti-search"></i></span>
             <input type="text" class="form-control" name="filter_modules" id="filter_modules"
+                   aria-label="Поиск по панели"
                    placeholder="Объект, класс, свойство, метод, скрипт" autocomplete="off">
             <button type="button" class="md-admin-search-field__clear" id="btnFilterCloseSearch"
                     data-md-search-clear aria-label="Очистить">×</button>

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Tests\Feature;
 
+use Illuminate\Database\QueryException;
+use InvalidArgumentException;
 use MajorDoMo\Classes\ClassRepository;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Events\PropertyEventContext;
@@ -20,6 +22,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Целостность записи значений независимо от HTTP и модульного SDK.
  *
+ * 2026-10-29 — ошибка в середине пакета отменяет значения и задания событий.
  * 2026-10-27 — проверяются наследование класса и объектное свойство:
  * значение пишется только в свойство, которое реально действует у объекта.
  */
@@ -30,6 +33,42 @@ final class PropertyValueIntegrityTest extends TestCase
     private ValueRepository $values;
     private PropertyRepository $properties;
     private ClassRepository $classes;
+
+    public function testInvalidPropertyRollsBackWholeBatchAndItsEvents(): void
+    {
+        $queue = new DatabaseQueue($this->database);
+        $queue->stats('events');
+        $this->service->setValue(1, 1, 'original');
+        $before = $queue->stats('events');
+        $steps = $this->database->connection()->table('property_executions')->count();
+        try {
+            $this->service->setValues(1, [1 => 'changed', 2 => 'foreign']);
+            self::fail('Пакет с чужим свойством не должен сохраняться.');
+        } catch (InvalidArgumentException) {
+            self::assertSame('original', $this->values->get(1, 1));
+            self::assertSame($before, $queue->stats('events'));
+            self::assertSame($steps, $this->database->connection()->table('property_executions')->count());
+        }
+    }
+
+    public function testQueueFailureRollsBackAllValuesAndExecutionSteps(): void
+    {
+        $queue = new DatabaseQueue($this->database);
+        $queue->stats('events');
+        $extraId = $this->properties->create(1, 'offset', '', 'string', false, '');
+        $connection = $this->database->connection();
+        // SQLite-триггер воспроизводит отказ именно второго задания пакета.
+        $connection->unprepared("CREATE TRIGGER reject_second_job BEFORE INSERT ON queue_jobs WHEN (SELECT COUNT(*) FROM queue_jobs) > 0 BEGIN SELECT RAISE(ABORT, 'queue unavailable'); END");
+        try {
+            $this->service->setValues(1, [1 => '23.5', $extraId => 'offset']);
+            self::fail('Ошибка очереди должна прервать сохранение пакета.');
+        } catch (QueryException $error) {
+            self::assertStringContainsString('queue unavailable', $error->getMessage());
+            foreach (['property_values', 'property_executions', 'queue_jobs'] as $table) {
+                self::assertSame(0, $connection->table($table)->count());
+            }
+        }
+    }
 
     protected function setUp(): void
     {

@@ -16,9 +16,9 @@ use MajorDoMo\Locations\LocationKind;
 use MajorDoMo\Locations\LocationRepository;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Objects\ObjectRepository;
+use MajorDoMo\Panel\RenameNotice;
 use MajorDoMo\Properties\PropertyRepository;
 use MajorDoMo\Properties\PropertySubscriptionRepository;
-use MajorDoMo\Rename\NameReferenceUpdater;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -29,6 +29,7 @@ use Symfony\Component\HttpFoundation\Response;
  * объекта, а после сохранения возвращает туда же. Значения у класса не
  * редактируются — только у конкретного объекта.
  *
+ * 2026-10-29 — CRUD возвращает одноразовый Notify; формат переименования общий.
  * 2026-10-27 — страница стала контекстной формой класса/объекта.
  * 2026-10-27 — у свойства появилась роль в комнате для сбора активности.
  * 2026-10-27 — роль доступна только у свойства объекта, который расположен
@@ -43,7 +44,7 @@ final readonly class PropertiesController extends Controller
         private ObjectRepository $objects,
         private MethodRepository $methods,
         private PropertySubscriptionRepository $subscriptions,
-        private NameReferenceUpdater $references,
+        private RenameNotice $renames,
         private LocationRepository $locations,
         private SessionStore $session,
         private PanelRenderer $panel
@@ -87,7 +88,7 @@ final readonly class PropertiesController extends Controller
             return $this->form(null, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse($this->returnUrl($classId, $objectId));
+        return $this->panel->redirect($this->returnUrl($classId, $objectId), 'Свойство создано.');
     }
 
     public function edit(string $id): Response
@@ -128,9 +129,11 @@ final readonly class PropertiesController extends Controller
             return $this->form($property, $error->getMessage(), $request->request->all(), 422);
         }
 
-        $this->rememberRename((string)$property['title'], (string)$request->request->get('title', ''));
-
-        return new RedirectResponse($this->returnUrl($classId, $objectId));
+        return $this->panel->redirect($this->returnUrl($classId, $objectId), $this->renames->message(
+            (string)$property['title'],
+            (string)$request->request->get('title', ''),
+            'Свойство сохранено.'
+        ));
     }
 
     public function delete(string $id): Response
@@ -142,7 +145,10 @@ final readonly class PropertiesController extends Controller
 
         $this->properties->delete((int)$id);
 
-        return new RedirectResponse($this->returnUrl((int)$property['class_id'], (int)$property['object_id']));
+        return $this->panel->redirect(
+            $this->returnUrl((int)$property['class_id'], (int)$property['object_id']),
+            'Свойство удалено.'
+        );
     }
 
     /**
@@ -280,19 +286,4 @@ final readonly class PropertiesController extends Controller
         return '/classes';
     }
 
-    private function rememberRename(string $old, string $new): void
-    {
-        $old = trim($old);
-        $new = trim($new);
-        if ($old === '' || $old === $new) {
-            return;
-        }
-        $message = 'Имя «' . $old . '» изменено на «' . $new . '». Обновлено ссылок: '
-            . $this->references->changes() . '.';
-        $warnings = $this->references->warnings();
-        if ($warnings !== []) {
-            $message .= ' Не удалось обновить файлов модулей: ' . count($warnings) . ' (подробности в логе).';
-        }
-        $this->session->set('panel.notice', $message);
-    }
 }

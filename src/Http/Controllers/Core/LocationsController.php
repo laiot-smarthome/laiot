@@ -17,6 +17,7 @@ use MajorDoMo\Locations\LocationRepository;
 use MajorDoMo\Locations\RoomActivityService;
 use MajorDoMo\Locations\RoomProvisioner;
 use MajorDoMo\Objects\ObjectRepository;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -24,6 +25,8 @@ use Throwable;
 /**
  * Локации: дом, этаж, комната и их активность.
  *
+ * 2026-10-29 — сбои состояния не маскируются пустым списком; ошибка таймера
+ * попадает в журнал и Notify, результат CRUD подтверждается уведомлением.
  * 2026-10-27 — добавлены иерархия, тип локации, таймаут активности и
  * автоматически созданная модель комнаты. Карточка комнаты показывает
  * объект, класс, состояние и свойства с ролью.
@@ -41,6 +44,7 @@ final readonly class LocationsController extends Controller
         private ObjectRepository $objects,
         private ClassRepository $classes,
         private RoomActivityService $activity,
+        private LoggerInterface $logger,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -52,7 +56,7 @@ final readonly class LocationsController extends Controller
 
         $content = $this->view->make('pages.locations.index', [
             'locations' => $this->locations->flattened($search),
-            'objectCounts' => $this->safeCounts(),
+            'objectCounts' => $this->locations->objectCounts(),
             'kinds' => LocationKind::labels(),
             'search' => $search,
             'error' => $this->pullError(),
@@ -81,7 +85,7 @@ final readonly class LocationsController extends Controller
             return $this->form(null, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse('/locations/' . $id . '/edit');
+        return $this->panel->redirect('/locations/' . $id . '/edit', 'Локация создана.');
     }
 
     public function edit(string $id): Response
@@ -115,13 +119,14 @@ final readonly class LocationsController extends Controller
         if ($updated !== null && $updated['kind'] === LocationKind::ROOM) {
             try {
                 $this->activity->reschedule($updated);
-            } catch (Throwable) {
-                // Правка локации уже сохранена; сбой пересчёта таймера
-                // покажет следующее событие активности.
+            } catch (Throwable $error) {
+                $this->logger->error('Не удалось пересчитать таймер комнаты.', ['exception' => $error, 'location_id' => (int)$id]);
+
+                return $this->panel->redirect('/locations', 'Локация сохранена, но таймер активности не обновлён. Подробности в журнале.', 'warning');
             }
         }
 
-        return new RedirectResponse('/locations');
+        return $this->panel->redirect('/locations', 'Локация сохранена.');
     }
 
     public function delete(string $id): Response
@@ -130,9 +135,11 @@ final readonly class LocationsController extends Controller
             $this->locations->delete((int)$id);
         } catch (InvalidArgumentException $error) {
             $this->session->set(self::FLASH_ERROR, $error->getMessage());
+
+            return new RedirectResponse('/locations');
         }
 
-        return new RedirectResponse('/locations');
+        return $this->panel->redirect('/locations', 'Локация удалена.');
     }
 
     /**
@@ -149,9 +156,9 @@ final readonly class LocationsController extends Controller
         $roomObject = $objectId > 0 ? $this->objects->find($objectId) : null;
         $roomClass = $classId > 0 ? $this->classes->find($classId) : null;
         $roomState = $location !== null && (string)$location['kind'] === LocationKind::ROOM
-            ? $this->safeState($location) : null;
+            ? $this->activity->stateForLocation($location) : null;
         $sources = $location !== null && (string)$location['kind'] === LocationKind::ROOM
-            ? $this->safeSources($location) : [];
+            ? $this->activity->sources($location) : [];
 
         $content = $this->view->make('pages.locations.form', [
             'location' => $location,
@@ -177,48 +184,6 @@ final readonly class LocationsController extends Controller
             new PanelPage($location === null ? 'Новая локация' : 'Локация: ' . (string)$location['title'], $content, 'locations'),
             $status
         );
-    }
-
-    /**
-     * @param array{id:int,title:string,priority:int,parent_id:int,kind:string,class_id:int,object_id:int,activity_timeout:int} $location
-     * @return array{
-     *     location_id:int,title:string,object_id:int,object_title:string,
-     *     active:bool,light:bool,heating:bool,condition:bool,
-     *     timeout:int,last_activity_at:string
-     * }|null
-     */
-    private function safeState(array $location): ?array
-    {
-        try {
-            return $this->activity->stateForLocation($location);
-        } catch (Throwable) {
-            return null;
-        }
-    }
-
-    /**
-     * @param array{id:int,title:string,priority:int,parent_id:int,kind:string,class_id:int,object_id:int,activity_timeout:int} $location
-     * @return list<array{object_id:int,object_title:string,property_id:int,property_title:string,role:string,role_label:string,value:string,active:bool}>
-     */
-    private function safeSources(array $location): array
-    {
-        try {
-            return $this->activity->sources($location);
-        } catch (Throwable) {
-            return [];
-        }
-    }
-
-    /**
-     * @return array<int,int>
-     */
-    private function safeCounts(): array
-    {
-        try {
-            return $this->locations->objectCounts();
-        } catch (Throwable) {
-            return [];
-        }
     }
 
     private function pullError(): ?string

@@ -19,6 +19,7 @@
 @endphp
 
 <div class="md-errors-detail-screen"
+     yoyo:include=".md-errors-filters"
      x-data="{
          copied: false,
          async copy() {
@@ -37,6 +38,10 @@
              setTimeout(() => { this.copied = false; }, 2000);
          }
      }">
+    <div class="md-errors-filters" hidden>
+        <input type="hidden" name="search" value="{{ $search }}">
+        <input type="hidden" name="level" value="{{ $level }}">
+    </div>
     <pre x-ref="diagnostic" hidden>{{ $detail['copy_text'] }}</pre>
 
     <div class="md-errors-detail__top">
@@ -53,7 +58,7 @@
                     <i class="ti ti-file-text" aria-hidden="true"></i> Исходный файл
                 </a>
             @endif
-            <form method="post" action="/errors/{{ $error['id'] }}/delete" class="md-inline-form"
+            <form method="post" action="/errors/{{ $error['id'] }}/delete" class="md-inline-form" yoyo:ignore
                   data-md-confirm="Удалить запись об ошибке?">
                 <input type="hidden" name="_token" value="{{ $csrf }}">
                 <x-md.button type="submit" variant="danger" icon="trash">Удалить</x-md.button>
@@ -160,23 +165,34 @@
     </x-md.card>
 
     @if ($repeatCount > 1)
-        <x-md.card title="Повторы" icon="repeat"
-                   subtitle="Записи с тем же уровнем и сообщением. Нажмите строку, чтобы открыть другой повтор.">
-            <div class="md-errors-occurrences">
+        <x-md.table label="Повторы" class="md-errors-table md-errors-repeats">
+            <x-slot:toolbar>
+                <strong>Повторы</strong>
+                <span class="md-table__meta">Всего: {{ $repeatCount }}</span>
+            </x-slot:toolbar>
+            <x-slot:head>
+                <th scope="col">Запись</th>
+                <th scope="col">Request ID</th>
+            </x-slot:head>
+            <x-slot:body>
                 @foreach (array_slice($occurrences, 0, 100) as $occurrence)
-                    <button type="button"
-                            class="md-errors-occurrence @if ((int)$occurrence['id'] === (int)$error['id']) is-active @endif"
-                            yoyo:get="select({{ $occurrence['id'] }})">
-                        <span class="md-errors-occurrence__time">{{ $formatTime($occurrence['created_at']) }}</span>
-                        <span class="md-errors-occurrence__id">#{{ $occurrence['id'] }}</span>
-                        <span class="md-errors-occurrence__request">{{ $occurrence['request_id'] !== '' ? $occurrence['request_id'] : '—' }}</span>
-                    </button>
+                    <tr @class(['is-selected' => (int)$occurrence['id'] === (int)$error['id']])>
+                        <td>
+                            <button type="button" class="md-errors-table__open"
+                                    @if ((int)$occurrence['id'] === (int)$error['id']) aria-current="true" @endif
+                                    yoyo:get="select({{ $occurrence['id'] }})">
+                                #{{ $occurrence['id'] }} · {{ $formatTime($occurrence['created_at']) }}
+                            </button>
+                        </td>
+                        <td><span class="md-errors-table__reference">{{ $occurrence['request_id'] !== '' ? $occurrence['request_id'] : '—' }}</span></td>
+                    </tr>
                 @endforeach
-            </div>
-            @if (count($occurrences) < $repeatCount)
-                <p class="md-errors-muted">Показаны последние {{ count($occurrences) }} из {{ $repeatCount }} повторов.</p>
-            @endif
-        </x-md.card>
+            </x-slot:body>
+            <x-slot:footer>
+                <span>Нажмите запись, чтобы открыть другой повтор.</span>
+                <span>Показаны последние {{ min(100, count($occurrences)) }} из {{ $repeatCount }} повторов.</span>
+            </x-slot:footer>
+        </x-md.table>
     @endif
 
     @if (($parsed['raw'] ?? '') !== '' || $file !== null)

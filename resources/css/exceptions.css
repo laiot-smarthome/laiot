@@ -1,0 +1,71 @@
+/* 2026-10-29 — автономная диагностика исключений в токенах панели.
+   Нативные details оставляют стек доступным без JavaScript и Alpine. */
+body.md-admin-shell.md-exception { margin: 0; background: var(--md-ui-bg); color: var(--md-ui-text); }
+.md-exception__main { width: min(1200px, 100%); margin: 0 auto; padding: 28px 24px 64px; }
+.md-exception__toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.md-exception__brand { --md-logo-width: 150px; text-decoration: none; }
+.md-exception__toolbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.md-exception__badge { padding: 6px 12px; border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-pill); background: var(--md-ui-danger-soft); color: var(--md-ui-danger); font-size: 13px; font-weight: 600; }
+.md-exception__card { min-width: 0; overflow: hidden; border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-lg); background: var(--md-ui-surface); }
+.md-exception__summary { padding: 28px; border-top: 3px solid var(--md-ui-danger); }
+.md-exception__type { margin: 0 0 12px; color: var(--md-ui-danger); font-family: monospace; font-size: 14px; overflow-wrap: anywhere; }
+.md-exception__summary h1 { margin: 0 0 18px; font-size: clamp(22px, 3vw, 30px); font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.md-exception__location { margin: 0 0 20px; color: var(--md-ui-muted); font-family: monospace; font-size: 13px; overflow-wrap: anywhere; }
+.md-exception__location strong { color: var(--md-ui-danger); }
+.md-exception__source { overflow-x: auto; border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-sm); background: var(--md-ui-surface-2); }
+.md-exception__source pre { min-width: 100%; width: max-content; margin: 0; padding: 12px 0; color: var(--md-ui-text); font-size: 13px; line-height: 1.8; tab-size: 4; }
+.md-exception__line { display: flex; min-height: 24px; padding-inline-end: 20px; }
+.md-exception__line code { color: inherit; font-size: inherit; white-space: pre; }
+.md-exception__line-number { display: inline-block; flex: 0 0 58px; padding-inline-end: 18px; color: var(--md-ui-muted); text-align: right; user-select: none; }
+.md-exception__line.is-error { background: var(--md-ui-danger-soft); box-shadow: inset 3px 0 var(--md-ui-danger); }
+.md-exception__line.is-error .md-exception__line-number { color: var(--md-ui-danger); font-weight: 700; }
+.md-exception__layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; gap: 24px; margin-top: 24px; }
+.md-exception__section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 22px 24px 0; }
+.md-exception__card h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.md-exception__section-heading > span, .md-exception__hint { color: var(--md-ui-muted); font-size: 13px; }
+.md-exception__hint { margin: 8px 24px 20px; }
+.md-exception__frame { border-top: 1px solid var(--md-ui-border); }
+.md-exception__frame summary { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 16px 24px; cursor: pointer; list-style: none; }
+.md-exception__frame summary::-webkit-details-marker, .md-exception__cause > summary::-webkit-details-marker { display: none; }
+.md-exception__frame summary::after, .md-exception__cause > summary::after { content: '+'; margin-inline-start: auto; color: var(--md-ui-muted); font-size: 20px; }
+.md-exception__frame[open] > summary::after, .md-exception__cause[open] > summary::after { content: '−'; }
+.md-exception__frame summary:hover { background: var(--md-ui-surface-2); }
+.md-exception__frame-index { display: grid; flex: 0 0 28px; place-items: center; height: 28px; border-radius: var(--md-ui-radius-xs); background: var(--md-ui-primary-soft); color: var(--md-ui-primary); font-size: 12px; }
+.md-exception__frame-info { display: grid; gap: 5px; min-width: 0; font-family: monospace; }
+.md-exception__frame-info strong { color: var(--md-ui-text); font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+.md-exception__frame-info > span { color: var(--md-ui-muted); font-size: 12px; overflow-wrap: anywhere; }
+.md-exception__vendor-label { color: var(--md-ui-muted); font-size: 12px; }
+.md-exception__frame--vendor .md-exception__frame-index { background: var(--md-ui-surface-3); color: var(--md-ui-muted); }
+.md-exception__frame > .md-exception__source { margin: 0 20px 20px; }
+.md-exception__unavailable { margin: 16px 24px; color: var(--md-ui-muted); font-size: 13px; }
+.md-exception__sidebar { display: grid; gap: 20px; }
+.md-exception__request, .md-exception__notice { padding: 24px; }
+.md-exception__request dl { margin: 22px 0 0; }
+.md-exception__request dt { margin-top: 18px; color: var(--md-ui-muted); font-size: 12px; font-weight: 400; }
+.md-exception__request dd { margin: 6px 0 0; font-size: 13px; overflow-wrap: anywhere; }
+.md-exception__request code, .md-exception__notice code { color: var(--md-ui-text); }
+.md-exception__notice p { margin: 14px 0 20px; color: var(--md-ui-muted); font-size: 13px; line-height: 1.7; }
+.md-exception__causes { margin-top: 24px; padding-top: 24px; }
+.md-exception__causes > h2 { padding: 0 24px 20px; }
+.md-exception__cause { border-top: 1px solid var(--md-ui-border); }
+.md-exception__cause > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 64px; padding: 20px 24px; cursor: pointer; list-style: none; overflow-wrap: anywhere; }
+.md-exception__cause > summary strong { color: var(--md-ui-danger); font-size: 13px; }
+.md-exception__cause > summary span { font-size: 14px; }
+.md-exception__report { margin-top: 24px; }
+.md-exception__report summary { padding: 20px 24px; cursor: pointer; font-weight: 500; }
+.md-exception__report textarea { display: block; width: calc(100% - 48px); margin: 0 24px 24px; padding: 16px; border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-sm); background: var(--md-ui-surface-2); color: var(--md-ui-text); font-family: monospace; font-size: 13px; line-height: 1.7; resize: vertical; }
+.md-exception__copy-buffer { position: fixed; inset-inline-start: -10000px; inset-block-start: 0; }
+.md-exception :is(summary, a, [tabindex]):focus-visible { outline: 3px solid var(--md-ui-primary); outline-offset: 3px; }
+@media (max-width: 800px) {
+    .md-exception__main { padding: 20px 14px 40px; }
+    .md-exception__summary { padding: 20px 16px; }
+    .md-exception__layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+    .md-exception__sidebar { grid-row: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .md-exception__request, .md-exception__notice { padding: 18px; }
+    .md-exception__frame summary { padding: 14px 16px; }
+    .md-exception__vendor-label { display: none; }
+}
+@media (max-width: 480px) {
+    .md-exception__sidebar { grid-template-columns: minmax(0, 1fr); }
+    .md-exception__toolbar-actions { gap: 12px; }
+}

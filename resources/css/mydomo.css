@@ -15,6 +15,7 @@
 @import 'classes.css';
 @import 'knowledge-base.css';
 @import 'events.css';
+@import 'exceptions.css';
 
 /* Маскот дополняет текст состояния, поэтому изображение декоративное. */
 .md-mascot { display: block; width: 120px; max-width: 100%; height: auto; object-fit: contain; }
@@ -49,11 +50,7 @@ body.md-admin-shell .md-loading-field .md-input { padding-inline-end: 42px; }
 .md-mascot-gallery__item figcaption { text-align: center; color: var(--md-ui-text); }
 .md-mascot-gallery__item code { display: block; margin-top: 4px; color: var(--md-ui-muted); font-size: var(--md-ui-fs-xs); }
 .md-mascot-gallery__item small { display: block; margin-top: 8px; color: var(--md-ui-muted); }
-.md-dash__heading .md-dash__mascot { float: inline-end; width: 88px; margin-inline-start: 20px; }
 .md-drawer__header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-@media (max-width: 575px) {
-    .md-dash__heading .md-dash__mascot { width: 64px; margin-inline-start: 12px; }
-}
 
 /* Панели перекрывают страницу от правого края; display не прерывает выезд. */
 body.md-admin-shell :is(.md-admin-drawer, .md-admin-search-drawer) {
@@ -91,6 +88,9 @@ body.md-admin-shell { --md-shell-nav-text: #f8fafc; --md-shell-nav-accent: #8b7b
 /* main принимает фокус skip-ссылки и восстановления страницы, но не является контролом. */
 body.md-admin-shell .md-admin-main:focus { outline: none; }
 .md-shell-skip:focus { transform: translateY(0); }
+/* 2026-10-29 — фон диалога не прокручивается вместе с его содержимым. */
+body.md-admin-shell:is(.md-admin-drawer-open, .md-admin-search-open, .md-admin-sidebar-open),
+body.md-admin-shell:has(.md-modal.show, .md-admin-drawer.is-open) { overflow: hidden; }
 body.md-admin-shell .md-admin-topbar { border-radius: var(--md-ui-radius-md); background: var(--md-ui-surface); box-shadow: var(--md-ui-shadow); }
 @supports (backdrop-filter: blur(14px)) and (background: color-mix(in srgb, white 85%, transparent)) {
     body.md-admin-shell .md-admin-topbar { background: color-mix(in srgb, var(--md-ui-surface) 90%, transparent); backdrop-filter: blur(14px); }
@@ -104,6 +104,18 @@ body.md-admin-shell .md-admin-sidebar__link { line-height: 1.4; }
 body.md-admin-shell .md-admin-sidebar__link:focus-visible, body.md-admin-shell .md-admin-sidebar__brand:focus-visible { outline: 2px solid var(--md-shell-nav-accent); outline-offset: 2px; }
 body.md-admin-shell .md-admin-contextbar { margin-bottom: 16px; }
 body.md-admin-shell .md-admin-main { min-width: 0; padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
+body.md-admin-shell .md-admin-topbar__mobile-search { display: none; }
+@media (max-width: 575.98px) {
+    body.md-admin-shell .md-admin-topbar__search { display: none; }
+    body.md-admin-shell .md-admin-topbar__mobile-search { display: inline-flex; }
+    body.md-admin-shell .md-topbar-action { min-width: 44px; min-height: 44px; }
+    body.md-admin-shell .md-admin-topbar__left { flex: 0 0 auto; }
+    body.md-admin-shell .md-admin-topbar__actions { margin-left: auto; }
+}
+@media (max-width: 359.98px) {
+    /* Выход остаётся в боковом меню; дубль в шапке не должен вылезать за экран. */
+    body.md-admin-shell .md-admin-topbar__actions > form { display: none; }
+}
 @media (prefers-reduced-motion: reduce) { body.md-admin-shell .md-admin-sidebar, body.md-admin-shell .md-admin-sidebar-backdrop { transition: none; } }
 
 /* Общие плавающие элементы используют те же токены, что и остальные контролы. */
@@ -298,6 +310,9 @@ body.md-admin-shell .md-data-table__grid.tabulator .tabulator-footer { padding: 
 .md-object-tree details[open] > summary > .md-object-tree__chevron { transform: rotate(90deg); }
 .md-object-tree__leaf { padding-left: 32px; }
 .md-kit-dropdown, .md-kit-tooltip { position: relative; display: inline-block; }
+/* Верхний слой сохраняет меню целиком даже внутри прокручиваемой таблицы. */
+.md-kit-dropdown__panel[popover] { position: fixed; inset: auto; margin: 0; max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); overflow-y: auto; }
+.md-kit-dropdown__panel[popover]:not(:popover-open) { display: none; }
 .md-kit-dropdown__panel {
     position: absolute;
     z-index: 1100;
@@ -941,7 +956,7 @@ body.md-admin-shell .ts-dropdown .no-results { padding: 10px; color: var(--md-ui
 
 /* ---------------------------------------------------------------------------
  * Ошибки: отдельный экран списка и отдельный экран разбора.
- * Список — строки на всю ширину; детали — карточки с воздухом между блоками.
+ * 2026-10-29 — списки и повторы используют общий компонент x-md.table.
  * ------------------------------------------------------------------------- */
 
 .md-errors-list-screen,
@@ -951,144 +966,92 @@ body.md-admin-shell .ts-dropdown .no-results { padding: 10px; color: var(--md-ui
     gap: 18px;
 }
 
-.md-errors-toolbar {
+/* Каркас, строки и цвета — общий md-table; здесь только ширины содержимого. */
+body.md-admin-shell .md-errors-table .md-table {
+    table-layout: fixed;
+}
+
+.md-errors-table .md-ui-search {
+    flex: 1 1 560px;
+}
+
+body.md-admin-shell .md-errors-table .md-table__meta {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
-    border: 1px solid var(--md-ui-border);
-    border-radius: 16px;
-    background: var(--md-ui-surface);
-}
-
-.md-errors-toolbar .md-ui-search {
-    flex: 1 1 520px;
-}
-
-.md-errors-toolbar .md-table__meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
     gap: 8px;
+    white-space: normal;
 }
 
-.md-errors-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--md-ui-primary);
-    font: inherit;
-    font-size: .78rem;
-    cursor: pointer;
+.md-errors-table__level {
+    width: 105px;
 }
 
-.md-errors-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    max-height: 70vh;
-    padding: 0;
-    overflow: auto;
+.md-errors-table__count {
+    width: 106px;
+    font-variant-numeric: tabular-nums;
 }
 
-.md-errors-row {
-    display: flex;
-    align-items: stretch;
-    gap: 8px;
-    padding-right: 14px;
-    border-bottom: 1px solid var(--md-ui-border);
+.md-errors-table__time {
+    width: 175px;
+    font-variant-numeric: tabular-nums;
 }
 
-.md-errors-row:last-child {
-    border-bottom: 0;
+.md-errors-table__actions {
+    width: 92px;
 }
 
-.md-errors-item {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-    padding: 14px 16px;
+.md-errors-table__open {
+    display: block;
+    width: 100%;
+    padding: 4px 0;
     border: 0;
     background: transparent;
     color: var(--md-ui-text);
     font: inherit;
+    font-weight: 500;
+    line-height: 1.5;
     text-align: start;
+    overflow-wrap: anywhere;
     cursor: pointer;
 }
 
-.md-errors-item:hover {
-    background: var(--md-ui-surface-2);
+.md-errors-table__open:hover {
+    color: var(--md-ui-primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
-.md-errors-item:focus-visible,
-.md-errors-occurrence:focus-visible,
-.md-errors-back:focus-visible {
-    outline: 2px solid var(--md-ui-primary);
-    outline-offset: -2px;
-}
-
-.md-errors-item__top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.md-errors-item__badges {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-}
-
-.md-errors-item__count {
-    color: var(--md-ui-muted);
-    font-size: .72rem;
-    font-weight: 500;
-}
-
-.md-errors-item__time {
-    color: var(--md-ui-muted);
-    font-size: .74rem;
-    white-space: nowrap;
-}
-
-.md-errors-item__message {
+.md-errors-table__message .md-errors-table__open {
     display: -webkit-box;
     overflow: hidden;
-    color: var(--md-ui-text);
-    font-size: .9rem;
-    font-weight: 600;
-    line-height: 1.4;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
 }
 
-.md-errors-item__meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    min-height: 1.2rem;
+.md-errors-table__open:focus-visible {
+    outline: 2px solid var(--md-ui-primary);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+.md-errors-table__reference,
+.md-errors-table__first {
+    display: block;
+    margin-top: 4px;
     color: var(--md-ui-muted);
-    font-size: .75rem;
+    font-size: var(--md-ui-fs-caption);
+    overflow-wrap: anywhere;
 }
 
-.md-errors-row__actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+.md-errors-table__reference code {
+    color: inherit;
+    font-size: inherit;
 }
 
-.md-errors-list__empty {
-    padding: 14px;
+.md-errors-table__mobile-meta,
+.md-errors-table__mobile-time {
+    display: none;
 }
 
 .md-errors-detail__top {
@@ -1255,57 +1218,6 @@ body.md-admin-shell .ts-dropdown .no-results { padding: 10px; color: var(--md-ui
     max-height: 64vh;
 }
 
-.md-errors-occurrences {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-.md-errors-occurrence {
-    display: grid;
-    grid-template-columns: 10.5rem 4.5rem minmax(0, 1fr);
-    gap: 10px;
-    align-items: center;
-    padding: 9px 12px;
-    border: 0;
-    border-bottom: 1px solid var(--md-ui-border);
-    background: transparent;
-    color: var(--md-ui-text);
-    font: inherit;
-    text-align: start;
-    cursor: pointer;
-}
-
-.md-errors-occurrence:last-child {
-    border-bottom: 0;
-}
-
-.md-errors-occurrence:hover {
-    background: var(--md-ui-surface-2);
-}
-
-.md-errors-occurrence.is-active {
-    background: var(--md-ui-selected);
-    box-shadow: inset 3px 0 var(--md-ui-primary);
-}
-
-.md-errors-occurrence__time {
-    color: var(--md-ui-muted);
-    font-size: .78rem;
-}
-
-.md-errors-occurrence__id {
-    color: var(--md-ui-primary);
-    font-size: .78rem;
-    font-weight: 600;
-}
-
-.md-errors-occurrence__request {
-    color: var(--md-ui-muted);
-    font-size: .78rem;
-    overflow-wrap: anywhere;
-}
-
 .md-errors-raw {
     padding-top: 0;
     border-top: 0;
@@ -1338,25 +1250,55 @@ body.md-admin-shell .ts-dropdown .no-results { padding: 10px; color: var(--md-ui
 }
 
 @media (max-width: 767.98px) {
-    .md-errors-row {
+    body.md-admin-shell .md-errors-table .md-errors-table__level,
+    body.md-admin-shell .md-errors-table .md-errors-table__count {
+        display: none;
+    }
+
+    .md-errors-table__mobile-meta {
+        display: flex;
+        align-items: center;
         flex-wrap: wrap;
-        padding: 0 8px 0 0;
+        gap: 8px;
+        margin-bottom: 4px;
+        color: var(--md-ui-muted);
+        font-size: var(--md-ui-fs-caption);
     }
 
-    .md-errors-row__actions {
-        padding-bottom: 8px;
+    .md-errors-table__open {
+        min-height: 44px;
     }
 
-    .md-errors-occurrence {
-        grid-template-columns: 1fr auto;
+    .md-errors-table .md-table__actions {
+        flex-direction: column;
     }
 
-    .md-errors-occurrence__request {
-        grid-column: 1 / -1;
+    .md-errors-table .md-icon-btn {
+        min-width: 44px;
+        min-height: 44px;
     }
+
+    .md-errors-table__actions {
+        width: 68px;
+    }
+
+    .md-errors-table .md-ui-search > input {
+        flex-basis: 100%;
+        width: 100%;
+    }
+
 }
 
 @media (max-width: 575.98px) {
+    body.md-admin-shell .md-errors-table .md-errors-table__time {
+        display: none;
+    }
+
+    .md-errors-table__mobile-time {
+        display: block;
+        margin-top: 4px;
+    }
+
     .md-errors-meta,
     .md-errors-summary {
         grid-template-columns: 1fr;

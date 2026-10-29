@@ -26,6 +26,7 @@ use Symfony\Component\HttpFoundation\Response;
  * на странице списка: отдельной страницы и форм на главной больше нет.
  *
  * Изменения:
+ * 2026-10-29 — создание, сохранение и удаление подтверждаются через Notify.
  * 2026-10-28 — результаты операций передаются Notify без текста в URL.
  * 2026-10-27 — кнопка «Выполнить» и выбор окружения с ядром/без ядра;
  *              синхронный запуск отпускает блокировку сессии.
@@ -193,7 +194,7 @@ final readonly class ScriptsController extends Controller
             return $this->form(null, $this->errorText($error), $request->request->all(), 422, $this->codeError($error));
         }
 
-        return new RedirectResponse('/scripts/' . $id . '/edit');
+        return $this->panel->redirect('/scripts/' . $id . '/edit', 'Сценарий создан.');
     }
 
     /**
@@ -258,14 +259,14 @@ final readonly class ScriptsController extends Controller
             return $this->form($script, $this->errorText($error), $request->request->all(), 422, $this->codeError($error));
         }
 
-        return new RedirectResponse('/scripts');
+        return $this->panel->redirect('/scripts', 'Сценарий сохранён.');
     }
 
     public function delete(string $id): Response
     {
         $this->scripts->delete((int)$id);
 
-        return new RedirectResponse('/scripts');
+        return $this->panel->redirect('/scripts', 'Сценарий удалён.');
     }
 
     /**

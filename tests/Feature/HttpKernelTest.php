@@ -15,11 +15,33 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
 /**
+ * 2026-10-29 — debug показывает стек и исходник; обычный режим скрывает детали.
+ * 2026-10-29 — неверная структура входных полей возвращает 400 без утечки деталей.
  * 2026-10-26 — действующая сессия и проверка скрытия деталей ошибок вне debug.
  */
 final class HttpKernelTest extends TestCase
 {
     private Application $app;
+
+    public function testMalformedQueryReturnsBadRequestForHtmlAndJson(): void
+    {
+        foreach (['text/html', 'application/json'] as $accept) {
+            $response = $this->app->handle(Request::create('/classes', 'GET', ['q' => ['unexpected']], [], [], [
+                'HTTP_ACCEPT' => $accept,
+            ]));
+            self::assertSame(400, $response->getStatusCode());
+            self::assertNotEmpty($response->headers->get('X-Request-Id'));
+            self::assertSame('nosniff', $response->headers->get('X-Content-Type-Options'));
+            $content = (string)$response->getContent();
+            self::assertStringNotContainsString('InputBag', $content);
+            self::assertStringNotContainsString('non-scalar', $content);
+            if ($accept === 'application/json') {
+                self::assertSame('bad_request', json_decode($content, true)['error']['code']);
+            } else {
+                self::assertStringContainsString('Некорректный запрос', $content);
+            }
+        }
+    }
 
     protected function setUp(): void
     {
@@ -144,7 +166,7 @@ final class HttpKernelTest extends TestCase
         self::assertStringContainsString('request_id: req-1', (string)$response->getContent());
     }
 
-    public function testInternalErrorDoesNotExposeTrace(): void
+    public function testDebugErrorShowsTraceAndSource(): void
     {
         $this->app->router()->get('/boom', static function (): never {
             throw new \RuntimeException('boom detail');
@@ -156,15 +178,15 @@ final class HttpKernelTest extends TestCase
 
         $html = (string)$response->getContent();
         $requestId = (string)$response->headers->get('X-Request-Id');
-        self::assertStringContainsString('Внутренняя ошибка', $html);
-        self::assertStringContainsString('/assets/img/maskot/error.png', $html);
+        self::assertStringContainsString('Ошибка приложения', $html);
+        self::assertStringContainsString('Трассировка', $html);
         self::assertStringContainsString('data-error-code="server_error"', $html);
         self::assertStringContainsString('Код запроса', $html);
         self::assertStringContainsString($requestId, $html);
-        // Debug показывает текст исключения, но не trace и не пути.
         self::assertStringContainsString('boom detail', $html);
-        self::assertStringNotContainsString('#0', $html);
-        self::assertStringNotContainsString(__FILE__, $html);
+        self::assertStringContainsString('tests/Feature/HttpKernelTest.php', $html);
+        self::assertStringContainsString('md-exception__line is-error', $html);
+        self::assertStringContainsString('no-store', (string)$response->headers->get('Cache-Control'));
     }
 
     public function testNamedRouteIsRegistered(): void

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Notifications;
 
+use Illuminate\Contracts\Validation\Factory;
+use InvalidArgumentException;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Panel\CoreSections;
@@ -18,11 +20,12 @@ use Throwable;
  * Уведомление не влияет на основной сценарий: ошибки записи в журнал не
  * пробрасываются в вызывающий код.
  *
+ * 2026-10-29 — сохраняется важность 0–10; повышение обходит подавление повторов.
+ * 2026-10-29 — повторы подавляются по времени, лимит непрочитанных снят.
  * 2026-10-26 — сервис создан для alpha-shell parity: колокольчик, drawer и API.
  */
 final readonly class NotificationService
 {
-    public const MAX_UNREAD = 10;
     public const PAGE_SIZE = 50;
     public const MAX_LIST = 500;
     private const MESSAGE_MAX = 255;
@@ -38,8 +41,13 @@ final readonly class NotificationService
     public function __construct(
         private DatabaseManager $database,
         private ModuleManager $modules,
-        private Clock $clock
+        private Clock $clock,
+        private int $duplicateWindowSeconds,
+        private Factory $validation
     ) {
+        if ($duplicateWindowSeconds < 0) {
+            throw new InvalidArgumentException('Окно повторов уведомлений не может быть отрицательным.');
+        }
     }
 
     public function hasTable(): bool
@@ -55,8 +63,17 @@ final readonly class NotificationService
      * @param array<string,mixed> $options key/title/details/url/label
      * @return array{status:bool,id?:int,error?:string}
      */
-    public function send(string $module, string $message, string $type = 'info', array $options = []): array
+    public function send(string $module, string $message, string $type = 'info', array $options = [], int $importance = 5): array
     {
+        $validator = $this->validation->make(
+            ['importance' => $importance],
+            ['importance' => ['required', 'integer', 'between:0,10']],
+            [],
+            ['importance' => 'Важность']
+        );
+        if ($validator->fails()) {
+            return ['status' => false, 'error' => $validator->errors()->first('importance')];
+        }
         $module = trim($module);
         if (!preg_match(self::MODULE_PATTERN, $module)) {
             return ['status' => false, 'error' => 'Некорректный код модуля.'];
@@ -77,40 +94,45 @@ final readonly class NotificationService
             return ['status' => false, 'error' => 'Таблица уведомлений ещё не создана.'];
         }
 
-        $connection = $this->database->connection();
-        $query = $connection->table('notifications')
-            ->where('module', $module)
-            ->whereNull('read_at')
-            ->whereNull('deleted_at');
-        $identity = $key !== ''
-            ? (clone $query)->where('notification_key', $key)
-            : (clone $query)->where('message', $message)->where('type', $type);
-        $existing = $identity->orderBy('id')->first();
-        if ($existing !== null) {
-            return [
-                'status' => false,
-                'error' => 'Такое уведомление уже есть. ID: ' . (int)$existing->id,
-                'id' => (int)$existing->id,
-            ];
-        }
-        if ($query->count() >= self::MAX_UNREAD) {
-            return ['status' => false, 'error' => 'Больше ' . self::MAX_UNREAD . ' непрочитанных уведомлений модуля.'];
-        }
-
-        $now = $this->clock->nowString();
+        $now = $this->clock->now();
         try {
+            $connection = $this->database->connection();
+            if ($this->duplicateWindowSeconds > 0) {
+                // Прочтение не отменяет защиту от потока одинаковых сообщений.
+                // Игнорируемый повтор не продлевает окно последней записи.
+                $identity = $connection->table('notifications')
+                    ->where('module', $module)
+                    ->whereNull('deleted_at')
+                    ->where('created_at', '>', $now->subSeconds($this->duplicateWindowSeconds)->format('Y-m-d H:i:s'));
+                $identity = $key !== ''
+                    ? $identity->where('notification_key', $key)
+                    : $identity->where('message', $message)->where('type', $type);
+                // Понижение не должно сбрасывать защиту после важного сообщения.
+                // Новый уровень проходит только при отсутствии равного или более высокого в окне.
+                $existing = $identity->where('importance', '>=', $importance)->orderByDesc('id')->first();
+                if ($existing !== null) {
+                    return [
+                        'status' => false,
+                        'error' => 'Повтор уведомления в пределах настроенного окна. ID: ' . (int)$existing->id,
+                        'id' => (int)$existing->id,
+                    ];
+                }
+            }
+
+            $timestamp = $now->format('Y-m-d H:i:s');
             $id = (int)$connection->table('notifications')->insertGetId([
                 'module' => $module,
                 'type' => $type,
                 'message' => $message,
+                'importance' => $importance,
                 'title' => $hasOptions ? ($payload['title'] ?? null) : null,
                 'details' => $hasOptions ? ($payload['details'] ?? null) : null,
                 'url' => $hasOptions ? ($payload['url'] ?? null) : null,
                 'label' => $hasOptions ? ($payload['label'] ?? null) : null,
                 'notification_key' => $key !== '' ? $key : null,
                 'read_at' => null,
-                'created_at' => $now,
-                'updated_at' => $now,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
                 'deleted_at' => null,
             ]);
         } catch (Throwable $error) {
@@ -126,7 +148,7 @@ final readonly class NotificationService
      *     counts:array<string,int>,
      *     levels:array<string,string>,
      *     severity:string,
-     *     items:list<array{id:int,module:string,module_title:string,module_url:string,message:string,type:string,added:string,title:string,details:string,url:string,label:string}>,
+     *     items:list<array{id:int,module:string,module_title:string,module_url:string,message:string,type:string,importance:int,added:string,title:string,details:string,url:string,label:string}>,
      *     offset:int
      * }
      */
@@ -289,7 +311,7 @@ final readonly class NotificationService
     }
 
     /**
-     * @return array{id:int,module:string,module_title:string,module_url:string,message:string,type:string,added:string,title:string,details:string,url:string,label:string}
+     * @return array{id:int,module:string,module_title:string,module_url:string,message:string,type:string,importance:int,added:string,title:string,details:string,url:string,label:string}
      */
     private function present(object $row): array
     {
@@ -306,6 +328,7 @@ final readonly class NotificationService
             'module_url' => $section['href'] ?? ($known !== null ? '/module/' . $module : '/admin'),
             'message' => (string)$row->message,
             'type' => $this->type((string)$row->type),
+            'importance' => (int)$row->importance,
             'added' => (string)$row->created_at,
             'title' => (string)($row->title ?? ''),
             'details' => (string)($row->details ?? ''),

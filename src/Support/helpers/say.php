@@ -2,19 +2,24 @@
 
 declare(strict_types=1);
 
+use MajorDoMo\Notifications\SayService;
 use MajorDoMo\Support\AppContext;
+
+// 2026-10-29 — важность задаётся явно, источник определяется по месту вызова.
 
 if (!function_exists('say')) {
     /**
-     * Сообщение в Shoutbox. `level` пока не используется.
+     * Сохранить сообщение системы и поставить доставку подписчикам в очередь.
      *
-     * @param mixed $ph
-     * @param mixed $level
-     * @param mixed $member_id
-     * @param mixed $source
+     * @return array{status:bool,id?:int,error?:string}
      */
-    function say($ph, $level = 0, $member_id = 0, $source = ''): void
+    function say(string $message, int $importance = 5): array
     {
-        AppContext::say((string)$ph, (int)$member_id, (string)($source !== '' ? $source : 'say'));
+        $app = AppContext::get();
+        if ($app === null) {
+            return ['status' => false, 'error' => 'Приложение не загружено.'];
+        }
+
+        return $app->container()->make(SayService::class)->say($message, $importance);
     }
 }

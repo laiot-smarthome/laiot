@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace MajorDoMo\Support;
 
 use MajorDoMo\Foundation\Application;
-use Throwable;
 
 /**
  * Доступ к текущему Application для пользовательских обёрток.
  *
- * Это не service locator для нового кода: только compatibility-слой для
- * глобальных функций, которые вызывает пользовательский PHP.
+ * Хранит контекст глобальных функций пользовательского PHP.
+ *
+ * 2026-10-29 — say делегирует общему сервису напрямую из helper.
  */
 final class AppContext
 {
@@ -30,27 +30,5 @@ final class AppContext
     public static function reset(): void
     {
         self::$app = null;
-    }
-
-    /**
-     * `say()` пишет в Shoutbox core-модуля. Пока это единственная
-     * пользовательская обёртка, которая работает в новом ядре.
-     */
-    public static function say(string $message, int $memberId = 0, string $source = 'say'): void
-    {
-        $message = trim($message);
-        if ($message === '' || self::$app === null) {
-            return;
-        }
-        $message = mb_substr($message, 0, 255);
-
-        try {
-            self::$app->container()->make(\MajorDoMo\Notifications\NotificationService::class)
-                ->send($source, $message, 'info');
-        } catch (Throwable $error) {
-            self::$app->logger()->warning('say() не записал сообщение', [
-                'error' => $error->getMessage(),
-            ]);
-        }
     }
 }

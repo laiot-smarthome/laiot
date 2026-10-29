@@ -4,9 +4,12 @@
  * Разметка — alpha-классы, поведение — своё: без jQuery, MDJAdminPanel и
  * Bootstrap-модалок. Содержимое передаётся DOM-узлом и возвращается на место
  * при закрытии.
+ * 2026-10-29 — фокус остаётся внутри открытой панели при обходе клавишей Tab.
  * 2026-10-28 — панель остаётся в DOM для выезда; контент возвращается
  * после завершения закрытия, а не пропадает в начале анимации.
  */
+
+import {trapFocus} from './focus.js';
 
 const host = document.getElementById('mdAdminDrawerHost');
 const body = document.getElementById('mdAdminDrawerBody');
@@ -126,6 +129,7 @@ export function initDrawer() {
         }
     });
     document.addEventListener('keydown', (event) => {
+        if (current && !host.inert) trapFocus(event, host);
         if (event.key === 'Escape' && current) {
             close();
         }

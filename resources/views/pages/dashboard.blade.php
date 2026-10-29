@@ -30,17 +30,17 @@
 
     <header class="md-dash__header">
         <div class="md-dash__heading">
-            <x-md.mascot pose="love_home" class="md-dash__mascot" />
             <p class="md-dash__eyebrow"><span class="md-dash__live-dot" aria-hidden="true"></span>Обзор системы</p>
             <h1 class="md-dash__title">Панель управления</h1>
             <p class="md-dash__subtitle">{{ $now->format('d.m.Y') }} · сводка состояния умного дома</p>
+        </div>
+        <x-md.mascot pose="love_home" class="md-dash__mascot" />
+        <div class="md-dash__actions">
             <div class="md-dash__status" data-state="{{ $healthy ? 'ok' : 'warning' }}" role="status">
                 <span class="md-dash__status-dot" aria-hidden="true"></span>
                 <span>{{ $healthy ? 'Система работает штатно' : 'Есть замечания — проверьте состояние' }}</span>
                 @if (!$healthy)<a class="md-dash__status-link" href="/status">Подробнее</a>@endif
             </div>
-        </div>
-        <div class="md-dash__actions">
             <span class="md-dash__updated">Обновлено <time datetime="{{ $now->toIso8601String() }}">{{ $now->format('H:i') }}</time></span>
             <a class="md-btn md-btn--secondary md-btn--sm" href="/status">
                 <i class="ti ti-activity" aria-hidden="true"></i><span class="md-btn__label">Состояние</span>

@@ -20,6 +20,8 @@ use RuntimeException;
 /**
  * Настройки окружения: реальная запись только во временный файл, БД — SQLite.
  *
+ * 2026-10-29 — минимальная важность say проверяется и передаётся в runtime.
+ * 2026-10-29 — окно повторов уведомлений сохраняется и применяется через общую схему.
  * 2026-10-28 — результаты действий проверяются в событии Notify.
  * 2026-10-27 — проверяется UI .env вместо CRUD таблицы settings.
  */
@@ -111,6 +113,51 @@ final class CoreSettingsTest extends TestCase
         self::assertStringContainsString('aria-invalid="true"', (string)$response->getContent());
         self::assertStringContainsString('поддерживаемых вариантов', (string)$response->getContent());
         self::assertSame($this->original, file_get_contents($this->path()));
+    }
+
+    public function testNotificationWindowIsSavedAndAppliedToConfiguration(): void
+    {
+        self::assertSame(3600, SettingsSchema::defaults(dirname(__DIR__, 2))['NOTIFICATIONS_DUPLICATE_WINDOW']);
+        $service = $this->service();
+        foreach (['120', '0'] as $window) {
+            $service->save('notifications', ['NOTIFICATIONS_DUPLICATE_WINDOW' => $window, 'SAY_MINIMUM_IMPORTANCE' => '5'], [], $this->revision(), []);
+            Config::boot($this->directory);
+            $config = SettingsSchema::environment(dirname(__DIR__, 2));
+            self::assertSame((int)$window, $config['notifications']['duplicate_window']);
+        }
+        $before = file_get_contents($this->path());
+        try {
+            $service->save('notifications', ['NOTIFICATIONS_DUPLICATE_WINDOW' => '-1', 'SAY_MINIMUM_IMPORTANCE' => '5'], [], $this->revision(), []);
+            self::fail('Отрицательное окно не должно сохраняться.');
+        } catch (SettingsValidationException $error) {
+            self::assertArrayHasKey('NOTIFICATIONS_DUPLICATE_WINDOW', $error->errors);
+        }
+        self::assertSame($before, file_get_contents($this->path()));
+    }
+
+    public function testSayMinimumImportanceIsSavedAndRestrictedToScale(): void
+    {
+        self::assertSame(5, SettingsSchema::defaults(dirname(__DIR__, 2))['SAY_MINIMUM_IMPORTANCE']);
+        $service = $this->service();
+        foreach (['0', '10'] as $minimum) {
+            $service->save('notifications', [
+                'NOTIFICATIONS_DUPLICATE_WINDOW' => '3600', 'SAY_MINIMUM_IMPORTANCE' => $minimum,
+            ], [], $this->revision(), []);
+            Config::boot($this->directory);
+            self::assertSame((int)$minimum, SettingsSchema::environment(dirname(__DIR__, 2))['notifications']['minimum_importance']);
+        }
+        $before = file_get_contents($this->path());
+        foreach (['-1', '11', '5.5'] as $minimum) {
+            try {
+                $service->save('notifications', [
+                    'NOTIFICATIONS_DUPLICATE_WINDOW' => '3600', 'SAY_MINIMUM_IMPORTANCE' => $minimum,
+                ], [], $this->revision(), []);
+                self::fail('Невалидный порог не должен сохраняться.');
+            } catch (SettingsValidationException $error) {
+                self::assertArrayHasKey('SAY_MINIMUM_IMPORTANCE', $error->errors);
+            }
+            self::assertSame($before, file_get_contents($this->path()));
+        }
     }
 
     public function testSearchFindsDescriptionsAndLinksToField(): void

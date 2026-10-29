@@ -7,6 +7,8 @@
  *
  * На ПК объекты — дочерние строки дерева, на мобильном — компактная
  * панель под классом (её видимость решает CSS, логика общая).
+ * 2026-10-29 — состояние веток переживает перезагрузку; поиск не меняет
+ * выбор пользователя, индексы и совпадения не пересчитываются для каждой строки.
  */
 
 export function registerClassesTree(Alpine) {
@@ -14,17 +16,40 @@ export function registerClassesTree(Alpine) {
         query: String(config.query || ''),
         filter: '',
         expanded: {},
+        parentMap: {},
+        classIndex: {},
+        objectIndex: {},
+        matched: {matches: new Set(), visible: new Set()},
         classes: Array.isArray(config.classes) ? config.classes : [],
         objects: config.objects && typeof config.objects === 'object' ? config.objects : {},
 
         init() {
-            // Раскрываем корни, чтобы дерево не выглядело пустым при
-            // первом открытии: у корневых классов сразу видны объекты.
+            let stored = null;
+            try {
+                stored = JSON.parse(window.localStorage.getItem(config.storageKey || 'mydomo.classes.expanded'));
+            } catch {
+                // Запрет storage или повреждённая запись не мешают работе дерева.
+            }
             this.classes.forEach((item) => {
-                if (Number(item.parent_id) === 0) {
-                    this.expanded[item.id] = true;
-                }
+                this.classIndex[item.id] = item;
+                this.parentMap[item.id] = Number(item.parent_id) || 0;
+                this.expanded[item.id] = stored && !Array.isArray(stored) && typeof stored[item.id] === 'boolean'
+                    ? stored[item.id] : Number(item.depth) === 0;
+                this.objectsFor(item.id).forEach((object) => {
+                    this.objectIndex[`${item.id}.${object.id}`] = object;
+                });
             });
+            this.refreshMatches();
+            this.$watch('query', () => this.refreshMatches());
+            this.$watch('filter', () => this.refreshMatches());
+        },
+
+        remember() {
+            try {
+                window.localStorage.setItem(config.storageKey || 'mydomo.classes.expanded', JSON.stringify(this.expanded));
+            } catch {
+                // Дерево остаётся доступным и при недоступном localStorage.
+            }
         },
 
         normalize(value) {
@@ -36,35 +61,27 @@ export function registerClassesTree(Alpine) {
 
         klass(id) {
             const numeric = Number(id);
-            return this.classes.find((item) => Number(item.id) === numeric) || null;
+            return this.classIndex[numeric] || null;
         },
 
         object(classId, objectId) {
             const numeric = Number(objectId);
-            return this.objectsFor(classId).find((item) => Number(item.id) === numeric) || null;
+            return this.objectIndex[`${classId}.${numeric}`] || null;
         },
 
         get active() {
             return this.query.trim() !== '' || this.filter !== '';
         },
 
-        get parentMap() {
-            const map = {};
-            this.classes.forEach((item) => {
-                map[item.id] = Number(item.parent_id) || 0;
-            });
-            return map;
-        },
-
         ancestors(id) {
             const map = this.parentMap;
             const result = [];
             let parent = map[id] || 0;
-            let guard = 0;
-            while (parent > 0 && guard < 100) {
+            const seen = new Set([Number(id)]);
+            while (parent > 0 && !seen.has(parent) && this.classIndex[parent]) {
+                seen.add(parent);
                 result.push(parent);
                 parent = map[parent] || 0;
-                guard++;
             }
             return result;
         },
@@ -81,7 +98,7 @@ export function registerClassesTree(Alpine) {
             return this.normalize([object.title, object.description, object.location_title].join(' '));
         },
 
-        get matched() {
+        refreshMatches() {
             const matches = new Set();
             const visible = new Set();
             const query = this.normalize(this.query);
@@ -106,7 +123,7 @@ export function registerClassesTree(Alpine) {
                 this.ancestors(item.id).forEach((id) => visible.add(id));
             });
 
-            return {matches, visible};
+            this.matched = {matches, visible};
         },
 
         get matchedIds() {
@@ -118,7 +135,7 @@ export function registerClassesTree(Alpine) {
         },
 
         isExpanded(id) {
-            return this.expanded[id] === true;
+            return this.active || this.expanded[id] === true;
         },
 
         isClassVisible(item) {
@@ -175,35 +192,41 @@ export function registerClassesTree(Alpine) {
         },
 
         toggle(id) {
+            if (this.active) return;
             if (this.isExpanded(id)) {
                 this.expanded[id] = false;
+                this.remember();
                 return;
             }
             this.ancestors(id).forEach((ancestor) => {
                 this.expanded[ancestor] = true;
             });
             this.expanded[id] = true;
+            this.remember();
         },
 
         expandAll() {
+            if (this.active) return;
             this.classes.forEach((item) => {
                 this.expanded[item.id] = true;
             });
+            this.remember();
         },
 
         collapseAll() {
-            this.expanded = {};
+            if (this.active) return;
+            this.classes.forEach((item) => { this.expanded[item.id] = false; });
+            this.remember();
         },
 
         reset() {
             this.query = '';
             this.filter = '';
-            this.collapseAll();
         },
 
         get shownCount() {
             if (!this.active) {
-                return this.classes.length;
+                return this.classes.filter((item) => this.isClassVisible(item)).length;
             }
             return this.visibleIds.size;
         },

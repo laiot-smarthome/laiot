@@ -792,13 +792,16 @@ body.md-admin-shell .md-admin-sidebar__profile-logout i {
 }
 
 .md-dash__header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  grid-template-areas: "heading mascot" "actions actions";
+  align-items: center;
+  gap: 16px 24px;
   padding: 2px 0 0;
 }
+
+.md-dash__heading { grid-area: heading; min-width: 0; }
+.md-dash__mascot { grid-area: mascot; justify-self: end; width: 104px; }
 
 .md-dash__eyebrow {
   margin: 0 0 6px;
@@ -829,7 +832,7 @@ body.md-admin-shell .md-admin-sidebar__profile-logout i {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 0;
   padding: 5px 11px 5px 9px;
   color: var(--md-ui-muted);
   background: var(--md-ui-surface);
@@ -890,11 +893,14 @@ body.md-admin-shell .md-admin-sidebar__profile-logout i {
 }
 
 .md-dash__actions {
+  grid-area: actions;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.md-dash__actions .md-dash__updated { margin-inline-start: auto; }
 
 .md-dash__actions .btn,
 .md-dash__actions .md-btn {
@@ -3125,11 +3131,14 @@ body.md-admin-shell .dropdown-divider {
 
   .md-dash__header {
     align-items: flex-start;
+    grid-template-columns: minmax(0, 1fr) 72px;
   }
+
+  .md-dash__mascot { width: 72px; }
 
   .md-dash__actions {
     width: 100%;
-    justify-content: flex-end;
+    justify-content: flex-start;
   }
 
   .md-dash__stats,

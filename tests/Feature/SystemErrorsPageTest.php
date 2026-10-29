@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
  *
  * 2026-10-27 — проверяются место, стек, контекст, исходный файл и переход
  * между группой и отдельной записью без страницы файла.
+ * 2026-10-29 — общий каркас таблиц и точный счётчик показанных повторов.
  */
 final class SystemErrorsPageTest extends TestCase
 {
@@ -104,6 +105,9 @@ final class SystemErrorsPageTest extends TestCase
         $page = (string)$this->app->handle(Request::create('/errors', 'GET'))->getContent();
         self::assertStringContainsString('Групп: 1', $page);
         self::assertStringContainsString('2 повт.', $page);
+        self::assertStringContainsString('aria-label="Группы ошибок"', $page);
+        self::assertStringContainsString('Request ID: <code>req-2</code>', $page);
+        self::assertStringNotContainsString('Request ID: <code>req-1</code>', $page);
 
         $response = $this->yoyo('system-errors/openGroup', [2]);
         self::assertSame(200, $response->getStatusCode());
@@ -114,6 +118,27 @@ final class SystemErrorsPageTest extends TestCase
         self::assertStringContainsString('Стек', $html);
         self::assertStringContainsString('/app/src/Foo.php:42', $html);
         self::assertStringContainsString('К списку ошибок', $html);
+        self::assertStringContainsString('aria-label="Повторы"', $html);
+        self::assertStringContainsString('aria-current="true"', $html);
+    }
+
+    public function testOccurrencesFooterMatchesTheHundredRowsActuallyShown(): void
+    {
+        for ($id = 1; $id <= 101; $id++) {
+            $this->seedError($id, 'boom', '2026-10-27 12:34:56', 'req-' . $id);
+        }
+
+        $response = $this->yoyo('system-errors/openGroup', [101]);
+        self::assertSame(200, $response->getStatusCode());
+        $html = (string)$response->getContent();
+        self::assertStringContainsString('Показаны последние 100 из 101 повторов.', $html);
+        $document = new \DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        $document->loadHTML('<?xml encoding="utf-8"?>' . $html);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        $xpath = new \DOMXPath($document);
+        self::assertSame(100, $xpath->query('//div[@aria-label="Повторы"]//tbody/tr')->length);
     }
 
     public function testYoyoSelectChangesDetail(): void
@@ -130,6 +155,31 @@ final class SystemErrorsPageTest extends TestCase
         self::assertStringContainsString('Скопировать для AI', $html);
     }
 
+    public function testGroupDetailPreservesSearchAndListMode(): void
+    {
+        $this->seedError(1, 'first', '2026-10-27 12:34:56', 'req-1');
+        $this->seedError(2, 'second', '2026-10-27 12:40:00', 'req-2');
+
+        $response = $this->yoyo('system-errors/openGroup', [1], [
+            'search' => 'first', 'level' => 'error', 'flat' => false,
+        ]);
+        $html = (string)$response->getContent();
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('name="search" value="first"', $html);
+        self::assertStringContainsString('name="level" value="error"', $html);
+        self::assertStringNotContainsString('hx-post="render"', $html);
+
+        $response = $this->yoyo('system-errors/back', [], [
+            'search' => 'first', 'level' => 'error', 'flat' => false, 'selectedId' => 1,
+        ]);
+        $html = (string)$response->getContent();
+        self::assertStringContainsString('Группы ошибок', $html);
+        self::assertStringContainsString('Групп: 1', $html);
+        self::assertStringContainsString('name="search" value="first"', $html);
+        self::assertStringNotContainsString('Request ID: <code>req-2</code>', $html);
+        self::assertStringNotContainsString('hx-post="render"', $html);
+    }
+
     public function testBackReturnsToTheListScreen(): void
     {
         $this->seedError(1, 'boom', '2026-10-27 12:34:56', 'req-1');
@@ -143,10 +193,11 @@ final class SystemErrorsPageTest extends TestCase
 
     /**
      * @param list<int> $arguments
+     * @param array<string, string|int|bool> $state
      */
-    private function yoyo(string $component, array $arguments): \Symfony\Component\HttpFoundation\Response
+    private function yoyo(string $component, array $arguments, array $state = []): \Symfony\Component\HttpFoundation\Response
     {
-        $_REQUEST = [
+        $_REQUEST = $state + [
             'component' => $component,
             'yoyo-id' => 'test-system-errors',
             'actionArgs' => $arguments,

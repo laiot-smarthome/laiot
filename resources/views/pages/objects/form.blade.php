@@ -152,10 +152,10 @@
                                     </td>
                                     <td><x-md.badge tone="outline">{{ $property['data_type'] }}</x-md.badge></td>
                                     <td>
-                                        <input class="md-input" type="text"
-                                               name="values[{{ $property['id'] }}]"
-                                               value="{{ $values[$property['id']] ?? '' }}"
-                                               aria-label="Значение свойства {{ $property['title'] }}">
+                                        <x-md.input name="values[{{ $property['id'] }}]"
+                                                    :value="$values[$property['id']] ?? ''"
+                                                    :error="$valueErrors['values.' . $property['id']][0] ?? null"
+                                                    aria-label="Значение свойства {{ $property['title'] }}" />
                                     </td>
                                     <td>
                                         @forelse ($propertyBindings[$property['id']] ?? [] as $binding)

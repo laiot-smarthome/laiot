@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Счётчики внимания бокового меню: сервис и API оболочки.
  *
+ * 2026-10-29 — тестовая схема хранит важность уведомления.
  * 2026-10-27 — проверяется, что бейджи считают ошибки за сутки, сбои очереди и
  * непрочитанные уведомления, а эндпоинт закрыт сессией администратора.
  */
@@ -95,6 +96,7 @@ final class PanelAttentionTest extends TestCase
             $table->string('module', 100)->default('');
             $table->string('type', 20)->default('info');
             $table->string('message', 255);
+            $table->unsignedTinyInteger('importance')->default(5);
             $table->string('title', 200)->nullable();
             $table->text('details')->nullable();
             $table->string('url', 2048)->nullable();

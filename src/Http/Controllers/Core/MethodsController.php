@@ -14,7 +14,7 @@ use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Rename\NameReferenceUpdater;
+use MajorDoMo\Panel\RenameNotice;
 use MajorDoMo\Runtime\InvalidUserCode;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +26,7 @@ use Symfony\Component\HttpFoundation\Response;
  * объекта. Редактор не исполняет код: вызов идёт из сценария, API или
  * OnChange-обработчика.
  *
+ * 2026-10-29 — CRUD возвращает одноразовый Notify; формат переименования общий.
  * 2026-10-27 — синтаксическая ошибка кода подсвечивается в редакторе.
  * 2026-10-27 — страница стала контекстной формой класса/объекта.
  * 2026-10-27 — имя метода проверяется латиницей и уникальностью в области.
@@ -37,7 +38,7 @@ final readonly class MethodsController extends Controller
         private MethodRepository $methods,
         private ClassRepository $classes,
         private ObjectRepository $objects,
-        private NameReferenceUpdater $references,
+        private RenameNotice $renames,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -75,7 +76,7 @@ final readonly class MethodsController extends Controller
             return $this->form(null, $this->errorText($error), $request->request->all(), 422, $this->codeError($error));
         }
 
-        return new RedirectResponse($this->returnUrl($classId, $objectId));
+        return $this->panel->redirect($this->returnUrl($classId, $objectId), 'Метод создан.');
     }
 
     public function edit(string $id): Response
@@ -111,9 +112,11 @@ final readonly class MethodsController extends Controller
             return $this->form($method, $this->errorText($error), $request->request->all(), 422, $this->codeError($error));
         }
 
-        $this->rememberRename((string)$method['title'], (string)$request->request->get('title', ''));
-
-        return new RedirectResponse($this->returnUrl($classId, $objectId));
+        return $this->panel->redirect($this->returnUrl($classId, $objectId), $this->renames->message(
+            (string)$method['title'],
+            (string)$request->request->get('title', ''),
+            'Метод сохранён.'
+        ));
     }
 
     public function delete(string $id): Response
@@ -125,7 +128,10 @@ final readonly class MethodsController extends Controller
 
         $this->methods->delete((int)$id);
 
-        return new RedirectResponse($this->returnUrl((int)$method['class_id'], (int)$method['object_id']));
+        return $this->panel->redirect(
+            $this->returnUrl((int)$method['class_id'], (int)$method['object_id']),
+            'Метод удалён.'
+        );
     }
 
     /**
@@ -208,19 +214,4 @@ final readonly class MethodsController extends Controller
         return '/classes';
     }
 
-    private function rememberRename(string $old, string $new): void
-    {
-        $old = trim($old);
-        $new = trim($new);
-        if ($old === '' || $old === $new) {
-            return;
-        }
-        $message = 'Имя «' . $old . '» изменено на «' . $new . '». Обновлено ссылок: '
-            . $this->references->changes() . '.';
-        $warnings = $this->references->warnings();
-        if ($warnings !== []) {
-            $message .= ' Не удалось обновить файлов модулей: ' . count($warnings) . ' (подробности в логе).';
-        }
-        $this->session->set('panel.notice', $message);
-    }
 }

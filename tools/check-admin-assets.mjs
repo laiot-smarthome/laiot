@@ -7,6 +7,7 @@ const required = [
   'public/assets/admin/mydomo-codeeditor.css',
   'public/assets/admin/mydomo-charts.js',
   'public/assets/admin/mydomo-charts.css',
+  'public/assets/admin/mydomo-exceptions.js',
 ];
 
 const missing = required.filter((file) => !existsSync(file) || statSync(file).size === 0);

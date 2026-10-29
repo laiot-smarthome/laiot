@@ -63,11 +63,11 @@
                     </select>
 
                     <div class="md-classes-toolbar__actions">
-                        <button type="button" class="md-btn md-btn--ghost md-btn--sm" @click="expandAll()"
+                        <button type="button" class="md-btn md-btn--ghost md-btn--sm" @click="expandAll()" :disabled="active"
                                 aria-label="Раскрыть все классы">
                             <i class="ti ti-chevrons-down" aria-hidden="true"></i><span class="md-btn__label">Развернуть</span>
                         </button>
-                        <button type="button" class="md-btn md-btn--ghost md-btn--sm" @click="collapseAll()"
+                        <button type="button" class="md-btn md-btn--ghost md-btn--sm" @click="collapseAll()" :disabled="active"
                                 aria-label="Свернуть все классы">
                             <i class="ti ti-chevrons-up" aria-hidden="true"></i><span class="md-btn__label">Свернуть</span>
                         </button>
@@ -114,7 +114,7 @@
                             <div class="md-tree-table__cell" style="--md-tree-level: {{ $depth }}">
                                 @if ($hasToggle)
                                     <button type="button" class="md-tree-table__toggle"
-                                            @click="toggle({{ $classId }})"
+                                            @click="toggle({{ $classId }})" :disabled="active"
                                             :aria-expanded="isExpanded({{ $classId }}) ? 'true' : 'false'"
                                             aria-label="Показать объекты и подклассы класса {{ $row['title'] }}">
                                         <i class="ti ti-chevron-right" aria-hidden="true"></i>
@@ -151,28 +151,23 @@
                         <td class="md-classes-col-count">
                             <a href="/classes/{{ $classId }}/edit?tab=methods">{{ $meths['effective'] }}</a>
                             @if ($meths['inherited'] > 0)
-                                <small class="md-table__muted" title="Из них унаследовано: {{ $meths['inherited'] }}">+{{ $meths['inherited'] }}</small>
+                                <small class="md-table__muted" title="Из них унаследовано: {{ $meths['inherited'] }}">({{ $meths['inherited'] }} унасл.)</small>
                             @endif
                         </td>
                         <td class="md-classes-col-count">
                             <a href="/classes/{{ $classId }}/edit?tab=properties">{{ $props['effective'] }}</a>
                             @if ($props['inherited'] > 0)
-                                <small class="md-table__muted" title="Из них унаследовано: {{ $props['inherited'] }}">+{{ $props['inherited'] }}</small>
+                                <small class="md-table__muted" title="Из них унаследовано: {{ $props['inherited'] }}">({{ $props['inherited'] }} унасл.)</small>
                             @endif
                         </td>
                         <td>
                             <div class="md-table__actions">
                                 <x-md.icon-button href="/classes/create?parent_id={{ $classId }}" icon="git-branch"
-                                                  label="Добавить подкласс" size="sm" />
+                                                  label="Добавить подкласс" size="sm" class="md-classes-row-shortcut" />
                                 <x-md.icon-button href="/classes/{{ $classId }}/edit" icon="pencil"
-                                                  label="Открыть класс" size="sm" />
-                                <div class="md-kit-dropdown" x-data="{ open: false }" @click.outside="open = false">
-                                    <button type="button" class="md-icon-btn md-icon-btn--sm"
-                                            @click="open = !open" :aria-expanded="open.toString()"
-                                            aria-haspopup="true" aria-label="Действия класса {{ $row['title'] }}">
-                                        <i class="ti ti-dots" aria-hidden="true"></i>
-                                    </button>
-                                    <div class="md-kit-dropdown__panel" x-cloak x-show="open" x-transition.opacity>
+                                                  label="Открыть класс" size="sm" class="md-classes-row-shortcut" />
+                                <x-md.dropdown label="Действия класса {{ $row['title'] }}" icon="dots" icon-only size="sm" align="right">
+                                    <a href="/classes/create?parent_id={{ $classId }}"><i class="ti ti-git-branch" aria-hidden="true"></i>Добавить подкласс</a>
                                         <a href="/classes/{{ $classId }}/edit?tab=properties"><i class="ti ti-adjustments" aria-hidden="true"></i>Свойства</a>
                                         <a href="/classes/{{ $classId }}/edit?tab=methods"><i class="ti ti-braces" aria-hidden="true"></i>Методы</a>
                                         <a href="/classes/{{ $classId }}/edit?tab=objects"><i class="ti ti-box" aria-hidden="true"></i>Объекты</a>
@@ -182,8 +177,7 @@
                                             <input type="hidden" name="_token" value="{{ $csrf }}">
                                             <button type="submit"><i class="ti ti-trash" aria-hidden="true"></i>Удалить</button>
                                         </form>
-                                    </div>
-                                </div>
+                                </x-md.dropdown>
                             </div>
                         </td>
                     </tr>
@@ -234,7 +228,7 @@
                     @if ($classObjects !== [])
                         <tr class="md-tree-table__detail md-classes-mobile-objects"
                             x-show="visibleObjects({{ $classId }}).length > 0" x-cloak>
-                            <td colspan="5">
+                            <td colspan="2">
                                 <div class="md-tree-table__panel" style="--md-tree-level: {{ $depth }}">
                                     <div class="md-tree-table__panel-head">
                                         <span>Объекты класса</span>

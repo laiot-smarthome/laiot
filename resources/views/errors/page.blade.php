@@ -24,7 +24,7 @@
     <script>
         (function () {
             var match = document.cookie.match(/(?:^|;\s*)theme=([^;]+)/);
-            var theme = match ? decodeURIComponent(match[1]) : 'light';
+            var theme = match ? match[1] : 'light';
             document.documentElement.setAttribute('data-bs-theme', theme === 'dark' ? 'dark' : 'light');
         })();
     </script>

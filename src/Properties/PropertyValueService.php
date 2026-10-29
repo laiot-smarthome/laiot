@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Properties;
 
+use InvalidArgumentException;
 use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Events\PropertyChangedJob;
 use MajorDoMo\Events\PropertyEventContext;
@@ -16,6 +17,7 @@ use MajorDoMo\Objects\ObjectRepository;
 /**
  * Единственный путь записи значения свойства в новом ядре.
  *
+ * 2026-10-29 — пакет значений сохраняется атомарно вместе с заданиями событий.
  * Запись максимально короткая: сохранить значение и в той же транзакции
  * положить задание `property.changed` в очередь событий. Журнал, история,
  * OnChange-метод и доставка модулям выполняются отдельным процессом
@@ -137,6 +139,23 @@ final class PropertyValueService
         }
 
         return $this->write($object, $property, $value, $source);
+    }
+
+    /**
+     * Форма объекта сохраняется целиком: отказ одного свойства отменяет весь пакет.
+     *
+     * @param array<int,string|null> $values
+     */
+    public function setValues(int $objectId, array $values, string $source = 'panel'): void
+    {
+        $this->executions->ensureTable();
+        $this->database->transaction(function () use ($objectId, $values, $source): void {
+            foreach ($values as $propertyId => $value) {
+                if (!$this->setValue($objectId, (int)$propertyId, $value, $source)) {
+                    throw new InvalidArgumentException('Свойство больше не доступно объекту. Обновите страницу и повторите сохранение.');
+                }
+            }
+        });
     }
 
     /**

@@ -11,6 +11,8 @@ use MajorDoMo\Foundation\ConfigLoader;
 /**
  * Единый каталог редактируемых параметров и их привязок к конфигурации ядра.
  *
+ * 2026-10-29 — минимальная важность say задаётся в общем конфиге и UI.
+ * 2026-10-29 — окно повторов уведомлений настраивается через общий конфиг и UI.
  * 2026-10-28 — ключи шифрования читаются из окружения, не редактируются в UI.
  * 2026-10-27 — UI и bootstrap используют одни ключи, типы и значения по умолчанию.
  */
@@ -25,6 +27,7 @@ final class SettingsSchema
             'cache' => ['title' => 'Кэш и Redis', 'description' => 'Общее хранилище кэша, блокировок и состояния фоновых процессов.'],
             'queue' => ['title' => 'Очередь', 'description' => 'Повторы заданий и ограничения пользовательских обработчиков.'],
             'logging' => ['title' => 'Журналы', 'description' => 'Подробность и ротация файлов журналов.'],
+            'notifications' => ['title' => 'Уведомления', 'description' => 'Подавление повторов и минимальная важность сообщений для внешней доставки.'],
             'retention' => ['title' => 'Хранение данных', 'description' => 'Очистка старых записей процессом core-worker maintenance. Ноль дней отключает очистку соответствующего раздела.'],
         ];
     }
@@ -33,6 +36,8 @@ final class SettingsSchema
     public static function fields(): array
     {
         return [
+            'NOTIFICATIONS_DUPLICATE_WINDOW' => ['group' => 'notifications', 'path' => 'notifications.duplicate_window', 'type' => 'int', 'min' => 0, 'max' => 31536000, 'label' => 'Окно повторов, сек', 'description' => 'Повтор того же уведомления игнорируется в течение этого времени после последней сохранённой записи, даже если она прочитана. По умолчанию 3600 секунд; 0 отключает подавление.'],
+            'SAY_MINIMUM_IMPORTANCE' => ['group' => 'notifications', 'path' => 'notifications.minimum_importance', 'type' => 'int', 'min' => 0, 'max' => 10, 'label' => 'Минимальная важность say', 'description' => 'Сообщения say ниже этого уровня сохраняются только в журнале. При важности от этого уровня включительно ставится фоновая доставка подписчикам. Шкала 0–10, по умолчанию 5.'],
             'APP_TIMEZONE' => ['group' => 'general', 'path' => 'timezone', 'type' => 'select', 'label' => 'Часовой пояс', 'description' => 'Используется для времени событий, сценариев и журналов.', 'options' => array_combine(timezone_identifiers_list(), timezone_identifiers_list())],
             'APP_DEBUG' => ['group' => 'general', 'path' => 'debug', 'type' => 'bool', 'label' => 'Режим отладки', 'description' => 'Показывает подробности ошибок HTTP и включает уровень Debug в журналах. Для обычной работы выключите.'],
             'DB_HOST' => ['group' => 'database', 'path' => 'database.host', 'default' => '127.0.0.1', 'type' => 'text', 'label' => 'Сервер БД', 'description' => 'Имя хоста или IP-адрес MySQL / MariaDB.', 'required' => true],

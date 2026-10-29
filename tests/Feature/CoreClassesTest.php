@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace MajorDoMo\Tests\Feature;
 
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
+use MajorDoMo\Database\Migrator;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
 /**
+ * 2026-10-29 — CRUD проверяется на полной схеме вместо подавления ошибок чтения.
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  */
 final class CoreClassesTest extends TestCase
@@ -27,14 +28,7 @@ final class CoreClassesTest extends TestCase
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
         ]);
         $app->boot();
-        $app->database()->schema()->create('classes', static function (Blueprint $table): void {
-            $table->increments('id');
-            $table->string('title')->unique();
-            $table->integer('parent_id')->default(0);
-            $table->text('description')->nullable();
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        (new Migrator($app->database(), $app->root() . '/database/migrations'))->migrate();
 
         SessionFixture::authenticate($app);
 
@@ -47,7 +41,7 @@ final class CoreClassesTest extends TestCase
             'description' => 'Базовый датчик',
         ]));
         self::assertSame(302, $create->getStatusCode());
-        $row = $app->database()->connection()->table('classes')->first();
+        $row = $app->database()->connection()->table('classes')->where('title', 'Sensor')->first();
         self::assertNotNull($row);
         self::assertSame('Базовый датчик', $row->description);
 
@@ -62,6 +56,6 @@ final class CoreClassesTest extends TestCase
             '_token' => $session->csrfToken(),
         ]));
         self::assertSame(302, $delete->getStatusCode());
-        self::assertNull($app->database()->connection()->table('classes')->whereNull('deleted_at')->first());
+        self::assertNull($app->database()->connection()->table('classes')->where('id', $row->id)->whereNull('deleted_at')->first());
     }
 }

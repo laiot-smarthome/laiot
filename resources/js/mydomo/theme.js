@@ -3,11 +3,12 @@
  *
  * Alpha-визуал сохраняем, реализацию не копируем: только радиокнопки
  * `[data-md-theme-choice]`, без jQuery и глобальных хелперов.
+ * 2026-10-29 — повреждённая cookie не прерывает запуск всей админки.
  */
 
 function currentTheme() {
     const match = document.cookie.match(/(?:^|;\s*)theme=([^;]+)/);
-    const value = match ? decodeURIComponent(match[1]) : 'light';
+    const value = match ? match[1] : 'light';
     return value === 'dark' ? 'dark' : 'light';
 }
 

@@ -14,16 +14,18 @@ use MajorDoMo\Http\PanelRenderer;
 use MajorDoMo\Http\Session\SessionStore;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Objects\ObjectRepository;
+use MajorDoMo\Panel\ClassCatalog;
+use MajorDoMo\Panel\RenameNotice;
 use MajorDoMo\Properties\PropertyRepository;
 use MajorDoMo\Properties\PropertySubscriptionRepository;
-use MajorDoMo\Rename\NameReferenceUpdater;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
 /**
  * Единый раздел «Классы»: дерево классов с подклассами, карточка класса,
  * его объекты, свойства и методы.
+ *
+ * 2026-10-29 — каталог собирает ClassCatalog; ошибки чтения больше не скрываются.
  *
  * 2026-10-27 — объекты, свойства, методы, значения и история больше не
  * отдельные пункты меню: пользователь работает через класс, а наследование
@@ -40,12 +42,13 @@ final readonly class ClassesController extends Controller
 
     public function __construct(
         private Factory $view,
+        private ClassCatalog $catalog,
         private ClassRepository $classes,
         private PropertyRepository $properties,
         private MethodRepository $methods,
         private ObjectRepository $objects,
         private PropertySubscriptionRepository $subscriptions,
-        private NameReferenceUpdater $references,
+        private RenameNotice $renames,
         private SessionStore $session,
         private PanelRenderer $panel
     ) {
@@ -54,95 +57,10 @@ final readonly class ClassesController extends Controller
     public function index(Request $request): Response
     {
         $search = trim((string)$request->query->get('q', ''));
-        $allClasses = $this->classes->all();
-        $rows = $this->classes->flattened();
-        $objectsByClass = $this->safeObjects();
-        $propertyCounts = $this->safeCount(fn (): array => $this->properties->effectiveCounts($allClasses));
-        $methodCounts = $this->safeCount(fn (): array => $this->methods->effectiveCounts($allClasses));
-        $objectCounts = $this->safeCount(fn (): array => $this->objects->countsByClass());
-
-        $childrenByParent = [];
-        foreach ($allClasses as $class) {
-            $parentId = (int)$class['parent_id'];
-            if ($parentId > 0) {
-                $childrenByParent[$parentId][] = (int)$class['id'];
-            }
-        }
-        $subtreeObjectCounts = [];
-        $visiting = [];
-        $subtree = function (int $classId) use (
-            &$subtree,
-            &$subtreeObjectCounts,
-            &$visiting,
-            $childrenByParent,
-            $objectCounts
-        ): int {
-            if (isset($subtreeObjectCounts[$classId])) {
-                return $subtreeObjectCounts[$classId];
-            }
-            if (isset($visiting[$classId])) {
-                return 0;
-            }
-            $visiting[$classId] = true;
-            $total = (int)($objectCounts[$classId] ?? 0);
-            foreach ($childrenByParent[$classId] ?? [] as $childId) {
-                $total += $subtree($childId);
-            }
-            unset($visiting[$classId]);
-
-            return $subtreeObjectCounts[$classId] = $total;
-        };
-        foreach ($allClasses as $class) {
-            $subtree((int)$class['id']);
-        }
-
-        $treeClasses = [];
-        $treeObjects = [];
-        foreach ($rows as $row) {
-            $classId = (int)$row['id'];
-            $classObjects = $objectsByClass[$classId] ?? [];
-            $treeClasses[] = [
-                'id' => $classId,
-                'parent_id' => (int)$row['parent_id'],
-                'depth' => (int)$row['depth'],
-                'title' => (string)$row['title'],
-                'description' => (string)$row['description'],
-                'path' => (string)$row['path'],
-                'has_children' => (bool)$row['has_children'],
-                'children_count' => (int)$row['children_count'],
-                'objects_count' => count($classObjects),
-                'objects_deep_count' => (int)($subtreeObjectCounts[$classId] ?? 0),
-            ];
-            $treeObjects[(string)$classId] = array_map(
-                static fn (array $object): array => [
-                    'id' => (int)$object['id'],
-                    'title' => (string)$object['title'],
-                    'description' => (string)$object['description'],
-                    'location_id' => (int)$object['location_id'],
-                    'location_title' => (string)$object['location_title'],
-                ],
-                $classObjects
-            );
-        }
-
-        $content = $this->view->make('pages.classes.index', [
-            'rows' => $rows,
-            'classes' => $allClasses,
-            'objectsByClass' => $objectsByClass,
-            'propertyCounts' => $propertyCounts,
-            'methodCounts' => $methodCounts,
-            'objectCounts' => $objectCounts,
-            'subtreeObjectCounts' => $subtreeObjectCounts,
-            'tree' => [
-                'query' => $search,
-                'classes' => $treeClasses,
-                'objects' => (object)$treeObjects,
-            ],
-            'totalObjects' => array_sum($objectCounts),
-            'totalProperties' => array_sum(array_column($propertyCounts, 'own')),
-            'totalMethods' => array_sum(array_column($methodCounts, 'own')),
-            'totalSubclasses' => count(array_filter($allClasses, static fn (array $class): bool => (int)$class['parent_id'] > 0)),
-            'rootClasses' => count(array_filter($allClasses, static fn (array $class): bool => (int)$class['parent_id'] === 0)),
+        $data = $this->catalog->data();
+        $data['tree']['query'] = $search;
+        $data['tree']['storageKey'] = 'mydomo.classes.expanded.' . ($this->session->user()['id'] ?? 0);
+        $content = $this->view->make('pages.classes.index', $data + [
             'search' => $search,
             'error' => $this->pullError(),
             'csrf' => $this->session->csrfToken(),
@@ -170,7 +88,7 @@ final readonly class ClassesController extends Controller
             return $this->form(null, $error->getMessage(), $request->request->all(), 422);
         }
 
-        return new RedirectResponse('/classes/' . $id . '/edit');
+        return $this->panel->redirect('/classes/' . $id . '/edit', 'Класс создан.');
     }
 
     public function edit(string $id, Request $request): Response
@@ -204,9 +122,11 @@ final readonly class ClassesController extends Controller
             return $this->form($class, $error->getMessage(), $request->request->all(), 422, 'overview');
         }
 
-        $this->rememberRename((string)$class['title'], (string)$request->request->get('title', ''));
-
-        return new RedirectResponse('/classes/' . $id . '/edit');
+        return $this->panel->redirect('/classes/' . $id . '/edit', $this->renames->message(
+            (string)$class['title'],
+            (string)$request->request->get('title', ''),
+            'Класс сохранён.'
+        ));
     }
 
     public function delete(string $id): Response
@@ -219,7 +139,10 @@ final readonly class ClassesController extends Controller
             return new RedirectResponse('/classes/' . $id . '/edit');
         }
 
-        return new RedirectResponse('/classes');
+        return $this->panel->redirect(
+            '/classes',
+            'Класс удалён.'
+        );
     }
 
     /**
@@ -265,7 +188,7 @@ final readonly class ClassesController extends Controller
             'properties' => $properties,
             'methods' => $methods,
             'objects' => $objects,
-            'propertyBindings' => $this->safeBindings(array_column($properties, 'id')),
+            'propertyBindings' => $this->subscriptions->forProperties(array_map('intval', array_column($properties, 'id'))),
             'takenNames' => $this->classes->titles($classId),
             'ownProperties' => count(array_filter($properties, static fn (array $row): bool => $row['origin'] === 'own')),
             'inheritedProperties' => count(array_filter($properties, static fn (array $row): bool => $row['origin'] === 'inherited')),
@@ -288,31 +211,6 @@ final readonly class ClassesController extends Controller
         return $this->panel->render(new PanelPage('Класс не найден', $content, 'classes'), 404);
     }
 
-    /**
-     * @return array<int,list<array{id:int,title:string,location_id:int,location_title:string,description:string}>>
-     */
-    private function safeObjects(): array
-    {
-        try {
-            return $this->objects->groupedByClass();
-        } catch (Throwable) {
-            return [];
-        }
-    }
-
-    /**
-     * @param callable(): array<int,mixed> $callback
-     * @return array<int,mixed>
-     */
-    private function safeCount(callable $callback): array
-    {
-        try {
-            return $callback();
-        } catch (Throwable) {
-            return [];
-        }
-    }
-
     private function pullError(): ?string
     {
         $error = $this->session->get(self::FLASH_ERROR);
@@ -324,32 +222,4 @@ final readonly class ClassesController extends Controller
         return is_string($error) && $error !== '' ? $error : null;
     }
 
-    /**
-     * @param list<int> $propertyIds
-     * @return array<int,list<array{module:string,object_id:int,object_title:string}>>
-     */
-    private function safeBindings(array $propertyIds): array
-    {
-        try {
-            return $this->subscriptions->forProperties(array_map('intval', $propertyIds));
-        } catch (Throwable) {
-            return [];
-        }
-    }
-
-    private function rememberRename(string $old, string $new): void
-    {
-        $old = trim($old);
-        $new = trim($new);
-        if ($old === '' || $old === $new) {
-            return;
-        }
-        $message = 'Имя «' . $old . '» изменено на «' . $new . '». Обновлено ссылок: '
-            . $this->references->changes() . '.';
-        $warnings = $this->references->warnings();
-        if ($warnings !== []) {
-            $message .= ' Не удалось обновить файлов модулей: ' . count($warnings) . ' (подробности в логе).';
-        }
-        $this->session->set('panel.notice', $message);
-    }
 }

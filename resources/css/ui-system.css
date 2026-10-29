@@ -3,6 +3,7 @@
    2026-10-22 — у логотипа появился размер-токен `--md-logo-width` и чистая
    версия вордмарка без мелкой подписи, которая в интерфейсе была нечитаема.
    2026-10-22 — общие логотипы учитывают светлую и тёмную темы.
+   2026-10-29 — поиск и фильтры таблиц используют общую высоту контролов.
    --------------------------------------------------------------------------
    Canonical component layer for new admin pages. It sits on top of Bootstrap
    5, uses the shell tokens and is intentionally namespaced with `md-*` so it
@@ -3169,7 +3170,7 @@ body.md-admin-shell .md-table__search i {
 
 body.md-admin-shell .md-table__search input {
   width: 100%;
-  height: 32px;
+  height: var(--md-ui-control-md);
   padding: 0 10px 0 31px;
   color: var(--md-ui-text);
   background: var(--md-ui-surface-2);
@@ -3186,17 +3187,23 @@ body.md-admin-shell .md-table__search input:focus {
 }
 
 body.md-admin-shell .md-table__filter {
-  height: 32px;
-  padding: 0 28px 0 9px;
+  height: var(--md-ui-control-md);
+  padding: 0 32px 0 11px;
   color: var(--md-ui-text-soft);
   background-color: var(--md-ui-surface);
   border: 1px solid var(--md-ui-border);
-  border-radius: 8px;
-  font: 500 var(--md-ui-fs-xs)/1 var(--md-ui-font);
+  border-radius: var(--md-ui-radius-sm);
+  font: 500 var(--md-ui-fs-sm)/1 var(--md-ui-font);
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 16 16'%3E%3Cpath fill='%23667085' d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 9px center;
+  background-position: right 11px center;
+}
+
+body.md-admin-shell .md-table__filter:focus-visible {
+  outline: 0;
+  border-color: var(--md-ui-primary);
+  box-shadow: 0 0 0 3px var(--md-ui-focus);
 }
 
 [data-bs-theme="dark"] body.md-admin-shell .md-table__filter {
@@ -6577,6 +6584,13 @@ body.md-admin-shell .md-ui-page-footer a:hover {
   body.md-admin-shell .md-table__search {
     flex-basis: 100%;
     max-width: none;
+  }
+
+  body.md-admin-shell .md-table__toolbar .md-input,
+  body.md-admin-shell .md-table__toolbar .md-table__search input,
+  body.md-admin-shell .md-table__toolbar .md-table__filter,
+  body.md-admin-shell .md-table__toolbar .md-btn {
+    min-height: var(--md-ui-control-lg);
   }
 
   body.md-admin-shell [data-md-classes-expand-all] .md-btn__label,
@@ -10008,8 +10022,35 @@ body.md-admin-shell .md-call-flow__stat b {
 }
 
 body.md-admin-shell .md-call-flow__body {
+  position: relative;
   padding: 14px 18px 18px;
   overflow-x: auto;
+}
+
+/* 2026-10-29 — единый слой соединений следует реальным размерам узлов. */
+body.md-admin-shell .md-call-flow__links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  max-width: none;
+  overflow: visible;
+  pointer-events: none;
+  fill: none;
+  stroke: var(--md-flow-line);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+body.md-admin-shell .md-call-flow__links-active {
+  stroke: var(--md-flow-line-active);
+  stroke-width: 2;
+}
+
+body.md-admin-shell .md-call-flow__branch-head {
+  position: relative;
+  z-index: 2;
 }
 
 body.md-admin-shell .md-call-flow__tree,
@@ -10030,6 +10071,8 @@ body.md-admin-shell .md-call-flow__tree > .md-call-flow__node + .md-call-flow__n
 }
 
 body.md-admin-shell .md-call-flow__row {
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: var(--md-flow-dot) minmax(0, 1fr);
   gap: 10px;
@@ -10049,18 +10092,6 @@ body.md-admin-shell .md-call-flow__rail {
   padding-top: 2px;
 }
 
-body.md-admin-shell .md-call-flow__node--has-children.is-expanded > .md-call-flow__row > .md-call-flow__rail::after,
-body.md-admin-shell .md-call-flow__node--has-children:not(.is-collapsed) > .md-call-flow__row > .md-call-flow__rail::after {
-  content: "";
-  position: absolute;
-  left: 10px;
-  top: calc(var(--md-flow-dot) + 2px);
-  bottom: -2px;
-  width: 2px;
-  background: var(--md-flow-line);
-  pointer-events: none;
-  transition: background-color var(--md-ui-transition);
-}
 
 body.md-admin-shell .md-call-flow__toggle {
   position: relative;
@@ -10396,35 +10427,6 @@ body.md-admin-shell .md-call-flow__children > .md-call-flow__node {
   margin-top: 0;
 }
 
-/* Линия-ответвление от ствола к точке дочернего узла */
-body.md-admin-shell .md-call-flow__children > .md-call-flow__node::before {
-  content: "";
-  position: absolute;
-  left: calc(-1 * var(--md-flow-indent));
-  top: -2px;
-  width: calc(var(--md-flow-indent) + 2px);
-  height: calc(var(--md-flow-gap) + var(--md-flow-hit) + 2px);
-  border-left: 2px solid var(--md-flow-line);
-  border-bottom: 2px solid var(--md-flow-line);
-  border-bottom-left-radius: 6px;
-  background: transparent !important;
-  pointer-events: none;
-  transition: border-color var(--md-ui-transition);
-}
-
-/* Вертикальное продолжение ствола к следующим узлам */
-body.md-admin-shell .md-call-flow__children > .md-call-flow__node:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  left: calc(-1 * var(--md-flow-indent));
-  top: calc(var(--md-flow-gap) + var(--md-flow-hit));
-  bottom: -2px;
-  width: 0;
-  border-left: 2px solid var(--md-flow-line);
-  background: transparent !important;
-  pointer-events: none;
-  transition: border-color var(--md-ui-transition);
-}
 
 /* Ветка условия (branches) */
 body.md-admin-shell .md-call-flow__branch {
@@ -10436,66 +10438,6 @@ body.md-admin-shell .md-call-flow__branch {
   border-radius: var(--md-ui-radius-sm);
 }
 
-/* Первая ветка подключается к стволу сверху */
-body.md-admin-shell .md-call-flow__branches > .md-call-flow__branch:first-child::before {
-  content: "";
-  position: absolute;
-  left: calc(-1 * var(--md-flow-indent));
-  top: calc(-1 * var(--md-flow-gap) - 2px);
-  width: calc(var(--md-flow-indent) + 2px);
-  height: calc(var(--md-flow-gap) + 18px + 2px);
-  border-left: 2px solid var(--md-flow-line);
-  border-bottom: 2px solid var(--md-flow-line);
-  border-bottom-left-radius: 6px;
-  background: transparent !important;
-  pointer-events: none;
-  transition: border-color var(--md-ui-transition);
-}
-
-/* Последующие ветки берут ствол от ::after предыдущей без дублирования в зазоре */
-body.md-admin-shell .md-call-flow__branches > .md-call-flow__branch:not(:first-child)::before {
-  content: "";
-  position: absolute;
-  left: calc(-1 * var(--md-flow-indent));
-  top: -2px;
-  width: calc(var(--md-flow-indent) + 2px);
-  height: 20px;
-  border-left: 2px solid var(--md-flow-line);
-  border-bottom: 2px solid var(--md-flow-line);
-  border-bottom-left-radius: 6px;
-  background: transparent !important;
-  pointer-events: none;
-  transition: border-color var(--md-ui-transition);
-}
-
-body.md-admin-shell .md-call-flow__branches > .md-call-flow__branch:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  left: calc(-1 * var(--md-flow-indent));
-  top: 18px;
-  bottom: calc(-1 * var(--md-flow-gap) - 2px);
-  width: 0;
-  border-left: 2px solid var(--md-flow-line);
-  background: transparent !important;
-  pointer-events: none;
-  transition: border-color var(--md-ui-transition);
-}
-
-/* Внутри ветки условия: если есть дочерние шаги, соединяем со списком */
-body.md-admin-shell .md-call-flow__branch--has-children .md-call-flow__branch-head {
-  position: relative;
-}
-
-body.md-admin-shell .md-call-flow__branch--has-children .md-call-flow__branch-head::after {
-  content: "";
-  position: absolute;
-  left: 10px;
-  top: 20px;
-  bottom: -10px;
-  width: 2px;
-  background: var(--md-flow-line);
-  pointer-events: none;
-}
 
 body.md-admin-shell .md-call-flow__branch-subflow {
   position: relative;
@@ -10507,28 +10449,6 @@ body.md-admin-shell .md-call-flow__branch-subflow > .md-call-flow__children {
   padding: 0 0 0 20px;
 }
 
-body.md-admin-shell .md-call-flow__branch-subflow > .md-call-flow__children > .md-call-flow__node::before {
-  left: -20px;
-  width: 22px;
-}
-
-body.md-admin-shell .md-call-flow__branch-subflow > .md-call-flow__children > .md-call-flow__node:not(:last-child)::after {
-  left: -20px;
-}
-
-/* Подсветка линий при наведении */
-body.md-admin-shell .md-call-flow__node:hover > .md-call-flow__row > .md-call-flow__rail::after {
-  background-color: var(--md-flow-line-active);
-}
-
-body.md-admin-shell .md-call-flow__children > .md-call-flow__node:hover::before,
-body.md-admin-shell .md-call-flow__children > .md-call-flow__node:hover::after,
-body.md-admin-shell .md-call-flow__branches > .md-call-flow__branch:hover::before,
-body.md-admin-shell .md-call-flow__branches > .md-call-flow__branch:hover::after {
-  border-color: var(--md-flow-line-active);
-  background: transparent !important;
-  background-color: transparent !important;
-}
 
 /* Выполненная ветка не заливает зелёным всё поддерево: цвет остаётся
    у метки и тонкой полосы слева, иначе глубокая схема превращается в пятно. */
@@ -10762,7 +10682,7 @@ body.md-admin-shell .md-call-flow--compact .md-call-flow__dot {
   body.md-admin-shell .md-call-flow {
     --md-flow-dot: 18px;
     --md-flow-rail: 9px;
-    --md-flow-indent: 18px;
+    --md-flow-indent: 14px;
     --md-flow-indent-neg: -18px;
     --md-flow-gap: 8px;
     --md-flow-gap-neg: -8px;
@@ -10771,14 +10691,10 @@ body.md-admin-shell .md-call-flow--compact .md-call-flow__dot {
 
   body.md-admin-shell .md-call-flow__children,
   body.md-admin-shell .md-call-flow__branches {
-    margin-left: 8px;
+    margin-left: 2px;
     padding-left: var(--md-flow-indent);
   }
 
-  body.md-admin-shell .md-call-flow__node--has-children.is-expanded > .md-call-flow__row > .md-call-flow__rail::after,
-  body.md-admin-shell .md-call-flow__node--has-children:not(.is-collapsed) > .md-call-flow__row > .md-call-flow__rail::after {
-    left: 8px;
-  }
 
   body.md-admin-shell .md-call-flow__expander {
     width: 12px;
@@ -10798,6 +10714,15 @@ body.md-admin-shell .md-call-flow--compact .md-call-flow__dot {
 
   body.md-admin-shell .md-call-flow__body {
     padding: 10px 10px 12px;
+  }
+
+  body.md-admin-shell .md-call-flow__branch-subflow > .md-call-flow__children {
+    padding-left: 14px;
+  }
+
+  body.md-admin-shell .md-call-flow__node.is-deep > .md-call-flow__subflow > .md-call-flow__children {
+    margin-left: 0;
+    padding-left: 10px;
   }
 
   body.md-admin-shell .md-call-flow__footer {

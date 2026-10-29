@@ -8,17 +8,73 @@ use Illuminate\Http\Request;
 use MajorDoMo\Database\Migrator;
 use MajorDoMo\Foundation\Application;
 use MajorDoMo\Http\Session\ArraySession;
+use MajorDoMo\Panel\ClassCatalog;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Раздел «Классы»: дерево, локация у объекта, латинские имена и уникальность.
  *
+ * 2026-10-29 — проверены отказ пакетной записи и диагностика сбоев каталога.
  * 2026-10-27 — проверяются требования владельца: объекты видны дочерними
  * строками дерева на ПК, на телефоне остаётся панель; имя проверяется сразу
  * в форме и отклоняется сервером; класс не привязан к локации.
  */
 final class ClassesUiTest extends TestCase
 {
+    public function testBrokenCatalogReturnsErrorInsteadOfEmptyObjects(): void
+    {
+        $app = $this->boot();
+        $app->database()->schema()->drop('objects');
+
+        self::assertSame(500, $app->handle(Request::create('/classes', 'GET'))->getStatusCode());
+        self::assertSame(500, $app->handle(Request::create('/locations', 'GET'))->getStatusCode());
+    }
+
+    public function testCatalogReadsClassesOnceAndUsesTheSameObjectsForCounts(): void
+    {
+        $app = $this->boot();
+        $connection = $app->database()->connection();
+        $connection->enableQueryLog();
+        $data = $app->container()->make(ClassCatalog::class)->data();
+        $queries = array_filter($connection->getQueryLog(), static fn (array $query): bool => str_contains($query['query'], 'from "classes"'));
+        self::assertCount(1, $queries);
+        self::assertSame(1, $data['totalObjects']);
+        self::assertSame([2 => 1], $data['objectCounts']);
+        self::assertSame([2 => 1, 1 => 1], $data['subtreeObjectCounts']);
+    }
+
+    public function testMalformedValuesAreRejectedWithoutPartialSaveAndDraftIsKept(): void
+    {
+        $app = $this->boot();
+        $response = $app->handle(Request::create('/objects/1/values', 'POST', [
+            '_token' => $app->session()->csrfToken(),
+            'values' => [1 => '27.5', 999 => 'foreign'],
+        ]));
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('27.5', (string)$response->getContent());
+        self::assertSame(0, $app->database()->connection()->table('property_values')->count());
+
+        foreach (['invalid', [1 => ['nested']], [1 => '28', '1junk' => 'invalid']] as $values) {
+            $response = $app->handle(Request::create('/objects/1/values', 'POST', [
+                '_token' => $app->session()->csrfToken(), 'values' => $values,
+            ]));
+            self::assertSame(422, $response->getStatusCode());
+            self::assertSame(0, $app->database()->connection()->table('property_values')->count());
+        }
+    }
+
+    public function testEmptyValueIsSavedAndSuccessUsesOneTimeNotify(): void
+    {
+        $app = $this->boot();
+        $response = $app->handle(Request::create('/objects/1/values', 'POST', [
+            '_token' => $app->session()->csrfToken(), 'values' => [1 => ''],
+        ]));
+        self::assertSame(302, $response->getStatusCode());
+        self::assertSame('', $app->database()->connection()->table('property_values')->value('value'));
+        self::assertStringContainsString('Значения сохранены.', (string)$app->handle(Request::create('/objects/1/edit?tab=properties', 'GET'))->getContent());
+        self::assertStringNotContainsString('Значения сохранены.', (string)$app->handle(Request::create('/objects/1/edit?tab=properties', 'GET'))->getContent());
+    }
+
     public function testClassesPageRendersObjectRowsAndMobilePanel(): void
     {
         $app = $this->boot();

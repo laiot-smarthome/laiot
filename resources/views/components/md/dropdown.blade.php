@@ -3,6 +3,7 @@
     'variant' => 'secondary',
     'size' => 'md',
     'icon' => null,
+    'iconOnly' => false,
     'split' => false,
     'align' => 'left',
     'actionHref' => null,
@@ -18,9 +19,9 @@
 @endphp
 
 <div {{ $attributes->class(['md-kit-dropdown', $split ? 'md-kit-dropdown--split' : null]) }}
-     x-data="{ open: false }"
-     @keydown.escape.stop="open = false; ($refs.trigger || $refs.splitToggle).focus()"
-     @click.outside="open = false">
+     x-data="mdDropdown(@js($align))"
+     @focusout="$nextTick(() => { if (open && !$el.contains(document.activeElement)) close() })"
+     @keydown.escape.stop="close(true)">
     @if ($split)
         <div class="md-btn-group" role="group">
             @if ($actionHref)
@@ -37,7 +38,7 @@
             <button x-ref="splitToggle"
                     type="button"
                     class="{{ implode(' ', $btnClasses) }} md-btn--dropdown-toggle"
-                    @click="open = !open"
+                    @click="toggle()" @keydown.arrow-down.prevent="show(true)"
                     :aria-expanded="open.toString()"
                     aria-label="{{ $label }}: меню"
                     aria-haspopup="true">
@@ -47,21 +48,23 @@
     @else
         <button x-ref="trigger"
                 type="button"
-                class="{{ implode(' ', $btnClasses) }}"
-                @click="open = !open"
+                class="{{ $iconOnly ? 'md-icon-btn' . ($size === 'sm' ? ' md-icon-btn--sm' : '') : implode(' ', $btnClasses) }}"
+                @click="toggle()" @keydown.arrow-down.prevent="show(true)"
+                @if ($iconOnly) aria-label="{{ $label }}" @endif
                 :aria-expanded="open.toString()"
                 aria-haspopup="true">
             @if ($icon)<x-md.icon :name="$icon" class="md-btn__icon" />@endif
-            <span class="md-btn__label">{{ $label }}</span>
-            <x-md.icon name="chevron-down" class="md-btn__icon md-btn__icon--after" />
+            @if (!$iconOnly)
+                <span class="md-btn__label">{{ $label }}</span>
+                <x-md.icon name="chevron-down" class="md-btn__icon md-btn__icon--after" />
+            @endif
         </button>
     @endif
 
-    <div class="md-kit-dropdown__panel {{ $align === 'right' ? 'md-kit-dropdown__panel--right' : '' }}"
-         x-cloak
-         x-show="open"
-         x-transition.opacity
-         @click="if ($event.target.closest('a, button')) open = false">
+    <div class="md-kit-dropdown__panel" popover="auto" x-ref="panel" x-cloak
+         @toggle="open = $event.newState === 'open'"
+         @keydown="move($event)"
+         @click="if ($event.target.closest('a, button')) close()">
         {{ $slot }}
     </div>
 </div>

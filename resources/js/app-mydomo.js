@@ -14,8 +14,10 @@ import {TabulatorFull} from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
 
 import {initTheme} from './mydomo/theme.js';
+import {createToasts} from './mydomo/toasts.js';
 import {initSidebar} from './mydomo/sidebar.js';
 import {initDrawer} from './mydomo/drawer.js';
+import {focusable, trapFocus} from './mydomo/focus.js';
 import {initSearch} from './mydomo/search.js';
 import {initNotifications} from './mydomo/notifications.js';
 import {initMenuAttention} from './mydomo/menu-attention.js';
@@ -27,6 +29,8 @@ import './mydomo/linked-object.js';
 import {initSelects} from './mydomo/selects.js';
 import {registerClassesTree} from './mydomo/classes-tree.js';
 import {registerNameCheck} from './mydomo/name-check.js';
+import {registerDropdown} from './mydomo/dropdown.js';
+import {registerCallFlow} from './mydomo/call-flow.js';
 
 window.Alpine = Alpine;
 
@@ -118,19 +122,16 @@ Alpine.data('mdDialog', (id, storeName = 'mdModal') => ({
         this.$watch('$store.' + storeName + '.open', open => {
             if (open === id) {
                 this.previous = document.activeElement;
-                this.$nextTick(() => this.$refs.dialog.querySelector('button, input, select, textarea, a[href], [tabindex="0"]')?.focus());
+                this.$nextTick(() => (focusable(this.$refs.dialog)[0] || this.$refs.dialog).focus());
             } else if (this.previous) {
-                this.previous.focus();
+                if (this.previous.isConnected) this.previous.focus();
                 this.previous = null;
             }
         });
     },
     trap(event) {
         if (this.$store[storeName].open !== id) return;
-        const items = [...this.$refs.dialog.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')].filter(item => item.getClientRects().length);
-        if (!items.length) { event.preventDefault(); this.$refs.dialog.focus(); return; }
-        if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items[items.length - 1].focus(); }
-        else if (!event.shiftKey && document.activeElement === items[items.length - 1]) { event.preventDefault(); items[0].focus(); }
+        trapFocus(event, this.$refs.dialog);
     },
 }));
 
@@ -179,45 +180,7 @@ Alpine.store('mdDrawer', {
 
 Alpine.store('mdConfirm', initConfirm());
 
-Alpine.store('mdToasts', {
-    items: [],
-    nextId: 0,
-    attentionAt: -Infinity,
-    timers: new Map(),
-    push({title = '', text = '', tone = 'info', duration = null} = {}) {
-        const existing = this.items.find(item => item.title === String(title) && item.text === String(text) && item.tone === tone);
-        if (existing) return existing.id;
-        const id = ++this.nextId;
-        const type = ['info', 'success', 'warning', 'danger'].includes(tone) ? tone : 'info';
-        const timeout = duration === null ? (['warning', 'danger'].includes(type) ? 0 : 5000) : Math.max(0, Number(duration) || 0);
-        this.items.push({id, title: String(title), text: String(text), tone: type, remaining: timeout, started: 0});
-        this.resume(id);
-        const now = Date.now();
-        if (now - this.attentionAt >= 1000) {
-            this.attentionAt = now;
-            window.dispatchEvent(new CustomEvent('md:notify-attention'));
-        }
-        return id;
-    },
-    pause(id) {
-        const item = this.items.find(item => item.id === id);
-        if (!item || !this.timers.has(id)) return;
-        window.clearTimeout(this.timers.get(id));
-        this.timers.delete(id);
-        item.remaining = Math.max(1, item.remaining - (Date.now() - item.started));
-    },
-    resume(id) {
-        const item = this.items.find(item => item.id === id);
-        if (!item || item.remaining <= 0 || this.timers.has(id)) return;
-        item.started = Date.now();
-        this.timers.set(id, window.setTimeout(() => this.remove(id), item.remaining));
-    },
-    remove(id) {
-        window.clearTimeout(this.timers.get(id));
-        this.timers.delete(id);
-        this.items = this.items.filter(item => item.id !== id);
-    },
-});
+Alpine.store('mdToasts', createToasts());
 
 window.addEventListener('md:notify', event => Alpine.store('mdToasts').push(event.detail));
 window.addEventListener('md:notify-attention', () => {
@@ -239,6 +202,8 @@ initChartMounts();
 initYoyoCsrf();
 registerClassesTree(Alpine);
 registerNameCheck(Alpine);
+registerDropdown(Alpine);
+registerCallFlow(Alpine);
 
 Alpine.start();
 initSelects();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MajorDoMo\Foundation\Providers;
 
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use MajorDoMo\Api\Webhooks\WebhookRepository;
 use MajorDoMo\Api\Webhooks\WebhookService;
 use MajorDoMo\Audit\ActionLogger;
@@ -16,6 +17,7 @@ use MajorDoMo\Auth\RoleRepository;
 use MajorDoMo\Auth\UserObjects;
 use MajorDoMo\Auth\UserRepository;
 use MajorDoMo\Classes\ClassRepository;
+use MajorDoMo\Database\DatabaseManager;
 use MajorDoMo\Database\SettingsRepository;
 use MajorDoMo\Docs\KnowledgeBase;
 use MajorDoMo\Events\ModulePropertyHandler;
@@ -36,7 +38,10 @@ use MajorDoMo\Locations\RoomProvisioner;
 use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Methods\MethodRepository;
 use MajorDoMo\Methods\MethodRunner;
+use MajorDoMo\Modules\ModuleManager;
 use MajorDoMo\Notifications\NotificationService;
+use MajorDoMo\Notifications\SayService;
+use MajorDoMo\Notifications\SaySource;
 use MajorDoMo\Objects\ObjectRepository;
 use MajorDoMo\Panel\DashboardStats;
 use MajorDoMo\Properties\PropertyRepository;
@@ -61,11 +66,15 @@ use MajorDoMo\Settings\DatabaseSettingsGuard;
 use MajorDoMo\Settings\EnvFile;
 use MajorDoMo\Settings\SettingsSchema;
 use MajorDoMo\Settings\SettingsService;
+use MajorDoMo\Support\Clock;
 
 /**
  * Репозитории и доменные операции ядра; зависимости собирает контейнер.
  *
  * Изменения:
+ * 2026-10-29 — say получает определение источника и минимальную важность доставки.
+ * 2026-10-29 — центр уведомлений получает окно повторов из конфигурации.
+ * 2026-10-29 — say использует отдельный сервис журнала и фоновой доставки.
  * 2026-10-27 — жизненный цикл объекта пользователя зарегистрирован как сервис.
  * 2026-10-27 — редактор системного окружения зарегистрирован отдельно от DB-настроек.
  * 2026-10-27 — общее долговечное состояние цепочек свойств.
@@ -131,11 +140,26 @@ final class DomainServiceProvider extends ServiceProvider
             AdminAuthenticator::class,
             PanelSearch::class,
             DashboardStats::class,
-            NotificationService::class,
         ] as $service) {
             $this->container->singleton($service);
         }
         $this->container->singleton(KnowledgeBase::class, fn (): KnowledgeBase => new KnowledgeBase($this->app->root() . '/docs'));
+        $this->container->singleton(NotificationService::class, fn (Container $container): NotificationService => new NotificationService(
+            $container->make(DatabaseManager::class),
+            $container->make(ModuleManager::class),
+            $container->make(Clock::class),
+            (int)$this->app->config('notifications.duplicate_window'),
+            $container->make(ValidationFactory::class)
+        ));
+        $this->container->singleton(SaySource::class, fn (): SaySource => new SaySource($this->app->root()));
+        $this->container->singleton(SayService::class, fn (Container $container): SayService => new SayService(
+            $container->make(NotificationService::class),
+            $container->make(DatabaseManager::class),
+            $container->make(SystemEvents::class),
+            $container->make(SaySource::class),
+            $container->make(ValidationFactory::class),
+            (int)$this->app->config('notifications.minimum_importance')
+        ));
         $this->container->singleton(UserCodeDeadline::class, function (): UserCodeDeadline {
             $timeout = (int)$this->app->config('queue.handler_timeout', 5);
             if ($timeout >= (int)$this->app->config('queue.reservation_timeout', 300)) {

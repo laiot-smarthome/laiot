@@ -10,6 +10,8 @@ use RuntimeException;
 /**
  * API-токены: в БД хранится только SHA-256, открытый токен показывается один
  * раз при выпуске.
+ *
+ * 2026-10-29 — выпуск и проверка требуют существующего неудалённого владельца.
  */
 final readonly class ApiTokenRepository
 {
@@ -21,6 +23,9 @@ final readonly class ApiTokenRepository
     {
         if ($userId < 1) {
             throw new RuntimeException('Некорректный пользователь токена.');
+        }
+        if (!$this->database->connection()->table('users')->where('id', $userId)->whereNull('deleted_at')->exists()) {
+            throw new RuntimeException('Пользователь токена не найден или удалён.');
         }
         $name = trim($name);
         if ($name === '' || mb_strlen($name) > 191) {
@@ -80,6 +85,10 @@ final readonly class ApiTokenRepository
         }
 
         $row = $this->database->connection()->table('api_tokens')
+            ->whereExists(static function ($query): void {
+                $query->select('users.id')->from('users')
+                    ->whereColumn('users.id', 'api_tokens.user_id')->whereNull('users.deleted_at');
+            })
             ->where('token_hash', hash('sha256', $token))
             ->whereNull('deleted_at')
             ->whereNull('revoked_at')

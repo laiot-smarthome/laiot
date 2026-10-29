@@ -20,6 +20,7 @@ use MajorDoMo\Logging\ErrorRepository;
  * Yoyo-состояние, без перезагрузки; фильтры и режим списка сохраняются.
  *
  * 2026-10-27 — экран ошибок разделён на список и детали.
+ * 2026-10-29 — Request ID последней записи, фильтры без коллизий hx-vals.
  */
 final class SystemErrors extends Component
 {
@@ -33,8 +34,8 @@ final class SystemErrors extends Component
 
     public int $selectedId = 0;
 
-    /** @var list<string> */
-    protected $props = ['search', 'level', 'flat', 'message', 'selectedId'];
+    /** @var list<string> Поля фильтра приходят из формы, без старых значений в hx-vals. */
+    protected $props = ['flat', 'message', 'selectedId'];
 
     private ?ErrorRepository $errors = null;
 
@@ -72,9 +73,6 @@ final class SystemErrors extends Component
         if ($error === null) {
             return;
         }
-        $this->level = (string)$error['level'];
-        $this->message = (string)$error['message'];
-        $this->flat = true;
         $this->selectedId = $latestId;
     }
 
@@ -185,9 +183,6 @@ final class SystemErrors extends Component
             $groups[$key]['count']++;
             $groups[$key]['last_at'] = max($groups[$key]['last_at'], $row['created_at']);
             $groups[$key]['first_at'] = min($groups[$key]['first_at'], $row['created_at']);
-            if ($row['request_id'] !== '') {
-                $groups[$key]['request_id'] = $row['request_id'];
-            }
         }
         $groups = array_values($groups);
         usort($groups, static fn (array $left, array $right): int => strcmp($right['last_at'], $left['last_at']));

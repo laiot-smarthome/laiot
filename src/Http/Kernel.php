@@ -13,6 +13,7 @@ use MajorDoMo\Logging\ErrorRepository;
 use MajorDoMo\Logging\RequestContext;
 use MajorDoMo\Support\MaintenanceMode;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\Exception\RequestExceptionInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -27,6 +28,7 @@ use Throwable;
  * stack trace в production.
  *
  * Изменения:
+ * 2026-10-29 — некорректная структура запроса возвращает 400, а не ошибку ядра.
  * 2026-10-28 — до установки браузерные страницы уводятся на `/install`,
  *              API отвечает 503 JSON; установленная система работает как раньше.
  * 2026-10-28 — браузерные 404/405/500/503 отдают HTML-страницу с маскотом.
@@ -77,6 +79,8 @@ final readonly class Kernel
         } catch (MethodNotAllowedHttpException $error) {
             $response = $this->error($request, 405, 'method_not_allowed', 'Method Not Allowed', $requestId);
             $response->headers->add($error->getHeaders());
+        } catch (RequestExceptionInterface) {
+            $response = $this->error($request, 400, 'bad_request', 'Bad Request', $requestId);
         } catch (Throwable $error) {
             $this->logger->error('Unhandled request error', [
                 'exception' => $error,

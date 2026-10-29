@@ -12,6 +12,7 @@ use MajorDoMo\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
 /**
+ * 2026-10-29 — токен не переживает удаление владельца; права панели независимы.
  * 2026-10-27 — фикстуры ролей учитывают удалённые назначения и разрешения.
  */
 final class ApiTokenTest extends TestCase
@@ -26,10 +27,17 @@ final class ApiTokenTest extends TestCase
         $this->app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
             'log' => 'php://stderr',
+            'cache' => ['driver' => 'array'],
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
         ]);
         $this->app->boot();
+        SessionFixture::authenticate($this->app);
+        $this->app->database()->connection()->table('users')->insert([
+            'id' => 7, 'username' => 'api-owner', 'name' => 'API owner',
+            'password' => password_hash('fixture-password', PASSWORD_DEFAULT), 'is_admin' => 0,
+            'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
         $this->app->database()->schema()->create('api_tokens', static function (Blueprint $table): void {
             $table->increments('id');
             $table->integer('user_id');
@@ -80,6 +88,34 @@ final class ApiTokenTest extends TestCase
 
         $id = $this->app->database()->connection()->table('api_tokens')->value('id');
         self::assertTrue($this->tokens->revoke((int)$id));
+        self::assertNull($this->tokens->userId($token));
+    }
+
+    public function testDeletedOwnerCannotAuthenticateAndUsageIsNotUpdated(): void
+    {
+        $token = $this->tokens->issue(7, 'test');
+        $connection = $this->app->database()->connection();
+        $connection->table('users')->where('id', 7)->update(['deleted_at' => date('Y-m-d H:i:s')]);
+        $response = $this->app->handle(Request::create('/api/v1/me', 'GET', [], [], [], [
+            'HTTP_ACCEPT' => 'application/json', 'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
+        ]));
+        self::assertSame(401, $response->getStatusCode());
+        self::assertNull($connection->table('api_tokens')->value('last_used_at'));
+
+        $connection->table('users')->where('id', 7)->delete();
+        self::assertNull($this->tokens->userId($token));
+    }
+
+    public function testTokenCannotBeIssuedForMissingOwner(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->tokens->issue(999, 'missing');
+    }
+
+    public function testExpiredTokenIsRejected(): void
+    {
+        $token = $this->tokens->issue(7, 'expired');
+        $this->app->database()->connection()->table('api_tokens')->update(['expires_at' => '2000-01-01 00:00:00']);
         self::assertNull($this->tokens->userId($token));
     }
 

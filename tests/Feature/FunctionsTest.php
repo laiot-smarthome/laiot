@@ -12,6 +12,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Alpha-совместимые функции пользовательских сценариев: методы и скрипты.
+ *
+ * 2026-10-29 — say автоматически различает сценарии, вложенные методы и ядро.
  */
 final class FunctionsTest extends TestCase
 {
@@ -25,6 +27,26 @@ final class FunctionsTest extends TestCase
         self::assertSame(10, runMethod('Кухня.double', ['x' => 5]));
         self::assertSame(10, callMethodSafe('Кухня.double', ['x' => 5]));
         self::assertNull(callMethod('Кухня'));
+    }
+
+    public function testSayDetectsScriptAndNestedMethodSources(): void
+    {
+        $app = $this->boot();
+        $connection = $app->database()->connection();
+        foreach (['2026_10_26_000020_create_notifications.php', '2026_10_29_000001_add_notification_importance.php'] as $file) {
+            $migration = require dirname(__DIR__, 2) . '/database/migrations/' . $file;
+            $migration($connection);
+        }
+        $connection->table('scripts')->where('id', 1)->update([
+            'code' => 'say("Сообщение сценария", 4); return callMethod("Кухня.double");',
+        ]);
+        $connection->table('methods')->where('id', 1)->update([
+            'code' => 'return say("Сообщение метода", 7);',
+        ]);
+        self::assertTrue(runScript(1)['status']);
+        self::assertTrue(say('Сообщение ядра')['status']);
+        self::assertSame(['scripts', 'methods', 'system'], $connection->table('notifications')->orderBy('id')->pluck('module')->all());
+        self::assertSame([4, 7, 5], $connection->table('notifications')->orderBy('id')->pluck('importance')->all());
     }
 
     public function testGetGlobalAndSetGlobalAliases(): void

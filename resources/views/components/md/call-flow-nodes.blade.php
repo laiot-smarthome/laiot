@@ -32,11 +32,10 @@
                 @if ($hasChildren)
                     x-data="{ open: true }"
                     :class="{ 'is-collapsed': !open, 'is-expanded': open }"
-                    @call-flow-collapse.window="open = false"
-                    @call-flow-expand.window="open = true"
+                    @call-flow-set="open = $event.detail.open"
                 @endif>
                 <div class="md-call-flow__row">
-                    <span class="md-call-flow__rail" aria-hidden="true">
+                    <span class="md-call-flow__rail">
                         @if ($hasChildren)
                             <button type="button"
                                     class="md-call-flow__toggle"
@@ -44,13 +43,13 @@
                                     :title="open ? 'Свернуть поддерево' : 'Развернуть поддерево'"
                                     :aria-expanded="open.toString()"
                                     aria-label="{{ $kindLabel }}: переключить ветку">
-                                <span class="md-call-flow__dot"><x-md.icon :name="$kindIcon" /></span>
-                                <span class="md-call-flow__expander" :class="{ 'is-rotated': !open }">
+                                <span class="md-call-flow__dot" aria-hidden="true"><x-md.icon :name="$kindIcon" /></span>
+                                <span class="md-call-flow__expander" aria-hidden="true" :class="{ 'is-rotated': !open }">
                                     <i class="ti ti-chevron-down" aria-hidden="true"></i>
                                 </span>
                             </button>
                         @else
-                            <span class="md-call-flow__dot"><x-md.icon :name="$kindIcon" /></span>
+                            <span class="md-call-flow__dot" aria-hidden="true"><x-md.icon :name="$kindIcon" /></span>
                         @endif
                     </span>
                     <div class="md-call-flow__main">

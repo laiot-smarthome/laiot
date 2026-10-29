@@ -13,6 +13,7 @@ use Throwable;
 /**
  * Классы объектов MyDoMo и их иерархия.
  *
+ * 2026-10-29 — дерево строится также из готового снимка без повторного чтения БД.
  * 2026-10-27 — системный Users нельзя удалить, переименовать или перенести.
  * 2026-10-27 — добавлены parent_id, подклассы и безопасная проверка циклов:
  * класс наследует свойства/методы всех предков, а объекты подкласса остаются
@@ -86,7 +87,15 @@ final readonly class ClassRepository
      */
     public function flattened(string $search = ''): array
     {
-        $classes = $this->all();
+        return $this->flattenedFrom($this->all(), $search);
+    }
+
+    /**
+     * @param list<array{id:int,title:string,parent_id:int,description:string}> $classes
+     * @return list<array{id:int,title:string,parent_id:int,description:string,depth:int,ancestors:list<int>,path:string,has_children:bool,children_count:int}>
+     */
+    public function flattenedFrom(array $classes, string $search = ''): array
+    {
         $byId = [];
         foreach ($classes as $class) {
             $byId[$class['id']] = $class;
