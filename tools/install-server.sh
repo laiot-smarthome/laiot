@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 2026-10-29 — видимые ошибки, цвета, безопасное окружение APT и обнаружение PHP.
 # 2026-10-29 — автоматический swap по RAM до установки панели, без замены чужого swap.
 # 2026-10-29 — готовая FastPanel, выбор сайта/каталога и права публичного ключа APT.
 # 2026-10-29 — итоговая памятка с доступами и путями повторяется после запуска служб.
@@ -16,13 +17,27 @@ SITE_GROUP=$OWNER
 PANEL_EXISTING=no
 TARGET_MODE=new
 STEP='подготовка'
+PHP_BIN=''
+PHP_VERSION=''
+UI_FD=2
+UI_COLOR=no
 
-say() { printf '\n%b\n' "$*"; }
-die() { say "Остановка: $*" >&2; exit 1; }
+ui_line() {
+    local kind=$1 message=$2 output=${3:-1} color=''
+    if [[ $UI_COLOR == yes && -t $output ]]; then
+        case "$kind" in question) color=$'\033[1;36m' ;; success) color=$'\033[1;32m' ;; warning) color=$'\033[1;33m' ;; error) color=$'\033[1;31m' ;; *) color=$'\033[1;34m' ;; esac
+        printf '\n%s%b\033[0m\n' "$color" "$message" >&"$output"
+    else printf '\n%b\n' "$message" >&"$output"; fi
+}
+say() { ui_line info "$*"; }
+die() { ui_line error "Остановка: $*" "$UI_FD"; exit 1; }
 ask() {
     local input_value
-    printf '\n%s [%s]: ' "$2" "$3" >&3
+    ui_line question "$2" 3
+    printf 'Ответ [%s]: ' "$3" >&3
+    if [[ $UI_COLOR == yes ]]; then printf '\033[1;32m' >&3; fi
     IFS= read -r input_value <&3 || die 'Ввод закрыт. Запустите мастер снова в SSH.'
+    if [[ $UI_COLOR == yes ]]; then printf '\033[0m' >&3; fi
     printf -v "$1" '%s' "${input_value:-$3}"
 }
 yesno() {
@@ -67,22 +82,57 @@ run_step() {
     shift 2
     STEP=$title
     if [[ -f $STATE/$id.done ]]; then
-        say "✓ $title — уже выполнено"
+        ui_line success "✓ $title — уже выполнено"
         return
     fi
     say "→ $title. Это может занять несколько минут."
     "$@" >> "$STATE/details.log" 2>&1
     checkpoint "$id"
-    say "✓ $title"
+    ui_line success "✓ $title"
 }
 failed() {
+    local status=$?
     trap - ERR
-    printf '\nУстановка остановилась на этапе «%s».\n' "$STEP" >&2
-    printf 'Подробности: %s/details.log (доступен только root).\n' "$STATE" >&2
-    printf 'После устранения причины запустите этот же файл: выполненные этапы сохраняются.\n' >&2
+    # Отдельный дескриптор не наследует перенаправление run_step в журнал.
+    ui_line error "Не удалось завершить: $STEP (код $status)." "$UI_FD"
+    printf 'Подробности: %s/details.log\n' "$STATE" >&"$UI_FD"
+    printf 'Исправьте причину и запустите мастер снова: завершённые этапы сохраняются.\n' >&"$UI_FD"
     exit 1
 }
 as_owner() { (umask 022; runuser -u "$OWNER" -- env -u TMPDIR PATH=/opt/laiot-node/bin:/usr/local/bin:/usr/bin:/bin "$@"); }
+system_apt() (
+    # Пакетные скрипты запускают mysql/_apt: приватный TMPDIR root им недоступен.
+    umask 022
+    unset TMPDIR TMP TEMP
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get "$@"
+)
+detect_php() {
+    local candidate info
+    local -a candidates=()
+    if command -v php >/dev/null; then candidates+=("$(command -v php)"); fi
+    candidates+=(/usr/bin/php[0-9]* /opt/php*/bin/php)
+    for candidate in "${candidates[@]}"; do
+        [[ -x $candidate ]] || continue
+        if info=$("$candidate" -r 'if (PHP_SAPI !== "cli" || PHP_VERSION_ID < 80200) exit(1); echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;'); then
+            [[ $info =~ ^[0-9]+\.[0-9]+$ ]] || continue
+            PHP_BIN=$(readlink -f -- "$candidate")
+            [[ $PHP_BIN =~ ^/[a-zA-Z0-9_./-]+$ ]] || continue
+            PHP_VERSION=$info
+            return 0
+        fi
+    done
+    return 1
+}
+choose_php() {
+    STEP='проверка установленного PHP'
+    while ! detect_php; do
+        ui_line warning 'PHP 8.2 или новее для приложения пока не найден. В FastPanel откройте «Приложения» и установите подходящий PHP.'
+        pause 'После установки PHP вернитесь сюда'
+    done
+    ui_line success "Используем установленный PHP $PHP_VERSION."
+    save_answers
+}
 
 swap_target_mib() {
     local ram_kib=$1 gib
@@ -94,7 +144,7 @@ swap_target_mib() {
 }
 swap_total_bytes() {
     local sizes
-    sizes=$(swapon --show --bytes --noheadings --output SIZE)
+    sizes=$(swapon --show=SIZE --bytes --noheadings --raw)
     awk '{total += $1} END {printf "%.0f\n", total}' <<< "$sizes"
 }
 persist_swap() {
@@ -119,7 +169,7 @@ configure_swap() {
     STEP='настройка swap'
     target=$(swap_target_mib "$(awk '$1 == "MemTotal:" {print $2}' "$meminfo")")
     active=$(swap_total_bytes)
-    names=$(swapon --show --noheadings --raw --output NAME)
+    names=$(swapon --show=NAME --noheadings --raw)
     # Заголовок swap занимает страницу: допуск 1 MiB предотвращает лишние файлы при повторе.
     if (( active + mib >= target * mib )) && { [[ ! -f $STATE/swap-plan ]] || ! grep -Fxq -- "$file" <<< "$names"; }; then
         printf 'Swap: уже достаточно, активно %s MiB, цель %s MiB.\n' "$((active / mib))" "$target" | tee "$STATE/swap-summary"
@@ -170,7 +220,7 @@ configure_swap() {
 
 save_answers() {
     local name
-    local names=(MODE DOMAIN SERVER_IP MQTT MQTT_LAN ZIGBEE BROKER BRANCH CLEANUP PANEL_EXISTING TARGET_MODE OWNER SITE_GROUP BASE APP SCHEME)
+    local names=(MODE DOMAIN SERVER_IP MQTT MQTT_LAN ZIGBEE BROKER BRANCH CLEANUP PANEL_EXISTING TARGET_MODE OWNER SITE_GROUP BASE APP SCHEME PHP_BIN PHP_VERSION)
     for name in "${names[@]}"; do printf '%s=%q\n' "$name" "${!name-}"; done > "$STATE/answers.new"
     mv -- "$STATE/answers.new" "$STATE/answers"
 }
@@ -356,7 +406,7 @@ cleanup_apps() {
     say 'SSH, сеть и рабочий стол сохраняются. Это освобождает диск; память — только если эти приложения были запущены.'
     yesno answer 'Удалить перечисленные пакеты? Отмена оставит их на месте' нет
     if [[ $answer == yes ]]; then
-        apt-get purge -y "${candidates[@]}" >> "$STATE/details.log" 2>&1
+        system_apt purge -y "${candidates[@]}" >> "$STATE/details.log" 2>&1
         say 'Выбранные программы удалены. Общая очистка зависимостей не выполнялась.'
     fi
     checkpoint cleanup
@@ -375,9 +425,10 @@ panel() (
     # APT читает публичные файлы от _apt: режим 077 для них непригоден.
     # Маска меняется только в дочернем процессе официального установщика.
     umask 022
+    unset TMPDIR TMP TEMP
     repair_panel_apt
-    apt-get update
-    apt-get install -y ca-certificates curl wget openssl
+    system_apt update
+    system_apt install -y ca-certificates curl wget openssl
     curl --fail --show-error --location --proto '=https' --tlsv1.2 \
         https://repo.fastpanel.direct/install_fastpanel.sh -o "$STATE/fastpanel.sh"
     chmod 600 "$STATE/fastpanel.sh"
@@ -386,10 +437,14 @@ panel() (
     command -v mogwai
 )
 packages() {
-    apt-get update
-    apt-get install -y git unzip xz-utils build-essential libsystemd-dev redis-server \
-        php8.3-cli php8.3-mysql php8.3-mbstring php8.3-intl php8.3-curl php8.3-xml php8.3-zip
-    php8.3 -r 'exit(PHP_VERSION_ID >= 80300 && extension_loaded("pcntl") && extension_loaded("pdo_mysql") ? 0 : 1);'
+    system_apt update
+    system_apt install -y git unzip xz-utils build-essential libsystemd-dev redis-server
+    if [[ $PHP_BIN == /usr/bin/php* ]]; then
+        # Дополняем выбранную версию; другую ветку PHP автоматически не ставим.
+        system_apt install -y "php$PHP_VERSION-fpm" "php$PHP_VERSION-mysql" "php$PHP_VERSION-mbstring" \
+            "php$PHP_VERSION-intl" "php$PHP_VERSION-curl" "php$PHP_VERSION-xml" "php$PHP_VERSION-zip"
+    fi
+    "$PHP_BIN" -r '$missing = array_filter(["pdo_mysql","mbstring","intl","curl","dom","zip","pcntl","posix"], fn($e) => !extension_loaded($e)); if ($missing) {fwrite(STDERR,"Нет расширений PHP: ".implode(", ",$missing).PHP_EOL); exit(1);}'
     systemctl enable --now redis-server
     [[ $(redis-cli -h 127.0.0.1 ping) == PONG ]]
     # Проверяем фактический bind: Redis не должен стать публичным сервисом.
@@ -406,7 +461,7 @@ site() {
     if [[ -z $selected && $TARGET_MODE == new ]]; then
         if ! id "$OWNER" >/dev/null 2>&1; then flags+=(--create-user); fi
         mogwai sites create --server-name="$DOMAIN" --owner="$OWNER" "${flags[@]}" \
-            --ip="$SERVER_IP" --handler=php_fpm --handler_version=8.3
+            --ip="$SERVER_IP" --handler=php_fpm --handler_version="$PHP_VERSION"
         listing=$(mogwai sites list)
         rows=$(site_rows <<< "$listing")
         selected=$(awk -F '\t' -v domain="$DOMAIN" '$2 == domain' <<< "$rows")
@@ -447,13 +502,14 @@ application() {
     curl -fsSL --proto '=https' https://getcomposer.org/installer -o "$STATE/composer-setup.php"
     local expected actual
     expected=$(curl -fsSL --proto '=https' https://composer.github.io/installer.sig)
-    actual=$(php8.3 -r 'echo hash_file("sha384", $argv[1]);' "$STATE/composer-setup.php")
+    actual=$("$PHP_BIN" -r 'echo hash_file("sha384", $argv[1]);' "$STATE/composer-setup.php")
     [[ $expected == "$actual" ]]
     install -d -m 755 /opt/laiot-composer
-    php8.3 "$STATE/composer-setup.php" --install-dir=/opt/laiot-composer --filename=composer
+    "$PHP_BIN" "$STATE/composer-setup.php" --install-dir=/opt/laiot-composer --filename=composer
     chmod 755 /opt/laiot-composer/composer
     if ! command -v composer >/dev/null; then ln -s /opt/laiot-composer/composer /usr/local/bin/composer; fi
-    as_owner php8.3 /opt/laiot-composer/composer install --working-dir="$APP" --no-dev --prefer-dist --no-interaction --optimize-autoloader
+    as_owner "$PHP_BIN" /opt/laiot-composer/composer install --working-dir="$APP" --no-dev --prefer-dist --no-interaction --optimize-autoloader
+    as_owner "$PHP_BIN" /opt/laiot-composer/composer check-platform-reqs --no-dev --working-dir="$APP"
     (cd "$APP"; as_owner npm ci; as_owner npm run build)
     # Ключ должен совпадать с контрактом веб-мастера; .env здесь не создаётся.
     install -d -o "$OWNER" -g "$SITE_GROUP" -m 750 "$APP/var"
@@ -475,10 +531,10 @@ database() {
             --site="$DOMAIN" --username=laiot_app --password="$password"
     fi
     # Убеждаемся, что существующая база действительно наша.
-    DB_PASS="$password" php8.3 -r 'new PDO("mysql:host=127.0.0.1;dbname=laiot_app", "laiot_app", getenv("DB_PASS"));'
+    DB_PASS="$password" "$PHP_BIN" -r 'new PDO("mysql:host=127.0.0.1;dbname=laiot_app", "laiot_app", getenv("DB_PASS"));'
 }
 mosquitto() {
-    apt-get install -y mosquitto mosquitto-clients
+    system_apt install -y mosquitto mosquitto-clients
     if [[ ! -f $STATE/mqtt-password ]]; then secret > "$STATE/mqtt-password"; fi
     local password
     password=$(< "$STATE/mqtt-password")
@@ -540,7 +596,7 @@ units() {
     install -d -m 755 /etc/laiot
     install -m 600 "$STATE/agent.json" /etc/laiot/agent.json
     for file in laiot-core@.service laiot-worker@.service laiot-agent.service; do
-        sed -e "s|@@ROOT@@|$BASE|g" -e "s|@@USER@@|$OWNER|g" -e "s|@@GROUP@@|$SITE_GROUP|g" -e 's|/usr/bin/php |/usr/bin/php8.3 |g' \
+        sed -e "s|@@ROOT@@|$BASE|g" -e "s|@@USER@@|$OWNER|g" -e "s|@@GROUP@@|$SITE_GROUP|g" -e "s|/usr/bin/php |$PHP_BIN |g" \
             "$APP/deploy/systemd/$file" > "/etc/systemd/system/$file"
         chmod 644 "/etc/systemd/system/$file"
     done
@@ -549,7 +605,7 @@ units() {
 }
 web_setup() {
     say "Откройте FastPanel: https://$SERVER_IP:8888\nСайт $DOMAIN уже создан. В его настройках:"
-    say "1. Выберите PHP 8.3, PHP-FPM и включите mbstring, intl, curl, pdo_mysql, xml, zip.\n2. Корневой каталог сайта: $APP/public\n3. В настройках обработки запросов включите перенаправление отсутствующих файлов на /index.php."
+    say "1. Выберите PHP $PHP_VERSION, PHP-FPM и включите mbstring, intl, curl, pdo_mysql, xml, zip.\n2. Корневой каталог сайта: $APP/public\n3. В настройках обработки запросов включите перенаправление отсутствующих файлов на /index.php."
     say 'Для nginx правило: try_files $uri $uri/ /index.php?$query_string;'
     if [[ $MODE == local ]]; then
         say "На роутере добавьте DNS-запись $DOMAIN → $SERVER_IP.\nИли на каждом устройстве добавьте в hosts строку: $SERVER_IP $DOMAIN\nПроброс портов на роутере не требуется."
@@ -659,6 +715,9 @@ main() {
     [[ $EUID == 0 && $(id -un) == root ]] || die 'Установку нужно запускать под пользователем root.'
     [[ -t 0 || -r /dev/tty ]] || die 'Нужен интерактивный SSH-сеанс.'
     exec 3<>/dev/tty
+    exec 4>/dev/tty
+    UI_FD=4
+    if [[ -t 3 && ${TERM:-dumb} != dumb && ! ${NO_COLOR+x} ]]; then UI_COLOR=yes; fi
     [[ -f /etc/os-release ]] || die 'Не удалось определить ОС.'
     # shellcheck disable=SC1091
     source /etc/os-release
@@ -687,8 +746,7 @@ main() {
     touch "$STATE/details.log"
     chmod 600 "$STATE/details.log"
     install -d -m 700 "$STATE/tmp"
-    # Внешние утилиты root также используют временный каталог в /root.
-    export TMPDIR="$STATE/tmp"
+    # Собственные загрузки используют явные пути STATE; TMPDIR не навязываем чужим службам.
     trap failed ERR
     if [[ ${CLEANUP:-no} == yes && ! -f $STATE/cleanup.done ]]; then cleanup_apps; fi
     say 'Подготавливаем swap по объёму оперативной памяти.'
@@ -701,13 +759,14 @@ main() {
         if [[ $PANEL_EXISTING == no ]]; then
             if [[ ! -f $STATE/panel-password ]]; then secret > "$STATE/panel-password"; fi
             mogwai chpasswd -u fastuser -p "$(< "$STATE/panel-password")" >> "$STATE/details.log" 2>&1
-            say "Откройте https://$SERVER_IP:8888\nЛогин: fastuser\nПароль: $(< "$STATE/panel-password")\nАктивируйте лицензию по email. В разделе приложений установите PHP 8.3 для сайтов."
+            say "Откройте https://$SERVER_IP:8888\nЛогин: fastuser\nПароль: $(< "$STATE/panel-password")\nАктивируйте лицензию по email."
         else
-            say "Откройте https://$SERVER_IP:8888 под своей учётной записью.\nПроверьте лицензию и наличие PHP 8.3 для сайтов. Прежний пароль панели сохраняется."
+            say "Готовая FastPanel обнаружена. Прежние данные входа сохраняются."
         fi
-        pause 'После активации панели и установки PHP вернитесь сюда'
+        if [[ $PANEL_EXISTING == no ]]; then pause 'После активации панели вернитесь сюда'; fi
         checkpoint license
     fi
+    choose_php
     if [[ ! -f $STATE/target.done ]]; then
         if [[ -f $STATE/site.done ]]; then
             # Состояние старой версии: не спрашиваем новый путь уже созданной установки.

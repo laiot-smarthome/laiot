@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 2026-10-29 — независимый вывод ошибок, окружение APT и обнаружение PHP.
 # 2026-10-29 — swap: RAM, существующий объём, повтор/перезагрузка и отказ при нехватке диска.
 # 2026-10-29 — существующий сайт, безопасные пути и права APT без отключения подписей.
 # 2026-10-29 — итоговые доступы, пути, приватность и повторная генерация памятки.
@@ -23,6 +24,7 @@ cleanup_test() {
         "$test_directory/application/.env"
     rm -f "$test_directory/apt-key.asc" "$test_directory/apt-source.list" \
         "$test_directory/child-mask" "$test_directory/fastpanel.sh" "$test_directory/site-trace" \
+        "$test_directory/failure-visible.txt" "$test_directory/apt-environment.txt" \
         "$test_directory/site-created" "$test_directory/answers" "$test_directory/terminal-panel.txt" \
         "$test_directory/data/link"
     if [[ -d $test_directory/data/busy ]]; then
@@ -55,10 +57,10 @@ trap cleanup_test EXIT
     # Меняются только файлы фикстуры. Реальный swapon/systemctl никогда не вызываются.
     swapon() {
         case "$*" in
-            '--show --bytes --noheadings --output SIZE')
+            '--show=SIZE --bytes --noheadings --raw')
                 printf '%s\n' "$EXISTING_BYTES"
                 if [[ -f $STATE/enabled ]]; then stat -c %s "$file"; fi ;;
-            '--show --noheadings --raw --output NAME')
+            '--show=NAME --noheadings --raw')
                 printf '/dev/existing\n'
                 if [[ -f $STATE/enabled ]]; then printf '%s\n' "$file"; fi ;;
             "-- $file")
@@ -138,6 +140,20 @@ if bash -c 'source "$1"; STATE="$2"; run_step broken test bash -c "exit 7"' _ "$
     echo 'Ошибка этапа не остановила установку'; exit 1
 fi
 [[ ! -e $STATE/broken.done ]]
+if bash -c 'source "$1"; STATE="$2"; exec 4>"$STATE/failure-visible.txt"; UI_FD=4; trap failed ERR; broken_step() { echo "APT test failure" >&2; false; }; run_step hidden "Установка пакетов" broken_step' _ "$script" "$STATE" > "$STATE/failure.txt" 2>&1; then
+    echo 'Ошибка вложенного этапа не остановила мастер'; exit 1
+fi
+grep -Fq 'Не удалось завершить: Установка пакетов' "$STATE/failure-visible.txt"
+grep -Fq 'APT test failure' "$STATE/details.log"
+[[ ! -e $STATE/hidden.done ]]
+(
+    export TMPDIR=/root/private TMP=/root/private TEMP=/root/private
+    apt-get() { printf '%s %s %s %s' "$(umask)" "${TMPDIR-unset}" "${TMP-unset}" "${TEMP-unset}" > "$STATE/apt-environment.txt"; }
+    system_apt update
+    [[ $(< "$STATE/apt-environment.txt") == '0022 unset unset unset' ]]
+    [[ $TMPDIR == /root/private && $(umask) == 0077 ]]
+)
+PHP_VERSION=8.3
 
 # APT и ввод подменены: тест никогда не удаляет настоящие пакеты.
 dpkg-query() { printf 'ii libreoffice-writer\nii openssh-server\n'; }
