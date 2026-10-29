@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 2026-10-29 — автоматическая FastPanel, штатный агент, nginx/FPM и памятка в SSH.
 # 2026-10-29 — видимые ошибки, цвета, безопасное окружение APT и обнаружение PHP.
 # 2026-10-29 — автоматический swap по RAM до установки панели, без замены чужого swap.
 # 2026-10-29 — готовая FastPanel, выбор сайта/каталога и права публичного ключа APT.
@@ -21,6 +22,9 @@ PHP_BIN=''
 PHP_VERSION=''
 UI_FD=2
 UI_COLOR=no
+SITE_ID=''
+SITE_DOCROOT=''
+TLS_EMAIL=''
 
 ui_line() {
     local kind=$1 message=$2 output=${3:-1} color=''
@@ -100,6 +104,7 @@ failed() {
     exit 1
 }
 as_owner() { (umask 022; runuser -u "$OWNER" -- env -u TMPDIR PATH=/opt/laiot-node/bin:/usr/local/bin:/usr/bin:/bin "$@"); }
+panel_cli() ( umask 022; unset TMPDIR TMP TEMP; mogwai "$@"; )
 system_apt() (
     # Пакетные скрипты запускают mysql/_apt: приватный TMPDIR root им недоступен.
     umask 022
@@ -220,7 +225,7 @@ configure_swap() {
 
 save_answers() {
     local name
-    local names=(MODE DOMAIN SERVER_IP MQTT MQTT_LAN ZIGBEE BROKER BRANCH CLEANUP PANEL_EXISTING TARGET_MODE OWNER SITE_GROUP BASE APP SCHEME PHP_BIN PHP_VERSION)
+    local names=(MODE DOMAIN SERVER_IP MQTT MQTT_LAN ZIGBEE BROKER BRANCH CLEANUP PANEL_EXISTING TARGET_MODE OWNER SITE_GROUP BASE APP SCHEME PHP_BIN PHP_VERSION SITE_ID SITE_DOCROOT TLS_EMAIL)
     for name in "${names[@]}"; do printf '%s=%q\n' "$name" "${!name-}"; done > "$STATE/answers.new"
     mv -- "$STATE/answers.new" "$STATE/answers"
 }
@@ -242,15 +247,21 @@ site_rows() {
 }
 valid_owner() { [[ $1 =~ ^[a-z_][a-z0-9_-]{0,63}$ && $1 != root ]]; }
 valid_base() {
-    local candidate=$1 data=$2 root
+    local candidate=$1 data=$2 root selected=${4:-}
     [[ $candidate == "$data/"* && $candidate =~ ^/[a-zA-Z0-9_./-]+$ ]] || return 1
     [[ $(realpath -m -- "$candidate") == "$candidate" ]] || return 1
-    # Исходники, vendor и будущий .env не должны оказаться в открытом каталоге сайта.
+    # Разрешён корень выбранного сайта: nginx переключится на current/public
+    # до копирования исходников. Остальные сайты остаются вне установки.
     while IFS= read -r root; do
         [[ -n $root ]] || continue
         root=$(realpath -m -- "$root")
+        [[ $root != "$selected" ]] || continue
         [[ $candidate != "$root" && $candidate != "$root/"* && $root != "$candidate/"* ]] || return 1
     done <<< "${3:-}"
+    if [[ $candidate == "$selected" && -d $candidate ]]; then
+        [[ ! -e $candidate/current && ! -L $candidate/current && ! -e $candidate/shared && ! -L $candidate/shared ]]
+        return
+    fi
     [[ ! -e $candidate || -d $candidate && -z $(find "$candidate" -mindepth 1 -maxdepth 1 -print -quit) ]]
 }
 target_questions() {
@@ -269,6 +280,8 @@ target_questions() {
                     row=$(awk -F '\t' -v id="$choice" '$1 == id' <<< "$rows")
                     [[ -n $row ]] || { say 'Такого ID нет в списке.'; continue; }
                     IFS=$'\t' read -r choice DOMAIN OWNER candidate root_list <<< "$row"
+                    SITE_ID=$choice
+                    SITE_DOCROOT=$candidate
                     TARGET_MODE=existing
                     valid_owner "$OWNER" && id "$OWNER" >/dev/null 2>&1 || die 'У сайта неподходящий системный владелец.'
                     break ;;
@@ -303,17 +316,16 @@ target_questions() {
         [[ -d $data && $(stat -c %u "$data") == "$(id -u "$OWNER")" ]] || die 'Каталог data не принадлежит выбранному пользователю FastPanel.'
         SITE_GROUP=$(id -gn "$OWNER")
     else SITE_GROUP=$OWNER; fi
-    default_base="$data/apps/$DOMAIN"
+    default_base=${SITE_DOCROOT:-$data/www/$DOMAIN}
+    SITE_DOCROOT=$default_base
     root_list=$(cut -f4 <<< "$rows")
-    # Даже для нового сайта стандартная папка www остаётся только публичным корнем.
-    root_list+=$'\n'"$data/www"
     while :; do
-        ask BASE 'Каталог установки (отдельный пустой каталог, вне www)' "$default_base"
-        valid_base "$BASE" "$data" "$root_list" && break
-        say "Нужен новый или пустой каталог внутри $data, вне корней сайтов и без символических ссылок."
+        ask BASE 'Каталог выбранного сайта (прежние файлы сохраняются)' "$default_base"
+        [[ $BASE == "$SITE_DOCROOT" ]] && valid_base "$BASE" "$data" "$root_list" "$SITE_DOCROOT" && break
+        say "Используйте каталог выбранного сайта $SITE_DOCROOT, без ссылок и прежних current/shared."
     done
     APP=$BASE/current
-    say "Сайт: $DOMAIN; владелец: $OWNER; каталог: $BASE\nВ панели корень сайта потребуется направить на $APP/public."
+    say "Сайт: $DOMAIN; пользователь: $OWNER; каталог: $BASE\nПубличный каталог, PHP и маршрутизацию настроим автоматически."
     yesno choice 'Использовать выбранный сайт и каталог?' нет
     [[ $choice == yes ]] || die 'Выбор отменён. Повторный запуск позволит выбрать заново.'
     save_answers
@@ -339,6 +351,13 @@ questions() {
             die 'Для публичного режима нужен ваш зарегистрированный домен. Запустите мастер снова.'
         fi
     else DOMAIN=''; fi
+    if [[ $MODE == public ]]; then
+        while :; do
+            ask TLS_EMAIL 'Email для HTTPS-сертификата Let’s Encrypt и уведомлений' ''
+            [[ $TLS_EMAIL =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] && break
+            say 'Укажите действующий email.'
+        done
+    fi
     default_ip=$(hostname -I | awk '{print $1}')
     say 'Адреса этого сервера:'
     ip -o -4 addr show scope global | awk '{print $2, $4}'
@@ -460,15 +479,18 @@ site() {
     selected=$(awk -F '\t' -v domain="$DOMAIN" '$2 == domain' <<< "$rows")
     if [[ -z $selected && $TARGET_MODE == new ]]; then
         if ! id "$OWNER" >/dev/null 2>&1; then flags+=(--create-user); fi
-        mogwai sites create --server-name="$DOMAIN" --owner="$OWNER" "${flags[@]}" \
+        panel_cli sites create --server-name="$DOMAIN" --owner="$OWNER" "${flags[@]}" \
             --ip="$SERVER_IP" --handler=php_fpm --handler_version="$PHP_VERSION"
         listing=$(mogwai sites list)
         rows=$(site_rows <<< "$listing")
         selected=$(awk -F '\t' -v domain="$DOMAIN" '$2 == domain' <<< "$rows")
     fi
     [[ $(cut -f3 <<< "$selected") == "$OWNER" ]] || die 'Сайт отсутствует в панели или принадлежит другому пользователю.'
+    SITE_ID=$(cut -f1 <<< "$selected")
+    SITE_DOCROOT=$(cut -f4 <<< "$selected")
+    [[ $SITE_ID =~ ^[1-9][0-9]*$ ]] || die 'Не удалось определить ID сайта.'
     SITE_GROUP=$(id -gn "$OWNER")
-    valid_base "$BASE" "/var/www/$OWNER/data" "$(cut -f4 <<< "$rows")" || die 'Каталог установки занят, содержит ссылку или пересекается с корнем сайта.'
+    valid_base "$BASE" "/var/www/$OWNER/data" "$(cut -f4 <<< "$rows")" "$SITE_DOCROOT" || die 'Каталог установки занят, содержит ссылку или пересекается с другим сайтом.'
     install -d -o "$OWNER" -g "$SITE_GROUP" -m 755 "$BASE"
     install -d -o "$OWNER" -g "$SITE_GROUP" -m 750 "$BASE/shared"
     save_answers
@@ -492,10 +514,86 @@ node_runtime() {
         else ln -s "/opt/laiot-node/bin/$executable" "/usr/local/bin/$executable"; fi
     done
 }
-application() {
-    if [[ ! -d $APP ]]; then
-        as_owner git clone --depth 1 --branch "$BRANCH" "$REPOSITORY" "$APP"
+source_code() (
+    umask 022
+    if [[ ! -d $STATE/source ]]; then
+        git clone --depth 1 --branch "$BRANCH" "$REPOSITORY" "$STATE/source"
     fi
+    [[ -f $STATE/source/deploy/lib/FastPanel.php ]] || die 'В опубликованной beta нет помощника FastPanel. Обновите файлы установщика в GitHub.'
+)
+certificate() {
+    local status attempt
+    [[ $MODE == public ]] || return 0
+    [[ -n $TLS_EMAIL ]] || ask TLS_EMAIL 'Email для HTTPS-сертификата Let’s Encrypt' ''
+    [[ $TLS_EMAIL =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || die 'Не указан корректный email для HTTPS.'
+    save_answers
+    status=$(curl --noproxy '*' --silent --output /dev/null --write-out '%{http_code}' --max-time 10 \
+        --resolve "$DOMAIN:443:$SERVER_IP" "https://$DOMAIN/") || status=000
+    [[ $status == 000 ]] || return 0
+    # Проверка из интернета выполняется центром сертификации. При NAT именно
+    # пользователь управляет DNS/роутером, мастер не может заменить этот шаг.
+    panel_cli certificates create-le --server-name="$DOMAIN" --email="$TLS_EMAIL"
+    for attempt in {1..60}; do
+        status=$(curl --noproxy '*' --silent --output /dev/null --write-out '%{http_code}' --max-time 10 \
+            --resolve "$DOMAIN:443:$SERVER_IP" "https://$DOMAIN/") || status=000
+        [[ $status != 000 ]] && return 0
+        sleep 2
+    done
+    die 'HTTPS ещё не готов. Проверьте A/AAAA домена, доступность 80/443 и журнал выпуска сертификата в FastPanel, затем повторите мастер.'
+}
+revoke_panel_token() {
+    local token_id
+    [[ -s $STATE/panel-api-token.json ]] || return 0
+    token_id=$("$PHP_BIN" -r '$d=json_decode(file_get_contents($argv[1]),true,flags:JSON_THROW_ON_ERROR);echo $d["id"];' "$STATE/panel-api-token.json")
+    [[ $token_id =~ ^[1-9][0-9]*$ ]] || return 1
+    panel_cli users tokens remove --id="$token_id" >> "$STATE/details.log" 2>&1
+    rm -- "$STATE/panel-api-token.json"
+}
+configure_site() (
+    # Токен существует только во время настройки, доступен loopback и удаляется
+    # даже при ошибке. Пароль пользователя сайта для этого не нужен.
+    trap 'revoke_panel_token' EXIT
+    revoke_panel_token
+    panel_cli --json users tokens add --name=laiot-installer --constraint=127.0.0.1 \
+        --expire_at="$(date -u -d tomorrow +%F)" > "$STATE/panel-api-token.json"
+    chmod 600 "$STATE/panel-api-token.json"
+    "$PHP_BIN" -r 'require $argv[1]; (new \LaIOT\Deployment\FastPanel($argv[2]))->configure((int)$argv[3],$argv[4],$argv[5],(int)$argv[6],(int)$argv[7]);' \
+        "$STATE/source/deploy/lib/FastPanel.php" "$STATE" "$SITE_ID" "$APP/public" "$PHP_VERSION" \
+        "$(awk '/^MemTotal:/{printf "%d",$2/1024}' /proc/meminfo)" "$(nproc)"
+)
+prepare_webroot() {
+    local nonce response attempt probe_created=no probe_ok=no probe_scheme=http
+    [[ ${MODE:-local} != public ]] || probe_scheme=https
+    if [[ -f $STATE/probe-nonce ]]; then nonce=$(< "$STATE/probe-nonce")
+    else nonce=$(openssl rand -hex 12); printf '%s\n' "$nonce" > "$STATE/probe-nonce"; fi
+    [[ $nonce =~ ^[a-f0-9]{24}$ ]] || die 'Повреждена запись HTTP-проверки.'
+    install -d -o "$OWNER" -g "$SITE_GROUP" -m 755 "$APP" "$APP/public"
+    # Проверяем настоящий FPM, его UID, таймаут и маршрутизацию. Исходников и
+    # секретов в публичной папке в этот момент ещё нет.
+    if [[ ! -f $APP/composer.lock ]]; then
+        if [[ -e $APP/public/index.php ]]; then
+            [[ -f $STATE/probe-index.sha256 ]] && sha256sum --check "$STATE/probe-index.sha256" || die 'В незавершённой установке найден посторонний index.php. Не перезаписываю его.'
+        else
+            as_owner "$PHP_BIN" -r '$f=fopen($argv[1],"x");if(!$f)exit(1);fwrite($f,"<?php echo json_encode([\"probe\"=>".var_export($argv[2],true).",\"uid\"=>posix_geteuid(),\"seconds\"=>(int)ini_get(\"max_execution_time\")]);");fclose($f);' "$APP/public/index.php" "$nonce"
+            sha256sum "$APP/public/index.php" > "$STATE/probe-index.sha256"
+        fi
+        probe_created=yes
+    fi
+    configure_site
+    if [[ $probe_created == yes ]]; then
+        for attempt in {1..40}; do
+            response=$(curl --noproxy '*' --silent --show-error --max-time 10 --resolve "$DOMAIN:80:$SERVER_IP" --resolve "$DOMAIN:443:$SERVER_IP" "$probe_scheme://$DOMAIN/laiot-check-$nonce") || response=''
+            if PROBE_RESPONSE="$response" "$PHP_BIN" -r '$r=json_decode(getenv("PROBE_RESPONSE"),true);exit(($r["probe"]??null)===$argv[1]&&($r["uid"]??null)===(int)$argv[2]&&($r["seconds"]??0)>=600?0:1);' "$nonce" "$(id -u "$OWNER")"; then probe_ok=yes; break; fi
+            sleep 1
+        done
+        [[ $probe_ok == yes ]] || die 'HTTP-проверка корня, прав и PHP-FPM не прошла. Исходники ещё не опубликованы. Смотрите details.log.'
+        as_owner rm -- "$APP/public/index.php"
+        rm -- "$STATE/probe-index.sha256" "$STATE/probe-nonce"
+    fi
+    nginx -t
+}
+application() {
+    [[ -f $APP/composer.lock ]] || (umask 022; tar -C "$STATE/source" -cf - . | as_owner tar -C "$APP" -xf -)
     [[ -f $APP/app/Services/Install/InstallService.php && -f $APP/public/index.php && -f $APP/composer.lock ]] || \
         die 'В загруженной ветке нет веб-установщика LaIOT. Проверьте публикацию beta.'
     # Composer проверяет подпись установщика; зависимости и сборка идут без root.
@@ -587,49 +685,33 @@ EOF
     systemctl enable --now zigbee2mqtt
 }
 units() {
-    local file
-    printf '{"root":"%s","user":"%s","group":"%s","allowed_uid":%s}\n' \
-        "$BASE" "$OWNER" "$SITE_GROUP" "$(id -u "$OWNER")" > "$STATE/agent.json"
-    if [[ -e /etc/laiot/agent.json ]]; then
-        cmp -s "$STATE/agent.json" /etc/laiot/agent.json || die 'Конфигурация агента отличается. Не перезаписываю её.'
-    fi
-    install -d -m 755 /etc/laiot
-    install -m 600 "$STATE/agent.json" /etc/laiot/agent.json
-    for file in laiot-core@.service laiot-worker@.service laiot-agent.service; do
-        sed -e "s|@@ROOT@@|$BASE|g" -e "s|@@USER@@|$OWNER|g" -e "s|@@GROUP@@|$SITE_GROUP|g" -e "s|/usr/bin/php |$PHP_BIN |g" \
-            "$APP/deploy/systemd/$file" > "/etc/systemd/system/$file"
-        chmod 644 "/etc/systemd/system/$file"
-    done
-    systemctl daemon-reload
-    systemctl enable --now laiot-agent
+    bash "$APP/deploy/setup-ubuntu.sh" --root "$BASE" --user "$OWNER" --group "$SITE_GROUP" --php-bin "$PHP_BIN"
 }
 web_setup() {
-    say "Откройте FastPanel: https://$SERVER_IP:8888\nСайт $DOMAIN уже создан. В его настройках:"
-    say "1. Выберите PHP $PHP_VERSION, PHP-FPM и включите mbstring, intl, curl, pdo_mysql, xml, zip.\n2. Корневой каталог сайта: $APP/public\n3. В настройках обработки запросов включите перенаправление отсутствующих файлов на /index.php."
-    say 'Для nginx правило: try_files $uri $uri/ /index.php?$query_string;'
     if [[ $MODE == local ]]; then
         say "На роутере добавьте DNS-запись $DOMAIN → $SERVER_IP.\nИли на каждом устройстве добавьте в hosts строку: $SERVER_IP $DOMAIN\nПроброс портов на роутере не требуется."
         SCHEME=http
     else
-        say "Направьте DNS домена на ваш внешний IP. При NAT пробросьте 80/443 на $SERVER_IP.\nВ FastPanel выпустите сертификат для $DOMAIN и включите HTTPS."
+        say "HTTPS настроен автоматически. DNS домена должен указывать на сервер; при NAT нужны порты 80/443."
         SCHEME=https
     fi
     local result
     while :; do
-        pause 'Сохраните настройки сайта в панели'
         # Проверяем маршрут и сертификат с этого сервера, независимо от локального DNS.
         result=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
-            --max-time 15 --resolve "$DOMAIN:80:$SERVER_IP" --resolve "$DOMAIN:443:$SERVER_IP" \
+            --noproxy '*' --max-time 15 --resolve "$DOMAIN:80:$SERVER_IP" --resolve "$DOMAIN:443:$SERVER_IP" \
             "$SCHEME://$DOMAIN/install") || result=000
         [[ $result == 200 ]] && break
-        say "Пока страница установки недоступна (HTTP $result). Проверьте корневой каталог, PHP и обработку адресов."
+        say "Страница установки пока недоступна (HTTP $result). Подробности — $STATE/details.log."
+        pause 'После исправления причины повторим проверку'
     done
     printf 'SCHEME=%q\n' "$SCHEME" >> "$STATE/answers"
     checkpoint web
 }
 credentials() {
     local target=$STATE/access.txt temporary credential_file completed=no
-    local -a password_files=(panel-password db-password)
+    local -a password_files=(db-password)
+    [[ $PANEL_EXISTING != no ]] || password_files+=(panel-password)
     [[ $MQTT != yes ]] || password_files+=(mqtt-password)
     for credential_file in "${password_files[@]}"; do
         [[ -f $STATE/$credential_file && ! -L $STATE/$credential_file && -s $STATE/$credential_file ]] || \
@@ -675,10 +757,14 @@ credentials() {
         printf 'КАТАЛОГИ И КОНФИГУРАЦИЯ\n'
         printf 'Пользователь приложения и служб: %s\nБазовый каталог: %s\nПриложение: %s\n' "$OWNER" "$BASE" "$APP"
         printf 'Корень сайта nginx: %s/public\nНастройки и APP_KEY: %s/.env\n' "$APP" "$APP"
+        printf 'PHP: %s (%s)\nПрофиль RAM/CPU и FPM: %s/server-profile.json\n' "$PHP_VERSION" "$PHP_BIN" "$STATE"
+        printf 'Запросы помощника: PHP 600 с, FPM и nginx 660 с. WebSocket: /websocket → 127.0.0.1:8081\n'
+        printf 'Резервная конфигурация FastPanel: %s/fastpanel-before.json\nПрименённая конфигурация: %s/fastpanel-applied.json\n' "$STATE" "$STATE"
         printf 'Постоянные файлы ядра: %s/var/files/core\nФайлы модулей: %s/var/files/modules/<id>\n' "$APP" "$APP"
         printf 'Журналы приложения: %s/var/log\nКэш: %s/var/cache\n' "$APP" "$APP"
         printf 'Общие файлы системного слоя: %s/shared\nКонфигурация агента: /etc/laiot/agent.json\n' "$BASE"
-        printf 'Службы systemd:\n  /etc/systemd/system/laiot-agent.service\n  /etc/systemd/system/laiot-core@.service\n  /etc/systemd/system/laiot-worker@.service\n'
+        printf 'Службы systemd:\n  /etc/systemd/system/laiot-agent.service\n  /etc/systemd/system/laiot-core@.service\n  /etc/systemd/system/laiot-worker@.service\n  /etc/systemd/system/laiot-websocket.service\n'
+        printf 'Управление службами из приложения: штатный агент, Unix-сокет /run/laiot/agent.sock, доступ только пользователю сайта и root.\n'
         printf 'Redis: /etc/redis/redis.conf\nNode.js: /opt/laiot-node\n'
         printf 'Состояние установщика: %s\nЖурнал установки: %s/details.log\nЭта памятка: %s\n\n' "$STATE" "$STATE" "$target"
         printf 'ПРОВЕРКА И ПОВТОРНЫЙ ПРОСМОТР\n'
@@ -701,10 +787,12 @@ finish() {
         systemctl enable --now "laiot-core@$task"
     done
     systemctl enable --now laiot-worker@mqtt laiot-worker@zigbee
+    systemctl enable --now laiot-websocket
     sleep 3
     for task in queue events timeouts maintenance system-events module.mqtt module.zigbee; do
         systemctl is-active --quiet "laiot-core@$task"
     done
+    systemctl is-active --quiet laiot-agent laiot-websocket laiot-worker@mqtt laiot-worker@zigbee
 }
 main() {
     if [[ ${1:-} == --help ]]; then
@@ -778,6 +866,9 @@ main() {
     repair_panel_apt >> "$STATE/details.log" 2>&1
     run_step packages '2/8 · Устанавливаем PHP и Redis' packages
     run_step site '3/8 · Подготавливаем сайт и каталог' site
+    if [[ $MODE == public ]]; then run_step tls 'Выпускаем HTTPS-сертификат' certificate; fi
+    run_step source 'Скачиваем исходники в закрытый каталог root' source_code
+    run_step frontend 'Автоматически настраиваем Nginx и PHP-FPM' prepare_webroot
     run_step node '4/8 · Устанавливаем Node.js 24 LTS' node_runtime
     run_step app '5/8 · Скачиваем и собираем LaIOT' application
     run_step db '6/8 · Создаём базу данных' database

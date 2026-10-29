@@ -191,6 +191,11 @@ mkdir -p "$STATE/data/busy"
 touch "$STATE/data/busy/content"
 ln -s "$STATE/data/busy" "$STATE/data/link"
 valid_base "$STATE/data/new" "$STATE/data" "$STATE/data/www"
+valid_base "$STATE/data/busy" "$STATE/data" "$STATE/data/busy" "$STATE/data/busy"
+mkdir "$STATE/data/busy/current"
+if valid_base "$STATE/data/busy" "$STATE/data" "$STATE/data/busy" "$STATE/data/busy"; then echo 'Принят занятый current'; exit 1; fi
+rmdir "$STATE/data/busy/current"
+if valid_base "$STATE/data/busy" "$STATE/data" "$STATE/data/busy" "$STATE/data/other"; then echo 'Принят корень чужого сайта'; exit 1; fi
 for rejected in "$STATE/data/../escape" "$STATE/data/busy" "$STATE/data/link/new" "$STATE/data/www/app" "$STATE/data" "$STATE/data2/app"; do
     if valid_base "$rejected" "$STATE/data" "$STATE/data/www"; then echo "Принят опасный путь $rejected"; exit 1; fi
 done
@@ -215,6 +220,10 @@ repair_panel_apt "$STATE/apt-key.asc" "$STATE/apt-source.list"
     panel
     [[ $(umask) == 0077 && $(< "$STATE/child-mask") == 0022 ]]
     [[ $(stat -c %a "$STATE/fastpanel.sh") == 600 ]]
+    mogwai() { [[ $(umask) == 0022 && ! ${TMPDIR+x} && ! ${TMP+x} && ! ${TEMP+x} ]]; }
+    export TMPDIR=/private/root TMP=/private/root TEMP=/private/root
+    panel_cli sites create
+    [[ $(umask) == 0077 && $TMPDIR == /private/root ]]
 )
 (
     # Существующий сайт не создаётся заново и не меняет учётную запись.
@@ -315,6 +324,7 @@ credentials > "$STATE/report-output.txt"
 ! grep -Fq 'test-mqtt-password' "$STATE/access.txt"
 ! grep -Fq 'Zigbee2MQTT:' "$STATE/access.txt"
 PANEL_EXISTING=yes
+rm "$STATE/panel-password"
 exec 3> "$STATE/terminal.txt"
 credentials > "$STATE/report-output.txt"
 ! grep -Fq 'test-panel-password' "$STATE/access.txt"

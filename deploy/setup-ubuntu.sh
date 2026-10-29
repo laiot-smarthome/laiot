@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 2026-10-29 — выбранный CLI PHP и служба WebSocket вместе с основными юнитами.
 #
 # LaIOT — первичная настройка системной части на Ubuntu.
 #
@@ -71,6 +72,7 @@ LaIOT — первичная настройка системной части Ub
   --root PATH           каталог установки (по умолчанию $ROOT_DEFAULT)
   --user NAME           пользователь приложения и служб (по умолчанию владелец ROOT или laiot)
   --group NAME          группа (по умолчанию основная группа пользователя)
+  --php-bin PATH        выбранный CLI PHP (по умолчанию найденный в PATH)
   --socket PATH         Unix-сокет агента (по умолчанию /run/laiot/agent.sock)
   --systemd-dir PATH    каталог юнитов (по умолчанию /etc/systemd/system)
   --agent-config PATH   конфигурация агента (по умолчанию /etc/laiot/agent.json)
@@ -114,6 +116,10 @@ parse_options() {
                 ;;
             --group)
                 GROUP_NAME=$(opt_value "$@")
+                shift 2
+                ;;
+            --php-bin)
+                PHP_BIN=$(opt_value "$@")
                 shift 2
                 ;;
             --socket)
@@ -274,7 +280,10 @@ resolve_identity() {
 
 resolve_tools() {
     SYSTEMCTL=$(command -v systemctl || true)
-    PHP_BIN=$(command -v php || true)
+    if [[ -n $PHP_BIN ]]; then
+        assert_absolute_path '--php-bin' "$PHP_BIN"
+        [[ -x $PHP_BIN ]] || die "выбранный PHP не исполняется: $PHP_BIN"
+    else PHP_BIN=$(command -v php || true); fi
 }
 
 # PHP проверяется тем же бинарником, который окажется в PATH. Версия и
@@ -365,18 +374,12 @@ preflight() {
     fi
     assert_php
 
-    # Шаблоны жёстко вызывают /usr/bin/php; если php стоит в другом месте,
-    # юниты запустятся и сразу упадут. Честнее предупредить заранее.
-    if [[ ! -x '/usr/bin/php' ]]; then
-        warn 'в шаблонах deploy/systemd указан /usr/bin/php, а его нет: службы не запустятся. Установите php-cli или создайте ссылку /usr/bin/php.'
-    fi
-
     if [[ ! -f "$APP_DIR/vendor/autoload.php" ]]; then
         warn "нет $APP_DIR/vendor/autoload.php: выполните composer install. Скрипт зависимости не устанавливает."
     fi
 
     local unit
-    for unit in laiot-agent.service 'laiot-worker@.service' 'laiot-core@.service'; do
+    for unit in laiot-agent.service 'laiot-worker@.service' 'laiot-core@.service' laiot-websocket.service; do
         [[ -f "$APP_DIR/deploy/systemd/$unit" ]] || die "не найден шаблон systemd: $APP_DIR/deploy/systemd/$unit"
     done
 
@@ -535,6 +538,7 @@ render_unit() {
     content=${content//@@ROOT@@/$ROOT}
     content=${content//@@USER@@/$USER_NAME}
     content=${content//@@GROUP@@/$GROUP_NAME}
+    content=${content//\/usr\/bin\/php /$PHP_BIN }
 
     if [[ $LAYOUT == 'direct' ]]; then
         content=${content//"ReadWritePaths=$ROOT/shared $ROOT/current/var"/"ReadWritePaths=$ROOT/var"}
@@ -560,7 +564,7 @@ render_unit() {
 # Так при нехватке --force система не остаётся с частично обновлёнными
 # службами.
 install_units() {
-    local names=(laiot-agent.service 'laiot-worker@.service' 'laiot-core@.service')
+    local names=(laiot-agent.service 'laiot-worker@.service' 'laiot-core@.service' laiot-websocket.service)
     local contents=()
     local conflicts=()
     local i name target rendered
@@ -676,6 +680,8 @@ configure_services() {
             run "$SYSTEMCTL" enable "laiot-core@${task}.service"
         fi
     done
+    if (( START_NOW )); then run "$SYSTEMCTL" enable --now laiot-websocket.service
+    else run "$SYSTEMCTL" enable laiot-websocket.service; fi
 
     if (( DRY_RUN == 0 )); then
         if ! "$SYSTEMCTL" is-active --quiet laiot-agent.service; then
