@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Http\Request;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -26,7 +26,7 @@ final class YoyoTest extends TestCase
         $this->session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin']);
         $this->app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
-            'view_cache' => sys_get_temp_dir() . '/mydomo-views-' . bin2hex(random_bytes(4)),
+            'view_cache' => sys_get_temp_dir() . '/laiot-views-' . bin2hex(random_bytes(4)),
             'log' => 'php://stderr',
             'session' => $this->session,
             'cache' => ['driver' => 'array'],

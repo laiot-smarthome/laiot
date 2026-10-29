@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Auth\UserRepository;
-use MajorDoMo\Foundation\Application;
+use LaIOT\Foundation\Application;
+use LaIOT\Services\Auth\UserRepository;
 use RuntimeException;
 
 /**

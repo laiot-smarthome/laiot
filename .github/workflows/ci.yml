@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [MyDoMo, beta, 'mydomo-*']
+    branches: [beta, 'laiot-*']
   pull_request:
-    branches: [MyDoMo, beta]
+    branches: [beta]
 
 concurrency:
   group: ci-${{ github.ref }}

@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Contracts\Encryption\Encrypter as EncrypterContract;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Encryption\Encrypter;
 use Illuminate\Encryption\MissingAppKeyException;
-use MajorDoMo\Database\Model;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Foundation\Config;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Security\EncryptionKey;
-use MajorDoMo\Settings\SettingsSchema;
+use LaIOT\Foundation\Application;
+use LaIOT\Foundation\Config;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Models\Model;
+use LaIOT\Services\Security\EncryptionKey;
+use LaIOT\Services\Settings\SettingsSchema;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -97,7 +97,7 @@ final class EncryptionTest extends TestCase
 
     public function testEnvironmentLoadsKeysWithoutMakingThemEditable(): void
     {
-        $root = sys_get_temp_dir() . '/mydomo-encryption-' . bin2hex(random_bytes(6));
+        $root = sys_get_temp_dir() . '/laiot-encryption-' . bin2hex(random_bytes(6));
         mkdir($root, 0700);
         $key = EncryptionKey::generate();
         $previous = EncryptionKey::generate();

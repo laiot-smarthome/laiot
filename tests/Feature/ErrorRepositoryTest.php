@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Logging\ErrorFileWriter;
-use MajorDoMo\Logging\ErrorRepository;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Logging\ErrorFileWriter;
+use LaIOT\Services\Logging\ErrorRepository;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -23,7 +23,7 @@ final class ErrorRepositoryTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->directory = sys_get_temp_dir() . '/mydomo-error-repo-' . bin2hex(random_bytes(4));
+        $this->directory = sys_get_temp_dir() . '/laiot-error-repo-' . bin2hex(random_bytes(4));
         $this->database = new DatabaseManager([
             'driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '',
         ]);

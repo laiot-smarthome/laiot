@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
-use MajorDoMo\Events\EventChainService;
-use MajorDoMo\Events\PropertyEventRepository;
-use MajorDoMo\Events\PropertyExecutionRepository;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Events\EventChainService;
+use LaIOT\Services\Events\PropertyEventRepository;
+use LaIOT\Services\Events\PropertyExecutionRepository;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -2,15 +2,15 @@
 # 2026-10-29 — автоматический swap по RAM до установки панели, без замены чужого swap.
 # 2026-10-29 — готовая FastPanel, выбор сайта/каталога и права публичного ключа APT.
 # 2026-10-29 — итоговая памятка с доступами и путями повторяется после запуска служб.
-# 2026-10-28 — интерактивная подготовка Ubuntu для веб-установщика MyDoMo.
+# 2026-10-28 — интерактивная подготовка Ubuntu для веб-установщика LaIOT.
 set -Eeuo pipefail
 umask 077
 
 REPOSITORY=https://github.com/laiot-smarthome/laiot.git
 BRANCH=beta
-STATE=/root/mydomo-installer
-OWNER=mydomo_usr
-BASE=/var/www/mydomo_usr/data/mydomo
+STATE=/root/laiot-installer
+OWNER=laiot_usr
+BASE=/var/www/laiot_usr/data/laiot
 APP=$BASE/current
 SITE_GROUP=$OWNER
 PANEL_EXISTING=no
@@ -82,7 +82,7 @@ failed() {
     printf 'После устранения причины запустите этот же файл: выполненные этапы сохраняются.\n' >&2
     exit 1
 }
-as_owner() { (umask 022; runuser -u "$OWNER" -- env -u TMPDIR PATH=/opt/mydomo-node/bin:/usr/local/bin:/usr/bin:/bin "$@"); }
+as_owner() { (umask 022; runuser -u "$OWNER" -- env -u TMPDIR PATH=/opt/laiot-node/bin:/usr/local/bin:/usr/bin:/bin "$@"); }
 
 swap_target_mib() {
     local ram_kib=$1 gib
@@ -113,7 +113,7 @@ persist_swap() {
     systemctl daemon-reload
 }
 configure_swap() {
-    local meminfo=${1:-/proc/meminfo} file=${2:-/swapfile.mydomo} fstab=${3:-/etc/fstab}
+    local meminfo=${1:-/proc/meminfo} file=${2:-/swapfile.laiot} fstab=${3:-/etc/fstab}
     local target active names planned size type status free_bytes allocated needed fs
     local mib=1048576 reserve=5368709120
     STEP='настройка swap'
@@ -229,7 +229,7 @@ target_questions() {
     if [[ $TARGET_MODE == new ]]; then
         if [[ -z ${DOMAIN:-} ]]; then
             while :; do
-                ask DOMAIN 'Домен нового сайта' "${DOMAIN:-mydomo.home.arpa}"
+                ask DOMAIN 'Домен нового сайта' "${DOMAIN:-laiot.home.arpa}"
                 valid_domain "$DOMAIN" && break
                 say 'Укажите корректное доменное имя.'
             done
@@ -240,7 +240,7 @@ target_questions() {
         say 'Можно указать существующего пользователя FastPanel или имя нового пользователя.'
         getent passwd | awk -F: '$3 != 0 && $6 ~ /^\/var\/www\// {print "  " $1 " — " $6}'
         while :; do
-            ask OWNER 'Пользователь сайта (пароль не нужен)' mydomo_usr
+            ask OWNER 'Пользователь сайта (пароль не нужен)' laiot_usr
             valid_owner "$OWNER" && break
             say 'Нужно системное имя пользователя латиницей; root не допускается.'
         done
@@ -272,7 +272,7 @@ target_questions() {
 questions() {
     local choice default_ip
     say 'Добро пожаловать! Подготовим сервер умного дома за несколько шагов.'
-    say 'Нужна Ubuntu 24.04 x86_64 с доступом в интернет: чистая или с готовой FastPanel.\nFastPanel и Redis обязательны. Настройку самого MyDoMo завершим в браузере.'
+    say 'Нужна Ubuntu 24.04 x86_64 с доступом в интернет: чистая или с готовой FastPanel.\nFastPanel и Redis обязательны. Настройку самого LaIOT завершим в браузере.'
     printf '\n1 — Только домашняя сеть (без белого IP и проброса портов)\n2 — Доступ по собственному публичному домену\n'
     while :; do
         ask choice 'Как будете открывать умный дом?' 1
@@ -281,9 +281,9 @@ questions() {
     done
     if [[ $PANEL_EXISTING == no ]]; then
         while :; do
-            ask DOMAIN 'Имя сайта, без http:// и пути' mydomo.home.arpa
+            ask DOMAIN 'Имя сайта, без http:// и пути' laiot.home.arpa
             valid_domain "$DOMAIN" && break
-            say 'Нужно имя вида mydomo.home.arpa или home.example.ru, латиницей.'
+            say 'Нужно имя вида laiot.home.arpa или home.example.ru, латиницей.'
         done
         if [[ $MODE == public && $DOMAIN == *.home.arpa ]]; then
             die 'Для публичного режима нужен ваш зарегистрированный домен. Запустите мастер снова.'
@@ -426,34 +426,34 @@ node_runtime() {
     expected=$(awk -v name="$archive" '$2 == name {print $1}' "$STATE/node-checksums")
     curl -fsSL --proto '=https' "https://nodejs.org/dist/latest-v24.x/$archive" -o "$STATE/$archive"
     printf '%s  %s\n' "$expected" "$STATE/$archive" | sha256sum --check -
-    install -d -m 755 /opt/mydomo-node
-    tar -xJf "$STATE/$archive" --strip-components=1 -C /opt/mydomo-node
-    chmod -R a+rX /opt/mydomo-node
+    install -d -m 755 /opt/laiot-node
+    tar -xJf "$STATE/$archive" --strip-components=1 -C /opt/laiot-node
+    chmod -R a+rX /opt/laiot-node
     local executable
     for executable in node npm npx; do
         if command -v "$executable" >/dev/null || [[ -e /usr/local/bin/$executable || -L /usr/local/bin/$executable ]]; then
             # Приложение использует /opt через PATH; чужой Node.js не заменяем.
             continue
-        else ln -s "/opt/mydomo-node/bin/$executable" "/usr/local/bin/$executable"; fi
+        else ln -s "/opt/laiot-node/bin/$executable" "/usr/local/bin/$executable"; fi
     done
 }
 application() {
     if [[ ! -d $APP ]]; then
         as_owner git clone --depth 1 --branch "$BRANCH" "$REPOSITORY" "$APP"
     fi
-    [[ -f $APP/src/Install/InstallService.php && -f $APP/public/index.php && -f $APP/composer.lock ]] || \
-        die 'В загруженной ветке нет веб-установщика MyDoMo. Проверьте публикацию beta.'
+    [[ -f $APP/app/Services/Install/InstallService.php && -f $APP/public/index.php && -f $APP/composer.lock ]] || \
+        die 'В загруженной ветке нет веб-установщика LaIOT. Проверьте публикацию beta.'
     # Composer проверяет подпись установщика; зависимости и сборка идут без root.
     curl -fsSL --proto '=https' https://getcomposer.org/installer -o "$STATE/composer-setup.php"
     local expected actual
     expected=$(curl -fsSL --proto '=https' https://composer.github.io/installer.sig)
     actual=$(php8.3 -r 'echo hash_file("sha384", $argv[1]);' "$STATE/composer-setup.php")
     [[ $expected == "$actual" ]]
-    install -d -m 755 /opt/mydomo-composer
-    php8.3 "$STATE/composer-setup.php" --install-dir=/opt/mydomo-composer --filename=composer
-    chmod 755 /opt/mydomo-composer/composer
-    if ! command -v composer >/dev/null; then ln -s /opt/mydomo-composer/composer /usr/local/bin/composer; fi
-    as_owner php8.3 /opt/mydomo-composer/composer install --working-dir="$APP" --no-dev --prefer-dist --no-interaction --optimize-autoloader
+    install -d -m 755 /opt/laiot-composer
+    php8.3 "$STATE/composer-setup.php" --install-dir=/opt/laiot-composer --filename=composer
+    chmod 755 /opt/laiot-composer/composer
+    if ! command -v composer >/dev/null; then ln -s /opt/laiot-composer/composer /usr/local/bin/composer; fi
+    as_owner php8.3 /opt/laiot-composer/composer install --working-dir="$APP" --no-dev --prefer-dist --no-interaction --optimize-autoloader
     (cd "$APP"; as_owner npm ci; as_owner npm run build)
     # Ключ должен совпадать с контрактом веб-мастера; .env здесь не создаётся.
     install -d -o "$OWNER" -g "$SITE_GROUP" -m 750 "$APP/var"
@@ -470,34 +470,34 @@ database() {
     # Пароль передаётся штатному CLI, не сохраняется в истории SSH.
     # При сбое после создания БД не меняем её пароль и не пересоздаём данные.
     databases=$(mogwai databases list)
-    if ! awk '$0 ~ /(^|[[:space:]])mydomo_app([[:space:]]|$)/ {found=1} END {exit !found}' <<< "$databases"; then
-        mogwai databases create --server=1 --name=mydomo_app --owner="$OWNER" \
-            --site="$DOMAIN" --username=mydomo_app --password="$password"
+    if ! awk '$0 ~ /(^|[[:space:]])laiot_app([[:space:]]|$)/ {found=1} END {exit !found}' <<< "$databases"; then
+        mogwai databases create --server=1 --name=laiot_app --owner="$OWNER" \
+            --site="$DOMAIN" --username=laiot_app --password="$password"
     fi
     # Убеждаемся, что существующая база действительно наша.
-    DB_PASS="$password" php8.3 -r 'new PDO("mysql:host=127.0.0.1;dbname=mydomo_app", "mydomo_app", getenv("DB_PASS"));'
+    DB_PASS="$password" php8.3 -r 'new PDO("mysql:host=127.0.0.1;dbname=laiot_app", "laiot_app", getenv("DB_PASS"));'
 }
 mosquitto() {
     apt-get install -y mosquitto mosquitto-clients
     if [[ ! -f $STATE/mqtt-password ]]; then secret > "$STATE/mqtt-password"; fi
     local password
     password=$(< "$STATE/mqtt-password")
-    printf 'mydomo:%s\n' "$password" > /etc/mosquitto/mydomo-passwords
-    mosquitto_passwd -U /etc/mosquitto/mydomo-passwords
-    chown root:mosquitto /etc/mosquitto/mydomo-passwords
-    chmod 640 /etc/mosquitto/mydomo-passwords
-    cat > /etc/mosquitto/conf.d/mydomo.conf <<'EOF'
+    printf 'laiot:%s\n' "$password" > /etc/mosquitto/laiot-passwords
+    mosquitto_passwd -U /etc/mosquitto/laiot-passwords
+    chown root:mosquitto /etc/mosquitto/laiot-passwords
+    chmod 640 /etc/mosquitto/laiot-passwords
+    cat > /etc/mosquitto/conf.d/laiot.conf <<'EOF'
 listener 1883 127.0.0.1
 allow_anonymous false
-password_file /etc/mosquitto/mydomo-passwords
+password_file /etc/mosquitto/laiot-passwords
 EOF
     if [[ $MQTT_LAN == yes ]]; then
-        printf '\nlistener 1883 %s\n' "$SERVER_IP" >> /etc/mosquitto/conf.d/mydomo.conf
+        printf '\nlistener 1883 %s\n' "$SERVER_IP" >> /etc/mosquitto/conf.d/laiot.conf
     fi
-    chmod 644 /etc/mosquitto/conf.d/mydomo.conf
+    chmod 644 /etc/mosquitto/conf.d/laiot.conf
     systemctl enable mosquitto
     systemctl restart mosquitto
-    mosquitto_pub -h 127.0.0.1 -u mydomo -P "$password" -t mydomo/installer -m ready
+    mosquitto_pub -h 127.0.0.1 -u laiot -P "$password" -t laiot/installer -m ready
 }
 zigbee() {
     local manager
@@ -505,11 +505,11 @@ zigbee() {
     if [[ ! -d /opt/zigbee2mqtt/app ]]; then
         runuser -u zigbee2mqtt -- git clone --depth 1 --branch 2.14.2 https://github.com/Koenkk/zigbee2mqtt.git /opt/zigbee2mqtt/app
     fi
-    manager=$(/opt/mydomo-node/bin/node -p "require('/opt/zigbee2mqtt/app/package.json').packageManager")
+    manager=$(/opt/laiot-node/bin/node -p "require('/opt/zigbee2mqtt/app/package.json').packageManager")
     [[ $manager =~ ^pnpm@[0-9]+\.[0-9]+\.[0-9]+$ ]]
     (cd /opt/zigbee2mqtt/app
-        runuser -u zigbee2mqtt -- env -u TMPDIR PATH=/opt/mydomo-node/bin:/usr/bin:/bin npm exec --yes --package="$manager" -- pnpm install --frozen-lockfile
-        runuser -u zigbee2mqtt -- env -u TMPDIR PATH=/opt/mydomo-node/bin:/usr/bin:/bin npm exec --yes --package="$manager" -- pnpm run build)
+        runuser -u zigbee2mqtt -- env -u TMPDIR PATH=/opt/laiot-node/bin:/usr/bin:/bin npm exec --yes --package="$manager" -- pnpm install --frozen-lockfile
+        runuser -u zigbee2mqtt -- env -u TMPDIR PATH=/opt/laiot-node/bin:/usr/bin:/bin npm exec --yes --package="$manager" -- pnpm run build)
     cat > /etc/systemd/system/zigbee2mqtt.service <<'EOF'
 [Unit]
 Description=Zigbee2MQTT
@@ -517,7 +517,7 @@ After=network.target mosquitto.service
 [Service]
 User=zigbee2mqtt
 WorkingDirectory=/opt/zigbee2mqtt/app
-ExecStart=/opt/mydomo-node/bin/node index.js
+ExecStart=/opt/laiot-node/bin/node index.js
 Environment=NODE_ENV=production
 Environment=Z2M_ONBOARD_URL=http://127.0.0.1:8080
 Environment=ZIGBEE2MQTT_CONFIG_FRONTEND_HOST=127.0.0.1
@@ -534,18 +534,18 @@ units() {
     local file
     printf '{"root":"%s","user":"%s","group":"%s","allowed_uid":%s}\n' \
         "$BASE" "$OWNER" "$SITE_GROUP" "$(id -u "$OWNER")" > "$STATE/agent.json"
-    if [[ -e /etc/mydomo/agent.json ]]; then
-        cmp -s "$STATE/agent.json" /etc/mydomo/agent.json || die 'Конфигурация агента отличается. Не перезаписываю её.'
+    if [[ -e /etc/laiot/agent.json ]]; then
+        cmp -s "$STATE/agent.json" /etc/laiot/agent.json || die 'Конфигурация агента отличается. Не перезаписываю её.'
     fi
-    install -d -m 755 /etc/mydomo
-    install -m 600 "$STATE/agent.json" /etc/mydomo/agent.json
-    for file in mydomo-core@.service mydomo-worker@.service mydomo-agent.service; do
+    install -d -m 755 /etc/laiot
+    install -m 600 "$STATE/agent.json" /etc/laiot/agent.json
+    for file in laiot-core@.service laiot-worker@.service laiot-agent.service; do
         sed -e "s|@@ROOT@@|$BASE|g" -e "s|@@USER@@|$OWNER|g" -e "s|@@GROUP@@|$SITE_GROUP|g" -e 's|/usr/bin/php |/usr/bin/php8.3 |g' \
             "$APP/deploy/systemd/$file" > "/etc/systemd/system/$file"
         chmod 644 "/etc/systemd/system/$file"
     done
     systemctl daemon-reload
-    systemctl enable --now mydomo-agent
+    systemctl enable --now laiot-agent
 }
 web_setup() {
     say "Откройте FastPanel: https://$SERVER_IP:8888\nСайт $DOMAIN уже создан. В его настройках:"
@@ -584,7 +584,7 @@ credentials() {
     # Старый отчёт остаётся целым при сбое; временный файл сразу приватный.
     temporary=$(mktemp "$STATE/.access.XXXXXX")
     {
-        printf 'MYDOMO — ДОСТУПЫ И ПУТИ\nСохраните эту памятку в надёжном месте.\n\n'
+        printf 'LAIOT — ДОСТУПЫ И ПУТИ\nСохраните эту памятку в надёжном месте.\n\n'
         printf 'Сервер: %s\nДомен: %s\nSSH: root@%s\n\n' "$SERVER_IP" "$DOMAIN" "$SERVER_IP"
         if [[ -f $STATE/swap-summary ]]; then cat "$STATE/swap-summary"; printf '\n'; fi
         printf 'FastPanel: https://%s:8888\n' "$SERVER_IP"
@@ -592,22 +592,22 @@ credentials() {
             printf 'Логин: fastuser\nПароль: %s\n\n' "$(< "$STATE/panel-password")"
         else printf 'Используйте свои прежние данные входа в панель.\n\n'; fi
         if [[ $completed == yes ]]; then
-            printf 'MyDoMo: %s://%s/login\nУстановка приложения завершена.\n' "$SCHEME" "$DOMAIN"
-            printf 'Логин и пароль администратора MyDoMo заданы вами в веб-мастере; Bash их не получает.\n\n'
+            printf 'LaIOT: %s://%s/login\nУстановка приложения завершена.\n' "$SCHEME" "$DOMAIN"
+            printf 'Логин и пароль администратора LaIOT заданы вами в веб-мастере; Bash их не получает.\n\n'
         else
-            printf 'MyDoMo: %s://%s/install\n' "$SCHEME" "$DOMAIN"
+            printf 'LaIOT: %s://%s/install\n' "$SCHEME" "$DOMAIN"
             if [[ -f $APP/var/install.key ]]; then printf 'Ключ установки: %s\n' "$(< "$APP/var/install.key")"; fi
-            printf 'Логин и пароль администратора MyDoMo задайте в веб-мастере.\n'
+            printf 'Логин и пароль администратора LaIOT задайте в веб-мастере.\n'
             printf 'Создавать БД в веб-мастере: НЕТ (она уже создана).\n\n'
         fi
-        printf 'БД: 127.0.0.1:3306\nИмя БД и пользователь: mydomo_app\nПароль БД: %s\n' "$(< "$STATE/db-password")"
+        printf 'БД: 127.0.0.1:3306\nИмя БД и пользователь: laiot_app\nПароль БД: %s\n' "$(< "$STATE/db-password")"
         printf 'Кэш: Redis, 127.0.0.1:6379, база 0, пароль пустой\n\n'
         if [[ $MQTT == yes ]]; then
-            printf 'MQTT: mqtt://127.0.0.1:1883\nПользователь: mydomo\nПароль: %s\n' "$(< "$STATE/mqtt-password")"
+            printf 'MQTT: mqtt://127.0.0.1:1883\nПользователь: laiot\nПароль: %s\n' "$(< "$STATE/mqtt-password")"
             if [[ $MQTT_LAN == yes ]]; then
                 printf 'Для устройств домашней сети: mqtt://%s:1883 (тот же логин и пароль).\n' "$SERVER_IP"
             else printf 'Mosquitto доступен только этому серверу.\n'; fi
-            printf 'Конфигурация Mosquitto: /etc/mosquitto/conf.d/mydomo.conf\n\n'
+            printf 'Конфигурация Mosquitto: /etc/mosquitto/conf.d/laiot.conf\n\n'
         elif [[ $ZIGBEE == yes ]]; then
             printf 'Внешний MQTT-брокер: %s\nЕго данные входа задаются вами в Zigbee2MQTT.\n\n' "$BROKER"
         fi
@@ -621,13 +621,13 @@ credentials() {
         printf 'Корень сайта nginx: %s/public\nНастройки и APP_KEY: %s/.env\n' "$APP" "$APP"
         printf 'Постоянные файлы ядра: %s/var/files/core\nФайлы модулей: %s/var/files/modules/<id>\n' "$APP" "$APP"
         printf 'Журналы приложения: %s/var/log\nКэш: %s/var/cache\n' "$APP" "$APP"
-        printf 'Общие файлы системного слоя: %s/shared\nКонфигурация агента: /etc/mydomo/agent.json\n' "$BASE"
-        printf 'Службы systemd:\n  /etc/systemd/system/mydomo-agent.service\n  /etc/systemd/system/mydomo-core@.service\n  /etc/systemd/system/mydomo-worker@.service\n'
-        printf 'Redis: /etc/redis/redis.conf\nNode.js: /opt/mydomo-node\n'
+        printf 'Общие файлы системного слоя: %s/shared\nКонфигурация агента: /etc/laiot/agent.json\n' "$BASE"
+        printf 'Службы systemd:\n  /etc/systemd/system/laiot-agent.service\n  /etc/systemd/system/laiot-core@.service\n  /etc/systemd/system/laiot-worker@.service\n'
+        printf 'Redis: /etc/redis/redis.conf\nNode.js: /opt/laiot-node\n'
         printf 'Состояние установщика: %s\nЖурнал установки: %s/details.log\nЭта памятка: %s\n\n' "$STATE" "$STATE" "$target"
         printf 'ПРОВЕРКА И ПОВТОРНЫЙ ПРОСМОТР\n'
-        printf 'Службы: systemctl status mydomo-agent mydomo-core@queue mydomo-core@events\n'
-        printf 'Журнал событий: journalctl -u mydomo-core@events -n 100\n'
+        printf 'Службы: systemctl status laiot-agent laiot-core@queue laiot-core@events\n'
+        printf 'Журнал событий: journalctl -u laiot-core@events -n 100\n'
         printf 'Повторно открыть памятку под root: cat %s\n' "$target"
     } > "$temporary"
     chmod 600 "$temporary"
@@ -638,21 +638,21 @@ credentials() {
 finish() {
     local task
     while [[ ! -f $APP/var/installed.lock ]]; do
-        pause 'Завершите мастер MyDoMo в браузере, затем вернитесь сюда'
-        [[ -f $APP/var/installed.lock ]] || say 'MyDoMo ещё не отметила установку завершённой.'
+        pause 'Завершите мастер LaIOT в браузере, затем вернитесь сюда'
+        [[ -f $APP/var/installed.lock ]] || say 'LaIOT ещё не отметила установку завершённой.'
     done
     for task in queue events timeouts maintenance system-events module.mqtt module.zigbee; do
-        systemctl enable --now "mydomo-core@$task"
+        systemctl enable --now "laiot-core@$task"
     done
-    systemctl enable --now mydomo-worker@mqtt mydomo-worker@zigbee
+    systemctl enable --now laiot-worker@mqtt laiot-worker@zigbee
     sleep 3
     for task in queue events timeouts maintenance system-events module.mqtt module.zigbee; do
-        systemctl is-active --quiet "mydomo-core@$task"
+        systemctl is-active --quiet "laiot-core@$task"
     done
 }
 main() {
     if [[ ${1:-} == --help ]]; then
-        printf 'MyDoMo: bash install-server.sh\nИнтерактивная установка Ubuntu 24.04 x86_64. Повторный запуск продолжает установку.\n'
+        printf 'LaIOT: bash install-server.sh\nИнтерактивная установка Ubuntu 24.04 x86_64. Повторный запуск продолжает установку.\n'
         return
     fi
     [[ $# == 0 ]] || die 'Неизвестный параметр. Справка: --help'
@@ -681,7 +681,7 @@ main() {
         elif systemctl is-active --quiet nginx || systemctl is-active --quiet apache2 || systemctl is-active --quiet mysql || systemctl is-active --quiet mariadb; then
             die 'Есть серверные приложения, но нет CLI FastPanel. Для установки панели нужна чистая Ubuntu.'
         fi
-        [[ ! -e /etc/mydomo/agent.json && ! -e /etc/systemd/system/mydomo-core@.service ]] || die 'Обнаружена другая установка MyDoMo. Автоматическая перезапись запрещена.'
+        [[ ! -e /etc/laiot/agent.json && ! -e /etc/systemd/system/laiot-core@.service ]] || die 'Обнаружена другая установка LaIOT. Автоматическая перезапись запрещена.'
         questions
     fi
     touch "$STATE/details.log"
@@ -720,7 +720,7 @@ main() {
     run_step packages '2/8 · Устанавливаем PHP и Redis' packages
     run_step site '3/8 · Подготавливаем сайт и каталог' site
     run_step node '4/8 · Устанавливаем Node.js 24 LTS' node_runtime
-    run_step app '5/8 · Скачиваем и собираем MyDoMo' application
+    run_step app '5/8 · Скачиваем и собираем LaIOT' application
     run_step db '6/8 · Создаём базу данных' database
     if [[ $MQTT == yes ]]; then run_step mqtt 'Устанавливаем Mosquitto' mosquitto; fi
     if [[ $ZIGBEE == yes ]]; then run_step zigbee 'Устанавливаем Zigbee2MQTT' zigbee; fi
@@ -731,7 +731,7 @@ main() {
     run_step finish 'Запускаем службы после веб-установки' finish
     # Показ выполняется вне run_step: доступы идут в SSH, а не в details.log.
     credentials
-    say "Готово! Открывайте $SCHEME://$DOMAIN/login\nНастройки MQTT и Zigbee находятся в разделах модулей MyDoMo."
+    say "Готово! Открывайте $SCHEME://$DOMAIN/login\nНастройки MQTT и Zigbee находятся в разделах модулей LaIOT."
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then main "$@"; fi

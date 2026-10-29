@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Runtime\TimeoutRepository;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Runtime\TimeoutRepository;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -6,7 +6,7 @@ use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Blueprint;
 
 /**
- * Входящие webhook MyDoMo.
+ * Входящие webhook LaIOT.
  *
  * Таблица `module_api_webhooks` принадлежит core-модулю `api`. Старая
  * `api_hooks` из alpha не читается и не переименовывается: у неё другая

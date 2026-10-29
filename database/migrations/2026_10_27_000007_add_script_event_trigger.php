@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Scripts;
+namespace LaIOT\Scripts;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Connection;

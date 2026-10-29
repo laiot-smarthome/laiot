@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt\Http;
+namespace LaIOT\Mqtt\Http;
 
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
-use MajorDoMo\Http\Controller;
-use MajorDoMo\Http\PanelPage;
-use MajorDoMo\Http\PanelRenderer;
-use MajorDoMo\Http\Session\SessionStore;
-use MajorDoMo\Mqtt\BindingIndex;
-use MajorDoMo\Mqtt\RuntimeState;
-use MajorDoMo\Mqtt\Settings;
-use MajorDoMo\Mqtt\TopicRepository;
+use LaIOT\Http\Controller;
+use LaIOT\Http\PanelPage;
+use LaIOT\Http\PanelRenderer;
+use LaIOT\Http\Session\SessionStore;
+use LaIOT\Mqtt\BindingIndex;
+use LaIOT\Mqtt\RuntimeState;
+use LaIOT\Mqtt\Settings;
+use LaIOT\Mqtt\TopicRepository;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee\Support;
+namespace LaIOT\Zigbee\Support;
 
-use MajorDoMo\Locations\LocationKind;
-use MajorDoMo\Locations\LocationRepository;
+use LaIOT\Services\Locations\LocationKind;
+use LaIOT\Services\Locations\LocationRepository;
 use Throwable;
 
 /**

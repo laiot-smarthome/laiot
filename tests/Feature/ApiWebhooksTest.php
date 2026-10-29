@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
-use MajorDoMo\Api\Webhooks\WebhookException;
-use MajorDoMo\Api\Webhooks\WebhookRepository;
-use MajorDoMo\Api\Webhooks\WebhookService;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Runtime\CodeRunner;
-use MajorDoMo\Runtime\PhpSyntaxValidator;
-use MajorDoMo\Scripts\ScriptRepository;
-use MajorDoMo\Scripts\ScriptRunner;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Runtime\CodeRunner;
+use LaIOT\Services\Runtime\PhpSyntaxValidator;
+use LaIOT\Services\Scripts\ScriptRepository;
+use LaIOT\Services\Scripts\ScriptRunner;
+use LaIOT\Services\Webhooks\WebhookException;
+use LaIOT\Services\Webhooks\WebhookRepository;
+use LaIOT\Services\Webhooks\WebhookService;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Http\Request;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Kernel;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Support\MaintenanceMode;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Kernel;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Support\MaintenanceMode;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -32,7 +32,7 @@ final class MaintenanceTest extends TestCase
         $app->boot();
         SessionFixture::authenticate($app);
 
-        $root = sys_get_temp_dir() . '/mydomo-maintenance-' . bin2hex(random_bytes(6));
+        $root = sys_get_temp_dir() . '/laiot-maintenance-' . bin2hex(random_bytes(6));
         $mode = new MaintenanceMode($root);
         $app->container()->instance(MaintenanceMode::class, $mode);
         $kernel = new Kernel(

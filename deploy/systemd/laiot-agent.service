@@ -1,0 +1,18 @@
+[Unit]
+Description=LaIOT privileged systemd agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/bin/php @@ROOT@@/current/bin/laiot-agent serve
+Restart=always
+RestartSec=3
+RuntimeDirectory=laiot
+RuntimeDirectoryMode=0750
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

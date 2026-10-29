@@ -18,11 +18,11 @@ export default defineConfig({
       input: 'resources/js/codeeditor/index.js',
       output: {
         format: 'iife',
-        entryFileNames: 'mydomo-codeeditor.js',
+        entryFileNames: 'laiot-codeeditor.js',
         assetFileNames: (assetInfo) => {
           const name = (assetInfo.names && assetInfo.names[0]) || assetInfo.name || '';
           if (name.endsWith('.css')) {
-            return 'mydomo-codeeditor.css';
+            return 'laiot-codeeditor.css';
           }
           if (/\.(woff2?|ttf|eot|otf)$/i.test(name)) {
             return 'fonts/[name][extname]';

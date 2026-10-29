@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Http\Request;
-use MajorDoMo\Auth\RoleRepository;
-use MajorDoMo\Auth\UserRepository;
-use MajorDoMo\Database\Migrator;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Database\Migrator;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Auth\RoleRepository;
+use LaIOT\Services\Auth\UserRepository;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Response;
 

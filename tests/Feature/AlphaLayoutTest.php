@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\View\BladeRenderer;
+use LaIOT\View\BladeRenderer;
 use PHPUnit\Framework\TestCase;
 
 final class AlphaLayoutTest extends TestCase
@@ -30,8 +30,8 @@ final class AlphaLayoutTest extends TestCase
         self::assertStringContainsString('md-admin-main', $html);
         self::assertStringContainsString('Оповещения', $html);
         self::assertStringContainsString('page-content', $html);
-        self::assertStringContainsString('assets/admin/mydomo.css', $html);
-        self::assertStringContainsString('assets/admin/mydomo.js', $html);
+        self::assertStringContainsString('assets/admin/laiot.css', $html);
+        self::assertStringContainsString('assets/admin/laiot.js', $html);
         self::assertStringNotContainsString('assets/admin/admin.css', $html);
         self::assertStringNotContainsString('assets/admin/admin.js', $html);
     }

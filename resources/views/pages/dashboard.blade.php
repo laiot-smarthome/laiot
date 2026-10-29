@@ -198,7 +198,7 @@
                         @if ($queueTotal === 0 && (int)$queue['failed'] === 0)
                             Очередь пуста — фоновые задания не накопились.
                         @else
-                            Всего в работе {{ number_format($queueTotal, 0, ',', ' ') }} заданий. Воркер запускается командой <code>php bin/mydomo queue:work</code>.
+                            Всего в работе {{ number_format($queueTotal, 0, ',', ' ') }} заданий. Воркер запускается командой <code>php bin/laiot queue:work</code>.
                         @endif
                     </p>
                 </div>

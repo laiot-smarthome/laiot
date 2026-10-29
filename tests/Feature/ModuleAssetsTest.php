@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Filesystem\Filesystem;
-use MajorDoMo\Modules\ModuleAssets;
+use LaIOT\Services\Modules\ModuleAssets;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,7 +20,7 @@ final class ModuleAssetsTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->root = sys_get_temp_dir() . '/mydomo-assets-' . bin2hex(random_bytes(4));
+        $this->root = sys_get_temp_dir() . '/laiot-assets-' . bin2hex(random_bytes(4));
         $this->module = $this->root . '/modules/demo';
         mkdir($this->module . '/assets/css', 0775, true);
         file_put_contents($this->module . '/assets/css/app.css', 'body{}');

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee;
+namespace LaIOT\Zigbee;
 
-use MajorDoMo\Queue\JobHandler;
+use LaIOT\Services\Queue\JobHandler;
 
 /**
  * Задание очереди `module.zigbee` с одним сообщением брокера.

@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Routing\Router;
-use MajorDoMo\Mqtt\Http\SettingsController;
-use MajorDoMo\Mqtt\Http\TopicController;
-use MajorDoMo\Mqtt\Http\TopicsController;
+use LaIOT\Mqtt\Http\SettingsController;
+use LaIOT\Mqtt\Http\TopicController;
+use LaIOT\Mqtt\Http\TopicsController;
 
 /**
  * Маршруты MQTT-модуля.

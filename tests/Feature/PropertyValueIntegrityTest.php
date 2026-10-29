@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\QueryException;
 use InvalidArgumentException;
-use MajorDoMo\Classes\ClassRepository;
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Events\PropertyEventContext;
-use MajorDoMo\Events\PropertyEventQueue;
-use MajorDoMo\Events\PropertyExecutionRepository;
-use MajorDoMo\History\HistoryRepository;
-use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Properties\PropertyRepository;
-use MajorDoMo\Properties\PropertyValueService;
-use MajorDoMo\Properties\ValueRepository;
-use MajorDoMo\Queue\DatabaseQueue;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Classes\ClassRepository;
+use LaIOT\Services\Events\PropertyEventContext;
+use LaIOT\Services\Events\PropertyEventQueue;
+use LaIOT\Services\Events\PropertyExecutionRepository;
+use LaIOT\Services\History\HistoryRepository;
+use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\Properties\PropertyRepository;
+use LaIOT\Services\Properties\PropertyValueService;
+use LaIOT\Services\Properties\ValueRepository;
+use LaIOT\Services\Queue\DatabaseQueue;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -23,9 +23,9 @@ $primary = $exceptions[0] ?? null;
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>500 — <?= $debug ? 'Ошибка приложения' : 'Внутренняя ошибка' ?> — LaIoT</title>
+    <title>500 — <?= $debug ? 'Ошибка приложения' : 'Внутренняя ошибка' ?> — LaIOT</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="stylesheet" href="/assets/admin/mydomo.css<?= $escape($assetVersion) ?>">
+    <link rel="stylesheet" href="/assets/admin/laiot.css<?= $escape($assetVersion) ?>">
     <script>
         (function () {
             var match = document.cookie.match(/(?:^|;\s*)theme=([^;]+)/);
@@ -37,9 +37,9 @@ $primary = $exceptions[0] ?? null;
 <?php if ($primary !== null) : ?>
 <main class="md-exception__main" x-data="mdException">
     <header class="md-exception__toolbar">
-        <a class="md-exception__brand md-logo" href="/admin" aria-label="LaIoT — в панель">
-            <img class="md-logo__light" src="/assets/img/logos/laiot-logo.png" srcset="/assets/img/logos/laiot-logo@2x.png 2x" width="333" height="101" alt="LaIoT">
-            <img class="md-logo__dark" src="/assets/img/logos/laiot-logo-white.png" srcset="/assets/img/logos/laiot-logo-white@2x.png 2x" width="300" height="91" alt="LaIoT">
+        <a class="md-exception__brand md-logo" href="/admin" aria-label="LaIOT — в панель">
+            <img class="md-logo__light" src="/assets/img/logos/laiot-logo.png" srcset="/assets/img/logos/laiot-logo@2x.png 2x" width="333" height="101" alt="LaIOT">
+            <img class="md-logo__dark" src="/assets/img/logos/laiot-logo-white.png" srcset="/assets/img/logos/laiot-logo-white@2x.png 2x" width="300" height="91" alt="LaIOT">
         </a>
         <div class="md-exception__toolbar-actions">
             <span class="md-exception__badge">500 · Режим отладки</span>
@@ -113,14 +113,14 @@ $primary = $exceptions[0] ?? null;
     </details>
 </main>
 <?php require __DIR__ . '/../components/md/toast-stack.php'; ?>
-<script src="/assets/admin/mydomo-exceptions.js<?= $escape($scriptVersion) ?>" defer></script>
+<script src="/assets/admin/laiot-exceptions.js<?= $escape($scriptVersion) ?>" defer></script>
 <?php else : ?>
 <main class="md-error-page__main">
     <div class="md-error-page__card md-error-page__card--danger">
-        <a class="md-error-page__brand" href="/admin" aria-label="LaIoT — в панель">
+        <a class="md-error-page__brand" href="/admin" aria-label="LaIOT — в панель">
             <span class="md-logo">
-                <img class="md-logo__light" src="/assets/img/logos/laiot-logo.png" width="333" height="101" alt="LaIoT">
-                <img class="md-logo__dark" src="/assets/img/logos/laiot-logo-white.png" width="300" height="91" alt="LaIoT">
+                <img class="md-logo__light" src="/assets/img/logos/laiot-logo.png" width="333" height="101" alt="LaIOT">
+                <img class="md-logo__dark" src="/assets/img/logos/laiot-logo-white.png" width="300" height="91" alt="LaIOT">
             </span>
         </a>
         <div class="md-error-page__scene">

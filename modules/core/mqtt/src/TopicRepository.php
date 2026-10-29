@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt;
+namespace LaIOT\Mqtt;
 
-use MajorDoMo\Cache\CacheStore;
-use MajorDoMo\Modules\ModuleDb;
-use MajorDoMo\Modules\ModuleQuery;
+use LaIOT\Services\Cache\CacheStore;
+use LaIOT\Services\Modules\ModuleDb;
+use LaIOT\Services\Modules\ModuleQuery;
 
 /**
  * Топики MQTT: настройка привязки, последнее значение и журнал.

@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Classes\ClassRepository;
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Database\Migrator;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Methods\MethodRepository;
-use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Properties\PropertyRepository;
-use MajorDoMo\Rename\CodeReferenceRewriter;
-use MajorDoMo\Rename\NameReferenceUpdater;
-use MajorDoMo\Runtime\PhpSyntaxValidator;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Database\Migrator;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Classes\ClassRepository;
+use LaIOT\Services\Methods\MethodRepository;
+use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\Properties\PropertyRepository;
+use LaIOT\Services\Rename\CodeReferenceRewriter;
+use LaIOT\Services\Rename\NameReferenceUpdater;
+use LaIOT\Services\Runtime\PhpSyntaxValidator;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -92,7 +92,7 @@ final class RenameCascadeTest extends TestCase
 
     public function testModuleFilesAreRewrittenAndFlushed(): void
     {
-        $root = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'mydomo-rename-' . bin2hex(random_bytes(4));
+        $root = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'laiot-rename-' . bin2hex(random_bytes(4));
         mkdir($root . '/config', 0777, true);
         mkdir($root . '/modules/demo', 0777, true);
         file_put_contents($root . '/config/app.php', "<?php\nreturn [];\n");

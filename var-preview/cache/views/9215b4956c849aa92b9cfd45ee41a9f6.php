@@ -1,7 +1,7 @@
 
 <?php
     $assetVersion = static function (string $path): string {
-        $root = \MajorDoMo\Support\AppContext::get()?->root();
+        $root = \LaIOT\Support\AppContext::get()?->root();
         $file = $root !== null ? $root . '/public' . $path : '';
         return $file !== '' && is_file($file) ? '?v=' . filemtime($file) : '';
     };
@@ -25,9 +25,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>Установка — LaIoT</title>
+    <title>Установка — LaIOT</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="stylesheet" href="/assets/admin/mydomo.css<?php echo e($assetVersion('/assets/admin/mydomo.css')); ?>">
+    <link rel="stylesheet" href="/assets/admin/laiot.css<?php echo e($assetVersion('/assets/admin/laiot.css')); ?>">
     <link rel="stylesheet" href="/assets/install/setup.css<?php echo e($assetVersion('/assets/install/setup.css')); ?>">
     <script>
         (function () {
@@ -47,14 +47,14 @@
 
 <main class="md-setup__main">
     <header class="md-setup__top">
-        <a class="md-setup__brand" href="/install" aria-label="LaIoT — установка">
+        <a class="md-setup__brand" href="/install" aria-label="LaIOT — установка">
             <span class="md-logo">
                 <img class="md-logo__light" src="/assets/img/logos/laiot-logo.png"
                      srcset="/assets/img/logos/laiot-logo@2x.png 2x"
-                     width="333" height="101" alt="LaIoT" decoding="async">
+                     width="333" height="101" alt="LaIOT" decoding="async">
                 <img class="md-logo__dark" src="/assets/img/logos/laiot-logo-white.png"
                      srcset="/assets/img/logos/laiot-logo-white@2x.png 2x"
-                     width="300" height="91" alt="LaIoT" decoding="async">
+                     width="300" height="91" alt="LaIOT" decoding="async">
             </span>
         </a>
         <span class="md-setup__badge">Первый запуск · <?php echo e($version); ?></span>
@@ -84,7 +84,7 @@
 <?php endif; ?>
             <h1 class="md-setup__title">Почти получилось</h1>
             <p class="md-setup__lead">
-                MyDoMo не может создать папку <code>var</code> или записать в неё ключ.
+                LaIOT не может создать папку <code>var</code> или записать в неё ключ.
                 Это лечится правами — данные и файлы не пострадали.
             </p>
             <ol class="md-setup__steps">
@@ -235,7 +235,7 @@
             </div>
             <h1 class="md-setup__title">Дом готов!</h1>
             <p class="md-setup__lead">
-                MyDoMo <?php echo e($report->version); ?> установлена. Теперь можно войти и добавить
+                LaIOT <?php echo e($report->version); ?> установлена. Теперь можно войти и добавить
                 первый этаж, комнату и устройства.
             </p>
 
@@ -282,7 +282,7 @@
                 <ol>
                     <li>Войди в панель — кнопка ниже.</li>
                     <li>Запусти фоновые службы <code>queue</code>, <code>events</code> и <code>timeouts</code>:
-                        без них не работают история и автоматизации. Инструкция — <code>docs/mydomo/deploy.md</code>.</li>
+                        без них не работают история и автоматизации. Инструкция — <code>docs/laiot/deploy.md</code>.</li>
                     <li>Добавь этаж, комнату и первое устройство.</li>
                 </ol>
             </div>
@@ -358,7 +358,7 @@
                             <span class="md-setup__eyebrow">Первый запуск</span>
                             <h1 class="md-setup__title">Привет! Давай оживим дом</h1>
                             <p class="md-setup__lead">
-                                MyDoMo — локальный умный дом: сценарии, устройства, история
+                                LaIOT — локальный умный дом: сценарии, устройства, история
                                 и автоматизации. Всё живёт на твоём сервере, без облака
                                 и подписок.
                             </p>
@@ -581,7 +581,7 @@
                     <header class="md-setup__head">
                         <span class="md-setup__eyebrow">Шаг 2 из 4</span>
                         <h1 class="md-setup__title">Проверим сервер</h1>
-                        <p class="md-setup__lead">Смотрим, всё ли готово для MyDoMo. Ничего не меняем — только читаем.</p>
+                        <p class="md-setup__lead">Смотрим, всё ли готово для LaIOT. Ничего не меняем — только читаем.</p>
                     </header>
 
                     <?php if($blocked): ?>
@@ -608,14 +608,14 @@
                     <?php else: ?>
                         <?php if (isset($component)) { $__componentOriginal67ec6f84581691906d10e0e28720d229 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal67ec6f84581691906d10e0e28720d229 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.md.alert','data' => ['type' => 'success','title' => 'Всё готово','text' => 'Сервер примет MyDoMo. Можно продолжать.']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.md.alert','data' => ['type' => 'success','title' => 'Всё готово','text' => 'Сервер примет LaIOT. Можно продолжать.']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('md.alert'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['type' => 'success','title' => 'Всё готово','text' => 'Сервер примет MyDoMo. Можно продолжать.']); ?>
+<?php $component->withAttributes(['type' => 'success','title' => 'Всё готово','text' => 'Сервер примет LaIOT. Можно продолжать.']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal67ec6f84581691906d10e0e28720d229)): ?>
@@ -895,14 +895,14 @@
 <?php endif; ?>
                                 <?php if (isset($component)) { $__componentOriginalb886b7d9c7f257ca97615d7374fcf93f = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalb886b7d9c7f257ca97615d7374fcf93f = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.md.input','data' => ['id' => 'db-user','name' => 'db_user','label' => 'Пользователь','value' => $values['db_user'],'error' => $errors['db_user'] ?? null,'required' => true,'description' => 'Отдельный пользователь MyDoMo, не root.']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.md.input','data' => ['id' => 'db-user','name' => 'db_user','label' => 'Пользователь','value' => $values['db_user'],'error' => $errors['db_user'] ?? null,'required' => true,'description' => 'Отдельный пользователь LaIOT, не root.']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('md.input'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['id' => 'db-user','name' => 'db_user','label' => 'Пользователь','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($values['db_user']),'error' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($errors['db_user'] ?? null),'required' => true,'description' => 'Отдельный пользователь MyDoMo, не root.']); ?>
+<?php $component->withAttributes(['id' => 'db-user','name' => 'db_user','label' => 'Пользователь','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($values['db_user']),'error' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($errors['db_user'] ?? null),'required' => true,'description' => 'Отдельный пользователь LaIOT, не root.']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginalb886b7d9c7f257ca97615d7374fcf93f)): ?>
@@ -1340,7 +1340,7 @@
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['type' => 'submit','icon' => 'rocket','size' => 'lg']); ?>Установить MyDoMo <?php echo $__env->renderComponent(); ?>
+<?php $component->withAttributes(['type' => 'submit','icon' => 'rocket','size' => 'lg']); ?>Установить LaIOT <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginale300843b4ce048894a92319c5215c17c)): ?>
 <?php $attributes = $__attributesOriginale300843b4ce048894a92319c5215c17c; ?>
@@ -1357,9 +1357,9 @@
         </div>
     <?php endif; ?>
 
-    <p class="md-setup__foot">LaIoT · MyDoMo · установка</p>
+    <p class="md-setup__foot">LaIOT · LaIOT · установка</p>
 </main>
-<script src="/assets/admin/mydomo.js" defer></script>
+<script src="/assets/admin/laiot.js" defer></script>
 </body>
 </html>
 <?php /**PATH /var/www/html/resources/views/install/page.blade.php ENDPATH**/ ?>

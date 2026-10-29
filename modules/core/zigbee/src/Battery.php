@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee;
+namespace LaIOT\Zigbee;
 
 use InvalidArgumentException;
 

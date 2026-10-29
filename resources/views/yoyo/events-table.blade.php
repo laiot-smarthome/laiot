@@ -37,8 +37,8 @@
                         <td><strong>#{{ $chain['id'] }}</strong>
                             @if ($chain['partial'])<div class="md-table__muted">Часть цепочки</div>@endif
                         </td>
-                        <td>{{ \MajorDoMo\Events\EventChainService::formatTime($chain['root']['created_at']) }}</td>
-                        <td><span title="{{ $chain['root']['source'] }}">{{ \MajorDoMo\Events\EventChainService::sourceLabel($chain['root']['source']) }}</span></td>
+                        <td>{{ \LaIOT\Services\Events\EventChainService::formatTime($chain['root']['created_at']) }}</td>
+                        <td><span title="{{ $chain['root']['source'] }}">{{ \LaIOT\Services\Events\EventChainService::sourceLabel($chain['root']['source']) }}</span></td>
                         <td>
                             <strong>{{ $chain['root']['object_title'] }}.{{ $chain['root']['type'] === 'property.changed' ? $chain['root']['property_title'] : $chain['root']['handler'] }}</strong>
                             @if ($chain['root']['type'] === 'property.changed')

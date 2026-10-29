@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Database\Model;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Models\Model;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee;
+namespace LaIOT\Zigbee;
 
 use InvalidArgumentException;
-use MajorDoMo\Classes\ClassRepository;
-use MajorDoMo\Locations\LocationRepository;
-use MajorDoMo\Methods\MethodRepository;
-use MajorDoMo\Methods\MethodRunner;
-use MajorDoMo\Modules\ModuleSubscriptions;
-use MajorDoMo\Mqtt\PublisherInterface;
-use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Properties\PropertyValueService;
+use LaIOT\Services\Classes\ClassRepository;
+use LaIOT\Services\Locations\LocationRepository;
+use LaIOT\Services\Methods\MethodRepository;
+use LaIOT\Services\Methods\MethodRunner;
+use LaIOT\Services\Modules\ModuleSubscriptions;
+use LaIOT\Mqtt\PublisherInterface;
+use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\Properties\PropertyValueService;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Throwable;

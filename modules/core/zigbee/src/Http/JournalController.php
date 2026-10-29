@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee\Http;
+namespace LaIOT\Zigbee\Http;
 
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
-use MajorDoMo\Http\Controller;
-use MajorDoMo\Http\PanelPage;
-use MajorDoMo\Http\PanelRenderer;
-use MajorDoMo\Http\Session\SessionStore;
-use MajorDoMo\Zigbee\Repository;
+use LaIOT\Http\Controller;
+use LaIOT\Http\PanelPage;
+use LaIOT\Http\PanelRenderer;
+use LaIOT\Http\Session\SessionStore;
+use LaIOT\Zigbee\Repository;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

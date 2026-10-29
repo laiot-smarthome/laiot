@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
-use MajorDoMo\Database\Setting;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Models\Setting;
 use PHPUnit\Framework\TestCase;
 
 final class DatabaseTest extends TestCase
@@ -19,7 +19,7 @@ final class DatabaseTest extends TestCase
     {
         $this->app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
-            'view_cache' => sys_get_temp_dir() . '/mydomo-views-' . bin2hex(random_bytes(4)),
+            'view_cache' => sys_get_temp_dir() . '/laiot-views-' . bin2hex(random_bytes(4)),
             'log' => 'php://stderr',
             'session' => new ArraySession(),
             'database' => [
@@ -42,7 +42,7 @@ final class DatabaseTest extends TestCase
 
         Setting::query()->create([
             'name' => 'SITE_TITLE',
-            'value' => 'MyDoMo',
+            'value' => 'LaIOT',
             'title' => 'Название сайта',
             'type' => 'text',
         ]);
@@ -56,9 +56,9 @@ final class DatabaseTest extends TestCase
 
     public function testRepositoryReadsSettingThroughEloquent(): void
     {
-        $repository = $this->app->container()->make(\MajorDoMo\Database\SettingsRepository::class);
+        $repository = $this->app->container()->make(\LaIOT\Database\SettingsRepository::class);
 
-        self::assertSame('MyDoMo', $repository->get('SITE_TITLE'));
+        self::assertSame('LaIOT', $repository->get('SITE_TITLE'));
         self::assertNull($repository->get('UNKNOWN'));
         self::assertSame('fallback', $repository->get('UNKNOWN', 'fallback'));
     }

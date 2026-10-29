@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>Вход — LaIoT</title>
+    <title>Вход — LaIOT</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="stylesheet" href="/assets/admin/mydomo.css">
+    <link rel="stylesheet" href="/assets/admin/laiot.css">
     <link rel="stylesheet" href="/assets/auth/login.css">
     <script>
         (function () {
@@ -29,10 +29,10 @@
         <span class="md-logo">
             <img class="md-logo__light" src="/assets/img/logos/laiot-logo.png"
                  srcset="/assets/img/logos/laiot-logo@2x.png 2x"
-                 width="333" height="101" alt="LaIoT" decoding="async">
+                 width="333" height="101" alt="LaIOT" decoding="async">
             <img class="md-logo__dark" src="/assets/img/logos/laiot-logo-white.png"
                  srcset="/assets/img/logos/laiot-logo-white@2x.png 2x"
-                 width="300" height="91" alt="LaIoT" decoding="async">
+                 width="300" height="91" alt="LaIOT" decoding="async">
         </span>
     </div>
 
@@ -148,7 +148,7 @@
         <p class="md-auth__foot"><i class="ti ti-shield-lock" aria-hidden="true"></i> Доступ только для администраторов системы.</p>
     </div>
 </main>
-<script src="/assets/admin/mydomo.js" defer></script>
+<script src="/assets/admin/laiot.js" defer></script>
 </body>
 </html>
 <?php /**PATH /var/www/html/resources/views/login.blade.php ENDPATH**/ ?>

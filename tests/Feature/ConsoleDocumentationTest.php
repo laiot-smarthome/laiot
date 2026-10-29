@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Console\ConsoleFactory;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Console\ConsoleFactory;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -27,7 +27,7 @@ final class ConsoleDocumentationTest extends TestCase
         ]);
         $app->boot();
         $console = ConsoleFactory::make($app);
-        $markdown = str_replace("\r\n", "\n", (string)file_get_contents($root . '/docs/mydomo/console.md'));
+        $markdown = str_replace("\r\n", "\n", (string)file_get_contents($root . '/docs/laiot/console.md'));
         preg_match_all('/^### ([a-z][a-z:-]*)$/m', $markdown, $headings);
         $documented = $headings[1];
         $registered = [];
@@ -39,8 +39,8 @@ final class ConsoleDocumentationTest extends TestCase
             self::assertContains($name, $documented, 'Нет документации команды ' . $name);
             preg_match('/^### ' . preg_quote($name, '/') . '\n(.*?)(?=^### |^## |\z)/ms', $markdown, $section);
             $body = $section[1] ?? '';
-            self::assertStringContainsString('php bin/mydomo ' . $name, $body);
-            if (str_starts_with($command::class, 'MajorDoMo\\')) {
+            self::assertStringContainsString('php bin/laiot ' . $name, $body);
+            if (str_starts_with($command::class, 'LaIOT\\')) {
                 self::assertStringContainsString($command->getDescription(), $body);
             }
             $parameters = [];

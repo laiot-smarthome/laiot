@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee\Support;
+namespace LaIOT\Zigbee\Support;
 
-use MajorDoMo\Zigbee\HealthSettings;
-use MajorDoMo\Zigbee\ValueTransformer;
+use LaIOT\Zigbee\HealthSettings;
+use LaIOT\Zigbee\ValueTransformer;
 
 /**
  * Перевод правил преобразования между формой и массивом.

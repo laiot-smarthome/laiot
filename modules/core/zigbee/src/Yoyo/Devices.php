@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee\Yoyo;
+namespace LaIOT\Zigbee\Yoyo;
 
 use Clickfwd\Yoyo\Component;
-use MajorDoMo\Auth\Authorization;
-use MajorDoMo\Http\Session\SessionStore;
-use MajorDoMo\Locations\LocationRepository;
-use MajorDoMo\Modules\ModuleManager;
-use MajorDoMo\Zigbee\Repository;
-use MajorDoMo\Zigbee\Support\PanelData;
+use LaIOT\Services\Auth\Authorization;
+use LaIOT\Http\Session\SessionStore;
+use LaIOT\Services\Locations\LocationRepository;
+use LaIOT\Services\Modules\ModuleManager;
+use LaIOT\Zigbee\Repository;
+use LaIOT\Zigbee\Support\PanelData;
 
 /**
  * Список устройств Zigbee с поиском, вкладками и комнатами.

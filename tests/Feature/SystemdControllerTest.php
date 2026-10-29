@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Systemd\ProcessResult;
-use MajorDoMo\Systemd\ProcessRunner;
-use MajorDoMo\Systemd\SystemdController;
+use LaIOT\Services\Systemd\ProcessResult;
+use LaIOT\Services\Systemd\ProcessRunner;
+use LaIOT\Services\Systemd\SystemdController;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -26,9 +26,9 @@ final class SystemdControllerTest extends TestCase
             self::assertTrue($controller->restart('demo')->successful());
             self::assertTrue($controller->stop('demo')->successful());
             self::assertSame([
-                ['systemctl', 'start', 'mydomo-worker@demo'],
-                ['systemctl', 'restart', 'mydomo-worker@demo'],
-                ['systemctl', 'stop', 'mydomo-worker@demo'],
+                ['systemctl', 'start', 'laiot-worker@demo'],
+                ['systemctl', 'restart', 'laiot-worker@demo'],
+                ['systemctl', 'stop', 'laiot-worker@demo'],
             ], $runner->commands);
 
             foreach (['../demo', 'Demo', 'unknown'] as $invalid) {
@@ -49,7 +49,7 @@ final class SystemdControllerTest extends TestCase
         $root = $this->root();
         try {
             $runner = new FakeProcessRunner([
-                'systemctl show mydomo-worker@demo --no-pager --property=ActiveState,SubState,MainPID,ExecMainStartTimestamp' =>
+                'systemctl show laiot-worker@demo --no-pager --property=ActiveState,SubState,MainPID,ExecMainStartTimestamp' =>
                     new ProcessResult(0, "ActiveState=active\nSubState=running\nMainPID=4242\nExecMainStartTimestamp=Mon 2026-10-26 22:00:00 MSK\n", ''),
             ]);
             $status = (new SystemdController($runner, $root))->status('demo');
@@ -66,13 +66,13 @@ final class SystemdControllerTest extends TestCase
         $root = $this->root();
         try {
             $runner = new FakeProcessRunner([
-                'systemctl list-units mydomo-worker@* --all --no-legend --plain' =>
-                    new ProcessResult(0, "mydomo-worker@old.service loaded active running\n", ''),
+                'systemctl list-units laiot-worker@* --all --no-legend --plain' =>
+                    new ProcessResult(0, "laiot-worker@old.service loaded active running\n", ''),
             ]);
             $result = (new SystemdController($runner, $root))->sync(['demo']);
             self::assertSame(['demo'], $result['started']);
             self::assertSame(['old'], $result['stopped']);
-            self::assertContains(['systemctl', 'stop', 'mydomo-worker@old'], $runner->commands);
+            self::assertContains(['systemctl', 'stop', 'laiot-worker@old'], $runner->commands);
         } finally {
             $this->remove($root);
         }
@@ -81,21 +81,21 @@ final class SystemdControllerTest extends TestCase
     public function testInstallUnitRendersPlaceholders(): void
     {
         $root = $this->root();
-        $target = sys_get_temp_dir() . '/mydomo-units-' . bin2hex(random_bytes(4));
+        $target = sys_get_temp_dir() . '/laiot-units-' . bin2hex(random_bytes(4));
         try {
             mkdir($root . '/deploy/systemd', 0775, true);
             file_put_contents(
-                $root . '/deploy/systemd/mydomo-worker@.service',
+                $root . '/deploy/systemd/laiot-worker@.service',
                 "User=@@USER@@\nWorkingDirectory=@@ROOT@@/current\n"
             );
             $runner = new FakeProcessRunner();
             $file = (new SystemdController($runner, $root))->installUnit($target);
-            self::assertSame('User=mydomo', trim(explode("\n", (string)file_get_contents($file))[0]));
+            self::assertSame('User=laiot', trim(explode("\n", (string)file_get_contents($file))[0]));
             self::assertStringContainsString($root . '/current', (string)file_get_contents($file));
             self::assertContains(['systemctl', 'daemon-reload'], $runner->commands);
         } finally {
             $this->remove($root);
-            @unlink($target . '/mydomo-worker@.service');
+            @unlink($target . '/laiot-worker@.service');
             @rmdir($target);
         }
     }
@@ -105,12 +105,12 @@ final class SystemdControllerTest extends TestCase
         $root = $this->root();
         try {
             $runner = new FakeProcessRunner([
-                'systemctl list-units mydomo-core@* --all --no-legend --plain' =>
-                    new ProcessResult(0, "mydomo-core@timeouts.service loaded active running\n", ''),
+                'systemctl list-units laiot-core@* --all --no-legend --plain' =>
+                    new ProcessResult(0, "laiot-core@timeouts.service loaded active running\n", ''),
             ]);
             $controller = new SystemdController($runner, $root);
             self::assertTrue($controller->coreStart('queue')->successful());
-            self::assertContains(['systemctl', 'start', 'mydomo-core@queue'], $runner->commands);
+            self::assertContains(['systemctl', 'start', 'laiot-core@queue'], $runner->commands);
 
             $result = $controller->syncCore(['queue']);
             self::assertSame(['queue'], $result['started']);
@@ -129,7 +129,7 @@ final class SystemdControllerTest extends TestCase
 
     private function root(): string
     {
-        $root = sys_get_temp_dir() . '/mydomo-systemd-' . bin2hex(random_bytes(4));
+        $root = sys_get_temp_dir() . '/laiot-systemd-' . bin2hex(random_bytes(4));
         mkdir($root . '/modules/core/demo', 0775, true);
         mkdir($root . '/modules/third', 0775, true);
 

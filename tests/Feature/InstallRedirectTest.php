@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Install\InstallService;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Install\InstallService;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -22,7 +22,7 @@ final class InstallRedirectTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->root = sys_get_temp_dir() . '/mydomo-install-redirect-' . bin2hex(random_bytes(6));
+        $this->root = sys_get_temp_dir() . '/laiot-install-redirect-' . bin2hex(random_bytes(6));
         mkdir($this->root . '/var', 0775, true);
         $this->app = new Application(dirname(__DIR__, 2), [
             'install_guard' => true,

@@ -6,11 +6,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Пул локального стенда: те же ручки, что в production, но числа меньше.
-COPY php-fpm.d/zz-mydomo.conf /usr/local/etc/php-fpm.d/zz-mydomo.conf
-COPY entrypoint.sh /usr/local/bin/mydomo-entrypoint
-RUN chmod +x /usr/local/bin/mydomo-entrypoint
+COPY php-fpm.d/zz-laiot.conf /usr/local/etc/php-fpm.d/zz-laiot.conf
+COPY entrypoint.sh /usr/local/bin/laiot-entrypoint
+RUN chmod +x /usr/local/bin/laiot-entrypoint
 
 WORKDIR /var/www/html
 
-ENTRYPOINT ["mydomo-entrypoint"]
+ENTRYPOINT ["laiot-entrypoint"]
 CMD ["php-fpm"]

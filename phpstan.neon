@@ -1,11 +1,11 @@
 parameters:
     level: 6
     paths:
-        - src
+        - app
         - tests/Feature
     tmpDir: var/cache/phpstan
     scanDirectories:
         - modules/core
     reportUnmatchedIgnoredErrors: false
     scanFiles:
-        - src/Support/helpers/globals.php
+        - app/Support/helpers/globals.php

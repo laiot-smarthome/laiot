@@ -1,7 +1,7 @@
 // 2026-10-29 — Tab не уходит под диалог и пропускает недоступные поля.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {focusable, trapFocus} from '../../resources/js/mydomo/focus.js';
+import {focusable, trapFocus} from '../../resources/js/laiot/focus.js';
 
 test('обход исключает скрытые, disabled и inert элементы и замыкается в диалоге', () => {
     globalThis.document = {activeElement: null};

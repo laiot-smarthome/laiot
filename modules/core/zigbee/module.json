@@ -4,7 +4,7 @@
     "name": "Zigbee",
     "version": "1.0.0",
     "description": "Устройства Zigbee2MQTT на общем MQTT-соединении: обнаружение, привязки к свойствам, команды, комнаты и мониторинг.",
-    "namespace": "MajorDoMo\\Zigbee\\",
+    "namespace": "LaIOT\\Zigbee\\",
     "entrypoint": "Module",
     "property_subscriber": "PropertySubscriber",
     "src": "src",
@@ -36,7 +36,7 @@
     },
     "dependencies": ["mqtt"],
     "requires": {
-        "mydomo": ">=2.0.0-dev",
+        "laiot": ">=2.0.0-dev",
         "php": ">=8.2"
     }
 }

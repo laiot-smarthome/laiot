@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Methods\MethodContext;
+use LaIOT\Foundation\Application;
+use LaIOT\Services\Methods\MethodContext;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -100,7 +100,7 @@ final class MethodContextTest extends TestCase
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
             'log' => 'php://stderr',
-            'session' => new \MajorDoMo\Http\Session\ArraySession(),
+            'session' => new \LaIOT\Http\Session\ArraySession(),
             'cache' => ['driver' => 'array'],
             'queue' => ['events_lanes' => 1],
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],

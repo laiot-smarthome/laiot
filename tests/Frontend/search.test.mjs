@@ -49,7 +49,7 @@ test('новый ввод, очистка и закрытие отменяют �
         calls[index].resolve({ok: true, text: async () => JSON.stringify({total: 1, sections: {Классы: [{type: 'class', title, url: '/classes'}]}})});
         await setImmediate();
     };
-    const {initSearch} = await import('../../resources/js/mydomo/search.js');
+    const {initSearch} = await import('../../resources/js/laiot/search.js');
     initSearch();
 
     header.value = 'old'; header.fire('input'); runTimers();
@@ -66,14 +66,14 @@ test('новый ввод, очистка и закрытие отменяют �
     assert.equal(headerResults.innerHTML, '');
     assert.equal(headerResults.hidden, true);
 
-    window.MyDoMoSearch.open('sensor');
+    window.LaIOTSearch.open('sensor');
     assert.equal(panel.inert, false);
     clear.fire('click');
     await answer(3, 'CLEARED');
     assert.equal(results.innerHTML, '');
     assert.equal(summary.textContent, '');
     input.value = 'pending'; input.fire('input');
-    window.MyDoMoSearch.close();
+    window.LaIOTSearch.close();
     runTimers();
     assert.equal(calls.length, 4);
     assert.equal(panel.inert, true);

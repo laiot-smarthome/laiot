@@ -1,12 +1,12 @@
 /*
- * Графики MyDoMo: ApexCharts отдельным lazy-chunk.
+ * Графики LaIOT: ApexCharts отдельным lazy-chunk.
  *
  * Чанк грузится только когда открывается drawer истории с числовыми данными.
  * Цвета берутся из токенов дизайн-системы, поэтому тема совпадает с shell.
  */
 
 import ApexCharts from 'apexcharts';
-import '../../css/mydomo-charts.css';
+import '../../css/laiot-charts.css';
 
 const charts = new Map();
 

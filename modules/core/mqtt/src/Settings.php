@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt;
+namespace LaIOT\Mqtt;
 
-use MajorDoMo\Cache\CacheStore;
-use MajorDoMo\Modules\ModuleDb;
-use MajorDoMo\Modules\ModuleSettings;
+use LaIOT\Services\Cache\CacheStore;
+use LaIOT\Services\Modules\ModuleDb;
+use LaIOT\Services\Modules\ModuleSettings;
 
 /**
  * Параметры подключения и поведения MQTT.
@@ -30,7 +30,7 @@ final class Settings
         'client_id' => [
             'title' => 'Имя клиента',
             'type' => 'string',
-            'default' => 'MyDoMo MQTT',
+            'default' => 'LaIOT MQTT',
             'options' => [],
             'description' => 'Префикс client id. К нему добавляется PID процесса: два клиента с одним id выключают друг друга.',
         ],

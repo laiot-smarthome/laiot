@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -24,7 +24,7 @@ final class LoginTest extends TestCase
         $this->session = new ArraySession();
         $this->app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
-            'view_cache' => sys_get_temp_dir() . '/mydomo-views-' . bin2hex(random_bytes(4)),
+            'view_cache' => sys_get_temp_dir() . '/laiot-views-' . bin2hex(random_bytes(4)),
             'log' => 'php://stderr',
             'session' => $this->session,
             'cache' => ['driver' => 'array'],

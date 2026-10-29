@@ -1,7 +1,7 @@
 /*
  * 2026-10-22 — удалены стили неиспользуемого выбора длительности.
  *
- * MajorDoMo admin panel styles.
+ * LaIOT admin panel styles.
  * This file is the single entry point for admin shell CSS during the Bootstrap 5 migration.
  */
 
@@ -493,7 +493,7 @@ html[data-bs-theme="dark"] {
 .glyphicon-cloud-download::before { content: "\f29b"; }
 .glyphicon-send::before { content: "\f565"; }
 
-/* Modern MajorDoMo admin shell */
+/* Modern LaIOT admin shell */
 :root {
   --md-admin-primary: #6355eb;
   --md-admin-primary-rgb: 99, 85, 235;
@@ -934,7 +934,7 @@ body {
   }
 }
 
-/* AdminKit-like home dashboard, adapted for MajorDoMo blue. */
+/* AdminKit-like home dashboard, adapted for LaIOT blue. */
 body {
   min-height: 100vh;
   background: #f3f6fb;

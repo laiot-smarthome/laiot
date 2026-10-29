@@ -1,7 +1,7 @@
 <div class="md-ui-page md-ui-page--stack">
     <section class="md-ui-hero">
         <div>
-            <div class="md-ui-hero__eyebrow"><x-md.icon name="palette" /> MyDoMo · дизайн-система</div>
+            <div class="md-ui-hero__eyebrow"><x-md.icon name="palette" /> LaIOT · дизайн-система</div>
             <h1 class="md-ui-hero__title">UI Kit</h1>
             <p class="md-ui-hero__lede">Компоненты, состояния и готовые решения для интерфейса умного дома.</p>
         </div>

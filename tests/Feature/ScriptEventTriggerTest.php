@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
-use MajorDoMo\Events\SystemEvents;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Queue\JobRegistry;
-use MajorDoMo\Scripts\ScriptRepository;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Events\SystemEvents;
+use LaIOT\Services\Queue\JobRegistry;
+use LaIOT\Services\Scripts\ScriptRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,14 +25,14 @@ final class ScriptEventTriggerTest extends TestCase
         $scripts = $app->container()->make(ScriptRepository::class);
         $id = $scripts->create(
             'По событию',
-            '$GLOBALS["mydomo_event"] = ($params["event"] ?? "") . ":" . ($params["data"]["occurred_at"] ?? "");',
+            '$GLOBALS["laiot_event"] = ($params["event"] ?? "") . ":" . ($params["data"]["occurred_at"] ?? "");',
             '',
             0,
             'system.minute'
         );
         $scripts->create('Ручной', 'return 1;', '', 0);
 
-        unset($GLOBALS['mydomo_event']);
+        unset($GLOBALS['laiot_event']);
         $app->container()->make(SystemEvents::class)->emit('system.minute', [
             'occurred_at' => '2026-10-27T12:00:00+03:00',
         ]);
@@ -47,7 +47,7 @@ final class ScriptEventTriggerTest extends TestCase
         self::assertSame('system.minute', $payload['event']);
 
         $app->container()->make(JobRegistry::class)->handle('script.system.event', $payload);
-        self::assertSame('system.minute:2026-10-27T12:00:00+03:00', $GLOBALS['mydomo_event'] ?? null);
+        self::assertSame('system.minute:2026-10-27T12:00:00+03:00', $GLOBALS['laiot_event'] ?? null);
     }
 
     public function testModuleEventQueuesBoundScript(): void

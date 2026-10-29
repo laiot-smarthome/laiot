@@ -1,5 +1,5 @@
 /*
- * Редактор кода MyDoMo: CodeMirror 6 отдельным lazy-chunk.
+ * Редактор кода LaIOT: CodeMirror 6 отдельным lazy-chunk.
  *
  * Чанк загружается только когда на странице есть textarea[data-code-editor].
  * Исходная textarea остаётся в форме и хранит актуальное значение, поэтому
@@ -19,7 +19,7 @@ import { php } from '@codemirror/lang-php';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
 
-import '../../css/mydomo-codeeditor.css';
+import '../../css/laiot-codeeditor.css';
 
 const themeCompartment = new Compartment();
 const syntaxColors = HighlightStyle.define([

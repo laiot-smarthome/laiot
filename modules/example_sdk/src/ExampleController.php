@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Example\Sdk;
 
 use Illuminate\Contracts\View\Factory;
-use MajorDoMo\Http\Controller;
-use MajorDoMo\Http\PanelPage;
-use MajorDoMo\Http\PanelRenderer;
-use MajorDoMo\Modules\ModuleManager;
+use LaIOT\Http\Controller;
+use LaIOT\Http\PanelPage;
+use LaIOT\Http\PanelRenderer;
+use LaIOT\Services\Modules\ModuleManager;
 use Symfony\Component\HttpFoundation\Response;
 
 final readonly class ExampleController extends Controller

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Filesystem\Filesystem;
 use InvalidArgumentException;
-use MajorDoMo\Cache\CacheFactory;
-use MajorDoMo\Database\DatabaseManager;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Cache\CacheFactory;
 use PHPUnit\Framework\TestCase;
 
 final class CacheTest extends TestCase
@@ -17,7 +17,7 @@ final class CacheTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->directory = sys_get_temp_dir() . '/mydomo-cache-' . bin2hex(random_bytes(4));
+        $this->directory = sys_get_temp_dir() . '/laiot-cache-' . bin2hex(random_bytes(4));
         mkdir($this->directory, 0775, true);
     }
 
@@ -90,7 +90,7 @@ final class CacheTest extends TestCase
             'redis' => ['host' => '127.0.0.1', 'port' => 6379, 'database' => 0],
         ], new DatabaseManager([]));
 
-        self::assertInstanceOf(\MajorDoMo\Cache\CacheStore::class, $cache);
+        self::assertInstanceOf(\LaIOT\Services\Cache\CacheStore::class, $cache);
     }
 
     public function testInvalidKeyIsRejected(): void

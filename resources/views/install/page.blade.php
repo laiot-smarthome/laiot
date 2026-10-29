@@ -1,12 +1,12 @@
 {{--
-    Пошаговая установка MyDoMo.
+    Пошаговая установка LaIOT.
     Шаги серверные: каждый проверяет свои поля и не пускает дальше с ошибкой.
     2026-10-28 — мастер с приветствием, подсказками и анимациями вместо
     одной технической формы.
 --}}
 @php
     $assetVersion = static function (string $path): string {
-        $root = \MajorDoMo\Support\AppContext::get()?->root();
+        $root = \LaIOT\Support\AppContext::get()?->root();
         $file = $root !== null ? $root . '/public' . $path : '';
         return $file !== '' && is_file($file) ? '?v=' . filemtime($file) : '';
     };
@@ -30,9 +30,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>Установка — LaIoT</title>
+    <title>Установка — LaIOT</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="stylesheet" href="/assets/admin/mydomo.css{{ $assetVersion('/assets/admin/mydomo.css') }}">
+    <link rel="stylesheet" href="/assets/admin/laiot.css{{ $assetVersion('/assets/admin/laiot.css') }}">
     <link rel="stylesheet" href="/assets/install/setup.css{{ $assetVersion('/assets/install/setup.css') }}">
     <script>
         (function () {
@@ -44,14 +44,14 @@
 </head>
 <body class="md-admin-shell md-setup">
 <header class="md-setup__top">
-    <a class="md-setup__brand" href="/install" aria-label="LaIoT — установка">
+    <a class="md-setup__brand" href="/install" aria-label="LaIOT — установка">
         <span class="md-logo">
             <img class="md-logo__light" src="/assets/img/logos/laiot-logo.png"
                  srcset="/assets/img/logos/laiot-logo@2x.png 2x"
-                 width="333" height="101" alt="LaIoT" decoding="async">
+                 width="333" height="101" alt="LaIOT" decoding="async">
             <img class="md-logo__dark" src="/assets/img/logos/laiot-logo-white.png"
                  srcset="/assets/img/logos/laiot-logo-white@2x.png 2x"
-                 width="300" height="91" alt="LaIoT" decoding="async">
+                 width="300" height="91" alt="LaIOT" decoding="async">
         </span>
     </a>
     <div class="md-setup__theme" role="group" aria-label="Тема оформления">
@@ -69,7 +69,7 @@
             <x-md.mascot pose="nothing" class="md-setup__mascot md-setup__mascot--small" />
             <h1 class="md-setup__title">Почти получилось</h1>
             <p class="md-setup__lead">
-                MyDoMo не может создать папку <code>var</code> или записать в неё ключ.
+                LaIOT не может создать папку <code>var</code> или записать в неё ключ.
                 Это лечится правами — данные и файлы не пострадали.
             </p>
             <ol class="md-setup__steps">
@@ -109,7 +109,7 @@
             </div>
             <h1 class="md-setup__title">Дом готов!</h1>
             <p class="md-setup__lead">
-                MyDoMo {{ $report->version }} установлена. Теперь можно войти и добавить
+                LaIOT {{ $report->version }} установлена. Теперь можно войти и добавить
                 первый этаж, комнату и устройства.
             </p>
 
@@ -137,7 +137,7 @@
                 <ol>
                     <li>Войди в панель — кнопка ниже.</li>
                     <li>Запусти фоновые службы <code>queue</code>, <code>events</code> и <code>timeouts</code>:
-                        без них не работают история и автоматизации. Инструкция — <code>docs/mydomo/deploy.md</code>.</li>
+                        без них не работают история и автоматизации. Инструкция — <code>docs/laiot/deploy.md</code>.</li>
                     <li>Добавь этаж, комнату и первое устройство.</li>
                 </ol>
             </div>
@@ -175,7 +175,7 @@
                             <span class="md-setup__eyebrow">Первый запуск</span>
                             <h1 class="md-setup__title">Привет! Давай оживим дом</h1>
                             <p class="md-setup__lead">
-                                MyDoMo — локальный умный дом: сценарии, устройства, история
+                                LaIOT — локальный умный дом: сценарии, устройства, история
                                 и автоматизации. Всё живёт на твоём сервере, без облака
                                 и подписок.
                             </p>
@@ -228,7 +228,7 @@
                     <header class="md-setup__head">
                         <span class="md-setup__eyebrow">Шаг 2 из 4</span>
                         <h1 class="md-setup__title">Проверим сервер</h1>
-                        <p class="md-setup__lead">Смотрим, всё ли готово для MyDoMo. Ничего не меняем — только читаем.</p>
+                        <p class="md-setup__lead">Смотрим, всё ли готово для LaIOT. Ничего не меняем — только читаем.</p>
                     </header>
 
                     @if ($blocked)
@@ -236,7 +236,7 @@
                                     text="Исправь отмеченное и обнови страницу. Без этого установка не пойдёт." />
                     @else
                         <x-md.alert type="success" title="Всё готово"
-                                    text="Сервер примет MyDoMo. Можно продолжать." />
+                                    text="Сервер примет LaIOT. Можно продолжать." />
                     @endif
 
                     <ul class="md-setup__checks">
@@ -325,7 +325,7 @@
                                             description="Можно указать готовую или создать новую." />
                                 <x-md.input id="db-user" name="db_user" label="Пользователь" :value="$values['db_user']"
                                             :error="$errors['db_user'] ?? null" required
-                                            description="Отдельный пользователь MyDoMo, не root." />
+                                            description="Отдельный пользователь LaIOT, не root." />
                                 <x-md.input id="db-password" name="db_password" type="password" label="Пароль"
                                             :value="$values['db_password']" :error="$errors['db_password'] ?? null"
                                             autocomplete="new-password"
@@ -431,7 +431,7 @@
 
                         <div class="md-setup__actions">
                             <x-md.button href="{{ $base }}&step=3" variant="ghost" icon="arrow-left">Назад</x-md.button>
-                            <x-md.button type="submit" icon="rocket" size="lg">Установить MyDoMo</x-md.button>
+                            <x-md.button type="submit" icon="rocket" size="lg">Установить LaIOT</x-md.button>
                         </div>
                     </form>
                 @endif
@@ -440,7 +440,7 @@
     @endif
 </main>
 
-<footer class="md-setup__foot">LaIoT · MyDoMo {{ $version }} · установка</footer>
-<script src="/assets/admin/mydomo.js" defer></script>
+<footer class="md-setup__foot">LaIOT · LaIOT {{ $version }} · установка</footer>
+<script src="/assets/admin/laiot.js" defer></script>
 </body>
 </html>

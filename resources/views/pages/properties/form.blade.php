@@ -10,8 +10,8 @@
         : ((string)($class['title'] ?? ''));
     $currentOnChange = $field('on_change');
     $methodTitles = array_map(static fn (array $row): string => (string)$row['title'], $methodOptions);
-    $roomRoles = \MajorDoMo\Locations\RoomRole::labels();
-    $currentRoomRole = \MajorDoMo\Locations\RoomRole::normalize($field('room_role'));
+    $roomRoles = \LaIOT\Services\Locations\RoomRole::labels();
+    $currentRoomRole = \LaIOT\Services\Locations\RoomRole::normalize($field('room_role'));
     $bindingsByModule = [];
     foreach ($bindings ?? [] as $binding) {
         $bindingsByModule[$binding['module']][] = $binding['object_title'];

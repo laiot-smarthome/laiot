@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Filesystem\Filesystem;
 use InvalidArgumentException;
+use LaIOT\Services\Files\FileStorage;
 use League\Flysystem\CorruptedPathDetected;
 use League\Flysystem\StorageAttributes;
 use League\Flysystem\SymbolicLinkEncountered;
 use League\Flysystem\UnableToListContents;
-use MajorDoMo\Files\FileStorage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -28,7 +28,7 @@ final class LocalFilesTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->root = sys_get_temp_dir() . '/mydomo-files-' . bin2hex(random_bytes(6));
+        $this->root = sys_get_temp_dir() . '/laiot-files-' . bin2hex(random_bytes(6));
         mkdir($this->root, 0700);
         $this->storage = new FileStorage($this->root . '/files');
     }

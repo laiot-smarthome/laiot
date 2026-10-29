@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt;
+namespace LaIOT\Mqtt;
 
 use InvalidArgumentException;
-use MajorDoMo\Locations\LocationRepository;
-use MajorDoMo\Methods\MethodRepository;
-use MajorDoMo\Modules\ModuleSubscriptions;
-use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Properties\PropertyRepository;
+use LaIOT\Services\Locations\LocationRepository;
+use LaIOT\Services\Methods\MethodRepository;
+use LaIOT\Services\Modules\ModuleSubscriptions;
+use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\Properties\PropertyRepository;
 use Psr\Log\LoggerInterface;
 use Throwable;
 

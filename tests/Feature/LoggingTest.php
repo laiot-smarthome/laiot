@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Filesystem\Filesystem;
-use MajorDoMo\Logging\LoggerFactory;
-use MajorDoMo\Logging\RequestContext;
+use LaIOT\Services\Logging\LoggerFactory;
+use LaIOT\Services\Logging\RequestContext;
 use PHPUnit\Framework\TestCase;
 
 final class LoggingTest extends TestCase
@@ -15,7 +15,7 @@ final class LoggingTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->directory = sys_get_temp_dir() . '/mydomo-log-' . bin2hex(random_bytes(4));
+        $this->directory = sys_get_temp_dir() . '/laiot-log-' . bin2hex(random_bytes(4));
         mkdir($this->directory, 0775, true);
     }
 

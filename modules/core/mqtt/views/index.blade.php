@@ -51,7 +51,7 @@
         <x-md.hint
             tone="warning"
             title="Фоновый процесс не запущен"
-            text="Приём и отправка работают только при запущенном worker: php bin/mydomo worker mqtt (systemd: mydomo-worker@mqtt). Без него значения не обновляются, а команды ждут в очереди module.mqtt." />
+            text="Приём и отправка работают только при запущенном worker: php bin/laiot worker mqtt (systemd: laiot-worker@mqtt). Без него значения не обновляются, а команды ждут в очереди module.mqtt." />
     @endif
 
     @yoyo('mqtt-status', [], ['id' => 'mqtt-status'])

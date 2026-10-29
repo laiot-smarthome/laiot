@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Classes\ClassRepository;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Locations\LocationKind;
-use MajorDoMo\Locations\LocationRepository;
-use MajorDoMo\Methods\MethodRepository;
-use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Properties\PropertyRepository;
-use MajorDoMo\Runtime\CodeRunner;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Classes\ClassRepository;
+use LaIOT\Services\Locations\LocationKind;
+use LaIOT\Services\Locations\LocationRepository;
+use LaIOT\Services\Methods\MethodRepository;
+use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\Properties\PropertyRepository;
+use LaIOT\Services\Runtime\CodeRunner;
 use PHPUnit\Framework\TestCase;
 
 /**

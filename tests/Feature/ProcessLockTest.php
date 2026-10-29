@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Worker\ProcessLock;
+use LaIOT\Services\Worker\ProcessLock;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -16,7 +16,7 @@ final class ProcessLockTest extends TestCase
 {
     public function testSharedLanePreventsConcurrentWorkersAndReleasesPartialLocks(): void
     {
-        $directory = sys_get_temp_dir() . '/mydomo-lock-test-' . bin2hex(random_bytes(8));
+        $directory = sys_get_temp_dir() . '/laiot-lock-test-' . bin2hex(random_bytes(8));
         $lane = new ProcessLock($directory);
         $all = new ProcessLock($directory);
         $other = new ProcessLock($directory);
@@ -43,16 +43,16 @@ final class ProcessLockTest extends TestCase
 
     public function testLockIsHeldByAnotherProcessUntilItExits(): void
     {
-        $directory = sys_get_temp_dir() . '/mydomo-lock-test-' . bin2hex(random_bytes(8));
+        $directory = sys_get_temp_dir() . '/laiot-lock-test-' . bin2hex(random_bytes(8));
         $code = <<<'PHP'
 require $argv[1];
-$lock = new MajorDoMo\Worker\ProcessLock($argv[2]);
+$lock = new LaIOT\Services\Worker\ProcessLock($argv[2]);
 echo $lock->acquire(['module.demo']) ? "locked\n" : "failed\n";
 fgets(STDIN);
 PHP;
         $pipes = [];
         $process = proc_open(
-            [PHP_BINARY, '-r', $code, dirname(__DIR__, 2) . '/src/Worker/ProcessLock.php', $directory],
+            [PHP_BINARY, '-r', $code, dirname(__DIR__, 2) . '/app/Services/Worker/ProcessLock.php', $directory],
             [['pipe', 'r'], ['pipe', 'w'], ['pipe', 'w']],
             $pipes
         );

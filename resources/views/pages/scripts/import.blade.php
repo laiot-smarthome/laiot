@@ -3,7 +3,7 @@
         eyebrow="Автоматизация"
         icon="upload"
         title="Импорт сценариев"
-        lede="Вставьте JSON, полученный экспортом MyDoMo. Сценарии с существующим названием пропускаются — существующие не перезаписываются."
+        lede="Вставьте JSON, полученный экспортом LaIOT. Сценарии с существующим названием пропускаются — существующие не перезаписываются."
         :meta="[['icon' => 'file-code', 'label' => 'Формат', 'value' => 'JSON-массив']]">
         <x-slot:actions>
             <x-md.button href="/scripts" variant="secondary" icon="arrow-left">К скриптам</x-md.button>

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt;
+namespace LaIOT\Mqtt;
 
-use MajorDoMo\Events\PropertyChange;
-use MajorDoMo\Modules\PropertySubscriber;
+use LaIOT\Services\Events\PropertyChange;
+use LaIOT\Services\Modules\PropertySubscriber;
 use Psr\Log\LoggerInterface;
 use Throwable;
 

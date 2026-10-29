@@ -1,7 +1,7 @@
 // 2026-10-29 — повреждённая настройка темы не ломает запуск интерфейса.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {initTheme} from '../../resources/js/mydomo/theme.js';
+import {initTheme} from '../../resources/js/laiot/theme.js';
 
 test('известная тема применяется, повреждённые cookie безопасно дают светлую тему', () => {
     let theme;

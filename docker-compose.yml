@@ -1,4 +1,4 @@
-# Локальный стенд MyDoMo.
+# Локальный стенд LaIOT.
 #
 # app — php-fpm для nginx; worker-events и worker-mqtt — фоновые процессы,
 # которые в production запускаются через systemd. init выполняет миграции и
@@ -6,30 +6,30 @@
 #
 # 2026-10-27 — MQTT и события свойства работают в контейнерах, а не только вручную.
 
-x-mydomo-app: &mydomo-app
+x-laiot-app: &laiot-app
   build: ./docker/app
   volumes:
     - ./:/var/www/html
 
-x-mydomo-env: &mydomo-env
+x-laiot-env: &laiot-env
   APP_ENV: local
   APP_DEBUG: "true"
   APP_TIMEZONE: Europe/Moscow
   DB_HOST: db
   DB_PORT: "3306"
-  DB_NAME: mydomo
-  DB_USER: mydomo
-  DB_PASSWORD: mydomo
+  DB_NAME: laiot
+  DB_USER: laiot
+  DB_PASSWORD: laiot
   CACHE_DRIVER: file
-  MYDOMO_ADMIN_USER: sysadmin
-  MYDOMO_ADMIN_NAME: Администратор
-  MYDOMO_ADMIN_PASSWORD: majordomo!
+  LAIOT_ADMIN_USER: sysadmin
+  LAIOT_ADMIN_NAME: Администратор
+  LAIOT_ADMIN_PASSWORD: laiot!
 
 services:
   init:
-    <<: *mydomo-app
+    <<: *laiot-app
     command: ["true"]
-    environment: *mydomo-env
+    environment: *laiot-env
     depends_on:
       db:
         condition: service_healthy
@@ -46,20 +46,20 @@ services:
       - app
 
   app:
-    <<: *mydomo-app
+    <<: *laiot-app
     expose:
       - "9000"
-    environment: *mydomo-env
+    environment: *laiot-env
     depends_on:
       init:
         condition: service_completed_successfully
 
   # События свойства: OnChange, история и постановка доставки в module.mqtt.
   worker-events:
-    <<: *mydomo-app
+    <<: *laiot-app
     entrypoint: ["php"]
-    command: ["bin/mydomo", "core-worker", "events"]
-    environment: *mydomo-env
+    command: ["bin/laiot", "core-worker", "events"]
+    environment: *laiot-env
     user: "www-data"
     restart: unless-stopped
     depends_on:
@@ -68,10 +68,10 @@ services:
 
   # Приём и отправка MQTT: одно долгоживущее соединение с брокером.
   worker-mqtt:
-    <<: *mydomo-app
+    <<: *laiot-app
     entrypoint: ["php"]
-    command: ["bin/mydomo", "worker", "mqtt"]
-    environment: *mydomo-env
+    command: ["bin/laiot", "worker", "mqtt"]
+    environment: *laiot-env
     user: "www-data"
     restart: unless-stopped
     depends_on:
@@ -82,11 +82,11 @@ services:
     image: mariadb:11
     environment:
       MARIADB_ROOT_PASSWORD: root
-      MARIADB_DATABASE: mydomo
-      MARIADB_USER: mydomo
-      MARIADB_PASSWORD: mydomo
+      MARIADB_DATABASE: laiot
+      MARIADB_USER: laiot
+      MARIADB_PASSWORD: laiot
     volumes:
-      - mydomo-db:/var/lib/mysql
+      - laiot-db:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
@@ -94,4 +94,4 @@ services:
       retries: 20
 
 volumes:
-  mydomo-db:
+  laiot-db:

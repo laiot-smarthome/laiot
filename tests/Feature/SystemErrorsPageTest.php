@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -29,7 +29,7 @@ final class SystemErrorsPageTest extends TestCase
     protected function setUp(): void
     {
         Yoyo::request()->reset();
-        $this->directory = sys_get_temp_dir() . '/mydomo_errors_page_' . bin2hex(random_bytes(4));
+        $this->directory = sys_get_temp_dir() . '/laiot_errors_page_' . bin2hex(random_bytes(4));
         if (!mkdir($this->directory, 0775, true) && !is_dir($this->directory)) {
             self::fail('Не удалось создать каталог ошибок');
         }
@@ -38,7 +38,7 @@ final class SystemErrorsPageTest extends TestCase
         $this->session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin', 'is_admin' => true]);
         $this->app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
-            'view_cache' => sys_get_temp_dir() . '/mydomo-views-' . bin2hex(random_bytes(4)),
+            'view_cache' => sys_get_temp_dir() . '/laiot-views-' . bin2hex(random_bytes(4)),
             'log' => 'php://stderr',
             'cache' => ['driver' => 'array'],
             'session' => $this->session,
@@ -86,7 +86,7 @@ final class SystemErrorsPageTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
         $html = (string)$response->getContent();
         self::assertStringContainsString('Скопировать для AI', $html);
-        self::assertStringContainsString('MyDoMo: ошибка #1', $html);
+        self::assertStringContainsString('LaIOT: ошибка #1', $html);
         self::assertStringContainsString('RuntimeException', $html);
         self::assertStringContainsString('/app/src/Foo.php:42', $html);
         self::assertStringContainsString('Стек', $html);
@@ -214,7 +214,7 @@ final class SystemErrorsPageTest extends TestCase
     private function seedError(int $id, string $message, string $createdAt, string $requestId): void
     {
         $file = '20261027-123456-' . $id . '-abcdef.log';
-        $content = "=== MyDoMo error 2026-10-27 12:34:56 ===\n"
+        $content = "=== LaIOT error 2026-10-27 12:34:56 ===\n"
             . 'id: ' . $id . "\n"
             . "level: error\n"
             . 'request_id: ' . $requestId . "\n"
@@ -225,7 +225,7 @@ final class SystemErrorsPageTest extends TestCase
             . "path: /demo\n"
             . 'context: {"object":"Kitchen","attempt":3}' . "\n"
             . "trace:\n"
-            . "#0 /app/src/Foo.php(42): MajorDoMo\\Demo->run()\n"
+            . "#0 /app/src/Foo.php(42): LaIOT\\Demo->run()\n"
             . "#1 {main}\n";
         file_put_contents($this->directory . '/' . $file, $content);
         $this->app->database()->connection()->table('system_errors')->insert([

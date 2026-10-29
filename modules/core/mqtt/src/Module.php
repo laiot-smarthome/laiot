@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt;
+namespace LaIOT\Mqtt;
 
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Container\Container;
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Events\PropertyEventQueue;
-use MajorDoMo\Locations\LocationRepository;
-use MajorDoMo\Methods\MethodRepository;
-use MajorDoMo\Methods\MethodRunner;
-use MajorDoMo\Modules\Module as BaseModule;
-use MajorDoMo\Modules\ModuleContext;
-use MajorDoMo\Modules\ModuleManager;
-use MajorDoMo\Mqtt\Yoyo\Status as StatusComponent;
-use MajorDoMo\Mqtt\Yoyo\Topics as TopicsComponent;
-use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Properties\PropertyRepository;
-use MajorDoMo\Properties\PropertyValueService;
-use MajorDoMo\Queue\QueueWorker;
-use MajorDoMo\Worker\BackgroundTaskContext;
-use MajorDoMo\Worker\ProcessLock;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Events\PropertyEventQueue;
+use LaIOT\Services\Locations\LocationRepository;
+use LaIOT\Services\Methods\MethodRepository;
+use LaIOT\Services\Methods\MethodRunner;
+use LaIOT\Services\Modules\Module as BaseModule;
+use LaIOT\Services\Modules\ModuleContext;
+use LaIOT\Services\Modules\ModuleManager;
+use LaIOT\Mqtt\Yoyo\Status as StatusComponent;
+use LaIOT\Mqtt\Yoyo\Topics as TopicsComponent;
+use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\Properties\PropertyRepository;
+use LaIOT\Services\Properties\PropertyValueService;
+use LaIOT\Services\Queue\QueueWorker;
+use LaIOT\Services\Worker\BackgroundTaskContext;
+use LaIOT\Services\Worker\ProcessLock;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Throwable;
@@ -55,19 +55,19 @@ final class Module extends BaseModule
         $container->singleton(Settings::class, static fn (Container $c): Settings => new Settings(
             $c->make(Schema::class),
             $moduleDb,
-            $c->make(\MajorDoMo\Cache\CacheStore::class)
+            $c->make(\LaIOT\Services\Cache\CacheStore::class)
         ));
         $container->singleton(TopicRepository::class, static fn (Container $c): TopicRepository => new TopicRepository(
             $c->make(Schema::class),
             $moduleDb,
-            $c->make(\MajorDoMo\Cache\CacheStore::class)
+            $c->make(\LaIOT\Services\Cache\CacheStore::class)
         ));
         $container->singleton(BindingIndex::class, static fn (Container $c): BindingIndex => new BindingIndex(
             $c->make(TopicRepository::class),
-            $c->make(\MajorDoMo\Cache\CacheStore::class)
+            $c->make(\LaIOT\Services\Cache\CacheStore::class)
         ));
         $container->singleton(RuntimeState::class, static fn (Container $c): RuntimeState => new RuntimeState(
-            $c->make(\MajorDoMo\Cache\CacheStore::class),
+            $c->make(\LaIOT\Services\Cache\CacheStore::class),
             $c->make(Settings::class)
         ));
         // Реестр интеграций общий для процесса. Модуль-интеграция может

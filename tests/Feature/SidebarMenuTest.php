@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Panel\CoreSections;
+use LaIOT\Services\Panel\CoreSections;
 use PHPUnit\Framework\TestCase;
 
 /**

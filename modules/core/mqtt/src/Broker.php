@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt;
+namespace LaIOT\Mqtt;
 
 use PhpMqtt\Client\ConnectionSettings;
 use PhpMqtt\Client\MqttClient;
@@ -39,7 +39,7 @@ final class Broker
         $this->close();
         $host = trim($this->settings->string('host')) ?: 'localhost';
         $port = max(1, min(65535, $this->settings->int('port')));
-        $clientId = trim($this->settings->string('client_id')) ?: 'MyDoMo MQTT';
+        $clientId = trim($this->settings->string('client_id')) ?: 'LaIOT MQTT';
         // Один client id на два процесса заставляет брокер выключать
         // предыдущее соединение. PID и случайный хвост это исключают.
         $clientId .= ' #' . (getmypid() ?: 0) . '-' . substr(bin2hex(random_bytes(2)), 0, 4);

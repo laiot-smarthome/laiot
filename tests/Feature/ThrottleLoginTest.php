@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Http\Request;
-use MajorDoMo\Cache\CacheFactory;
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Http\Middleware\ThrottleLogin;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Http\Middleware\ThrottleLogin;
+use LaIOT\Services\Cache\CacheFactory;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Response;
 

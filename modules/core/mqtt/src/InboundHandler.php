@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt;
+namespace LaIOT\Mqtt;
 
-use MajorDoMo\Methods\MethodRunner;
-use MajorDoMo\Properties\PropertyValueService;
+use LaIOT\Services\Methods\MethodRunner;
+use LaIOT\Services\Properties\PropertyValueService;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Throwable;

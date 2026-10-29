@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 use Illuminate\Routing\Router;
-use MajorDoMo\Zigbee\Http\BridgesController;
-use MajorDoMo\Zigbee\Http\DevicesController;
-use MajorDoMo\Zigbee\Http\DeviceController;
-use MajorDoMo\Zigbee\Http\JournalController;
-use MajorDoMo\Zigbee\Http\MonitoringController;
-use MajorDoMo\Zigbee\Http\PropertyController;
+use LaIOT\Zigbee\Http\BridgesController;
+use LaIOT\Zigbee\Http\DevicesController;
+use LaIOT\Zigbee\Http\DeviceController;
+use LaIOT\Zigbee\Http\JournalController;
+use LaIOT\Zigbee\Http\MonitoringController;
+use LaIOT\Zigbee\Http\PropertyController;
 
 /**
  * Маршруты Zigbee-модуля.

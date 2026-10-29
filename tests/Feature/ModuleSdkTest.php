@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
-use MajorDoMo\Files\FileStorage;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Modules\ModuleInstaller;
-use MajorDoMo\Modules\ModuleManifest;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Files\FileStorage;
+use LaIOT\Services\Modules\ModuleInstaller;
+use LaIOT\Services\Modules\ModuleManifest;
 use PHPUnit\Framework\TestCase;
 
 /**
- * MyDoMo SDK: манифест, реестр, install/enable/disable/remove, миграции и
+ * LaIOT SDK: манифест, реестр, install/enable/disable/remove, миграции и
  * подключение установленного стороннего модуля.
  * 2026-10-28 — удаление модуля очищает только его файловый диск без --purge.
  */
@@ -28,7 +28,7 @@ final class ModuleSdkTest extends TestCase
             'type' => 'module',
             'version' => '1.2.3',
             'namespace' => 'Demo\\Module\\',
-            'requires' => ['mydomo' => '>=2.0.0-dev', 'php' => '>=8.2'],
+            'requires' => ['laiot' => '>=2.0.0-dev', 'php' => '>=8.2'],
             'storage' => ['driver' => 'mysql', 'tables' => ['notes']],
         ], '/tmp/demo_module', 'module');
         self::assertSame('demo_module', $manifest->id());
@@ -186,10 +186,10 @@ final class ModuleSdkTest extends TestCase
                 'database' => ['driver' => 'sqlite', 'database' => $database, 'prefix' => ''],
             ]);
             $next->boot();
-            $next->container()->make(\MajorDoMo\Worker\Worker::class)->run('example_sdk', true);
+            $next->container()->make(\LaIOT\Services\Worker\Worker::class)->run('example_sdk', true);
 
             self::assertSame(1, $next->database()->connection()->table('module_example_sdk_notes')->count());
-            $state = $next->container()->make(\MajorDoMo\Worker\BackgroundTaskState::class);
+            $state = $next->container()->make(\LaIOT\Services\Worker\BackgroundTaskState::class);
             $heartbeat = $state->get('example_sdk', 'tick');
             self::assertNotNull($heartbeat);
             self::assertSame('ok', (string)$heartbeat['status']);
@@ -261,7 +261,7 @@ final class ModuleSdkTest extends TestCase
 
     private function databaseFile(): string
     {
-        $file = tempnam(sys_get_temp_dir(), 'mydomo_sdk_');
+        $file = tempnam(sys_get_temp_dir(), 'laiot_sdk_');
         if ($file === false) {
             self::fail('Не удалось создать временную БД');
         }

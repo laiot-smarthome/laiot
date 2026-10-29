@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee;
+namespace LaIOT\Zigbee;
 
 use InvalidArgumentException;
-use MajorDoMo\Mqtt\Integration;
-use MajorDoMo\Queue\Queue;
+use LaIOT\Mqtt\Integration;
+use LaIOT\Services\Queue\Queue;
 
 /**
  * Zigbee как владелец топиков на общем MQTT-соединении.

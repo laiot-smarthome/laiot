@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
-use MajorDoMo\Events\PropertyChange;
-use MajorDoMo\Events\PropertyEventQueue;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Modules\PropertySubscriber;
-use MajorDoMo\Modules\PropertySubscriberRegistry;
-use MajorDoMo\Properties\PropertySubscriptionRepository;
+use LaIOT\Foundation\Application;
+use LaIOT\Services\Events\PropertyChange;
+use LaIOT\Services\Events\PropertyEventQueue;
+use LaIOT\Services\Modules\PropertySubscriber;
+use LaIOT\Services\Modules\PropertySubscriberRegistry;
+use LaIOT\Services\Properties\PropertySubscriptionRepository;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -238,7 +238,7 @@ final class PropertyDeliveryTest extends TestCase
         self::assertCount(0, $subscriber->changes);
         self::assertSame(1, $queue->stats('module.demo')['pending']);
 
-        $app->container()->make(\MajorDoMo\Worker\CoreWorker::class)->run('module.demo', true);
+        $app->container()->make(\LaIOT\Services\Worker\CoreWorker::class)->run('module.demo', true);
         self::assertCount(1, $subscriber->changes);
         self::assertSame('Кухня.temperature', $subscriber->changes[0]->token());
     }
@@ -301,7 +301,7 @@ final class PropertyDeliveryTest extends TestCase
 
     public function testTimedOutMethodCancelsChildrenAndNextCommandStillRuns(): void
     {
-        if (!(new \MajorDoMo\Runtime\UserCodeDeadline(1))->supported()) {
+        if (!(new \LaIOT\Services\Runtime\UserCodeDeadline(1))->supported()) {
             self::markTestSkipped('Таймаут обработчика требует Linux/pcntl.');
         }
         [$app, $subscriber] = $this->boot(['handler_timeout' => 1]);
@@ -428,7 +428,7 @@ final class PropertyDeliveryTest extends TestCase
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
             'log' => 'php://stderr',
-            'session' => new \MajorDoMo\Http\Session\ArraySession(),
+            'session' => new \LaIOT\Http\Session\ArraySession(),
             'cache' => ['driver' => 'array'],
             'queue' => $queueConfig,
             'database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],

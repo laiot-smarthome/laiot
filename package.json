@@ -1,19 +1,19 @@
 {
-  "name": "majordomo-admin",
+  "name": "laiot-admin",
   "private": true,
   "version": "1.0.0",
-  "description": "MajorDoMo admin panel asset build",
+  "description": "LaIOT admin panel asset build",
   "type": "module",
   "scripts": {
     "test:ui": "node --test tests/Frontend/*.test.mjs",
-    "build": "vite build --config vite.mydomo.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && vite build --config vite.exceptions.config.js && node tools/check-admin-assets.mjs",
-    "build:mydomo": "vite build --config vite.mydomo.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && vite build --config vite.exceptions.config.js && node tools/check-admin-assets.mjs",
+    "build": "vite build --config vite.laiot.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && vite build --config vite.exceptions.config.js && node tools/check-admin-assets.mjs",
+    "build:laiot": "vite build --config vite.laiot.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && vite build --config vite.exceptions.config.js && node tools/check-admin-assets.mjs",
     "build:codeeditor": "vite build --config vite.codeeditor.config.js",
     "build:charts": "vite build --config vite.charts.config.js",
-    "watch": "vite build --config vite.mydomo.config.js --watch",
+    "watch": "vite build --config vite.laiot.config.js --watch",
     "watch:editor": "vite build --config vite.codeeditor.config.js --watch",
     "watch:charts": "vite build --config vite.charts.config.js --watch",
-    "check": "node --check resources/js/app-mydomo.js",
+    "check": "node --check resources/js/app-laiot.js",
     "icons": "node tools/generate-icon-catalog.mjs"
   },
   "dependencies": {

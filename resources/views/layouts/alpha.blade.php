@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ $csrf }}">
-    <title>{{ $title }} — LaIoT</title>
+    <title>{{ $title }} — LaIOT</title>
     @php
         // После npm run build браузер должен получить новый файл, а не старый
         // из кэша: версия — время изменения собранного ассета.
         $assetVersion = static function (string $path): string {
-            $root = \MajorDoMo\Support\AppContext::get()?->root();
+            $root = \LaIOT\Support\AppContext::get()?->root();
             $file = $root !== null ? $root . '/public' . $path : '';
             return $file !== '' && is_file($file) ? '?v=' . filemtime($file) : '';
         };
     @endphp
-    <link rel="stylesheet" href="/assets/admin/mydomo.css{{ $assetVersion('/assets/admin/mydomo.css') }}">
+    <link rel="stylesheet" href="/assets/admin/laiot.css{{ $assetVersion('/assets/admin/laiot.css') }}">
     @yoyo_scripts
     <script>
         (function () {
@@ -76,10 +76,10 @@
         <aside class="md-admin-sidebar" id="left_block" aria-label="Боковая панель">
             <div class="md-admin-sidebar__inner">
                 <div class="md-admin-sidebar__brand-shell">
-                    <a class="md-admin-sidebar__brand" href="/admin" aria-label="LaIoT — обзор">
+                    <a class="md-admin-sidebar__brand" href="/admin" aria-label="LaIOT — обзор">
                         <img class="md-admin-sidebar__logo" src="/assets/img/logos/laiot-logo-white.png"
                              srcset="/assets/img/logos/laiot-logo-white@2x.png 2x"
-                             width="114" height="35" alt="LaIoT" decoding="async">
+                             width="114" height="35" alt="LaIOT" decoding="async">
                         <img class="md-admin-sidebar__mark" src="/assets/img/logos/laiot-mark.png"
                              srcset="/assets/img/logos/laiot-mark@2x.png 2x"
                              width="34" height="34" alt="" aria-hidden="true" decoding="async">
@@ -259,7 +259,7 @@
 
 <x-md.toasts />
 <div class="md-notify-attention" data-md-notify-attention aria-hidden="true"></div>
-<script src="/assets/admin/mydomo.js{{ $assetVersion('/assets/admin/mydomo.js') }}" defer></script>
+<script src="/assets/admin/laiot.js{{ $assetVersion('/assets/admin/laiot.js') }}" defer></script>
 @stack('scripts')
 </body>
 </html>

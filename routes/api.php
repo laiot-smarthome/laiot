@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 use Illuminate\Routing\Router;
-use MajorDoMo\Api\Webhooks\WebhookEndpoint;
-use MajorDoMo\Http\Controllers\AboutController;
-use MajorDoMo\Http\Controllers\ApiMeController;
-use MajorDoMo\Http\Controllers\HealthController;
-use MajorDoMo\Http\Controllers\LinkedObjectController;
-use MajorDoMo\Http\Controllers\ModulesController;
-use MajorDoMo\Http\Controllers\NotificationsController;
-use MajorDoMo\Http\Controllers\PanelAttentionController;
-use MajorDoMo\Http\Controllers\PanelSearchController;
+use LaIOT\Http\Controllers\AboutController;
+use LaIOT\Http\Controllers\ApiMeController;
+use LaIOT\Http\Controllers\HealthController;
+use LaIOT\Http\Controllers\LinkedObjectController;
+use LaIOT\Http\Controllers\ModulesController;
+use LaIOT\Http\Controllers\NotificationsController;
+use LaIOT\Http\Controllers\PanelAttentionController;
+use LaIOT\Http\Controllers\PanelSearchController;
+use LaIOT\Services\Webhooks\WebhookEndpoint;
 
 return static function (Router $router): void {
     $router->middleware(['request-id'])->prefix('/api/v1')->group(static function (Router $router): void {

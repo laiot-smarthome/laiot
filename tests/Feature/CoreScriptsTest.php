@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Scripts\ScriptExecutor;
-use MajorDoMo\Scripts\ScriptRepository;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Scripts\ScriptExecutor;
+use LaIOT\Services\Scripts\ScriptRepository;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Modules\ModuleBus;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Modules\ModuleBus;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 

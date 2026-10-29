@@ -10,7 +10,7 @@ export default defineConfig({
         target: 'es2018',
         rollupOptions: {
             input: 'resources/js/app-exceptions.js',
-            output: {format: 'iife', entryFileNames: 'mydomo-exceptions.js'},
+            output: {format: 'iife', entryFileNames: 'laiot-exceptions.js'},
         },
     },
 });

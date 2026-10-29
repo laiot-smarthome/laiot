@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use InvalidArgumentException;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Modules\ModuleInstaller;
-use MajorDoMo\Modules\ModuleManager;
-use MajorDoMo\Modules\ModuleSubscriptions;
-use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Properties\PropertyRepository;
-use MajorDoMo\Properties\PropertySubscriptionRepository;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Modules\ModuleInstaller;
+use LaIOT\Services\Modules\ModuleManager;
+use LaIOT\Services\Modules\ModuleSubscriptions;
+use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\Properties\PropertyRepository;
+use LaIOT\Services\Properties\PropertySubscriptionRepository;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 

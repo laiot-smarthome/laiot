@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Queue\DatabaseQueue;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Queue\DatabaseQueue;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -70,7 +70,7 @@ final class QueueTest extends TestCase
 
         $this->now += 61;
         $job = $this->queue->pop('default');
-        self::assertInstanceOf(\MajorDoMo\Queue\QueueJob::class, $job);
+        self::assertInstanceOf(\LaIOT\Services\Queue\QueueJob::class, $job);
         self::assertSame(1, $job->attempts);
 
         $this->queue->fail($job, new RuntimeException('second failure'));

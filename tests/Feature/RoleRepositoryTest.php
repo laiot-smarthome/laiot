@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
-use MajorDoMo\Auth\RoleRepository;
-use MajorDoMo\Database\DatabaseManager;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Auth\RoleRepository;
 use PHPUnit\Framework\TestCase;
 
 final class RoleRepositoryTest extends TestCase

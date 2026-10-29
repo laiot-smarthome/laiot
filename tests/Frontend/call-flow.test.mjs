@@ -1,7 +1,7 @@
 // 2026-10-29 — соединения следуют геометрии и видимости узлов каждой цепочки.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {registerCallFlow} from '../../resources/js/mydomo/call-flow.js';
+import {registerCallFlow} from '../../resources/js/laiot/call-flow.js';
 
 test('высокие строки, ветвления, подсветка и сворачивание не разрывают путь', () => {
     let create;

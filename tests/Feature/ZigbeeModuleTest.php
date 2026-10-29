@@ -2,37 +2,37 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
-use MajorDoMo\Auth\UserRepository;
-use MajorDoMo\Classes\ClassRepository;
-use MajorDoMo\Database\Migrator;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Locations\LocationRepository;
-use MajorDoMo\Methods\MethodRepository;
-use MajorDoMo\Methods\MethodRunner;
-use MajorDoMo\Modules\ModuleInstaller;
-use MajorDoMo\Mqtt\Integrations;
-use MajorDoMo\Mqtt\PublisherInterface;
-use MajorDoMo\Mqtt\RuntimeState;
-use MajorDoMo\Notifications\NotificationService;
-use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Properties\PropertySubscriptionRepository;
-use MajorDoMo\Properties\PropertyValueService;
-use MajorDoMo\Queue\Queue;
-use MajorDoMo\Queue\QueueWorker;
-use MajorDoMo\Runtime\CodeRunner;
-use MajorDoMo\Worker\ProcessLock;
-use MajorDoMo\Zigbee\HealthMonitor;
-use MajorDoMo\Zigbee\HealthSettings;
-use MajorDoMo\Zigbee\MqttIntegration;
-use MajorDoMo\Zigbee\Repository;
-use MajorDoMo\Zigbee\Service;
-use MajorDoMo\Zigbee\ValueTransformer;
+use LaIOT\Database\Migrator;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Mqtt\Integrations;
+use LaIOT\Mqtt\PublisherInterface;
+use LaIOT\Mqtt\RuntimeState;
+use LaIOT\Services\Auth\UserRepository;
+use LaIOT\Services\Classes\ClassRepository;
+use LaIOT\Services\Locations\LocationRepository;
+use LaIOT\Services\Methods\MethodRepository;
+use LaIOT\Services\Methods\MethodRunner;
+use LaIOT\Services\Modules\ModuleInstaller;
+use LaIOT\Services\Notifications\NotificationService;
+use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\Properties\PropertySubscriptionRepository;
+use LaIOT\Services\Properties\PropertyValueService;
+use LaIOT\Services\Queue\Queue;
+use LaIOT\Services\Queue\QueueWorker;
+use LaIOT\Services\Runtime\CodeRunner;
+use LaIOT\Services\Worker\ProcessLock;
+use LaIOT\Zigbee\HealthMonitor;
+use LaIOT\Zigbee\HealthSettings;
+use LaIOT\Zigbee\MqttIntegration;
+use LaIOT\Zigbee\Repository;
+use LaIOT\Zigbee\Service;
+use LaIOT\Zigbee\ValueTransformer;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
@@ -454,7 +454,7 @@ final class ZigbeeModuleTest extends TestCase
     {
         $session = new ArraySession();
         if ($persistent && $this->database === null) {
-            $file = tempnam(sys_get_temp_dir(), 'mydomo_zigbee_');
+            $file = tempnam(sys_get_temp_dir(), 'laiot_zigbee_');
             if ($file === false) {
                 self::fail('Не удалось создать временную БД');
             }
@@ -466,8 +466,8 @@ final class ZigbeeModuleTest extends TestCase
 
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
-            'environment_file' => sys_get_temp_dir() . '/mydomo-zigbee-env-' . bin2hex(random_bytes(6)),
-            'view_cache' => sys_get_temp_dir() . '/mydomo-zigbee-views-' . bin2hex(random_bytes(6)),
+            'environment_file' => sys_get_temp_dir() . '/laiot-zigbee-env-' . bin2hex(random_bytes(6)),
+            'view_cache' => sys_get_temp_dir() . '/laiot-zigbee-views-' . bin2hex(random_bytes(6)),
             'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee;
+namespace LaIOT\Zigbee;
 
 use Closure;
 use Illuminate\Database\Schema\Blueprint;
-use MajorDoMo\Modules\ModuleDb;
+use LaIOT\Services\Modules\ModuleDb;
 use Throwable;
 
 /**

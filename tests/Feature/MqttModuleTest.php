@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
-use MajorDoMo\Auth\UserRepository;
-use MajorDoMo\Database\Migrator;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Modules\ModuleInstaller;
-use MajorDoMo\Mqtt\BindingIndex;
-use MajorDoMo\Mqtt\InboundHandler;
-use MajorDoMo\Mqtt\PropertyPublisher;
-use MajorDoMo\Mqtt\Publisher;
-use MajorDoMo\Mqtt\PublisherInterface;
-use MajorDoMo\Mqtt\RuntimeState;
-use MajorDoMo\Mqtt\Settings;
-use MajorDoMo\Mqtt\SocketClient;
-use MajorDoMo\Mqtt\TopicRepository;
-use MajorDoMo\Mqtt\TopicService;
-use MajorDoMo\Properties\PropertySubscriptionRepository;
-use MajorDoMo\Properties\PropertyValueService;
-use MajorDoMo\Worker\Worker;
+use LaIOT\Database\Migrator;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Mqtt\BindingIndex;
+use LaIOT\Mqtt\InboundHandler;
+use LaIOT\Mqtt\PropertyPublisher;
+use LaIOT\Mqtt\Publisher;
+use LaIOT\Mqtt\PublisherInterface;
+use LaIOT\Mqtt\RuntimeState;
+use LaIOT\Mqtt\Settings;
+use LaIOT\Mqtt\SocketClient;
+use LaIOT\Mqtt\TopicRepository;
+use LaIOT\Mqtt\TopicService;
+use LaIOT\Services\Auth\UserRepository;
+use LaIOT\Services\Modules\ModuleInstaller;
+use LaIOT\Services\Properties\PropertySubscriptionRepository;
+use LaIOT\Services\Properties\PropertyValueService;
+use LaIOT\Services\Worker\Worker;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -386,7 +386,7 @@ final class MqttModuleTest extends TestCase
     {
         $session = new ArraySession();
         if ($persistent && $this->database === null) {
-            $file = tempnam(sys_get_temp_dir(), 'mydomo_mqtt_');
+            $file = tempnam(sys_get_temp_dir(), 'laiot_mqtt_');
             if ($file === false) {
                 self::fail('Не удалось создать временную БД');
             }
@@ -398,8 +398,8 @@ final class MqttModuleTest extends TestCase
 
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
-            'environment_file' => sys_get_temp_dir() . '/mydomo-mqtt-env-' . bin2hex(random_bytes(6)),
-            'view_cache' => sys_get_temp_dir() . '/mydomo-mqtt-views-' . bin2hex(random_bytes(6)),
+            'environment_file' => sys_get_temp_dir() . '/laiot-mqtt-env-' . bin2hex(random_bytes(6)),
+            'view_cache' => sys_get_temp_dir() . '/laiot-mqtt-views-' . bin2hex(random_bytes(6)),
             'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,

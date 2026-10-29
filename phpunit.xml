@@ -4,7 +4,7 @@
          bootstrap="tests/phpunit.php"
          colors="true"
          cacheDirectory="var/cache/phpunit"
-         defaultTestSuite="MyDoMo"
+         defaultTestSuite="LaIOT"
          failOnRisky="true">
     <php>
         <env name="APP_ENV" value="testing" force="true"/>
@@ -18,7 +18,7 @@
         <env name="MAIL_MAILER" value="array" force="true"/>
     </php>
     <testsuites>
-        <testsuite name="MyDoMo">
+        <testsuite name="LaIOT">
             <directory>tests/Feature</directory>
         </testsuite>
         <testsuite name="Integration">
@@ -27,7 +27,7 @@
     </testsuites>
     <source>
         <include>
-            <directory>src</directory>
+            <directory>app</directory>
         </include>
     </source>
 </phpunit>

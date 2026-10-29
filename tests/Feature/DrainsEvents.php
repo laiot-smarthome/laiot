@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Events\PropertyEventQueue;
-use MajorDoMo\Foundation\Application;
+use LaIOT\Foundation\Application;
+use LaIOT\Services\Events\PropertyEventQueue;
 
 /**
  * Прогоняет очереди событий свойства до пуста.

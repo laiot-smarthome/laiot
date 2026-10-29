@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Безопасные значения по умолчанию для MyDoMo.
+ * Безопасные значения по умолчанию для LaIOT.
  *
  * Веб-вход передаёт значения из Config; тесты могут переопределить их
  * без чтения рабочей конфигурации.
@@ -17,6 +17,6 @@ return [
     'install_guard' => false,
     'views' => __DIR__ . '/../resources/views',
     'view_cache' => __DIR__ . '/../var/cache/views',
-    'log' => __DIR__ . '/../var/log/mydomo.log',
+    'log' => __DIR__ . '/../var/log/laiot.log',
     'database' => [],
 ];

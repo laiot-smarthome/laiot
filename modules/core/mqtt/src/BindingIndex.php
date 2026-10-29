@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt;
+namespace LaIOT\Mqtt;
 
-use MajorDoMo\Cache\CacheStore;
+use LaIOT\Services\Cache\CacheStore;
 
 /**
  * Индекс привязок MQTT в памяти обработчика.

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -64,7 +64,7 @@ final class ErrorFileViewTest extends TestCase
 
     private function boot(): Application
     {
-        $this->directory = sys_get_temp_dir() . '/mydomo_errors_' . bin2hex(random_bytes(4));
+        $this->directory = sys_get_temp_dir() . '/laiot_errors_' . bin2hex(random_bytes(4));
         if (!mkdir($this->directory, 0775, true) && !is_dir($this->directory)) {
             self::fail('Не удалось создать каталог ошибок');
         }

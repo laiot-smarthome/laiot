@@ -1,6 +1,6 @@
 {
-    "name": "majordomo/majordomo",
-    "description": "MajorDoMo smart home automation platform",
+    "name": "laiot/laiot",
+    "description": "LaIOT smart home automation platform",
     "type": "project",
     "license": "MIT",
     "require": {
@@ -49,13 +49,13 @@
     },
     "autoload": {
         "psr-4": {
-            "MajorDoMo\\": "src/"
+            "LaIOT\\": "app/"
         }
     },
     "scripts": {
         "test": "phpunit",
         "test:smoke": "php tests/routing_smoke.php && php tests/config_smoke.php",
-        "lint": "parallel-lint --exclude vendor --exclude node_modules src tests",
+        "lint": "parallel-lint --exclude vendor --exclude node_modules app tests",
         "analyse": "phpstan analyse --memory-limit=1G",
         "cs:check": "php-cs-fixer fix --dry-run --diff",
         "cs:fix": "php-cs-fixer fix",

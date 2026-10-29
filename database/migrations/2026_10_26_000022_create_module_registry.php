@@ -6,7 +6,7 @@ use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Blueprint;
 
 /**
- * Реестр установленных модулей MyDoMo SDK.
+ * Реестр установленных модулей LaIOT SDK.
  *
  * Core-модули не обязаны иметь строку реестра: они always enabled. Строка
  * нужна для сторонних модулей (modules/<id>), их версии и состояния.

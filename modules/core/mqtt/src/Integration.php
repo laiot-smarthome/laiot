@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt;
+namespace LaIOT\Mqtt;
 
 /**
  * Интеграция, которая живёт на общем MQTT-соединении модуля MQTT.

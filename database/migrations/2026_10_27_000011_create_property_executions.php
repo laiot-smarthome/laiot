@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Blueprint;
-use MajorDoMo\Events\PropertyExecutionRepository;
+use LaIOT\Services\Events\PropertyExecutionRepository;
 
 return static function (Connection $connection): void {
     $schema = $connection->getSchemaBuilder();

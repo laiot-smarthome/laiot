@@ -50,7 +50,7 @@
                     <div class="md-ui-form-stack">
                         <div class="md-ui-form-grid">
                             <x-md.input name="client_id" :label="$field('client_id')['title']" :value="(string)$value('client_id')"
-                                        :hint="$field('client_id')['description']" placeholder="MyDoMo MQTT" />
+                                        :hint="$field('client_id')['description']" placeholder="LaIOT MQTT" />
                             <x-md.input name="host" :label="$field('host')['title']" :value="(string)$value('host')" required
                                         :hint="$field('host')['description']" placeholder="localhost" />
                         </div>
@@ -156,8 +156,8 @@
             tone="info"
             title="Фоновый процесс"
             :steps="[
-                'Приём и отправка работают в worker mqtt: php bin/mydomo worker mqtt.',
-                'В systemd используется шаблон mydomo-worker@mqtt.service.',
+                'Приём и отправка работают в worker mqtt: php bin/laiot worker mqtt.',
+                'В systemd используется шаблон laiot-worker@mqtt.service.',
                 'Изменения настроек подхватываются автоматически в течение нескольких секунд; после правки кода модуля worker нужно перезапустить.',
             ]" />
     </div>

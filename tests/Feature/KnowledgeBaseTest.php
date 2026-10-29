@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Http\Request;
-use MajorDoMo\Docs\KnowledgeBase;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Docs\KnowledgeBase;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -24,8 +24,8 @@ final class KnowledgeBaseTest extends TestCase
     protected function setUp(): void
     {
         Yoyo::request()->reset();
-        $this->root = sys_get_temp_dir() . '/mydomo_kb_' . bin2hex(random_bytes(4));
-        mkdir($this->root . '/mydomo', 0777, true);
+        $this->root = sys_get_temp_dir() . '/laiot_kb_' . bin2hex(random_bytes(4));
+        mkdir($this->root . '/laiot', 0777, true);
         mkdir($this->root . '/user', 0777, true);
         file_put_contents($this->root . '/README.md', <<<'MD'
 ---
@@ -42,7 +42,7 @@ tags: база, тест
 Вводный текст.
 
 ```bash
-php bin/mydomo about
+php bin/laiot about
 ```
 
 ## Раздел
@@ -59,7 +59,7 @@ php bin/mydomo about
 
 ![Картинка](img/scheme.png)
 MD);
-        file_put_contents($this->root . '/mydomo/README.md', <<<'MD'
+        file_put_contents($this->root . '/laiot/README.md', <<<'MD'
 ---
 title: Документация ядра
 audience: agent
@@ -125,7 +125,7 @@ MD);
         self::assertNotNull($document);
         self::assertStringContainsString('<table>', $document['html']);
         self::assertStringContainsString('data-kb-copy', $document['html']);
-        self::assertStringContainsString('php bin/mydomo about', $document['html']);
+        self::assertStringContainsString('php bin/laiot about', $document['html']);
         self::assertStringNotContainsString('<script>', $document['html']);
         self::assertStringNotContainsString('javascript:', $document['html']);
         self::assertStringContainsString('/knowledge-base/user/commands', $document['html']);
@@ -140,7 +140,7 @@ MD);
         $docs = new KnowledgeBase($this->root);
 
         self::assertCount(1, $docs->search('цепочка'));
-        self::assertSame('mydomo/README', $docs->search('цепочка')[0]['id']);
+        self::assertSame('laiot/README', $docs->search('цепочка')[0]['id']);
         self::assertSame([], $docs->search('ничего-нет'));
         self::assertNull($docs->find('../README'));
         self::assertNull($docs->find('nope'));
@@ -157,7 +157,7 @@ MD);
         // Тест читает реальный docs/: заголовок берём из сервиса, иначе любая
         // правка текста документа ломает проверку страницы, а не базу знаний.
         $docs = new KnowledgeBase(dirname(__DIR__, 2) . '/docs');
-        $document = $docs->find('mydomo/functions') ?? ($docs->all()[0] ?? null);
+        $document = $docs->find('laiot/functions') ?? ($docs->all()[0] ?? null);
         self::assertNotNull($document, 'В docs/ нет ни одного Markdown-документа.');
         $url = '/knowledge-base/' . implode('/', array_map('rawurlencode', explode('/', $document['id'])));
 

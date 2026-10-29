@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
-use MajorDoMo\Events\SystemEvents;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Notifications\NotificationService;
-use MajorDoMo\Notifications\SayService;
-use MajorDoMo\Notifications\SaySource;
-use MajorDoMo\Support\AppContext;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Events\SystemEvents;
+use LaIOT\Services\Notifications\NotificationService;
+use LaIOT\Services\Notifications\SayService;
+use LaIOT\Services\Notifications\SaySource;
+use LaIOT\Support\AppContext;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -270,7 +270,7 @@ final class NotificationsTest extends TestCase
     {
         foreach (['core/mqtt' => 'mqtt', 'my_sensor' => 'my_sensor'] as $relative => $source) {
             $app = $this->boot();
-            $root = sys_get_temp_dir() . '/mydomo-say-' . bin2hex(random_bytes(8));
+            $root = sys_get_temp_dir() . '/laiot-say-' . bin2hex(random_bytes(8));
             $directory = $root . '/modules/' . $relative;
             mkdir($directory, 0700, true);
             $file = $directory . '/helpers.php';

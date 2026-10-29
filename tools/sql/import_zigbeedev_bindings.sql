@@ -1,4 +1,4 @@
--- Run in the UPDATED MajorDoMo database after opening /panel/zigbee.html.
+-- Run in the UPDATED LaIOT database after opening /panel/zigbee.html.
 -- Disable the old cycle_zigbeedev (including autostart) before running;
 -- restart cycle_mqtt afterwards.
 -- Reads the legacy tables in this database, not a dump file.
@@ -118,7 +118,7 @@ BEGIN
     END IF;
     IF EXISTS (SELECT 1 FROM mdj_zigbee_import_properties s LEFT JOIN objects o ON o.TITLE=s.LINKED_OBJECT
         WHERE o.ID IS NULL AND s.LINKED_OBJECT<>'AllScripts') THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='A linked MajorDoMo object is missing';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='A linked LaIOT object is missing';
     END IF;
     IF EXISTS (SELECT 1 FROM mdj_zigbee_import_properties s WHERE s.LINKED_PROPERTY<>'' AND NOT EXISTS (
         SELECT 1 FROM pvalues v JOIN objects o ON o.ID=v.OBJECT_ID

@@ -1,9 +1,9 @@
-# MyDoMo
+# LaIOT
 
-Новая ветка MajorDoMo: PHP 8.2+, компоненты Illuminate 12, Blade/Alpine.
-Alpha-runtime (`lib/`, `templates/`, `scripts/`, `languages/`, `cms/`,
-alpha-модули и старые входы) удалён из этой ветки; историю и старую
-реализацию смотрите в ветке `alpha`.
+LaIOT — отдельное приложение на PHP 8.2+, компонентах Illuminate 12 и
+Blade/Alpine. Alpha-runtime (`lib/`, `templates/`, `scripts/`, `languages/`,
+`cms/`, alpha-модули и старые входы) удалён из этой ветки; историю и старую
+реализацию MajorDoMo смотрите в ветке `alpha`.
 
 ## Быстрый старт
 
@@ -14,8 +14,8 @@ cp .env.example .env          # Windows: copy .env.example .env; заполни�
 composer install
 npm ci
 npm run build                 # админ-бандл, редактор и графики
-php bin/mydomo db:migrate     # схема новой установки
-php bin/mydomo user:create admin "Администратор" "пароль" --admin
+php bin/laiot db:migrate     # схема новой установки
+php bin/laiot user:create admin "Администратор" "пароль" --admin
 php -S 127.0.0.1:8080 -t public tools/dev-server.php
 ```
 
@@ -24,8 +24,8 @@ php -S 127.0.0.1:8080 -t public tools/dev-server.php
 запущены.
 
 Есть готовый Docker-стенд: `docker compose up --build -d`, панель на
-`http://127.0.0.1:8080`, администратор `admin` / `majordomo`. Подробности —
-[docs/mydomo/docker.md](docs/mydomo/docker.md).
+`http://127.0.0.1:8080`, администратор `sysadmin` / `laiot!`. Подробности —
+[docs/laiot/docker.md](docs/laiot/docker.md).
 
 ## Проверки
 
@@ -37,9 +37,9 @@ npm run build                     # статика
 
 ## Документация
 
-- [docs/mydomo/README.md](docs/mydomo/README.md) — карта нового ядра.
-- [docs/mydomo/architecture.md](docs/mydomo/architecture.md) — устройство и путь запроса.
-- [docs/todo/mydomo.md](docs/todo/mydomo.md) — мастер-план и журнал изменений.
+- [docs/laiot/README.md](docs/laiot/README.md) — карта нового ядра.
+- [docs/laiot/architecture.md](docs/laiot/architecture.md) — устройство и путь запроса.
+- [docs/todo/laiot.md](docs/todo/laiot.md) — мастер-план и журнал изменений.
 - [AGENTS.md](AGENTS.md) — правила работы с репозиторием.
 
 ## Что ещё не готово
@@ -47,7 +47,7 @@ npm run build                     # статика
 Новый установщик, обновление с откатом, API v2/OpenAPI, импорт данных из
 alpha и Docker-стенд нового ядра. Установка сейчас — `db:migrate` +
 `user:create`; API v1 живёт в `routes/api.php` и `public/index.php`.
-Подробности — [limitations.md](docs/mydomo/limitations.md).
+Подробности — [limitations.md](docs/laiot/limitations.md).
 
 ## Лицензия
 

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Modules\ModulePermissions;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Modules\ModulePermissions;
 use PHPUnit\Framework\TestCase;
 
 /**

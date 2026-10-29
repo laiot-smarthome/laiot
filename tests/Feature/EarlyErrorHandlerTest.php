@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Process\Process;
@@ -112,22 +112,22 @@ final class EarlyErrorHandlerTest extends TestCase
 
     private function runFailure(string $scenario, bool $debug, string $accept = 'text/html'): Process
     {
-        $directory = sys_get_temp_dir() . '/mydomo-early-' . bin2hex(random_bytes(6));
+        $directory = sys_get_temp_dir() . '/laiot-early-' . bin2hex(random_bytes(6));
         mkdir($directory);
         $fixture = $directory . '/broken.php';
         file_put_contents($fixture, '<?php function broken( {');
         $code = <<<'PHP'
-            require $argv[1] . '/src/Http/EarlyErrorHandler.php';
+            require $argv[1] . '/app/Http/EarlyErrorHandler.php';
             if ($argv[2] !== 'no-config') {
-                require $argv[1] . '/src/Foundation/Config.php';
+                require $argv[1] . '/app/Foundation/Config.php';
                 // Каталог пустой: рабочий .env не читается.
-                MajorDoMo\Foundation\Config::boot($argv[3]);
+                LaIOT\Foundation\Config::boot($argv[3]);
             }
             $_SERVER['REQUEST_URI'] = '/broken?token=query-secret';
             $_SERVER['REQUEST_METHOD'] = $argv[2] === 'head' ? 'HEAD' : 'POST';
             $_SERVER['HTTP_X_REQUEST_ID'] = 'req-early';
             $_SERVER['HTTP_ACCEPT'] = $argv[4];
-            (new MajorDoMo\Http\EarlyErrorHandler($argv[1]))->register();
+            (new LaIOT\Http\EarlyErrorHandler($argv[1]))->register();
             register_shutdown_function(static function (): void {
                 fwrite(STDERR, '\nSTATUS=' . http_response_code());
             });

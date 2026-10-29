@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use Illuminate\View\Factory;
+use LaIOT\Foundation\Application;
+use LaIOT\Foundation\ServiceProvider;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Properties\PropertyValueService;
+use LaIOT\Services\Runtime\CodeRunner;
+use LaIOT\Support\MaintenanceMode;
+use LaIOT\View\BladeView;
 use LogicException;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Foundation\ServiceProvider;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Properties\PropertyValueService;
-use MajorDoMo\Runtime\CodeRunner;
-use MajorDoMo\Support\MaintenanceMode;
-use MajorDoMo\View\BladeView;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\HttpFoundation\Response;
@@ -73,7 +73,7 @@ final class ServiceProvidersTest extends TestCase
 
     public function testKernelAndControllerUseOverriddenMaintenanceService(): void
     {
-        $root = sys_get_temp_dir() . '/mydomo-provider-' . bin2hex(random_bytes(6));
+        $root = sys_get_temp_dir() . '/laiot-provider-' . bin2hex(random_bytes(6));
         $mode = new MaintenanceMode($root);
         $app = $this->application([
             'test_maintenance' => $mode,

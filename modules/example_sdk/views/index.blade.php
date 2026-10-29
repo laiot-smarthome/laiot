@@ -1,6 +1,6 @@
 <div class="md-ui-page md-ui-page--stack">
     <h1>SDK Example</h1>
-    <p>Модуль установлен через MyDoMo SDK. Таблица: <code>module_example_sdk_notes</code>.</p>
+    <p>Модуль установлен через LaIOT SDK. Таблица: <code>module_example_sdk_notes</code>.</p>
 
     <h2>Настройки</h2>
     <dl>

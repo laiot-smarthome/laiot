@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Foundation\Config;
+use LaIOT\Foundation\Config;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -53,7 +53,7 @@ ENV);
 
     private function bootFile(string $contents): void
     {
-        $this->directory = sys_get_temp_dir() . '/mydomo_config_' . bin2hex(random_bytes(4));
+        $this->directory = sys_get_temp_dir() . '/laiot_config_' . bin2hex(random_bytes(4));
         mkdir($this->directory, 0775, true);
         file_put_contents($this->directory . '/.env', $contents);
         Config::boot($this->directory);

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Events\PropertyChangedJob;
-use MajorDoMo\Events\PropertyEventQueue;
-use MajorDoMo\Queue\DatabaseQueue;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Events\PropertyChangedJob;
+use LaIOT\Services\Events\PropertyEventQueue;
+use LaIOT\Services\Queue\DatabaseQueue;
 use PHPUnit\Framework\TestCase;
 
 /**

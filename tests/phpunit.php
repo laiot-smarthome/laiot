@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Bootstrap только для Feature-тестов MyDoMo.
+ * Bootstrap только для Feature-тестов LaIOT.
  *
  * Не подключает legacy loader alpha: тесты работают на autoload нового ядра.
  * 2026-10-26 — запуск требует явно изолированную тестовую конфигурацию.

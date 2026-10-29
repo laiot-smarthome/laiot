@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt\Yoyo;
+namespace LaIOT\Mqtt\Yoyo;
 
 use Clickfwd\Yoyo\Component;
-use MajorDoMo\Auth\Authorization;
-use MajorDoMo\Http\Session\SessionStore;
-use MajorDoMo\Locations\LocationRepository;
-use MajorDoMo\Modules\ModuleManager;
-use MajorDoMo\Mqtt\RuntimeState;
-use MajorDoMo\Mqtt\Settings;
-use MajorDoMo\Mqtt\TopicRepository;
+use LaIOT\Services\Auth\Authorization;
+use LaIOT\Http\Session\SessionStore;
+use LaIOT\Services\Locations\LocationRepository;
+use LaIOT\Services\Modules\ModuleManager;
+use LaIOT\Mqtt\RuntimeState;
+use LaIOT\Mqtt\Settings;
+use LaIOT\Mqtt\TopicRepository;
 use Throwable;
 
 /**

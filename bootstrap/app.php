@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Foundation\Config;
-use MajorDoMo\Settings\SettingsSchema;
+use LaIOT\Foundation\Application;
+use LaIOT\Foundation\Config;
+use LaIOT\Services\Settings\SettingsSchema;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 

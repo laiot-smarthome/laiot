@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\History\HistoryRepository;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\History\HistoryRepository;
 use PHPUnit\Framework\TestCase;
 
 /**

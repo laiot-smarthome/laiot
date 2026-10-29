@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee\Http;
+namespace LaIOT\Zigbee\Http;
 
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
-use MajorDoMo\Http\Controller;
-use MajorDoMo\Http\PanelPage;
-use MajorDoMo\Http\PanelRenderer;
-use MajorDoMo\Http\Session\SessionStore;
-use MajorDoMo\Modules\ModuleManager;
-use MajorDoMo\Zigbee\Repository;
-use MajorDoMo\Zigbee\Service;
-use MajorDoMo\Zigbee\Support\RuleForm;
-use MajorDoMo\Zigbee\ValueTransformer;
+use LaIOT\Http\Controller;
+use LaIOT\Http\PanelPage;
+use LaIOT\Http\PanelRenderer;
+use LaIOT\Http\Session\SessionStore;
+use LaIOT\Services\Modules\ModuleManager;
+use LaIOT\Zigbee\Repository;
+use LaIOT\Zigbee\Service;
+use LaIOT\Zigbee\Support\RuleForm;
+use LaIOT\Zigbee\ValueTransformer;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Привязка свойства Zigbee к объекту MajorDoMo и преобразования.
+ * Привязка свойства Zigbee к объекту LaIOT и преобразования.
  *
  * Одна форма соединяет направление «в объект» (приём), «из объекта»
  * (отправка) и режим события. Тест преобразования выполняется отдельным POST

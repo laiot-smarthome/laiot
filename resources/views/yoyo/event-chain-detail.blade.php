@@ -23,7 +23,7 @@
         @endif
         <x-md.call-flow :title="'Цепочка #' . $selectedId"
                         :nodes="$detail['nodes']"
-                        :started-at="\MajorDoMo\Events\EventChainService::formatTime($detail['chain']['root']['created_at'])"
+                        :started-at="\LaIOT\Services\Events\EventChainService::formatTime($detail['chain']['root']['created_at'])"
                         :max-depth="128" />
     @endif
 </div>

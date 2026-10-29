@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Http\Request;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
 final class ApiTest extends TestCase
@@ -32,7 +32,7 @@ final class ApiTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
         $payload = json_decode((string)$response->getContent(), true);
         self::assertIsArray($payload);
-        self::assertSame('MyDoMo', $payload['app']);
+        self::assertSame('LaIOT', $payload['app']);
         self::assertArrayHasKey('version', $payload);
         self::assertNotEmpty($response->headers->get('X-Request-Id'));
     }

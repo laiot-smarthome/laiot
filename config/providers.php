@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use MajorDoMo\Foundation\Providers\DomainServiceProvider;
-use MajorDoMo\Foundation\Providers\EncryptionServiceProvider;
-use MajorDoMo\Foundation\Providers\FilesServiceProvider;
-use MajorDoMo\Foundation\Providers\HttpServiceProvider;
-use MajorDoMo\Foundation\Providers\InfrastructureServiceProvider;
-use MajorDoMo\Foundation\Providers\InstallServiceProvider;
-use MajorDoMo\Foundation\Providers\ModuleServiceProvider;
-use MajorDoMo\Foundation\Providers\RuntimeServiceProvider;
-use MajorDoMo\Foundation\Providers\ValidationServiceProvider;
-use MajorDoMo\Foundation\Providers\ViewServiceProvider;
+use LaIOT\Providers\DomainServiceProvider;
+use LaIOT\Providers\EncryptionServiceProvider;
+use LaIOT\Providers\FilesServiceProvider;
+use LaIOT\Providers\HttpServiceProvider;
+use LaIOT\Providers\InfrastructureServiceProvider;
+use LaIOT\Providers\InstallServiceProvider;
+use LaIOT\Providers\ModuleServiceProvider;
+use LaIOT\Providers\RuntimeServiceProvider;
+use LaIOT\Providers\ValidationServiceProvider;
+use LaIOT\Providers\ViewServiceProvider;
 
 // 2026-10-26 — порядок boot подсистем; register сначала выполняется у всех.
 // 2026-10-28 — общий валидатор доступен до запуска HTTP и SDK-модулей.

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Foundation\ConfigLoader;
+use LaIOT\Foundation\Application;
+use LaIOT\Foundation\ConfigLoader;
 use PHPUnit\Framework\TestCase;
 
 final class ConfigLoaderTest extends TestCase

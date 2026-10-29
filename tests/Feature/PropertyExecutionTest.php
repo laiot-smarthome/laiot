@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Events\PropertyExecutionRepository;
-use MajorDoMo\Queue\DatabaseQueue;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Events\PropertyExecutionRepository;
+use LaIOT\Services\Queue\DatabaseQueue;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 

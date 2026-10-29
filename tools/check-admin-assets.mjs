@@ -1,13 +1,13 @@
 import { existsSync, statSync } from 'node:fs';
 
 const required = [
-  'public/assets/admin/mydomo.js',
-  'public/assets/admin/mydomo.css',
-  'public/assets/admin/mydomo-codeeditor.js',
-  'public/assets/admin/mydomo-codeeditor.css',
-  'public/assets/admin/mydomo-charts.js',
-  'public/assets/admin/mydomo-charts.css',
-  'public/assets/admin/mydomo-exceptions.js',
+  'public/assets/admin/laiot.js',
+  'public/assets/admin/laiot.css',
+  'public/assets/admin/laiot-codeeditor.js',
+  'public/assets/admin/laiot-codeeditor.css',
+  'public/assets/admin/laiot-charts.js',
+  'public/assets/admin/laiot-charts.css',
+  'public/assets/admin/laiot-exceptions.js',
 ];
 
 const missing = required.filter((file) => !existsSync(file) || statSync(file).size === 0);

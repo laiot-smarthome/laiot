@@ -3,7 +3,7 @@
     "type": "module",
     "name": "SDK Example",
     "version": "1.0.0",
-    "description": "Минимальный модуль MyDoMo SDK: миграция, ModuleDb, настройки, подписки, маршрут и Blade-страница.",
+    "description": "Минимальный модуль LaIOT SDK: миграция, ModuleDb, настройки, подписки, маршрут и Blade-страница.",
     "namespace": "Example\\Sdk\\",
     "entrypoint": "Module",
     "property_subscriber": "ExampleSubscriber",
@@ -55,7 +55,7 @@
         }
     },
     "requires": {
-        "mydomo": ">=2.0.0-dev",
+        "laiot": ">=2.0.0-dev",
         "php": ">=8.2"
     }
 }

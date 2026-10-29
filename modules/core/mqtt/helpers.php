@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use MajorDoMo\Mqtt\RuntimeState;
-use MajorDoMo\Mqtt\TopicRepository;
-use MajorDoMo\Mqtt\TopicService;
-use MajorDoMo\Support\AppContext;
+use LaIOT\Mqtt\RuntimeState;
+use LaIOT\Mqtt\TopicRepository;
+use LaIOT\Mqtt\TopicService;
+use LaIOT\Support\AppContext;
 
 if (!function_exists('mqtt_publish')) {
     /**

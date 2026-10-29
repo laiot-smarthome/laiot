@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Integration;
+namespace LaIOT\Tests\Integration;
 
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Events\PropertyExecutionRepository;
-use MajorDoMo\Queue\DatabaseQueue;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Events\PropertyExecutionRepository;
+use LaIOT\Services\Queue\DatabaseQueue;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,16 +18,16 @@ final class PropertyExecutionMariaDbTest extends TestCase
 {
     public function testDependenciesReservationsAndReceiptsAcrossConnections(): void
     {
-        $host = getenv('MYDOMO_TEST_DB_HOST');
+        $host = getenv('LAIOT_TEST_DB_HOST');
         if ($host === false || $host === '') {
             self::markTestSkipped('Одноразовый MariaDB-стенд не настроен.');
         }
         $config = [
             'driver' => 'mysql', 'host' => $host,
-            'port' => (int)(getenv('MYDOMO_TEST_DB_PORT') ?: 3306),
-            'database' => (string)(getenv('MYDOMO_TEST_DB_NAME') ?: 'mydomo_execution_test'),
-            'username' => (string)(getenv('MYDOMO_TEST_DB_USER') ?: 'root'),
-            'password' => (string)(getenv('MYDOMO_TEST_DB_PASSWORD') ?: ''),
+            'port' => (int)(getenv('LAIOT_TEST_DB_PORT') ?: 3306),
+            'database' => (string)(getenv('LAIOT_TEST_DB_NAME') ?: 'laiot_execution_test'),
+            'username' => (string)(getenv('LAIOT_TEST_DB_USER') ?: 'root'),
+            'password' => (string)(getenv('LAIOT_TEST_DB_PASSWORD') ?: ''),
             'charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci',
             'prefix' => 'execution_test_' . bin2hex(random_bytes(4)) . '_',
         ];

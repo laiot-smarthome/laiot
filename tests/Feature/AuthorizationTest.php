@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Http\Request;
-use MajorDoMo\Auth\Authorization;
-use MajorDoMo\Http\Middleware\Authorize;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Http\Middleware\Authorize;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Auth\Authorization;
 use PHPUnit\Framework\TestCase;
 
 final class AuthorizationTest extends TestCase

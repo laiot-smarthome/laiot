@@ -42,7 +42,7 @@
                     @endforeach
                 </x-slot:body>
             </x-md.table>
-            <p class="md-ui-muted">Воркер запускается командой <code>php bin/mydomo queue:work</code>; в Docker — сервисом из <code>docker-compose.yml</code>.</p>
+            <p class="md-ui-muted">Воркер запускается командой <code>php bin/laiot queue:work</code>; в Docker — сервисом из <code>docker-compose.yml</code>.</p>
         @endif
     </x-md.card>
 

@@ -93,7 +93,7 @@
                 <x-md.hint
                     tone="warning"
                     title="Приём не работает"
-                    text="Запустите php bin/mydomo worker mqtt (или mydomo-worker@mqtt). Пока процесс не запущен, брокер не опрашивается, а очередь module.mqtt копится." />
+                    text="Запустите php bin/laiot worker mqtt (или laiot-worker@mqtt). Пока процесс не запущен, брокер не опрашивается, а очередь module.mqtt копится." />
             @endif
         </div>
     @endif

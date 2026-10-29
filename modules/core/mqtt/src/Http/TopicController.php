@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt\Http;
+namespace LaIOT\Mqtt\Http;
 
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
-use MajorDoMo\Http\Controller;
-use MajorDoMo\Http\PanelPage;
-use MajorDoMo\Http\PanelRenderer;
-use MajorDoMo\Http\Session\SessionStore;
-use MajorDoMo\Locations\LocationRepository;
-use MajorDoMo\Mqtt\TopicRepository;
-use MajorDoMo\Mqtt\TopicService;
+use LaIOT\Http\Controller;
+use LaIOT\Http\PanelPage;
+use LaIOT\Http\PanelRenderer;
+use LaIOT\Http\Session\SessionStore;
+use LaIOT\Services\Locations\LocationRepository;
+use LaIOT\Mqtt\TopicRepository;
+use LaIOT\Mqtt\TopicService;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 

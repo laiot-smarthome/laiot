@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# MyDoMo — первичная настройка системной части на Ubuntu.
+# LaIOT — первичная настройка системной части на Ubuntu.
 #
 # Скрипт закрывает только системный слой: пользователя и права, каталоги
 # var, systemd-юниты и административный агент. Данные установки (.env,
@@ -11,13 +11,13 @@
 # выполняются до первого изменения: при проблеме установка остановится с
 # объяснением, а не оставит половину настроенной системы.
 #
-# 2026-10-28 — первая версия для ветки MyDoMo.
+# 2026-10-28 — первая версия для ветки LaIOT.
 set -euo pipefail
 
 readonly SCRIPT_NAME="${0##*/}"
-readonly ROOT_DEFAULT='/var/www/mydomo'
+readonly ROOT_DEFAULT='/var/www/laiot'
 
-# Ядровые процессы, которые обязательны по docs/mydomo/runtime.md. Порядок
+# Ядровые процессы, которые обязательны по docs/laiot/runtime.md. Порядок
 # в массиве — порядок включения; events обслуживает OnChange, историю и
 # доставку модулям, без него очередь событий растёт.
 CORE_TASKS=(queue events timeouts maintenance)
@@ -25,9 +25,9 @@ CORE_TASKS=(queue events timeouts maintenance)
 ROOT=''
 USER_NAME=''
 GROUP_NAME=''
-SOCKET='/run/mydomo/agent.sock'
+SOCKET='/run/laiot/agent.sock'
 SYSTEMD_DIR='/etc/systemd/system'
-AGENT_CONFIG='/etc/mydomo/agent.json'
+AGENT_CONFIG='/etc/laiot/agent.json'
 START_NOW=0
 DRY_RUN=0
 FORCE=0
@@ -41,39 +41,39 @@ PHP_BIN=''
 SYSTEMCTL=''
 
 say() {
-    printf '[mydomo] %s\n' "$*"
+    printf '[laiot] %s\n' "$*"
 }
 
 warn() {
-    printf '[mydomo] ВНИМАНИЕ: %s\n' "$*" >&2
+    printf '[laiot] ВНИМАНИЕ: %s\n' "$*" >&2
 }
 
 die() {
-    printf '[mydomo] ОШИБКА: %s\n' "$*" >&2
+    printf '[laiot] ОШИБКА: %s\n' "$*" >&2
     exit 1
 }
 
 on_error() {
     local status=$1 line=$2
-    printf '[mydomo] ОШИБКА: команда завершилась с кодом %s (строка %s).\n' "$status" "$line" >&2
+    printf '[laiot] ОШИБКА: команда завершилась с кодом %s (строка %s).\n' "$status" "$line" >&2
 }
 
 trap 'on_error "$?" "$LINENO"' ERR
 
 usage() {
     cat <<EOF
-MyDoMo — первичная настройка системной части Ubuntu.
+LaIOT — первичная настройка системной части Ubuntu.
 
 Использование:
   $SCRIPT_NAME [опции]
 
 Опции:
   --root PATH           каталог установки (по умолчанию $ROOT_DEFAULT)
-  --user NAME           пользователь приложения и служб (по умолчанию владелец ROOT или mydomo)
+  --user NAME           пользователь приложения и служб (по умолчанию владелец ROOT или laiot)
   --group NAME          группа (по умолчанию основная группа пользователя)
-  --socket PATH         Unix-сокет агента (по умолчанию /run/mydomo/agent.sock)
+  --socket PATH         Unix-сокет агента (по умолчанию /run/laiot/agent.sock)
   --systemd-dir PATH    каталог юнитов (по умолчанию /etc/systemd/system)
-  --agent-config PATH   конфигурация агента (по умолчанию /etc/mydomo/agent.json)
+  --agent-config PATH   конфигурация агента (по умолчанию /etc/laiot/agent.json)
   --start               сразу запустить core-службы (без флага — только enable)
   --force               перезаписать существующие agent.json и юниты
   --dry-run             напечатать команды, ничего не меняя
@@ -81,8 +81,8 @@ MyDoMo — первичная настройка системной части U
 
 Примеры:
   sudo $SCRIPT_NAME --dry-run
-  sudo $SCRIPT_NAME --root /var/www/mydomo --user mydomo --start
-  sudo $SCRIPT_NAME --root /srv/mydomo --force
+  sudo $SCRIPT_NAME --root /var/www/laiot --user laiot --start
+  sudo $SCRIPT_NAME --root /srv/laiot --force
 
 Скрипт не создаёт .env, не выполняет миграции и не создаёт администратора:
 это делает /install или CLI \`install\`. Запуск только от root.
@@ -226,8 +226,8 @@ resolve_layout() {
         APP_DIR="$ROOT"
     fi
 
-    [[ -f "$APP_DIR/bin/mydomo" ]] || die "не найден $APP_DIR/bin/mydomo. Проверьте --root и раскладку установки."
-    [[ -f "$APP_DIR/bin/mydomo-agent" ]] || die "не найден $APP_DIR/bin/mydomo-agent (служба агента не запустится)."
+    [[ -f "$APP_DIR/bin/laiot" ]] || die "не найден $APP_DIR/bin/laiot. Проверьте --root и раскладку установки."
+    [[ -f "$APP_DIR/bin/laiot-agent" ]] || die "не найден $APP_DIR/bin/laiot-agent (служба агента не запустится)."
     [[ -d "$APP_DIR/deploy/systemd" ]] || die "не найден каталог шаблонов $APP_DIR/deploy/systemd."
 }
 
@@ -241,7 +241,7 @@ group_exists() {
 
 # Пользователь по умолчанию — владелец ROOT (часто это пользователь сайта),
 # но не root: службы не должны работать от root. Если ROOT принадлежит root,
-# берём mydomo и требуем, чтобы администратор создал его заранее.
+# берём laiot и требуем, чтобы администратор создал его заранее.
 resolve_identity() {
     if [[ -z $USER_NAME ]]; then
         local owner
@@ -249,7 +249,7 @@ resolve_identity() {
         if [[ $owner != 'root' ]]; then
             USER_NAME=$owner
         else
-            USER_NAME='mydomo'
+            USER_NAME='laiot'
         fi
     fi
 
@@ -307,7 +307,7 @@ assert_php() {
 
 check_redis() {
     if ! command -v redis-cli >/dev/null 2>&1; then
-        warn "redis-cli не найден: доступность Redis не проверена. Для production нужен Redis (docs/mydomo/cache.md)."
+        warn "redis-cli не найден: доступность Redis не проверена. Для production нужен Redis (docs/laiot/cache.md)."
         return 0
     fi
 
@@ -376,7 +376,7 @@ preflight() {
     fi
 
     local unit
-    for unit in mydomo-agent.service 'mydomo-worker@.service' 'mydomo-core@.service'; do
+    for unit in laiot-agent.service 'laiot-worker@.service' 'laiot-core@.service'; do
         [[ -f "$APP_DIR/deploy/systemd/$unit" ]] || die "не найден шаблон systemd: $APP_DIR/deploy/systemd/$unit"
     done
 
@@ -468,7 +468,7 @@ write_file() {
         die "$path — символическая ссылка: не перезаписываю через неё файл"
     fi
 
-    temporary="${path}.mydomo-tmp"
+    temporary="${path}.laiot-tmp"
 
     if (( DRY_RUN )); then
         printf '[dry-run] записать %s (владелец %s, права %s)\n' "$path" "$owner" "$mode"
@@ -560,7 +560,7 @@ render_unit() {
 # Так при нехватке --force система не остаётся с частично обновлёнными
 # службами.
 install_units() {
-    local names=(mydomo-agent.service 'mydomo-worker@.service' 'mydomo-core@.service')
+    local names=(laiot-agent.service 'laiot-worker@.service' 'laiot-core@.service')
     local contents=()
     local conflicts=()
     local i name target rendered
@@ -619,7 +619,7 @@ wait_for_agent_socket() {
         sleep 0.5
     done
 
-    warn "сокет $SOCKET не появился за 5 секунд: проверьте systemctl status mydomo-agent.service и journalctl -u mydomo-agent.service"
+    warn "сокет $SOCKET не появился за 5 секунд: проверьте systemctl status laiot-agent.service и journalctl -u laiot-agent.service"
 }
 
 find_fpm_units() {
@@ -665,21 +665,21 @@ configure_fpm() {
 configure_services() {
     run "$SYSTEMCTL" daemon-reload
 
-    run "$SYSTEMCTL" enable mydomo-agent.service
-    run "$SYSTEMCTL" restart mydomo-agent.service
+    run "$SYSTEMCTL" enable laiot-agent.service
+    run "$SYSTEMCTL" restart laiot-agent.service
 
     local task
     for task in "${CORE_TASKS[@]}"; do
         if (( START_NOW )); then
-            run "$SYSTEMCTL" enable --now "mydomo-core@${task}.service"
+            run "$SYSTEMCTL" enable --now "laiot-core@${task}.service"
         else
-            run "$SYSTEMCTL" enable "mydomo-core@${task}.service"
+            run "$SYSTEMCTL" enable "laiot-core@${task}.service"
         fi
     done
 
     if (( DRY_RUN == 0 )); then
-        if ! "$SYSTEMCTL" is-active --quiet mydomo-agent.service; then
-            warn 'служба mydomo-agent.service не активна: journalctl -u mydomo-agent.service -n 50'
+        if ! "$SYSTEMCTL" is-active --quiet laiot-agent.service; then
+            warn 'служба laiot-agent.service не активна: journalctl -u laiot-agent.service -n 50'
         fi
         wait_for_agent_socket
     fi
@@ -701,13 +701,13 @@ print_summary() {
      миграции и создаст администратора. Ключ установки лежит в
      $APP_DIR/var/install.key; прочитайте его по SSH или в файловом менеджере.
   2. Если скрипт запускали без --start, после /install запустите core-службы:
-       $SYSTEMCTL start mydomo-core@queue.service mydomo-core@events.service \\
-         mydomo-core@timeouts.service mydomo-core@maintenance.service
+       $SYSTEMCTL start laiot-core@queue.service laiot-core@events.service \\
+         laiot-core@timeouts.service laiot-core@maintenance.service
   3. Проверьте журналы и состояние:
-       $SYSTEMCTL status mydomo-core@events.service
-       journalctl -u mydomo-core@events.service -n 100
+       $SYSTEMCTL status laiot-core@events.service
+       journalctl -u laiot-core@events.service -n 100
   4. nginx, PHP-FPM, MariaDB и Redis скрипт не настраивает. Что остаётся
-     вручную — docs/mydomo/deploy.md.
+     вручную — docs/laiot/deploy.md.
 
 Подсказка: chmod +x deploy/setup-ubuntu.sh — и скрипт можно запускать как
 ./deploy/setup-ubuntu.sh.

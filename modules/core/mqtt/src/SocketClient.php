@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt;
+namespace LaIOT\Mqtt;
 
 use PhpMqtt\Client\ConnectionSettings;
 use PhpMqtt\Client\Exceptions\DataTransferException;

@@ -4,7 +4,7 @@
     "name": "MQTT",
     "version": "1.0.0",
     "description": "Обмен с MQTT-брокером: топики, привязки к свойствам и методам объектов, история сообщений.",
-    "namespace": "MajorDoMo\\Mqtt\\",
+    "namespace": "LaIOT\\Mqtt\\",
     "entrypoint": "Module",
     "property_subscriber": "PropertyPublisher",
     "src": "src",
@@ -33,7 +33,7 @@
         }
     },
     "requires": {
-        "mydomo": ">=2.0.0-dev",
+        "laiot": ">=2.0.0-dev",
         "php": ">=8.2"
     }
 }

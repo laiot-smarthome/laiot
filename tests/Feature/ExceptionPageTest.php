@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
-use MajorDoMo\Http\ErrorResponse;
-use MajorDoMo\Http\ExceptionPage;
+use LaIOT\Http\ErrorResponse;
+use LaIOT\Http\ExceptionPage;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 

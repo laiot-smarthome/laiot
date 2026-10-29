@@ -3,35 +3,35 @@
 declare(strict_types=1);
 
 use Illuminate\Routing\Router;
-use MajorDoMo\Api\Webhooks\WebhookController;
-use MajorDoMo\Http\Controllers\ApiDocsController;
-use MajorDoMo\Http\Controllers\Core\ActionsLogController;
-use MajorDoMo\Http\Controllers\Core\ClassesController;
-use MajorDoMo\Http\Controllers\Core\EventsController;
-use MajorDoMo\Http\Controllers\Core\JobsController;
-use MajorDoMo\Http\Controllers\Core\KnowledgeBaseController;
-use MajorDoMo\Http\Controllers\Core\LocationsController;
-use MajorDoMo\Http\Controllers\Core\MethodsController;
-use MajorDoMo\Http\Controllers\Core\NotificationsPageController;
-use MajorDoMo\Http\Controllers\Core\ObjectsController;
-use MajorDoMo\Http\Controllers\Core\PropertiesController;
-use MajorDoMo\Http\Controllers\Core\ScriptsController;
-use MajorDoMo\Http\Controllers\Core\SettingsController;
-use MajorDoMo\Http\Controllers\Core\SystemErrorsController;
-use MajorDoMo\Http\Controllers\Core\UiKitController;
-use MajorDoMo\Http\Controllers\Core\UsersController;
-use MajorDoMo\Http\Controllers\DashboardController;
-use MajorDoMo\Http\Controllers\HealthController;
-use MajorDoMo\Http\Controllers\InstallController;
-use MajorDoMo\Http\Controllers\LoginController;
-use MajorDoMo\Http\Controllers\MaintenanceController;
-use MajorDoMo\Http\Controllers\ModuleSettingsController;
-use MajorDoMo\Http\Controllers\ModulesPageController;
-use MajorDoMo\Http\Controllers\ProfileController;
-use MajorDoMo\Http\Controllers\StatusController;
-use MajorDoMo\Http\Controllers\TokensController;
-use MajorDoMo\Http\Controllers\YoyoController;
-use MajorDoMo\Http\Controllers\YoyoDemoController;
+use LaIOT\Http\Controllers\ApiDocsController;
+use LaIOT\Http\Controllers\Core\ActionsLogController;
+use LaIOT\Http\Controllers\Core\ClassesController;
+use LaIOT\Http\Controllers\Core\EventsController;
+use LaIOT\Http\Controllers\Core\JobsController;
+use LaIOT\Http\Controllers\Core\KnowledgeBaseController;
+use LaIOT\Http\Controllers\Core\LocationsController;
+use LaIOT\Http\Controllers\Core\MethodsController;
+use LaIOT\Http\Controllers\Core\NotificationsPageController;
+use LaIOT\Http\Controllers\Core\ObjectsController;
+use LaIOT\Http\Controllers\Core\PropertiesController;
+use LaIOT\Http\Controllers\Core\ScriptsController;
+use LaIOT\Http\Controllers\Core\SettingsController;
+use LaIOT\Http\Controllers\Core\SystemErrorsController;
+use LaIOT\Http\Controllers\Core\UiKitController;
+use LaIOT\Http\Controllers\Core\UsersController;
+use LaIOT\Http\Controllers\DashboardController;
+use LaIOT\Http\Controllers\HealthController;
+use LaIOT\Http\Controllers\InstallController;
+use LaIOT\Http\Controllers\LoginController;
+use LaIOT\Http\Controllers\MaintenanceController;
+use LaIOT\Http\Controllers\ModuleSettingsController;
+use LaIOT\Http\Controllers\ModulesPageController;
+use LaIOT\Http\Controllers\ProfileController;
+use LaIOT\Http\Controllers\StatusController;
+use LaIOT\Http\Controllers\TokensController;
+use LaIOT\Http\Controllers\WebhookController;
+use LaIOT\Http\Controllers\YoyoController;
+use LaIOT\Http\Controllers\YoyoDemoController;
 
 return static function (Router $router): void {
     $router->middleware(['request-id'])->group(function (Router $router): void {
@@ -42,7 +42,7 @@ return static function (Router $router): void {
             ->middleware('csrf')
             ->name('install.apply');
 
-        // Корень ведёт в новый вход; legacy-панели в MyDoMo нет.
+        // Корень ведёт в новый вход; legacy-панели в LaIOT нет.
         $router->get('/', [LoginController::class, 'show'])->name('home');
         $router->get('/health', [HealthController::class, '__invoke'])->name('health');
         $router->get('/admin', DashboardController::class)

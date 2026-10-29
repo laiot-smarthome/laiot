@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Queue\DatabaseQueue;
-use MajorDoMo\Queue\JobRegistry;
-use MajorDoMo\Queue\QueueWorker;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Queue\DatabaseQueue;
+use LaIOT\Services\Queue\JobRegistry;
+use LaIOT\Services\Queue\QueueWorker;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use RuntimeException;

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Http\Request;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\ErrorResponse;
-use MajorDoMo\Http\Kernel;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Logging\RequestContext;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\ErrorResponse;
+use LaIOT\Http\Kernel;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Logging\RequestContext;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -49,7 +49,7 @@ final class HttpKernelTest extends TestCase
         $session->login(['id' => 1, 'username' => 'admin', 'name' => 'Admin']);
         $this->app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
-            'view_cache' => sys_get_temp_dir() . '/mydomo-views-' . bin2hex(random_bytes(4)),
+            'view_cache' => sys_get_temp_dir() . '/laiot-views-' . bin2hex(random_bytes(4)),
             'log' => 'php://stderr',
             'session' => $session,
             'cache' => ['driver' => 'array'],
@@ -66,7 +66,7 @@ final class HttpKernelTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
         self::assertStringContainsString('Yoyo + Blade', (string)$response->getContent());
         self::assertStringContainsString('increment', (string)$response->getContent());
-        self::assertSame('yes', $response->headers->get('X-MyDoMo-Middleware'));
+        self::assertSame('yes', $response->headers->get('X-LaIOT-Middleware'));
         self::assertNotEmpty($response->headers->get('X-Request-Id'));
     }
 

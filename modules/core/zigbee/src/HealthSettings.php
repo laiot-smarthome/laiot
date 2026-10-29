@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee;
+namespace LaIOT\Zigbee;
 
 use InvalidArgumentException;
-use MajorDoMo\Runtime\PhpSyntaxValidator;
+use LaIOT\Services\Runtime\PhpSyntaxValidator;
 
 /**
  * Настройки мониторинга Zigbee: пороги, таймауты и правила событий.

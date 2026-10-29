@@ -1,7 +1,7 @@
 // 2026-10-29 — регрессии состояния дерева без браузера и внешних сервисов.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {registerClassesTree} from '../../resources/js/mydomo/classes-tree.js';
+import {registerClassesTree} from '../../resources/js/laiot/classes-tree.js';
 
 let factory;
 registerClassesTree({data: (_name, create) => { factory = create; }});
@@ -60,7 +60,7 @@ test('поиск показывает предков и объекты, сбро
 
 test('повреждённый и запрещённый storage не ломают дерево', () => {
     for (const raw of ['{broken', '[]', '42', '{"1":"false"}']) {
-        assert.equal(boot(new Map([['mydomo.classes.expanded', raw]])).isExpanded(1), true);
+        assert.equal(boot(new Map([['laiot.classes.expanded', raw]])).isExpanded(1), true);
     }
     const tree = boot();
     window.localStorage.setItem = () => { throw new Error('Storage forbidden'); };

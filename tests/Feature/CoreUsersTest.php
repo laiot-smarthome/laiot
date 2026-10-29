@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Http\Request;
-use MajorDoMo\Auth\RoleRepository;
-use MajorDoMo\Auth\UserRepository;
-use MajorDoMo\Database\Migrator;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Methods\MethodRunner;
-use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Properties\PropertyValueService;
+use LaIOT\Database\Migrator;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Auth\RoleRepository;
+use LaIOT\Services\Auth\UserRepository;
+use LaIOT\Services\Methods\MethodRunner;
+use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\Properties\PropertyValueService;
 use PHPUnit\Framework\TestCase;
 
 /**

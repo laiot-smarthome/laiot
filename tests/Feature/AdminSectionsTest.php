@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Http\Request;
-use MajorDoMo\Database\Migrator;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Properties\PropertyValueService;
+use LaIOT\Database\Migrator;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Properties\PropertyValueService;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Админка MyDoMo: новая реализация разделов на ядровых таблицах.
+ * Админка LaIOT: новая реализация разделов на ядровых таблицах.
  *
  * Проверяет то, что нельзя увидеть в отдельных репозиториях: страницы
  * открываются на полной схеме, ссылки ведут на чистые URL, фильтры и вкладки
@@ -33,7 +33,7 @@ final class AdminSectionsTest extends TestCase
 
         $app = new Application(dirname(__DIR__, 2), [
             'debug' => true,
-            'environment_file' => sys_get_temp_dir() . '/mydomo-admin-env-' . bin2hex(random_bytes(8)),
+            'environment_file' => sys_get_temp_dir() . '/laiot-admin-env-' . bin2hex(random_bytes(8)),
             'cache' => ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
@@ -206,7 +206,7 @@ final class AdminSectionsTest extends TestCase
         $html = (string)$response->getContent();
         self::assertStringContainsString('data-code-editor', $html);
         // Чанк редактора не подключается тегом в разметке: его грузит загрузчик.
-        self::assertStringNotContainsString('mydomo-codeeditor.js', $html);
+        self::assertStringNotContainsString('laiot-codeeditor.js', $html);
     }
 
     public function testHistoryDrawerIsYoyoComponentOnObjectProperties(): void

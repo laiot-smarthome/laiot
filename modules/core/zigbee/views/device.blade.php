@@ -153,7 +153,7 @@
         <form method="post" action="/module/zigbee/devices/{{ $deviceId }}/health">
             <input type="hidden" name="_token" value="{{ $csrf }}">
             <div class="md-card__body">
-                @include('zigbee::partials.health', ['settings' => $health, 'defaults' => $healthDefaults, 'points' => \MajorDoMo\Zigbee\Support\RuleForm::pointsText($health)])
+                @include('zigbee::partials.health', ['settings' => $health, 'defaults' => $healthDefaults, 'points' => \LaIOT\Zigbee\Support\RuleForm::pointsText($health)])
             </div>
             <div class="md-card__body">
                 <x-md.checkbox name="inherit" label="Использовать общие настройки" value="1" :checked="$healthInherited"

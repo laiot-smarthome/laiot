@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee;
+namespace LaIOT\Zigbee;
 
 use InvalidArgumentException;
-use MajorDoMo\Modules\ModuleDb;
-use MajorDoMo\Modules\ModuleQuery;
+use LaIOT\Services\Modules\ModuleDb;
+use LaIOT\Services\Modules\ModuleQuery;
 use RuntimeException;
 
 /**

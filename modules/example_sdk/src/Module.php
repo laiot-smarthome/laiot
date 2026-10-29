@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Example\Sdk;
 
-use MajorDoMo\Modules\Module as BaseModule;
-use MajorDoMo\Modules\ModuleContext;
-use MajorDoMo\Worker\BackgroundTaskContext;
+use LaIOT\Services\Modules\Module as BaseModule;
+use LaIOT\Services\Modules\ModuleContext;
+use LaIOT\Services\Worker\BackgroundTaskContext;
 
 /**
  * Entrypoint примера SDK: демонстрирует boot/install/uninstall-хуки и задачу.

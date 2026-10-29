@@ -1,8 +1,8 @@
 {
-    "root": "/srv/mydomo",
-    "user": "mydomo",
-    "group": "mydomo",
-    "socket": "/run/mydomo/agent.sock",
+    "root": "/srv/laiot",
+    "user": "laiot",
+    "group": "laiot",
+    "socket": "/run/laiot/agent.sock",
     "systemctl": "/usr/bin/systemctl",
     "unit_dir": "/etc/systemd/system",
     "allowed_uid": 1000

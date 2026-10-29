@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Auth\UserRepository;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Foundation\Config;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Install\InstallException;
-use MajorDoMo\Install\InstallRequest;
-use MajorDoMo\Install\InstallService;
-use MajorDoMo\Security\EncryptionKey;
+use LaIOT\Foundation\Application;
+use LaIOT\Foundation\Config;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Auth\UserRepository;
+use LaIOT\Services\Install\InstallException;
+use LaIOT\Services\Install\InstallRequest;
+use LaIOT\Services\Install\InstallService;
+use LaIOT\Services\Security\EncryptionKey;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,7 +25,7 @@ final class InstallServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->root = sys_get_temp_dir() . '/mydomo-install-' . bin2hex(random_bytes(6));
+        $this->root = sys_get_temp_dir() . '/laiot-install-' . bin2hex(random_bytes(6));
         mkdir($this->root, 0775, true);
 
         $this->app = new Application(dirname(__DIR__, 2), [
@@ -71,8 +71,8 @@ final class InstallServiceTest extends TestCase
         self::assertFileExists($this->root . '/.env');
 
         $env = (string)file_get_contents($this->root . '/.env');
-        self::assertStringContainsString('DB_NAME="mydomo"', $env);
-        self::assertStringContainsString('DB_USER="mydomo"', $env);
+        self::assertStringContainsString('DB_NAME="laiot"', $env);
+        self::assertStringContainsString('DB_USER="laiot"', $env);
         self::assertStringContainsString('DB_PASSWORD="secret-db"', $env);
         self::assertStringContainsString('CACHE_DRIVER="file"', $env);
         self::assertStringContainsString('APP_TIMEZONE="Europe/Moscow"', $env);
@@ -166,8 +166,8 @@ final class InstallServiceTest extends TestCase
         $checks = $this->service()->preflight(new InstallRequest(
             dbHost: '127.0.0.1',
             dbPort: 1,
-            dbName: 'mydomo',
-            dbUser: 'mydomo',
+            dbName: 'laiot',
+            dbUser: 'laiot',
             cacheDriver: 'file'
         ));
 
@@ -196,8 +196,8 @@ final class InstallServiceTest extends TestCase
     {
         return new InstallRequest(
             dbHost: '127.0.0.1',
-            dbName: 'mydomo',
-            dbUser: 'mydomo',
+            dbName: 'laiot',
+            dbUser: 'laiot',
             dbPassword: 'secret-db',
             dbCreate: true,
             cacheDriver: 'file',

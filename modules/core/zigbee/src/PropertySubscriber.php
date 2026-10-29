@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee;
+namespace LaIOT\Zigbee;
 
-use MajorDoMo\Events\PropertyChange;
-use MajorDoMo\Modules\PropertySubscriber as PropertySubscriberContract;
+use LaIOT\Services\Events\PropertyChange;
+use LaIOT\Services\Modules\PropertySubscriber as PropertySubscriberContract;
 
 /**
  * Обратная синхронизация: изменение свойства объекта уходит в устройство.

@@ -2,7 +2,7 @@
     /** @var array<string, mixed> $settings */
     /** @var array<string, mixed> $defaults */
     $events = is_array($settings['events'] ?? null) ? $settings['events'] : [];
-    $eventLabels = \MajorDoMo\Zigbee\HealthSettings::EVENTS;
+    $eventLabels = \LaIOT\Zigbee\HealthSettings::EVENTS;
 @endphp
 
 <div class="md-ui-form-stack">

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Carbon\CarbonImmutable;
-use MajorDoMo\Support\Clock;
+use LaIOT\Support\Clock;
 use PHPUnit\Framework\TestCase;
 
 final class ClockTest extends TestCase

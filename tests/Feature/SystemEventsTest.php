@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
-use MajorDoMo\Events\SystemEvents;
-use MajorDoMo\Events\SystemEventTicker;
-use MajorDoMo\Queue\Queue;
+use LaIOT\Services\Events\SystemEvents;
+use LaIOT\Services\Events\SystemEventTicker;
+use LaIOT\Services\Queue\Queue;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

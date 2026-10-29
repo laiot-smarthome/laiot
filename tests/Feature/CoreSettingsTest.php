@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Http\Request;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Foundation\Config;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Settings\DatabaseSettingsGuard;
-use MajorDoMo\Settings\EnvFile;
-use MajorDoMo\Settings\SettingsSchema;
-use MajorDoMo\Settings\SettingsService;
-use MajorDoMo\Settings\SettingsValidationException;
+use LaIOT\Foundation\Application;
+use LaIOT\Foundation\Config;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Settings\DatabaseSettingsGuard;
+use LaIOT\Services\Settings\EnvFile;
+use LaIOT\Services\Settings\SettingsSchema;
+use LaIOT\Services\Settings\SettingsService;
+use LaIOT\Services\Settings\SettingsValidationException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -49,9 +49,9 @@ final class CoreSettingsTest extends TestCase
             $this->environment[$key] = getenv($key);
             putenv($key);
         }
-        $this->directory = sys_get_temp_dir() . '/mydomo-settings-' . bin2hex(random_bytes(8));
+        $this->directory = sys_get_temp_dir() . '/laiot-settings-' . bin2hex(random_bytes(8));
         mkdir($this->directory, 0700);
-        $this->original = "# локальная конфигурация\nAPP_TIMEZONE=Europe/Moscow\nAPP_DEBUG=false\nDB_HOST=localhost\nDB_PORT=3306\nDB_NAME=mydomo\nDB_USER=mydomo\nDB_PASSWORD='fixture-db-secret'\nREDIS_PASSWORD='fixture-redis-secret'\nCUSTOM_KEY=keep-me\n";
+        $this->original = "# локальная конфигурация\nAPP_TIMEZONE=Europe/Moscow\nAPP_DEBUG=false\nDB_HOST=localhost\nDB_PORT=3306\nDB_NAME=laiot\nDB_USER=laiot\nDB_PASSWORD='fixture-db-secret'\nREDIS_PASSWORD='fixture-redis-secret'\nCUSTOM_KEY=keep-me\n";
         file_put_contents($this->path(), $this->original);
     }
 
@@ -186,7 +186,7 @@ final class CoreSettingsTest extends TestCase
         [$app] = $this->boot();
         $response = $this->yoyo($app, 'save', [
             'group' => 'database', 'revision' => $this->revision(),
-            'values' => ['DB_HOST' => 'localhost', 'DB_PORT' => 'invalid', 'DB_NAME' => 'mydomo', 'DB_USER' => 'mydomo', 'DB_PASSWORD' => 'new-secret'],
+            'values' => ['DB_HOST' => 'localhost', 'DB_PORT' => 'invalid', 'DB_NAME' => 'laiot', 'DB_USER' => 'laiot', 'DB_PASSWORD' => 'new-secret'],
         ]);
         self::assertStringNotContainsString('new-secret', (string)$response->getContent());
         self::assertSame($this->original, file_get_contents($this->path()));
@@ -313,7 +313,7 @@ final class CoreSettingsTest extends TestCase
             ['id' => 1]
         );
         $this->service($guard)->save('database', [
-            'DB_HOST' => 'new-db', 'DB_PORT' => '3306', 'DB_NAME' => 'mydomo', 'DB_USER' => 'mydomo', 'DB_PASSWORD' => '',
+            'DB_HOST' => 'new-db', 'DB_PORT' => '3306', 'DB_NAME' => 'laiot', 'DB_USER' => 'laiot', 'DB_PASSWORD' => '',
         ], [], $this->revision(), ['id' => 1]);
         self::assertSame('new-db', Config::parse((string)file_get_contents($this->path()))['DB_HOST']);
     }
@@ -325,7 +325,7 @@ final class CoreSettingsTest extends TestCase
         $this->expectException(RuntimeException::class);
         try {
             $this->service($guard)->save('database', [
-                'DB_HOST' => 'new-db', 'DB_PORT' => '3306', 'DB_NAME' => 'mydomo', 'DB_USER' => 'mydomo',
+                'DB_HOST' => 'new-db', 'DB_PORT' => '3306', 'DB_NAME' => 'laiot', 'DB_USER' => 'laiot',
             ], [], $this->revision(), []);
         } finally {
             self::assertSame($this->original, file_get_contents($this->path()));

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Logging\ErrorFileWriter;
+use LaIOT\Services\Logging\ErrorFileWriter;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -19,7 +19,7 @@ final class ErrorFileWriterTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->directory = sys_get_temp_dir() . '/mydomo-errors-' . bin2hex(random_bytes(4));
+        $this->directory = sys_get_temp_dir() . '/laiot-errors-' . bin2hex(random_bytes(4));
     }
 
     protected function tearDown(): void

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Contracts\Translation\Translator as TranslatorContract;
 use Illuminate\Contracts\Validation\Factory as FactoryContract;
@@ -12,8 +12,8 @@ use Illuminate\Translation\Translator;
 use Illuminate\Validation\Factory;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
 use PHPUnit\Framework\TestCase;
 
 /**

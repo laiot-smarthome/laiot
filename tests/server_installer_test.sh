@@ -114,7 +114,7 @@ trap cleanup_test EXIT
     [[ -f $STATE/enabled && $(grep -c '^mkswap$' "$STATE/calls") == 1 ]]
 )
 
-for domain in mydomo.home.arpa home.example.ru a.b xn--e1afmkfd.ru; do
+for domain in laiot.home.arpa home.example.ru a.b xn--e1afmkfd.ru; do
     valid_domain "$domain" || { echo "Не принят домен: $domain"; exit 1; }
 done
 for domain in '-a.ru' 'a-.ru' 'a..ru' 'a.ru/' 'a.ru.' 'a b.ru' '127.0.0.1' 'https://a.ru' 'a;reboot.ru'; do
@@ -163,11 +163,11 @@ cleanup_apps
 
 # Таблица с пустыми aliases разбирается по заголовкам, а не номерам слов.
 table_header() { printf '%-8s%-32s%-32s%-24s%-12s%-16s%-24s%s\n' ID SERVER_NAME ALIASES OWNER MODE PHP_VERSION IPS DOCUMENT_ROOT; }
-table_site() { printf '%-8s%-32s%-32s%-24s%-12s%-16s%-24s%s\n' 7 mydomo.home.arpa '' siteuser php_fpm 83 192.168.1.10 /var/www/siteuser/data/www/mydomo.home.arpa; }
+table_site() { printf '%-8s%-32s%-32s%-24s%-12s%-16s%-24s%s\n' 7 laiot.home.arpa '' siteuser php_fpm 83 192.168.1.10 /var/www/siteuser/data/www/laiot.home.arpa; }
 parsed=$({ table_header; table_site; } | site_rows)
-[[ $(cut -f2 <<< "$parsed") == mydomo.home.arpa ]]
+[[ $(cut -f2 <<< "$parsed") == laiot.home.arpa ]]
 [[ $(cut -f3 <<< "$parsed") == siteuser ]]
-[[ $(cut -f4 <<< "$parsed") == /var/www/siteuser/data/www/mydomo.home.arpa ]]
+[[ $(cut -f4 <<< "$parsed") == /var/www/siteuser/data/www/laiot.home.arpa ]]
 if site_rows <<< 'unexpected format'; then echo 'Принят неизвестный формат таблицы'; exit 1; fi
 
 # Ни публичные корни, ни непустые каталоги, ни ссылки использовать нельзя.
@@ -202,7 +202,7 @@ repair_panel_apt "$STATE/apt-key.asc" "$STATE/apt-source.list"
 )
 (
     # Существующий сайт не создаётся заново и не меняет учётную запись.
-    DOMAIN=mydomo.home.arpa OWNER=siteuser TARGET_MODE=existing
+    DOMAIN=laiot.home.arpa OWNER=siteuser TARGET_MODE=existing
     mogwai() {
         [[ $* == 'sites list' ]] || { echo 'Изменение готового сайта запрещено в тесте'; return 1; }
         table_header; table_site
@@ -216,7 +216,7 @@ repair_panel_apt "$STATE/apt-key.asc" "$STATE/apt-source.list"
 )
 (
     # Новый сайт под готовым владельцем создаётся без --create-user.
-    DOMAIN=mydomo.home.arpa OWNER=siteuser TARGET_MODE=new SERVER_IP=192.168.1.10
+    DOMAIN=laiot.home.arpa OWNER=siteuser TARGET_MODE=new SERVER_IP=192.168.1.10
     mogwai() {
         if [[ $* == 'sites list' ]]; then
             table_header
@@ -228,12 +228,12 @@ repair_panel_apt "$STATE/apt-key.asc" "$STATE/apt-source.list"
     install() { :; }
     save_answers() { :; }
     site
-    grep -Fq -- 'sites create --server-name=mydomo.home.arpa --owner=siteuser' "$STATE/site-trace"
+    grep -Fq -- 'sites create --server-name=laiot.home.arpa --owner=siteuser' "$STATE/site-trace"
     ! grep -Fq -- '--create-user' "$STATE/site-trace"
 )
 rm "$STATE/site-created" "$STATE/site-trace"
 (
-    DOMAIN=mydomo.home.arpa OWNER=siteuser TARGET_MODE=new SERVER_IP=192.168.1.10
+    DOMAIN=laiot.home.arpa OWNER=siteuser TARGET_MODE=new SERVER_IP=192.168.1.10
     mogwai() {
         if [[ $* == 'sites list' ]]; then
             table_header
@@ -258,7 +258,7 @@ rm "$STATE/site-created" "$STATE/site-trace"
 # Используются только вымышленные доступы; настоящие .env и службы не читаются.
 APP=$test_directory/application
 BASE=$test_directory/base
-DOMAIN=mydomo.home.arpa
+DOMAIN=laiot.home.arpa
 SERVER_IP=192.168.1.10
 SCHEME=http
 MQTT=yes

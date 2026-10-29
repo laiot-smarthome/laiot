@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Filesystem\Filesystem;
-use MajorDoMo\Modules\ModuleChecker;
+use LaIOT\Services\Modules\ModuleChecker;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,7 +19,7 @@ final class ModuleCheckerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->directory = sys_get_temp_dir() . '/mydomo-check-' . bin2hex(random_bytes(4));
+        $this->directory = sys_get_temp_dir() . '/laiot-check-' . bin2hex(random_bytes(4));
         mkdir($this->directory . '/src', 0775, true);
     }
 

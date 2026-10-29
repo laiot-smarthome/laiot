@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Filesystem\Filesystem;
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Modules\ModuleDb;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Modules\ModuleDb;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -18,7 +18,7 @@ final class ModuleDbTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->modulePath = sys_get_temp_dir() . '/mydomo-module-' . bin2hex(random_bytes(4));
+        $this->modulePath = sys_get_temp_dir() . '/laiot-module-' . bin2hex(random_bytes(4));
         mkdir($this->modulePath, 0775, true);
 
         $this->db = new ModuleDb('shoutbox', [

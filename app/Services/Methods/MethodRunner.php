@@ -1,0 +1,104 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LaIOT\Services\Methods;
+
+use InvalidArgumentException;
+use LaIOT\Services\Notifications\NotificationService;
+use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\Properties\PropertyValueService;
+use LaIOT\Services\Runtime\UserCodeDeadline;
+use RuntimeException;
+
+/**
+ * Выполнение пользовательского метода.
+ *
+ * Код методов — доверенный пользовательский PHP (как в alpha). Он выполняется
+ * через временный файл, без eval; файл удаляется в finally.
+ *
+ * Код получает `$params` и `$this` — MethodContext объекта: `get()`, `set()`,
+ * `history()`, `call()`, `notify()` и короткий доступ к параметрам. Контекст
+ * привязан к тому же объекту, чей метод вызван.
+ *
+ * 2026-10-27 — рекурсия ограничена до исчерпания памяти процесса.
+ * 2026-10-27 — метод выполняется с контекстом объекта, `$this` больше не пустой.
+ * 2026-10-27 — метод ищется у объекта, затем в классе и по цепочке наследования.
+ */
+final class MethodRunner
+{
+    private int $depth = 0;
+
+    public function __construct(
+        private readonly ObjectRepository $objects,
+        private readonly MethodRepository $methods,
+        private readonly PropertyValueService $values,
+        private readonly NotificationService $notifications,
+        private readonly UserCodeDeadline $deadline
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     */
+    public function run(string $objectTitle, string $methodTitle, array $params = []): mixed
+    {
+        if ($this->depth >= 64) {
+            throw new RuntimeException('Превышена глубина вложенных вызовов методов: 64.');
+        }
+        $this->depth++;
+        try {
+            return $this->deadline->run(fn () => $this->invoke($objectTitle, $methodTitle, $params));
+        } finally {
+            $this->depth--;
+        }
+    }
+
+    /** @param array<string, mixed> $params */
+    private function invoke(string $objectTitle, string $methodTitle, array $params): mixed
+    {
+        $object = $this->objects->findByTitle(trim($objectTitle));
+        if ($object === null) {
+            throw new InvalidArgumentException('Объект не найден: ' . $objectTitle);
+        }
+        $method = $this->methods->findForObject((int)$object['id'], (int)$object['class_id'], trim($methodTitle));
+        if ($method === null) {
+            throw new InvalidArgumentException('Метод не найден: ' . $methodTitle);
+        }
+        if (trim($method['code']) === '') {
+            return null;
+        }
+
+        $file = tempnam(sys_get_temp_dir(), 'laiot_method_');
+        if ($file === false) {
+            throw new InvalidArgumentException('Не удалось создать временный файл метода.');
+        }
+        try {
+            file_put_contents($file, "<?php\n" . $method['code']);
+
+            $context = new MethodContext(
+                (string)$object['title'],
+                (int)$object['id'],
+                trim($methodTitle),
+                $params,
+                $this->values,
+                $this->notifications,
+                fn (string $method, array $params = []): mixed => $this->run(
+                    (string)$object['title'],
+                    $method,
+                    $params
+                )
+            );
+
+            // Замыкание привязано к контексту: include внутри него видит `$this`
+            // и `$params`, но не глобалы ядра.
+            $runner = function (string $__file) use ($params): mixed {
+                return include $__file;
+            };
+
+            return $runner->call($context, $file);
+        } finally {
+            @unlink($file);
+        }
+    }
+}

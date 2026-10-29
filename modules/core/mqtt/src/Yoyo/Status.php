@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt\Yoyo;
+namespace LaIOT\Mqtt\Yoyo;
 
 use Clickfwd\Yoyo\Component;
-use MajorDoMo\Auth\Authorization;
-use MajorDoMo\Events\PropertyEventQueue;
-use MajorDoMo\Mqtt\RuntimeState;
-use MajorDoMo\Modules\ModuleManager;
-use MajorDoMo\Mqtt\Settings;
-use MajorDoMo\Queue\Queue;
+use LaIOT\Services\Auth\Authorization;
+use LaIOT\Services\Events\PropertyEventQueue;
+use LaIOT\Mqtt\RuntimeState;
+use LaIOT\Services\Modules\ModuleManager;
+use LaIOT\Mqtt\Settings;
+use LaIOT\Services\Queue\Queue;
 
 /**
  * Карточка состояния MQTT-цикла.

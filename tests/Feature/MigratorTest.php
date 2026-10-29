@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Filesystem\Filesystem;
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Database\Migrator;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Database\Migrator;
 use PHPUnit\Framework\TestCase;
 
 final class MigratorTest extends TestCase
@@ -15,7 +15,7 @@ final class MigratorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->directory = sys_get_temp_dir() . '/mydomo-migrations-' . bin2hex(random_bytes(4));
+        $this->directory = sys_get_temp_dir() . '/laiot-migrations-' . bin2hex(random_bytes(4));
         mkdir($this->directory, 0775, true);
         file_put_contents($this->directory . '/001_create_demo.php', <<<'PHP'
 <?php

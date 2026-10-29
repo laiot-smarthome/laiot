@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Example\Sdk;
 
-use MajorDoMo\Events\PropertyChange;
-use MajorDoMo\Modules\PropertySubscriber;
+use LaIOT\Services\Events\PropertyChange;
+use LaIOT\Services\Modules\PropertySubscriber;
 
 /**
  * Пример обработчика изменений свойства.

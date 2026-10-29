@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
-use MajorDoMo\Console\PruneCommand;
-use MajorDoMo\Events\PropertyExecutionRepository;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Maintenance\RetentionPruner;
+use LaIOT\Console\Commands\PruneCommand;
+use LaIOT\Foundation\Application;
+use LaIOT\Services\Events\PropertyExecutionRepository;
+use LaIOT\Services\Maintenance\RetentionPruner;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -125,7 +125,7 @@ final class RetentionPrunerTest extends TestCase
      */
     private function boot(array $retention = []): Application
     {
-        $this->errorDirectory = sys_get_temp_dir() . '/mydomo_retention_' . bin2hex(random_bytes(4));
+        $this->errorDirectory = sys_get_temp_dir() . '/laiot_retention_' . bin2hex(random_bytes(4));
         if (!mkdir($this->errorDirectory, 0775, true) && !is_dir($this->errorDirectory)) {
             self::fail('Не удалось создать каталог ошибок');
         }

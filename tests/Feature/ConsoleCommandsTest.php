@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\Console\AboutCommand;
-use MajorDoMo\Console\CacheClearCommand;
-use MajorDoMo\Console\DoctorCommand;
-use MajorDoMo\Console\HealthCommand;
-use MajorDoMo\Console\MigrateCommand;
-use MajorDoMo\Console\MigrateStatusCommand;
-use MajorDoMo\Console\ModuleListCommand;
-use MajorDoMo\Console\QueueFailedCommand;
-use MajorDoMo\Console\QueueRetryCommand;
-use MajorDoMo\Console\QueueStatsCommand;
-use MajorDoMo\Console\QueueWorkCommand;
-use MajorDoMo\Console\RouteListCommand;
-use MajorDoMo\Foundation\Application;
+use LaIOT\Console\Commands\AboutCommand;
+use LaIOT\Console\Commands\CacheClearCommand;
+use LaIOT\Console\Commands\DoctorCommand;
+use LaIOT\Console\Commands\HealthCommand;
+use LaIOT\Console\Commands\MigrateCommand;
+use LaIOT\Console\Commands\MigrateStatusCommand;
+use LaIOT\Console\Commands\ModuleListCommand;
+use LaIOT\Console\Commands\QueueFailedCommand;
+use LaIOT\Console\Commands\QueueRetryCommand;
+use LaIOT\Console\Commands\QueueStatsCommand;
+use LaIOT\Console\Commands\QueueWorkCommand;
+use LaIOT\Console\Commands\RouteListCommand;
+use LaIOT\Foundation\Application;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -46,7 +46,7 @@ final class ConsoleCommandsTest extends TestCase
         $tester->execute([]);
 
         self::assertSame(0, $tester->getStatusCode());
-        self::assertStringContainsString('MyDoMo', $tester->getDisplay());
+        self::assertStringContainsString('LaIOT', $tester->getDisplay());
         self::assertStringContainsString('PHP:', $tester->getDisplay());
         self::assertStringContainsString(
             'Core modules: ' . count($this->app->modules()->all()),
@@ -91,7 +91,7 @@ final class ConsoleCommandsTest extends TestCase
     public function testModuleListWithoutModules(): void
     {
         $tester = new CommandTester(new ModuleListCommand(
-            $this->app->container()->make(\MajorDoMo\Modules\ModuleInstaller::class)
+            $this->app->container()->make(\LaIOT\Services\Modules\ModuleInstaller::class)
         ));
         $tester->execute([]);
 

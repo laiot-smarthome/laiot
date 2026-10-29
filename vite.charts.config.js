@@ -18,11 +18,11 @@ export default defineConfig({
       input: 'resources/js/charts/index.js',
       output: {
         format: 'iife',
-        entryFileNames: 'mydomo-charts.js',
+        entryFileNames: 'laiot-charts.js',
         assetFileNames: (assetInfo) => {
           const name = (assetInfo.names && assetInfo.names[0]) || assetInfo.name || '';
           if (name.endsWith('.css')) {
-            return 'mydomo-charts.css';
+            return 'laiot-charts.css';
           }
           if (/\.(woff2?|ttf|eot|otf)$/i.test(name)) {
             return 'fonts/[name][extname]';

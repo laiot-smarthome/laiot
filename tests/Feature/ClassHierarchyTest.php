@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use InvalidArgumentException;
-use MajorDoMo\Classes\ClassRepository;
-use MajorDoMo\Database\DatabaseManager;
-use MajorDoMo\Methods\MethodRepository;
-use MajorDoMo\Objects\ObjectRepository;
-use MajorDoMo\Properties\PropertyRepository;
-use MajorDoMo\Runtime\PhpSyntaxValidator;
+use LaIOT\Database\DatabaseManager;
+use LaIOT\Services\Classes\ClassRepository;
+use LaIOT\Services\Methods\MethodRepository;
+use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\Properties\PropertyRepository;
+use LaIOT\Services\Runtime\PhpSyntaxValidator;
 use PHPUnit\Framework\TestCase;
 
 /**

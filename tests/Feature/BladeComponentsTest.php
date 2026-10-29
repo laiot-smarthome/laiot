@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
-use MajorDoMo\View\BladeRenderer;
+use LaIOT\View\BladeRenderer;
 use PHPUnit\Framework\TestCase;
 
 final class BladeComponentsTest extends TestCase

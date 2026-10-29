@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Modules\ModuleInstaller;
-use MajorDoMo\Modules\ModuleManifest;
-use MajorDoMo\Modules\ModuleSettings;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Modules\ModuleInstaller;
+use LaIOT\Services\Modules\ModuleManifest;
+use LaIOT\Services\Modules\ModuleSettings;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -123,7 +123,7 @@ final class ModuleSettingsTest extends TestCase
         $app = $this->boot();
         $app->container()->make(ModuleInstaller::class)->install('example_sdk');
 
-        $settings = $app->container()->make(\MajorDoMo\Modules\ModuleManager::class)
+        $settings = $app->container()->make(\LaIOT\Services\Modules\ModuleManager::class)
             ->context('example_sdk')->settings();
 
         self::assertSame('Привет', $settings->get('greeting'));
@@ -154,7 +154,7 @@ final class ModuleSettingsTest extends TestCase
         self::assertSame(302, $saved->getStatusCode());
         self::assertSame('/admin/modules/example_sdk/settings', $saved->headers->get('Location'));
 
-        $stored = $app->container()->make(\MajorDoMo\Modules\ModuleManager::class)->registry()->settings('example_sdk');
+        $stored = $app->container()->make(\LaIOT\Services\Modules\ModuleManager::class)->registry()->settings('example_sdk');
         self::assertSame('Здравствуйте', $stored['greeting']);
         self::assertSame(25, $stored['notes_limit']);
         self::assertSame('advanced', $stored['mode']);

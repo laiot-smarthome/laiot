@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Mqtt;
+namespace LaIOT\Mqtt;
 
 use Illuminate\Database\Schema\Blueprint;
-use MajorDoMo\Modules\ModuleDb;
+use LaIOT\Services\Modules\ModuleDb;
 
 /**
  * Таблицы MQTT-модуля.

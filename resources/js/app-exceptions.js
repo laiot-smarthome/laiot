@@ -1,6 +1,6 @@
 // 2026-10-29 — локальное копирование отчёта без запуска runtime панели.
 import Alpine from 'alpinejs';
-import {createToasts} from './mydomo/toasts.js';
+import {createToasts} from './laiot/toasts.js';
 
 function legacyCopy(text) {
     const previous = document.activeElement;

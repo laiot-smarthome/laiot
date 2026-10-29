@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Zigbee;
+namespace LaIOT\Zigbee;
 
 use Closure;
-use MajorDoMo\Locations\LocationRepository;
-use MajorDoMo\Mqtt\RuntimeState;
-use MajorDoMo\Notifications\NotificationService;
-use MajorDoMo\Runtime\CodeRunner;
-use MajorDoMo\Worker\ProcessLock;
+use LaIOT\Services\Locations\LocationRepository;
+use LaIOT\Mqtt\RuntimeState;
+use LaIOT\Services\Notifications\NotificationService;
+use LaIOT\Services\Runtime\CodeRunner;
+use LaIOT\Services\Worker\ProcessLock;
 use RuntimeException;
 use Throwable;
 

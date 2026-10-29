@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace MajorDoMo\Tests\Feature;
+namespace LaIOT\Tests\Feature;
 
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
-use MajorDoMo\Foundation\Application;
-use MajorDoMo\Http\Controllers\InstallController;
-use MajorDoMo\Http\Session\ArraySession;
-use MajorDoMo\Install\InstallReport;
-use MajorDoMo\Install\InstallService;
+use LaIOT\Foundation\Application;
+use LaIOT\Http\Controllers\InstallController;
+use LaIOT\Http\Session\ArraySession;
+use LaIOT\Services\Install\InstallReport;
+use LaIOT\Services\Install\InstallService;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -25,7 +25,7 @@ final class InstallPageTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->root = sys_get_temp_dir() . '/mydomo-install-page-' . bin2hex(random_bytes(6));
+        $this->root = sys_get_temp_dir() . '/laiot-install-page-' . bin2hex(random_bytes(6));
         mkdir($this->root . '/var', 0775, true);
         $this->session = new ArraySession();
         $this->app = new Application(dirname(__DIR__, 2), [
@@ -162,8 +162,8 @@ final class InstallPageTest extends TestCase
         $this->session->set(InstallController::DRAFT_KEY, [
             'db_host' => '127.0.0.1',
             'db_port' => 3306,
-            'db_name' => 'mydomo',
-            'db_user' => 'mydomo',
+            'db_name' => 'laiot',
+            'db_user' => 'laiot',
             'db_password' => 'secret-db',
             'db_create' => true,
             'cache_driver' => 'file',

@@ -7,7 +7,7 @@
     // Версия ассета, как в layouts.alpha: после сборки браузер должен
     // получить новый CSS, а не старую копию из кэша.
     $assetVersion = static function (string $path): string {
-        $root = \MajorDoMo\Support\AppContext::get()?->root();
+        $root = \LaIOT\Support\AppContext::get()?->root();
         $file = $root !== null ? $root . '/public' . $path : '';
         return $file !== '' && is_file($file) ? '?v=' . filemtime($file) : '';
     };
@@ -18,9 +18,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>{{ $status }} — {{ $title }} — LaIoT</title>
+    <title>{{ $status }} — {{ $title }} — LaIOT</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="stylesheet" href="/assets/admin/mydomo.css{{ $assetVersion('/assets/admin/mydomo.css') }}">
+    <link rel="stylesheet" href="/assets/admin/laiot.css{{ $assetVersion('/assets/admin/laiot.css') }}">
     <script>
         (function () {
             var match = document.cookie.match(/(?:^|;\s*)theme=([^;]+)/);
@@ -32,14 +32,14 @@
 <body class="md-admin-shell md-error-page" data-error-code="{{ $code }}" data-error-status="{{ $status }}">
 <main class="md-error-page__main">
     <div @class(['md-error-page__card', 'md-error-page__card--' . $tone])>
-        <a class="md-error-page__brand" href="{{ $home ?? '/login' }}" aria-label="LaIoT — в панель">
+        <a class="md-error-page__brand" href="{{ $home ?? '/login' }}" aria-label="LaIOT — в панель">
             <span class="md-logo">
                 <img class="md-logo__light" src="/assets/img/logos/laiot-logo.png"
                      srcset="/assets/img/logos/laiot-logo@2x.png 2x"
-                     width="333" height="101" alt="LaIoT" decoding="async">
+                     width="333" height="101" alt="LaIOT" decoding="async">
                 <img class="md-logo__dark" src="/assets/img/logos/laiot-logo-white.png"
                      srcset="/assets/img/logos/laiot-logo-white@2x.png 2x"
-                     width="300" height="91" alt="LaIoT" decoding="async">
+                     width="300" height="91" alt="LaIOT" decoding="async">
             </span>
         </a>
 
