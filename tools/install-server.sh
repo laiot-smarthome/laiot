@@ -81,7 +81,7 @@ valid_ip() {
         [[ ${#part} -le 3 ]] && (( 10#$part <= 255 )) || return 1
     done
 }
-secret() { openssl rand -hex 24; }
+secret() { openssl rand -hex 20; }
 checkpoint() { touch "$STATE/$1.done"; }
 run_step() {
     local id=$1 title=$2
@@ -500,6 +500,7 @@ panel() (
     command -v mogwai
 )
 packages() {
+    local missing
     system_apt update
     system_apt install -y git unzip xz-utils build-essential libsystemd-dev redis-server
     if [[ $PHP_BIN == /usr/bin/php* ]]; then
@@ -507,7 +508,8 @@ packages() {
         system_apt install -y "php$PHP_VERSION-fpm" "php$PHP_VERSION-mysql" "php$PHP_VERSION-mbstring" \
             "php$PHP_VERSION-intl" "php$PHP_VERSION-curl" "php$PHP_VERSION-xml" "php$PHP_VERSION-zip"
     fi
-    "$PHP_BIN" -r '$missing = array_filter(["pdo_mysql","mbstring","intl","curl","dom","zip","pcntl","posix"], fn($e) => !extension_loaded($e)); if ($missing) {fwrite(STDERR,"Нет расширений PHP: ".implode(", ",$missing).PHP_EOL); exit(1);}'
+    missing=$("$PHP_BIN" -r 'echo implode(", ",array_filter(["pdo_mysql","mbstring","intl","curl","dom","zip","pcntl","posix"],fn($e)=>!extension_loaded($e)));')
+    [[ -z $missing ]] || die "В PHP $PHP_VERSION отсутствуют расширения: $missing. Установите их для этой версии через FastPanel и повторите мастер."
     systemctl enable --now redis-server
     [[ $(redis-cli -h 127.0.0.1 ping) == PONG ]]
     # Проверяем фактический bind: Redis не должен стать публичным сервисом.
@@ -641,16 +643,31 @@ prepare_webroot() {
     fi
     nginx -t
 }
-application() {
+copy_application() {
     local relative
-    if [[ ! -f $APP/composer.lock ]]; then
+    if [[ -f $STATE/code-copy.done ]]; then return; fi
+    if [[ ! -f $STATE/code-copy.plan && -f $APP/composer.lock ]]; then
+        [[ -f $APP/app/Services/Install/InstallService.php && -f $APP/public/index.php ]] || die 'В каталоге уже находится другое приложение.'
+        # Продолжение сборки старой версии мастера: код уже был скопирован.
+        checkpoint code-copy
+        return
+    fi
+    if [[ ! -f $STATE/code-copy.plan ]]; then
         # Ни один прежний файл сайта не заменяется молча. В том числе .git
         # другой установки: выбор готового сайта не означает удаление данных.
         while IFS= read -r relative; do
             [[ ! -e $APP/$relative && ! -L $APP/$relative ]] || die "Файл сайта уже существует: $APP/$relative. Установка остановлена без перезаписи."
         done < <(cd "$STATE/source"; find . -type f -o -type l)
-        (umask 022; tar -C "$STATE/source" -cf - . | as_owner tar --keep-old-files -C "$APP" -xf -)
+        printf '%s\n' "$APP" > "$STATE/code-copy.plan"
     fi
+    [[ $(< "$STATE/code-copy.plan") == "$APP" ]] || die 'План копирования принадлежит другому каталогу.'
+    # После прерывания дополняем только недостающие файлы, не заменяя уже
+    # извлечённые данные. Маска владельца сохраняет доступ nginx к public.
+    (umask 022; tar -C "$STATE/source" -cf - . | as_owner tar --skip-old-files -C "$APP" -xf -)
+    checkpoint code-copy
+}
+application() {
+    copy_application
     [[ -f $APP/app/Services/Install/InstallService.php && -f $APP/public/index.php && -f $APP/composer.lock ]] || \
         die 'В загруженной ветке нет веб-установщика LaIOT. Проверьте публикацию beta.'
     # Composer проверяет подпись установщика; зависимости и сборка идут без root.
@@ -682,7 +699,7 @@ database() {
     if ! awk '$0 ~ /(^|[[:space:]])laiot_app([[:space:]]|$)/ {found=1} END {exit !found}' <<< "$databases"; then
         # FastPanel ограничивает пароль БД 41 символом. При предыдущем отказе
         # создания можно заменить неподходящий секрет, пока базы ещё нет.
-        if [[ ! -f $STATE/db-password || $(wc -L < "$STATE/db-password") -gt 41 ]]; then
+        if [[ ! -s $STATE/db-password || $(wc -L < "$STATE/db-password") -gt 41 ]]; then
             openssl rand -hex 20 > "$STATE/db-password"
         fi
         password=$(< "$STATE/db-password")
@@ -693,6 +710,19 @@ database() {
     password=$(< "$STATE/db-password")
     # Убеждаемся, что существующая база действительно наша.
     DB_PASS="$password" "$PHP_BIN" -r 'new PDO("mysql:host=127.0.0.1;dbname=laiot_app", "laiot_app", getenv("DB_PASS"));'
+}
+web_connection() {
+    STEP='подготавливаем подключения для веб-мастера'
+    [[ ! -f $APP/var/installed.lock ]] || return 0
+    local password
+    password=$(< "$STATE/db-password")
+    LAIOT_INSTALL_DB_PASSWORD="$password" as_owner "$PHP_BIN" -r '
+        umask(0077);
+        $path=$argv[1]."/var/install-connection.json";
+        $temporary=$path.".".bin2hex(random_bytes(8));
+        $data=["db_host"=>"127.0.0.1","db_port"=>3306,"db_name"=>"laiot_app","db_user"=>"laiot_app","db_password"=>getenv("LAIOT_INSTALL_DB_PASSWORD"),"db_create"=>false,"cache_driver"=>"redis","redis_host"=>"127.0.0.1","redis_port"=>6379,"redis_database"=>0,"redis_password"=>""];
+        if(file_put_contents($temporary,json_encode($data,JSON_THROW_ON_ERROR),LOCK_EX)===false||!rename($temporary,$path))exit(1);
+    ' "$APP"
 }
 mosquitto() {
     system_apt install -y mosquitto mosquitto-clients
@@ -799,7 +829,7 @@ credentials() {
             printf 'LaIOT: %s://%s/install\n' "$SCHEME" "$DOMAIN"
             if [[ -f $APP/var/install.key ]]; then printf 'Ключ установки: %s\n' "$(< "$APP/var/install.key")"; fi
             printf 'Логин и пароль администратора LaIOT задайте в веб-мастере.\n'
-            printf 'Создавать БД в веб-мастере: НЕТ (она уже создана).\n\n'
+            printf 'Подключения БД и Redis уже подготовлены в веб-мастере. Пароль администратора задайте самостоятельно.\n\n'
         fi
         printf 'БД: 127.0.0.1:3306\nИмя БД и пользователь: laiot_app\nПароль БД: %s\n' "$(< "$STATE/db-password")"
         printf 'Кэш: Redis, 127.0.0.1:6379, база 0, пароль пустой\n\n'
@@ -832,7 +862,7 @@ credentials() {
             for address in $LAN_IPS; do printf 'Доступ по локальной сети: http://%s/login\n' "$address"; done
             printf 'Для HTTPS в домашней сети задайте в DNS роутера домен %s на локальный IPv4 сервера.\n' "$DOMAIN"
         fi
-        printf 'Службы systemd:\n  /etc/systemd/system/laiot-agent.service\n  /etc/systemd/system/laiot-core@.service\n  /etc/systemd/system/laiot-worker@.service\n  /etc/systemd/system/laiot-websocket.service\n'
+        printf 'Службы systemd:\n  /etc/systemd/system/laiot-agent.service\n  /etc/systemd/system/laiot-core@.service\n  /etc/systemd/system/laiot-worker@.service\nWebSocket: laiot-core@websocket.service\n'
         printf 'Управление службами из приложения: штатный агент, Unix-сокет /run/laiot/agent.sock, доступ только пользователю сайта и root.\n'
         printf 'Redis: /etc/redis/redis.conf\nNode.js: /opt/laiot-node\n'
         printf 'Состояние установщика: %s\nЖурнал установки: %s/details.log\nЭта памятка: %s\n\n' "$STATE" "$STATE" "$target"
@@ -852,16 +882,15 @@ finish() {
         pause 'Завершите мастер LaIOT в браузере, затем вернитесь сюда'
         [[ -f $APP/var/installed.lock ]] || say 'LaIOT ещё не отметила установку завершённой.'
     done
-    for task in queue events timeouts maintenance system-events module.mqtt module.zigbee; do
+    for task in queue events timeouts maintenance system-events module.mqtt module.zigbee websocket; do
         systemctl enable --now "laiot-core@$task"
     done
     systemctl enable --now laiot-worker@mqtt laiot-worker@zigbee
-    systemctl enable --now laiot-websocket
     sleep 3
-    for task in queue events timeouts maintenance system-events module.mqtt module.zigbee; do
+    for task in queue events timeouts maintenance system-events module.mqtt module.zigbee websocket; do
         systemctl is-active --quiet "laiot-core@$task"
     done
-    systemctl is-active --quiet laiot-agent laiot-websocket laiot-worker@mqtt laiot-worker@zigbee
+    systemctl is-active --quiet laiot-agent laiot-core@websocket laiot-worker@mqtt laiot-worker@zigbee
 }
 main() {
     if [[ ${1:-} == --help ]]; then
@@ -944,6 +973,7 @@ main() {
     run_step node '4/8 · Устанавливаем Node.js 24 LTS' node_runtime
     run_step app '5/8 · Скачиваем и собираем LaIOT' application
     run_step db '6/8 · Создаём базу данных' database
+    web_connection
     if [[ $MQTT == yes ]]; then run_step mqtt 'Устанавливаем Mosquitto' mosquitto; fi
     if [[ $ZIGBEE == yes ]]; then run_step zigbee 'Устанавливаем Zigbee2MQTT' zigbee; fi
     run_step units '7/8 · Подготавливаем фоновые службы' units

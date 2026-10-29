@@ -21,6 +21,7 @@ cleanup_test() {
         "$test_directory/mqtt-password" "$test_directory/access.txt" \
         "$test_directory/terminal.txt" "$test_directory/report-output.txt" \
         "$test_directory/application/var/install.key" "$test_directory/application/var/installed.lock" \
+        "$test_directory/application/var/install-connection.json" \
         "$test_directory/application/.env"
     rm -f "$test_directory/apt-key.asc" "$test_directory/apt-source.list" \
         "$test_directory/child-mask" "$test_directory/fastpanel.sh" "$test_directory/site-trace" \
@@ -53,6 +54,34 @@ lan_fixture=$(printf '%s\n' \
     '5: br-abcdef inet 172.19.0.1/16 scope global' \
     '6: wlan0 inet 10.20.30.40/16 scope global' | lan_addresses)
 [[ $lan_fixture == $'10.20.30.40/16\n192.168.74.10/24' ]]
+(
+    STATE=$test_directory/copy-state
+    APP=$test_directory/copy-app
+    cleanup_copy() {
+        rm -f "$STATE/code-copy.done" "$STATE/code-copy.plan" "$STATE/source/config.php" \
+            "$STATE/source/public/index.php" "$APP/index.php" "$APP/config.php" "$APP/public/index.php"
+        rmdir "$STATE/source/public" "$STATE/source" "$STATE" "$APP/public" "$APP"
+    }
+    (umask 022; mkdir -p "$STATE/source/public" "$APP/public"
+        printf 'private configuration' > "$STATE/source/config.php"
+        printf 'new front controller' > "$STATE/source/public/index.php"
+        printf 'previous FastPanel file' > "$APP/index.php")
+    trap cleanup_copy EXIT
+    as_owner() (umask 022; "$@")
+    copy_application
+    [[ $(< "$APP/public/index.php") == 'new front controller' && $(< "$APP/index.php") == 'previous FastPanel file' ]]
+    [[ $(stat -c %a "$APP/public") == 755 && $(stat -c %a "$APP/public/index.php") == 644 ]]
+    [[ ! -e $APP/current && ! -e $APP/shared ]]
+    # Прерванное извлечение дополняется, уже записанные файлы сохраняются.
+    rm "$STATE/code-copy.done" "$APP/config.php"
+    printf 'preserve existing file' > "$APP/public/index.php"
+    copy_application
+    [[ $(< "$APP/config.php") == 'private configuration' && $(< "$APP/public/index.php") == 'preserve existing file' ]]
+    # Без плана продолжения непустой сайт не принимается за нашу установку.
+    rm "$STATE/code-copy.done" "$STATE/code-copy.plan" "$APP/config.php"
+    if (copy_application >/dev/null 2>&1); then echo 'Перезаписаны чужие файлы'; exit 1; fi
+    [[ ! -e $APP/config.php && $(< "$APP/public/index.php") == 'preserve existing file' ]]
+)
 (
     STATE=$test_directory/swap
     mkdir "$STATE"
@@ -307,6 +336,16 @@ printf 'test-db-password\n' > "$STATE/db-password"
 printf 'test-mqtt-password\n' > "$STATE/mqtt-password"
 printf 'test-install-key\n' > "$APP/var/install.key"
 printf 'APP_KEY=must-not-be-in-report\n' > "$APP/.env"
+(
+    PHP_BIN=$(command -v php)
+    as_owner() (umask 022; "$@")
+    before=$(sha256sum "$APP/.env")
+    web_connection
+    [[ $(stat -c %a "$APP/var/install-connection.json") == 600 ]]
+    "$PHP_BIN" -r '$d=json_decode(file_get_contents($argv[1]),true,flags:JSON_THROW_ON_ERROR);exit($d["db_password"]==="test-db-password"&&$d["db_name"]==="laiot_app"&&$d["db_create"]===false?0:1);' "$APP/var/install-connection.json"
+    [[ $(sha256sum "$APP/.env") == "$before" ]]
+    rm "$APP/var/install-connection.json"
+)
 exec 3> "$STATE/terminal.txt"
 credentials > "$STATE/report-output.txt"
 grep -Fq "http://$DOMAIN/install" "$STATE/access.txt"

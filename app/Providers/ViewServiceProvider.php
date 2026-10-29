@@ -15,6 +15,7 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Fluent;
 use Illuminate\View\Compilers\BladeCompiler;
 use Illuminate\View\Engines\EngineResolver;
+use Illuminate\View\Engines\PhpEngine;
 use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
 use LaIOT\Foundation\ServiceProvider;
@@ -26,6 +27,7 @@ use LogicException;
  * Blade, компоненты и адаптер Yoyo с общими экземплярами и aliases.
  *
  * Изменения:
+ * 2026-10-29 — общий PHP partial игры используется Blade и автономным аварийным экраном.
  * 2026-10-26 — настройка представлений вынесена из Application.
  */
 final class ViewServiceProvider extends ServiceProvider
@@ -47,6 +49,7 @@ final class ViewServiceProvider extends ServiceProvider
         $this->container->alias(BladeCompiler::class, 'blade.compiler');
         $this->container->singleton(EngineResolver::class, static function (Container $container): EngineResolver {
             $resolver = new EngineResolver();
+            $resolver->register('php', static fn (): PhpEngine => new PhpEngine($container->make(Filesystem::class)));
             $resolver->register('blade', static fn (): YoyoBladeCompilerEngine => new YoyoBladeCompilerEngine(
                 $container->make(BladeCompiler::class),
                 $container->make(Filesystem::class)

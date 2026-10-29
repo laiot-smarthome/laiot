@@ -153,7 +153,7 @@ window.addEventListener('md:websocket:system', (event) => {
 ## Настройки
 
 Параметры хранятся в `.env` и редактируются в разделе «WebSocket»
-страницы `/settings`. После изменения перезапустите процесс `websocket`.
+страницы `/settings`. После изменения перезапустите `laiot-core@websocket`.
 
 | Ключ | По умолчанию | Назначение |
 | --- | --- | --- |
@@ -191,22 +191,23 @@ php bin/laiot db:migrate
 Foreground-процесс для systemd:
 
 ```bash
-php bin/laiot websocket start
+php bin/laiot core-worker websocket
 ```
 
 Управление на Linux:
 
 ```bash
-php bin/laiot websocket status
-php bin/laiot websocket restart
-php bin/laiot websocket stop
+systemctl status laiot-core@websocket
+systemctl restart laiot-core@websocket
+systemctl stop laiot-core@websocket
 ```
 
-Шаблон unit — `deploy/systemd/laiot-websocket.service`. Он рассчитан на
-раскладку releases (`@@ROOT@@/current`) и подставляет пользователя, группу
-и корень так же, как остальные шаблоны `deploy/systemd`. При прямой
-раскладке замените `WorkingDirectory` и `ExecStart` на `@@ROOT@@` и
-`@@ROOT@@/bin/laiot`, а `ReadWritePaths` — на `@@ROOT@@/var`.
+WebSocket — штатная задача ядра в общем шаблоне `deploy/systemd/laiot-core@.service`.
+SSH-мастер и `deploy/setup-ubuntu.sh` включают её вместе с остальными
+core-службами. Права, корень и выбранный PHP подставляются автоматически;
+отдельного unit или протокола управления для WebSocket нет. `--once` не
+поддерживается. Внутри задачи Workerman обслуживает сокеты в foreground,
+а общий статус и heartbeat сохраняются под именем `core/websocket`.
 
 Nginx должен проксировать WebSocket на локальный порт; наружу `WEBSOCKET_PORT`
 обычно не публикуется:

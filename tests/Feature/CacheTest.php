@@ -6,11 +6,14 @@ namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use LaIOT\Database\DatabaseManager;
 use LaIOT\Services\Cache\CacheFactory;
+use LaIOT\Services\Worker\BackgroundTaskState;
 use PHPUnit\Framework\TestCase;
 
+/** 2026-10-29 — heartbeat сохраняет состояние непрерывной core-службы более суток. */
 final class CacheTest extends TestCase
 {
     private string $directory;
@@ -50,6 +53,32 @@ final class CacheTest extends TestCase
         self::assertSame(1, $calls);
         self::assertTrue($cache->forget('answer'));
         self::assertNull($cache->get('answer'));
+    }
+
+    public function testCoreHeartbeatKeepsTaskVisibleBeyondOneDay(): void
+    {
+        $cache = CacheFactory::create(['driver' => 'array'], new DatabaseManager([]));
+        $state = new BackgroundTaskState($cache);
+        $start = new \DateTimeImmutable('2030-01-01 00:00:00 UTC');
+        Carbon::setTestNow($start);
+        try {
+            $cache->put('clock-probe', true, 1);
+            self::assertTrue($state->acquireTask('core', 'websocket', 123));
+            $state->start('core', 'websocket', 123, '');
+            $started = $state->get('core', 'websocket')['started_at'];
+            for ($minute = 1; $minute <= 1500; $minute++) {
+                Carbon::setTestNow($start->modify('+' . $minute . ' minutes'));
+                $state->refreshTask('core', 'websocket', 123);
+            }
+            self::assertNull($cache->get('clock-probe'));
+            $last = $state->get('core', 'websocket');
+            self::assertNotNull($last);
+            self::assertSame('running', $last['status']);
+            self::assertSame(123, $last['pid']);
+            self::assertSame($started, $last['started_at']);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function testFileStorePersistsBetweenInstances(): void

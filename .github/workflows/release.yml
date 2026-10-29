@@ -1,0 +1,65 @@
+name: Build release
+
+on:
+  push:
+    tags: ['main-*', 'beta-*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate release origin
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          channel=${GITHUB_REF_NAME%%-*}
+          case "$channel" in main|beta) ;; *) exit 1 ;; esac
+          git merge-base --is-ancestor "$GITHUB_SHA" "origin/$channel"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo 'An existing numbered release must not be overwritten.' >&2
+            exit 1
+          fi
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, intl, curl, pdo_mysql, pdo_sqlite, zip, pcntl, posix
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install and verify
+        run: |
+          composer install --no-interaction --prefer-dist
+          composer check
+          php tests/docs_quality_smoke.php
+          npm ci
+          npm run test:ui
+          npm run build
+      - name: Build production package
+        run: |
+          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+          composer check-platform-reqs --no-dev
+          php bin/laiot release:build "$GITHUB_REF_NAME" --output "$RUNNER_TEMP/laiot-release"
+      - name: Publish numbered release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          options=()
+          if [[ $GITHUB_REF_NAME == beta-* ]]; then options+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP/laiot-release/laiot.zip" "$RUNNER_TEMP/laiot-release/laiot-release.json" \
+            --verify-tag --title "$GITHUB_REF_NAME" --generate-notes "${options[@]}"

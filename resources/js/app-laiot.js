@@ -7,6 +7,7 @@
 
 import '../css/laiot.css';
 import '../css/mqtt.css';
+import '../css/updates.css';
 
 import Alpine from 'alpinejs';
 import 'tom-select/dist/css/tom-select.css';
@@ -32,6 +33,9 @@ import {registerClassesTree} from './laiot/classes-tree.js';
 import {registerNameCheck} from './laiot/name-check.js';
 import {registerDropdown} from './laiot/dropdown.js';
 import {registerCallFlow} from './laiot/call-flow.js';
+import {initUpdateConsoles} from './laiot/update-console.js';
+
+initUpdateConsoles();
 
 window.Alpine = Alpine;
 

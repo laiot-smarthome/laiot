@@ -7,6 +7,7 @@ namespace LaIOT\Services\Panel;
 /**
  * Реестр ядровых разделов админки и сборка бокового меню.
  *
+ * 2026-10-29 — обновления и восстановление в каталоге «Сервис».
  * 2026-10-27 — разделы перегруппированы в каталоги: «Система» больше не один
  * длинный список, а плоские пункты плюс раскрывающиеся «Диагностика»,
  * «API и доступ» и «Сервис». Пункт меню получил счётчик внимания (ошибки,
@@ -77,6 +78,7 @@ final class CoreSections
 
             ['id' => 'notifications', 'label' => 'Оповещения', 'href' => '/notifications', 'icon' => 'ti-bell', 'group' => 'system', 'catalog' => 'service'],
             ['id' => 'maintenance', 'label' => 'Обслуживание', 'href' => '/admin/maintenance', 'icon' => 'ti-tool', 'group' => 'system', 'catalog' => 'service'],
+            ['id' => 'updates', 'label' => 'Обновление системы', 'href' => '/admin/updates', 'icon' => 'ti-download', 'group' => 'system', 'catalog' => 'service'],
             ['id' => 'ui_kit', 'label' => 'UI Kit', 'href' => '/ui-kit', 'icon' => 'ti-palette', 'group' => 'system', 'catalog' => 'service'],
 
             // Эти страницы есть, но в основном меню не нужны.

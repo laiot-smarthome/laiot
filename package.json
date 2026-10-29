@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "test:ui": "node --test tests/Frontend/*.test.mjs",
-    "build": "vite build --config vite.laiot.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && vite build --config vite.exceptions.config.js && node tools/check-admin-assets.mjs",
-    "build:laiot": "vite build --config vite.laiot.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && vite build --config vite.exceptions.config.js && node tools/check-admin-assets.mjs",
+    "build": "vite build --config vite.laiot.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && vite build --config vite.exceptions.config.js && vite build --config vite.updates.config.js && node tools/check-admin-assets.mjs",
+    "build:laiot": "vite build --config vite.laiot.config.js && vite build --config vite.codeeditor.config.js && vite build --config vite.charts.config.js && vite build --config vite.exceptions.config.js && vite build --config vite.updates.config.js && node tools/check-admin-assets.mjs",
     "build:codeeditor": "vite build --config vite.codeeditor.config.js",
     "build:charts": "vite build --config vite.charts.config.js",
     "watch": "vite build --config vite.laiot.config.js --watch",

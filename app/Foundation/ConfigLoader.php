@@ -12,6 +12,7 @@ namespace LaIOT\Foundation;
  * в одном массиве.
  *
  * Изменения:
+ * 2026-10-29 — источник обновлений и версия из манифеста установленного релиза.
  * 2026-10-29 — секция websocket.
  * 2026-10-29 — настройки окна повторов уведомлений вынесены в отдельную секцию.
  * 2026-10-28 — отдельная конфигурация шифрования и файлового хранилища.
@@ -30,7 +31,7 @@ final class ConfigLoader
             return [];
         }
 
-        foreach (['cache', 'queue', 'logging', 'retention', 'encryption', 'files', 'notifications', 'websocket', 'providers'] as $section) {
+        foreach (['cache', 'queue', 'logging', 'retention', 'encryption', 'files', 'notifications', 'websocket', 'updates', 'providers'] as $section) {
             $file = $root . '/config/' . $section . '.php';
             if (is_file($file)) {
                 $value = require $file;
@@ -40,6 +41,16 @@ final class ConfigLoader
             }
         }
 
+        $release = $root . '/release.json';
+        if (is_file($release)) {
+            $manifest = json_decode((string)file_get_contents($release), true, 32, JSON_THROW_ON_ERROR);
+            $base['version'] = (string)$manifest['version'];
+        }
+        $environment = realpath($root . '/.env');
+        if ($environment !== false) {
+            // Редактор .env пишет атомарным rename: ему нужен общий файл, иначе он заменит ссылку релиза.
+            $base['environment_file'] = $environment;
+        }
         return $base;
     }
 }

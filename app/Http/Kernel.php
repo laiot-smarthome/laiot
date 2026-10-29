@@ -16,6 +16,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Exception\RequestExceptionInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
@@ -28,6 +29,7 @@ use Throwable;
  * stack trace в production.
  *
  * Изменения:
+ * 2026-10-29 — HTTP-исключения авторизации компонентов сохраняют статус, включая 403.
  * 2026-10-29 — некорректная структура запроса возвращает 400, а не ошибку ядра.
  * 2026-10-28 — до установки браузерные страницы уводятся на `/install`,
  *              API отвечает 503 JSON; установленная система работает как раньше.
@@ -78,6 +80,10 @@ final readonly class Kernel
             $response = $this->error($request, 404, 'not_found', 'Not Found', $requestId);
         } catch (MethodNotAllowedHttpException $error) {
             $response = $this->error($request, 405, 'method_not_allowed', 'Method Not Allowed', $requestId);
+            $response->headers->add($error->getHeaders());
+        } catch (HttpExceptionInterface $error) {
+            $status = $error->getStatusCode();
+            $response = $this->error($request, $status, 'http_error', Response::$statusTexts[$status] ?? 'HTTP error', $requestId);
             $response->headers->add($error->getHeaders());
         } catch (RequestExceptionInterface) {
             $response = $this->error($request, 400, 'bad_request', 'Bad Request', $requestId);

@@ -28,6 +28,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * ключом из `var/install.key`; после установки маршрут отвечает 404.
  *
  * 2026-10-28 — пошаговый мастер вместо одной формы.
+ * 2026-10-29 — подготовленное SSH-мастером подключение читается только после проверки ключа.
  */
 final readonly class InstallController extends Controller
 {
@@ -285,6 +286,10 @@ final readonly class InstallController extends Controller
     private function draft(): array
     {
         $draft = $this->session->get(self::DRAFT_KEY);
+        if ((!is_array($draft) || $draft === []) && ($initial = $this->installer->initialConnection()) !== null) {
+            $this->storeDraft($initial);
+            $draft = $this->session->get(self::DRAFT_KEY);
+        }
 
         return is_array($draft) ? $draft : [];
     }

@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+// 2026-10-29 — прямая установка сохраняет вход после перехода к release-каталогам.
+if (is_file(dirname(__DIR__) . '/current/bootstrap/app.php')) {
+    return require dirname(__DIR__) . '/current/bootstrap/app.php';
+}
+
 use LaIOT\Foundation\Application;
 use LaIOT\Foundation\Config;
 use LaIOT\Services\Settings\SettingsSchema;

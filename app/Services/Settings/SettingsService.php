@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace LaIOT\Services\Settings;
 
+use Illuminate\Contracts\Validation\Factory as ValidationFactory;
+use Illuminate\Validation\Rule;
 use LaIOT\Foundation\Config;
 use RuntimeException;
 
 /**
  * Системные настройки хранятся в окружении; таблица settings здесь не участвует.
  *
+ * 2026-10-29 — репозиторий и канал обновлений проверяются общим валидатором.
  * 2026-10-27 — чтение, проверка типов и запись только разрешённого раздела .env.
  */
 final readonly class SettingsService
@@ -18,7 +21,8 @@ final readonly class SettingsService
     public function __construct(
         private EnvFile $file,
         private array $defaults,
-        private DatabaseSettingsGuard $databaseGuard
+        private DatabaseSettingsGuard $databaseGuard,
+        private ?ValidationFactory $validator = null
     ) {
     }
 
@@ -64,6 +68,20 @@ final readonly class SettingsService
         $values = Config::parse($contents);
         $changes = [];
         $errors = [];
+        if ($group === 'updates') {
+            $validator = $this->validator ?? throw new RuntimeException('Не зарегистрирован общий валидатор настроек.');
+            $validation = $validator->make($input, [
+                'UPDATE_REPOSITORY' => ['required', 'string', 'max:240', 'regex:~^(?:https://github\\.com/)?[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/?$~'],
+                'UPDATE_CHANNEL' => ['required', Rule::in(['main', 'beta'])],
+            ]);
+            if ($validation->fails()) {
+                $messages = [];
+                foreach ($validation->errors()->messages() as $key => $errors) {
+                    $messages[$key] = $errors[0];
+                }
+                throw new SettingsValidationException($messages);
+            }
+        }
         foreach ($fields as $key => $field) {
             $external = getenv($key);
             if ($external !== false) {

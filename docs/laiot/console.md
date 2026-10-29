@@ -19,6 +19,11 @@ order: 8
 и создаваемых юнитов; без неё выбирается PHP из `PATH`. Полный список
 опций, умолчания и примеры — [системная установка](deploy.md).
 
+Агент разрешает `core.*` для встроенных задач, включая `websocket`, полос
+событий и существующих `module.<id>`. `worker.install` только проверяет установленные root-юниты;
+обновить их можно системным установщиком от root. Протокол и права —
+[права агента](deploy.md#права-агента-и-сокет).
+
 ## Проверки и просмотр
 
 | Команда | Что проверяет или показывает |
@@ -34,7 +39,7 @@ order: 8
 | `queue:stats --queue=default [--json]` | Готовые, зарезервированные, failed |
 | `queue:failed --queue=default --limit=50 [--json]` | Упавшие задания |
 | `maintenance status` | Состояние файла обслуживания |
-| `websocket status` | Процесс WebSocket-сервера и число подключений |
+| `systemctl status laiot-core@websocket` | Состояние штатной WebSocket-службы ядра |
 
 Команды используют конфигурацию текущей установки. Даже диагностические
 `health`/`doctor` обращаются к БД и кэшу; roundtrip кэша кратковременно
@@ -87,8 +92,7 @@ order: 8
 | `core-worker system-events [--once]` | Системные события минуты, часа и дня |
 | `core-worker timeouts [--once]` | Постоянные таймеры либо один проход |
 | `core-worker maintenance [--once]` | Retention сразу и затем по `retention.interval` |
-| `websocket start` | Постоянный WebSocket-сервер до сигнала или ошибки |
-| `websocket stop` | Остановка сервера по pid-файлу (Linux) |
+| `core-worker websocket` | Постоянный сервер WebSocket; `--once` не поддерживается |
 
 Эти команды выполняют пользовательский или модульный код и могут иметь
 его внешние эффекты. `--once` ограничивает цикл, а не делает операцию
@@ -476,28 +480,27 @@ php bin/laiot install --db-name=laiot --db-user=laiot --db-password='...' \
 php bin/laiot user:create <username> <name> <password> --admin
 ```
 
-### websocket
+### core-worker websocket
 
-Запустить или остановить WebSocket-сервер обновлений свойств и системных событий.
+Запустить штатную ядровую задачу WebSocket для обновлений свойств и системных событий.
 
 | Параметр | Описание | Обязателен | По умолчанию |
 | --- | --- | --- | --- |
-| `action` | start, stop, restart, reload, status или connections | нет | start |
-| `--daemon` | Запустить в фоне (Linux) | нет | нет |
-| `--graceful` | Плавная остановка или перезагрузка | нет | нет |
+| `task` | Имя ядровой задачи, здесь `websocket` | да | — |
 
 ```bash
-php bin/laiot websocket start
+php bin/laiot core-worker websocket
 ```
 
 ```bash
-php bin/laiot websocket status
+systemctl status laiot-core@websocket
+systemctl restart laiot-core@websocket
 ```
 
-Сервер работает отдельным процессом и не запускается из HTTP. `start`
-остаётся в foreground и рассчитан на systemd; `-d`/`--daemon` уводит его в
-фон на Linux. Управление по pid-файлу (`stop`, `restart`, `status`) доступно
-только в Linux. Конфигурация, nginx и границы — [websocket.md](websocket.md).
+Сервер работает в foreground внутри `laiot-core@websocket`, не запускается
+из HTTP. `--once` для постоянного слушателя не поддерживается. Запуск,
+остановка, перезапуск и статус используют общий `core.*` агента.
+Конфигурация, nginx и границы — [websocket.md](websocket.md).
 
 ### db:migrate
 
@@ -517,6 +520,61 @@ php bin/laiot db:migrate
 
 ```bash
 php bin/laiot db:status
+```
+
+### update:run
+
+Выполнить подтверждённое обновление или восстановление LaIOT.
+
+Собственных аргументов и опций нет. Запускается `laiot-update.service`
+под пользователем сайта по подтверждённой операции, без boot приложения.
+
+```bash
+php bin/laiot update:run
+```
+
+### update:probe
+
+Проверить подготовленный релиз LaIOT.
+
+| Параметр | Описание | Обязателен | По умолчанию |
+| --- | --- | --- | --- |
+| `--migrate` | Применить миграции до проверки | нет | нет |
+| `--platform-only` | Проверить только загрузку зависимостей PHP | нет | нет |
+
+Внутренняя команда обновителя. Без `--platform-only` использует БД и кэш
+установки; `--migrate` допускается только при закрытой записи и готовом
+снимке. Не заменяет изолированные тесты.
+
+```bash
+php bin/laiot update:probe --platform-only
+```
+
+### update:status
+
+Показать состояние обновления LaIOT без подключения к БД.
+
+Собственных аргументов и опций нет. Выводит состояние и путь файла
+аварийного ключа, без содержимого ключа.
+
+```bash
+php bin/laiot update:status
+```
+
+### release:build
+
+Собрать готовый номерной релиз LaIOT.
+
+| Параметр | Описание | Обязателен | По умолчанию |
+| --- | --- | --- | --- |
+| `tag` | Тег main-X.Y.Z или beta-X.Y.Z-beta.N | да | — |
+| `--output` | Каталог готового архива и метаданных | нет | var/release |
+
+GitHub Actions запускает после проверки кода, production Composer install
+и сборки frontend. `.env`, var и сторонние модули не включаются.
+
+```bash
+php bin/laiot release:build beta-2.1.0-beta.1 --output /tmp/laiot-release
 ```
 
 ### Служебное автодополнение

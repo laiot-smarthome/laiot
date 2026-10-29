@@ -91,7 +91,8 @@ final class DomainServiceProvider extends ServiceProvider
         $this->container->singleton(SettingsService::class, fn (Container $container): SettingsService => new SettingsService(
             new EnvFile((string)$this->app->config('environment_file', $this->app->root() . '/.env')),
             SettingsSchema::defaults($this->app->root()),
-            $container->make(DatabaseSettingsGuard::class)
+            $container->make(DatabaseSettingsGuard::class),
+            $container->make(ValidationFactory::class)
         ));
         foreach ([
             SettingsRepository::class,

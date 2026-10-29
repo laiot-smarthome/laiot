@@ -25,6 +25,7 @@ use Throwable;
  * enabled=1 в `module_registry`. Все манифесты валидируются ModuleManifest.
  *
  * Изменения:
+ * 2026-10-29 — сторонние модули обнаруживаются в постоянном каталоге установки после смены релиза.
  * 2026-10-27 — настройки и подписки в ModuleContext.
  * 2026-10-27 — core-модуль читает enabled из строки реестра и выключается.
  * 2026-10-26 — загрузка без конфигурации БД не обращается к реестру в БД.
@@ -47,7 +48,8 @@ final class ModuleManager
         private readonly DatabaseManager $database,
         private readonly Container $container,
         private readonly HelperLoader $helpers,
-        ?ModuleRegistry $registry = null
+        ?ModuleRegistry $registry = null,
+        private readonly ?string $thirdPartyRoot = null
     ) {
         $this->registry = $registry ?? new ModuleRegistry($database);
         $this->discover();
@@ -286,7 +288,7 @@ final class ModuleManager
     {
         $roots = [
             ['path' => $this->root . '/modules/core', 'type' => 'core'],
-            ['path' => $this->root . '/modules', 'type' => 'module'],
+            ['path' => $this->thirdPartyRoot ?? $this->root . '/modules', 'type' => 'module'],
         ];
 
         $registry = [];

@@ -18,6 +18,7 @@ use LaIOT\Http\Controllers\Core\ScriptsController;
 use LaIOT\Http\Controllers\Core\SettingsController;
 use LaIOT\Http\Controllers\Core\SystemErrorsController;
 use LaIOT\Http\Controllers\Core\UiKitController;
+use LaIOT\Http\Controllers\Core\UpdatesController;
 use LaIOT\Http\Controllers\Core\UsersController;
 use LaIOT\Http\Controllers\DashboardController;
 use LaIOT\Http\Controllers\HealthController;
@@ -75,6 +76,8 @@ return static function (Router $router): void {
         $router->get('/admin/maintenance', [MaintenanceController::class, 'show'])
             ->middleware(['auth', 'can:settings.manage'])
             ->name('admin.maintenance');
+        $router->get('/admin/updates', [UpdatesController::class, 'index'])
+            ->middleware(['auth', 'can:settings.manage'])->name('admin.updates');
         $router->post('/admin/maintenance/enable', [MaintenanceController::class, 'enable'])
             ->middleware(['auth', 'can:settings.manage', 'csrf'])
             ->name('admin.maintenance.enable');

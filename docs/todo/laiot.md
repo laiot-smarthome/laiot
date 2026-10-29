@@ -14,7 +14,7 @@ alpha-runtime из неё удалён и остаётся в ветке `alpha`
 
 ## 2026-10-29 — WebSocket
 
-- Добавлен отдельный сервер Workerman `php bin/laiot websocket start` только
+- Добавлена штатная задача ядра `php bin/laiot core-worker websocket` только
   на исходящие сообщения: входящий кадр закрывает соединение с кодом 1008.
   Подписка приходит короткоживущим тикетом в `Sec-WebSocket-Protocol`, а не
   сообщением клиента.
@@ -38,7 +38,7 @@ alpha-runtime из неё удалён и остаётся в ветке `alpha`
   `md:websocket:system`.
 - Добавлены миграция `2026_10_29_000002_create_websocket_tables.php`,
   `WebSocketServiceProvider`, настройки `WEBSOCKET_*`, retention,
-  `deploy/systemd/laiot-websocket.service`, документация
+  общий unit `laiot-core@websocket`, документация
   [websocket.md](../laiot/websocket.md).
 - Проверки: `composer check` — lint, CS-Fixer и PHPStan без ошибок, PHPUnit
   488 тестов / 2882 assertions, 7 Linux-only пропусков на Windows;

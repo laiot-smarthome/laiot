@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace LaIOT\Services\Systemd;
 
+use LaIOT\Services\Worker\CoreWorker;
 use RuntimeException;
 
 /**
  * Привилегированные операции systemd для worker-модулей.
  *
+ * 2026-10-29 — поиск модулей следует current после обновления прямой установки.
  * PHP-пользователь не вызывает systemctl напрямую: только агент. Все имена
  * юнитов строятся из проверенного id модуля, без shell-строк.
+ * 2026-10-29 — общий список core-задач, защищённые юниты и прямая раскладка.
  */
 final readonly class SystemdController
 {
-    public const CORE_TASKS = ['queue', 'events', 'timeouts'];
+    public const CORE_TASKS = CoreWorker::TASKS;
 
     public function __construct(
         private ProcessRunner $runner,
@@ -184,6 +187,24 @@ final readonly class SystemdController
         ];
     }
 
+    /**
+     * Агент не читает root-шаблоны из доступного PHP каталога приложения:
+     * иначе захват сайта позволил бы записать произвольный root-unit.
+     * @return array{worker:string,core:string}
+     */
+    public function installedUnits(string $targetDirectory = '/etc/systemd/system'): array
+    {
+        $units = ['worker' => rtrim($targetDirectory, '/') . '/laiot-worker@.service',
+            'core' => rtrim($targetDirectory, '/') . '/laiot-core@.service'];
+        foreach ($units as $file) {
+            clearstatcache(true, $file);
+            if (!is_file($file) || fileowner($file) !== 0 || ((int)fileperms($file) & 0022) !== 0) {
+                throw new RuntimeException('Нет защищённого юнита ' . $file . '. Выполните deploy/setup-ubuntu.sh от root.');
+            }
+        }
+        return $units;
+    }
+
     public function installUnit(string $targetDirectory = '/etc/systemd/system', ?string $template = null): string
     {
         $template ??= $this->root . '/deploy/systemd/laiot-worker@.service';
@@ -243,8 +264,14 @@ final readonly class SystemdController
     /** Базовые процессы и полосы очереди событий (`events.<n>`). */
     private function isCoreTask(string $task): bool
     {
-        return in_array($task, self::CORE_TASKS, true)
-            || preg_match('/^events\.(0|[1-9][0-9]?)$/D', $task) === 1;
+        if (in_array($task, self::CORE_TASKS, true) || preg_match('/^events\.(0|[1-9][0-9]?)$/D', $task) === 1) {
+            return true;
+        }
+        if (preg_match('/^module\.([a-z][a-z0-9_]{1,63})$/D', $task, $match) !== 1) {
+            return false;
+        }
+        $root = realpath(is_dir($this->root . '/current') ? $this->root . '/current' : $this->root);
+        return $root !== false && (is_dir($root . '/modules/core/' . $match[1]) || is_dir($root . '/modules/' . $match[1]));
     }
 
     private function action(string $action, string $module): ProcessResult
@@ -267,7 +294,7 @@ final readonly class SystemdController
     private function assertModule(string $module): void
     {
         $this->assertModuleId($module);
-        $root = realpath($this->root);
+        $root = realpath(is_dir($this->root . '/current') ? $this->root . '/current' : $this->root);
         if ($root === false) {
             throw new RuntimeException('Корень LaIOT не найден.');
         }
@@ -294,6 +321,14 @@ final readonly class SystemdController
             [$this->root, $this->user, $this->group],
             $content
         );
+        if (is_file($this->root . '/bin/laiot')) {
+            $content = str_replace(
+                ['ReadWritePaths=' . $this->root . '/shared ' . $this->root . '/current/var', $this->root . '/current'],
+                ['ReadWritePaths=' . $this->root . '/var', $this->root],
+                $content
+            );
+        }
+        $content = str_replace('/usr/bin/php ', PHP_BINARY . ' ', $content);
         if (!is_dir($targetDirectory) && !mkdir($targetDirectory, 0755, true) && !is_dir($targetDirectory)) {
             throw new RuntimeException('Не удалось создать каталог systemd: ' . $targetDirectory);
         }

@@ -8,7 +8,35 @@ if (PHP_SAPI !== 'cli') {
     exit('CLI only');
 }
 
-$app = require dirname(__DIR__) . '/bootstrap/app.php';
+// 2026-10-29 — стабильный вход прямой установки и восстановление без boot приложения.
+$cliRoot = dirname(__DIR__);
+if (is_file($cliRoot . '/current/bin/laiot')) {
+    require $cliRoot . '/current/bin/laiot';
+    exit;
+}
+require $cliRoot . '/vendor/autoload.php';
+$cliCommand = $argv[1] ?? '';
+if (str_starts_with($cliCommand, 'update:') || $cliCommand === 'release:build') {
+    LaIOT\Foundation\Config::boot($cliRoot);
+    $updateConfig = array_replace_recursive(LaIOT\Foundation\ConfigLoader::load($cliRoot), [
+        'database' => ['driver' => 'mysql', 'charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci', 'prefix' => ''],
+    ], LaIOT\Services\Settings\SettingsSchema::environment($cliRoot));
+    $updateConsole = new Symfony\Component\Console\Application('LaIOT', (string)$updateConfig['version']);
+    foreach (LaIOT\Console\UpdateConsoleFactory::commands($cliRoot, $updateConfig) as $updateCommand) {
+        $updateConsole->add($updateCommand);
+    }
+    exit($updateConsole->run());
+}
+if (is_file($cliRoot . '/var/updates/maintenance.flag')) {
+    $updateState = new LaIOT\Services\Updates\UpdateState($cliRoot . '/var/updates');
+    $workerStart = in_array($cliCommand, ['core-worker', 'worker'], true)
+        && ($updateState->raw()['starting_services'] ?? false) && $updateState->locked();
+    if (!$workerStart) {
+        fwrite(STDERR, "Идёт обновление. Откройте /admin/updates/recovery.\n");
+        exit(1);
+    }
+}
+$app = require $cliRoot . '/bootstrap/app.php';
 
 $console = LaIOT\Console\ConsoleFactory::make($app);
 

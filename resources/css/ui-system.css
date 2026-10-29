@@ -3797,6 +3797,8 @@ body.md-admin-shell .md-notify-attention {
 }
 
 body.md-admin-shell .md-toast {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-shrink: 0;
   align-items: flex-start;
@@ -3816,6 +3818,23 @@ body.md-admin-shell .md-toast--success { border-left-color: var(--md-ui-success)
 body.md-admin-shell .md-toast--warning { border-left-color: var(--md-ui-warning); }
 body.md-admin-shell .md-toast--danger { border-left-color: var(--md-ui-danger); }
 body.md-admin-shell .md-toast--info { border-left-color: var(--md-ui-info); }
+
+/* 2026-10-29 — обратный отсчёт и переходы Notify используют единый срок автозакрытия. */
+body.md-admin-shell .md-toast { --md-toast-tone: var(--md-ui-info); }
+body.md-admin-shell .md-toast--success { --md-toast-tone: var(--md-ui-success); }
+body.md-admin-shell .md-toast--warning { --md-toast-tone: var(--md-ui-warning); }
+body.md-admin-shell .md-toast--danger { --md-toast-tone: var(--md-ui-danger); }
+body.md-admin-shell .md-toast__progress { position: absolute; inset: auto 0 0; height: 3px; background: color-mix(in srgb, var(--md-toast-tone) 12%, transparent); }
+body.md-admin-shell .md-toast__progress > span { display: block; height: 100%; background: var(--md-toast-tone); transform-origin: left; animation: md-toast-countdown linear forwards; }
+body.md-admin-shell .md-toast-enter { transition: opacity 220ms ease-out, transform 220ms ease-out; }
+body.md-admin-shell .md-toast-leave { transition: opacity 180ms ease-in, transform 180ms ease-in; }
+body.md-admin-shell .md-toast-hidden { opacity: 0; transform: translateY(12px); }
+body.md-admin-shell .md-toast-visible { opacity: 1; transform: translateY(0); }
+@keyframes md-toast-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  body.md-admin-shell .md-toast-enter, body.md-admin-shell .md-toast-leave { transition-duration: 1ms; }
+  body.md-admin-shell .md-toast-hidden, body.md-admin-shell .md-toast-visible { transform: none; }
+}
 
 body.md-admin-shell .md-toast__icon {
   flex: 0 0 auto;

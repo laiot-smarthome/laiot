@@ -14,7 +14,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
 #[AsCommand(name: 'core-worker', description: 'Ядровой процесс и доставка module.<id>')]
-/** 2026-10-27 — отдельный процесс доставки привязок module.<id>. */
+/** 2026-10-29 — штатный websocket; 2026-10-27 — доставка привязок module.<id>. */
 final class CoreWorkerCommand extends Command
 {
     public function __construct(private readonly CoreWorker $worker)
@@ -24,7 +24,7 @@ final class CoreWorkerCommand extends Command
 
     protected function configure(): void
     {
-        $this->addArgument('task', InputArgument::REQUIRED, 'queue, events, events.<n>, module.<id>, timeouts, maintenance или system-events');
+        $this->addArgument('task', InputArgument::REQUIRED, 'queue, events, events.<n>, module.<id>, timeouts, maintenance, system-events или websocket');
         $this->addOption('once', null, InputOption::VALUE_NONE, 'Один проход и выход');
     }
 

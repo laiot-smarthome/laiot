@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Illuminate\Contracts\Validation\Validator;
 use InvalidArgumentException;
+use JsonException;
 use LaIOT\Database\DatabaseManager;
 use LaIOT\Database\Migrator;
 use LaIOT\Foundation\Application;
@@ -32,6 +33,7 @@ use Throwable;
  *
  * Порядок применения: проверить ввод → записать `.env` → выполнить миграции
  * → создать администратора → записать `var/installed.lock` и удалить ключ.
+ * 2026-10-29 — закрытый пресет подключения от SSH-мастера, удаляемый после установки.
  * `.env` пишется до миграций, чтобы после сбоя повторный запуск шёл в ту же
  * базу; признак установки появляется только вместе с администратором.
  *
@@ -81,6 +83,34 @@ final class InstallService
     public function lockPath(): string
     {
         return $this->storageRoot . '/var/installed.lock';
+    }
+
+    public function initialConnection(): ?InstallRequest
+    {
+        $path = $this->storageRoot . '/var/install-connection.json';
+        if (!file_exists($path) && !is_link($path)) {
+            return null;
+        }
+        if (is_link($path) || !is_file($path) || !is_readable($path)) {
+            throw new InstallException('Подготовленные настройки подключения недоступны.', 'storage');
+        }
+        $content = file_get_contents($path);
+        if ($content === false) {
+            throw new InstallException('Не удалось прочитать подготовленные настройки подключения.', 'storage');
+        }
+        try {
+            $values = json_decode($content, true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new InstallException('Повреждены подготовленные настройки подключения.', 'storage');
+        }
+        if (!is_array($values)) {
+            throw new InstallException('Неверный формат подготовленных настроек подключения.', 'storage');
+        }
+        $request = InstallRequest::fromArray($values);
+        if ($this->validateConnection($request) !== []) {
+            throw new InstallException('Подготовленные настройки подключения не прошли проверку.', 'storage');
+        }
+        return $request;
     }
 
     public function version(): string
@@ -673,6 +703,10 @@ final class InstallService
 
         if (is_file($this->keyPath())) {
             @unlink($this->keyPath());
+        }
+        $connectionPath = $this->storageRoot . '/var/install-connection.json';
+        if (is_file($connectionPath) && !unlink($connectionPath)) {
+            $warnings[] = 'Не удалось удалить временные настройки подключения: ' . $connectionPath;
         }
 
         return $warnings;

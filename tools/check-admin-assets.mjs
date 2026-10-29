@@ -8,6 +8,7 @@ const required = [
   'public/assets/admin/laiot-charts.js',
   'public/assets/admin/laiot-charts.css',
   'public/assets/admin/laiot-exceptions.js',
+  'public/assets/admin/laiot-updates.js',
 ];
 
 const missing = required.filter((file) => !existsSync(file) || statSync(file).size === 0);

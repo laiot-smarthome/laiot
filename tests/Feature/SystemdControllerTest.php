@@ -13,6 +13,7 @@ use RuntimeException;
 /**
  * systemd-контроллер агента: только проверенные module id и фиксированные
  * команды systemctl, без shell.
+ * 2026-10-29 — core/module allowlist, WebSocket и прямые пути PHP в юнитах.
  */
 final class SystemdControllerTest extends TestCase
 {
@@ -116,14 +117,94 @@ final class SystemdControllerTest extends TestCase
             self::assertSame(['queue'], $result['started']);
             self::assertSame(['timeouts'], $result['stopped']);
 
-            try {
-                $controller->coreStart('events');
-                self::fail('events ещё не разрешён');
-            } catch (RuntimeException $error) {
-                self::assertNotEmpty($error->getMessage());
+            foreach (['events', 'maintenance', 'system-events', 'module.demo', 'events.3'] as $task) {
+                self::assertTrue($controller->coreStart($task)->successful());
+                self::assertContains(['systemctl', 'start', 'laiot-core@' . $task], $runner->commands);
             }
+            $this->expectException(RuntimeException::class);
+            $controller->coreStart('module.missing');
         } finally {
             $this->remove($root);
+        }
+    }
+
+    public function testWebsocketUsesNormalCoreControl(): void
+    {
+        $runner = new FakeProcessRunner();
+        $controller = new SystemdController($runner, '/unused');
+        foreach (['start', 'stop', 'restart'] as $action) {
+            $method = 'core' . ucfirst($action);
+            self::assertTrue($controller->$method('websocket')->successful());
+            self::assertContains(['systemctl', $action, 'laiot-core@websocket'], $runner->commands);
+        }
+        $this->expectException(RuntimeException::class);
+        $controller->coreStart('websocket; reboot');
+    }
+
+    public function testDirectLayoutAndSelectedPhpRemainCorrectOnUnitReinstall(): void
+    {
+        $root = $this->root();
+        $target = sys_get_temp_dir() . '/laiot-direct-units-' . bin2hex(random_bytes(4));
+        try {
+            mkdir($root . '/bin');
+            file_put_contents($root . '/bin/laiot', '<?php');
+            mkdir($root . '/deploy/systemd', 0775, true);
+            file_put_contents(
+                $root . '/deploy/systemd/laiot-worker@.service',
+                "WorkingDirectory=@@ROOT@@/current\nExecStart=/usr/bin/php @@ROOT@@/current/bin/laiot worker %i\n"
+                . "ReadWritePaths=@@ROOT@@/shared @@ROOT@@/current/var\n"
+            );
+            $file = (new SystemdController(new FakeProcessRunner(), $root))->installUnit($target);
+            $content = (string)file_get_contents($file);
+            self::assertStringContainsString('WorkingDirectory=' . $root . "\n", $content);
+            self::assertStringContainsString('ExecStart=' . PHP_BINARY . ' ' . $root . '/bin/laiot', $content);
+            self::assertStringContainsString('ReadWritePaths=' . $root . '/var', $content);
+            self::assertStringNotContainsString($root . '/current', $content);
+            self::assertStringNotContainsString($root . '/shared', $content);
+        } finally {
+            $this->remove($root);
+            if (is_file($target . '/laiot-worker@.service')) {
+                unlink($target . '/laiot-worker@.service');
+            }
+            if (is_dir($target)) {
+                rmdir($target);
+            }
+        }
+    }
+
+    public function testAgentInstallCannotCreateUnitsFromWritableApplicationTemplates(): void
+    {
+        $runner = new FakeProcessRunner();
+        $this->expectException(RuntimeException::class);
+        (new SystemdController($runner, '/untrusted/app'))->installedUnits('/nonexistent/laiot-units');
+    }
+
+    public function testInstalledUnitsAreReadOnlyAndRejectGroupWritableFilesOnLinux(): void
+    {
+        if (PHP_OS_FAMILY !== 'Linux' || !function_exists('posix_geteuid') || posix_geteuid() !== 0) {
+            self::markTestSkipped('Unix-владелец root проверяется в изолированном Linux-контейнере.');
+        }
+        $directory = sys_get_temp_dir() . '/laiot-protected-units-' . bin2hex(random_bytes(6));
+        mkdir($directory, 0700);
+        $worker = $directory . '/laiot-worker@.service';
+        $core = $directory . '/laiot-core@.service';
+        try {
+            foreach ([$worker, $core] as $file) {
+                file_put_contents($file, 'root-installed-unit');
+                chmod($file, 0644);
+            }
+            $runner = new FakeProcessRunner();
+            $controller = new SystemdController($runner, '/untrusted/app');
+            self::assertSame(['worker' => $worker, 'core' => $core], $controller->installedUnits($directory));
+            self::assertSame('root-installed-unit', file_get_contents($worker));
+            self::assertSame([], $runner->commands);
+            chmod($core, 0666);
+            $this->expectException(RuntimeException::class);
+            $controller->installedUnits($directory);
+        } finally {
+            unlink($worker);
+            unlink($core);
+            rmdir($directory);
         }
     }
 

@@ -17,6 +17,7 @@ use LaIOT\Http\Controller;
  * бизнес-операции.
  *
  * 2026-10-28 — заголовки событий Yoyo перенесены в HTTP-ответ приложения.
+ * 2026-10-29 — нативные заголовки Yoyo удаляются перед отправкой общего ответа, чтобы JSON событий не дублировался.
  */
 final readonly class YoyoController extends Controller
 {
@@ -31,6 +32,9 @@ final readonly class YoyoController extends Controller
         $headers = [];
         foreach ($yoyoResponse->getHeaders() as $name => $value) {
             $headers[(string)$name] = is_array($value) ? (string)json_encode($value) : (string)$value;
+            if (!headers_sent()) {
+                header_remove((string)$name);
+            }
         }
 
         return $this->html($content, (int)$yoyoResponse->getStatusCode(), $headers);

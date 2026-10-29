@@ -14,6 +14,7 @@ use LaIOT\Services\Queue\Queue;
 use LaIOT\Services\Queue\QueueWorker;
 use LaIOT\Services\Runtime\CodeRunner;
 use LaIOT\Services\Runtime\TimeoutRepository;
+use LaIOT\Services\WebSocket\WebSocketServer;
 use LaIOT\Support\Clock;
 use RuntimeException;
 use Throwable;
@@ -28,6 +29,7 @@ use Throwable;
  * `core-worker events.<n>` — одну, чтобы несколько процессов обрабатывали
  * независимые свойства параллельно, сохраняя порядок внутри свойства.
  *
+ * 2026-10-29 — websocket является задачей ядра, использует общий unit/агент.
  * 2026-10-27 — отдельный module.<id> обслуживает привязки без задач модуля.
  * 2026-10-27 — системные события времени создаёт отдельный процесс.
  * 2026-10-27 — добавлен процесс events: OnChange и доставка свойства не
@@ -39,7 +41,7 @@ use Throwable;
  */
 final class CoreWorker
 {
-    public const TASKS = ['queue', 'events', 'timeouts', 'maintenance', 'system-events'];
+    public const TASKS = ['queue', 'events', 'timeouts', 'maintenance', 'system-events', 'websocket'];
 
     private bool $stop = false;
 
@@ -55,12 +57,16 @@ final class CoreWorker
         private readonly RetentionPruner $retention,
         private readonly SystemEventTicker $systemEvents,
         private readonly Clock $clock,
-        private readonly ErrorRepository $errors
+        private readonly ErrorRepository $errors,
+        private readonly ?WebSocketServer $websocket = null
     ) {
     }
 
     public function run(string $task, bool $once = false): int
     {
+        if ($task === 'websocket' && $once) {
+            throw new RuntimeException('WebSocket — постоянная служба: --once для неё не поддерживается.');
+        }
         $lane = $this->eventLane($task);
         $pid = getmypid() ?: 0;
         $keys = str_starts_with($task, 'events')
@@ -92,6 +98,11 @@ final class CoreWorker
                         $this->runSystemEvents($once, $pid);
                     } elseif ($task === 'maintenance') {
                         $this->runMaintenance($once, $pid);
+                    } elseif ($task === 'websocket') {
+                        if ($this->websocket === null) {
+                            throw new RuntimeException('Сервер WebSocket не зарегистрирован в контейнере.');
+                        }
+                        $this->websocket->run($pid);
                     } else {
                         $this->runEvents($lane, $task, $once, $pid);
                     }

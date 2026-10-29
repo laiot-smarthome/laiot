@@ -16,6 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * 2026-10-28 — пошаговый мастер: ключ, CSRF, шаги и закрытие после установки.
+ * 2026-10-29 — реквизиты от SSH-мастера не раскрываются без ключа и не попадают в HTML.
  */
 final class InstallPageTest extends TestCase
 {
@@ -73,6 +74,29 @@ final class InstallPageTest extends TestCase
         self::assertStringContainsString('Привет! Давай оживим дом', $html);
         self::assertStringContainsString('Начать настройку', $html);
         self::assertStringContainsString('name="_token"', $html);
+    }
+
+    public function testSshConnectionIsLoadedAfterKeyWithoutPasswordInHtml(): void
+    {
+        $service = $this->app->container()->make(InstallService::class);
+        $key = (string)$service->key();
+        file_put_contents($this->root . '/var/install-connection.json', json_encode([
+            'db_name' => 'prepared_db', 'db_user' => 'prepared_user', 'db_password' => 'Private-Connection-42!',
+            'db_create' => false, 'cache_driver' => 'redis',
+        ], JSON_THROW_ON_ERROR));
+        $this->get('/install');
+        self::assertNull($this->session->get(InstallController::DRAFT_KEY));
+        $wrong = $this->get('/install?key=incorrect');
+        self::assertSame(403, $wrong->getStatusCode());
+        self::assertNull($this->session->get(InstallController::DRAFT_KEY));
+        $response = $this->get('/install?key=' . $key . '&step=3');
+        self::assertSame(200, $response->getStatusCode());
+        $html = (string)$response->getContent();
+        self::assertStringContainsString('prepared_db', $html);
+        self::assertStringContainsString('prepared_user', $html);
+        self::assertStringNotContainsString('Private-Connection-42!', $html);
+        self::assertSame('Private-Connection-42!', $this->session->get(InstallController::DRAFT_KEY)['db_password']);
+        self::assertFileDoesNotExist($this->root . '/.env');
     }
 
     public function testChecksStepShowsFriendlyStatuses(): void

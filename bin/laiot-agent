@@ -3,15 +3,23 @@
 
 declare(strict_types=1);
 
+// 2026-10-29 — юниты пишет только root-установщик; WebSocket использует core.*.
+
 use LaIOT\Services\Systemd\ProcessResult;
 use LaIOT\Services\Systemd\SymfonyProcessRunner;
 use LaIOT\Services\Systemd\SystemdController;
+use LaIOT\Services\Systemd\UpdateAgent;
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
     exit('CLI only');
 }
 
+// 2026-10-29 — стабильный вход прямой установки следует активному релизу после перезапуска.
+if (is_file(dirname(__DIR__) . '/current/bin/laiot-agent')) {
+    require dirname(__DIR__) . '/current/bin/laiot-agent';
+    exit;
+}
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $configFile = getenv('LAIOT_AGENT_CONFIG') ?: '/etc/laiot/agent.json';
@@ -31,6 +39,7 @@ $unitDir = (string)($config['unit_dir'] ?? '/etc/systemd/system');
 $allowedUid = isset($config['allowed_uid']) ? (int)$config['allowed_uid'] : null;
 
 $controller = new SystemdController(new SymfonyProcessRunner(), $root, $user, $group, $systemctl);
+$updateAgent = new UpdateAgent(new SymfonyProcessRunner(), $user, $systemctl);
 $command = $argv[1] ?? 'serve';
 
 if ($command === 'install') {
@@ -68,10 +77,13 @@ if (is_array($groupInfo)) {
  * @param array<string, mixed> $payload
  * @return array{ok:bool,data?:array<string,mixed>,error?:string}
  */
-function agentHandle(array $payload, SystemdController $controller, string $unitDir): array
+function agentHandle(array $payload, SystemdController $controller, string $unitDir, UpdateAgent $updateAgent): array
 {
     $action = (string)($payload['action'] ?? '');
     try {
+        if (str_starts_with($action, 'update.')) {
+            return ['ok' => true, 'data' => $updateAgent->handle($payload)];
+        }
         if ($action === 'workers.sync') {
             $modules = $payload['modules'] ?? [];
             if (!is_array($modules)) {
@@ -108,7 +120,7 @@ function agentHandle(array $payload, SystemdController $controller, string $unit
             return ['ok' => true, 'data' => $controller->coreStatus($module)];
         }
         if ($action === 'worker.install') {
-            return ['ok' => true, 'data' => ['units' => $controller->installAllUnits($unitDir)]];
+            return ['ok' => true, 'data' => ['units' => $controller->installedUnits($unitDir)]];
         }
         if ($result instanceof ProcessResult) {
             return ['ok' => $result->successful(), 'data' => [
@@ -143,7 +155,7 @@ while (true) {
     if (is_string($line) && $line !== '') {
         $payload = json_decode(trim($line), true);
         $response = is_array($payload)
-            ? agentHandle($payload, $controller, $unitDir)
+            ? agentHandle($payload, $controller, $unitDir, $updateAgent)
             : ['ok' => false, 'error' => 'invalid json'];
     }
     fwrite($connection, json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");

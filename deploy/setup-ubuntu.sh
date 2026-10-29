@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 2026-10-29 — выбранный CLI PHP и служба WebSocket вместе с основными юнитами.
+# 2026-10-29 — выбранный CLI PHP и WebSocket как штатная core-задача.
 #
 # LaIOT — первичная настройка системной части на Ubuntu.
 #
@@ -21,7 +21,7 @@ readonly ROOT_DEFAULT='/var/www/laiot'
 # Ядровые процессы, которые обязательны по docs/laiot/runtime.md. Порядок
 # в массиве — порядок включения; events обслуживает OnChange, историю и
 # доставку модулям, без него очередь событий растёт.
-CORE_TASKS=(queue events timeouts maintenance)
+CORE_TASKS=(queue events timeouts maintenance websocket)
 
 ROOT=''
 USER_NAME=''
@@ -379,7 +379,7 @@ preflight() {
     fi
 
     local unit
-    for unit in laiot-agent.service 'laiot-worker@.service' 'laiot-core@.service' laiot-websocket.service; do
+    for unit in laiot-agent.service 'laiot-worker@.service' 'laiot-core@.service'; do
         [[ -f "$APP_DIR/deploy/systemd/$unit" ]] || die "не найден шаблон systemd: $APP_DIR/deploy/systemd/$unit"
     done
 
@@ -564,7 +564,7 @@ render_unit() {
 # Так при нехватке --force система не остаётся с частично обновлёнными
 # службами.
 install_units() {
-    local names=(laiot-agent.service 'laiot-worker@.service' 'laiot-core@.service' laiot-websocket.service)
+    local names=(laiot-agent.service 'laiot-worker@.service' 'laiot-core@.service' laiot-update.service)
     local contents=()
     local conflicts=()
     local i name target rendered
@@ -680,8 +680,6 @@ configure_services() {
             run "$SYSTEMCTL" enable "laiot-core@${task}.service"
         fi
     done
-    if (( START_NOW )); then run "$SYSTEMCTL" enable --now laiot-websocket.service
-    else run "$SYSTEMCTL" enable laiot-websocket.service; fi
 
     if (( DRY_RUN == 0 )); then
         if ! "$SYSTEMCTL" is-active --quiet laiot-agent.service; then

@@ -10,6 +10,7 @@ use LaIOT\Providers\InfrastructureServiceProvider;
 use LaIOT\Providers\InstallServiceProvider;
 use LaIOT\Providers\ModuleServiceProvider;
 use LaIOT\Providers\RuntimeServiceProvider;
+use LaIOT\Providers\UpdateServiceProvider;
 use LaIOT\Providers\ValidationServiceProvider;
 use LaIOT\Providers\ViewServiceProvider;
 use LaIOT\Providers\WebSocketServiceProvider;
@@ -28,4 +29,5 @@ return [
     ModuleServiceProvider::class,
     RuntimeServiceProvider::class,
     InstallServiceProvider::class,
+    UpdateServiceProvider::class,
 ];

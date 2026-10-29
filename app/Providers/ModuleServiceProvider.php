@@ -16,12 +16,14 @@ use LaIOT\Services\Modules\ModuleManager;
 use LaIOT\Services\Modules\ModulePermissions;
 use LaIOT\Services\Modules\PropertySubscriber;
 use LaIOT\Services\Modules\PropertySubscriberRegistry;
+use LaIOT\Services\Updates\ReleaseLayout;
 use LaIOT\Support\HelperLoader;
 
 /**
  * Обнаружение SDK-модулей и подключение их маршрутов/представлений.
  *
  * Изменения:
+ * 2026-10-29 — релизы используют общий каталог сторонних модулей.
  * 2026-10-28 — удаление модуля очищает его отдельный файловый каталог.
  * 2026-10-27 — регистрация обработчиков изменений свойств из манифестов.
  * 2026-10-26 — модули запускаются после регистрации зависимостей всех провайдеров.
@@ -37,7 +39,9 @@ final class ModuleServiceProvider extends ServiceProvider
             $this->app->root(),
             $container->make(DatabaseManager::class),
             $container,
-            $container->make(HelperLoader::class)
+            $container->make(HelperLoader::class),
+            null,
+            (new ReleaseLayout($this->app->root()))->modules
         ));
         $this->container->singleton(ModuleInstaller::class, fn (Container $container): ModuleInstaller => new ModuleInstaller(
             $container->make(ModuleManager::class),

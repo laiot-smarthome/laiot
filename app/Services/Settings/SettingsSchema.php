@@ -11,6 +11,7 @@ use LaIOT\Foundation\ConfigLoader;
 /**
  * Единый каталог редактируемых параметров и их привязок к конфигурации ядра.
  *
+ * 2026-10-29 — репозиторий готовых релизов и канал обновлений.
  * 2026-10-29 — параметры WebSocket.
  * 2026-10-29 — минимальная важность say задаётся в общем конфиге и UI.
  * 2026-10-29 — окно повторов уведомлений настраивается через общий конфиг и UI.
@@ -23,6 +24,7 @@ final class SettingsSchema
     public static function groups(): array
     {
         return [
+            'updates' => ['title' => 'Обновления', 'description' => 'Номерные релизы GitHub; можно использовать свой форк.'],
             'general' => ['title' => 'Основные', 'description' => 'Время системы и диагностика ошибок.'],
             'database' => ['title' => 'База данных', 'description' => 'Подключение к MySQL / MariaDB. Перед сохранением проверяется база и доступ администратора. Данные между базами не переносятся.'],
             'cache' => ['title' => 'Кэш и Redis', 'description' => 'Общее хранилище кэша, блокировок и состояния фоновых процессов.'],
@@ -38,6 +40,8 @@ final class SettingsSchema
     public static function fields(): array
     {
         return [
+            'UPDATE_REPOSITORY' => ['group' => 'updates', 'path' => 'updates.repository', 'type' => 'text', 'required' => true, 'label' => 'Репозиторий GitHub', 'description' => 'Например laiot-smarthome/laiot или адрес своего форка https://github.com/owner/repository.'],
+            'UPDATE_CHANNEL' => ['group' => 'updates', 'path' => 'updates.channel', 'type' => 'select', 'label' => 'Канал обновлений', 'description' => 'Канал, предлагаемый по умолчанию.', 'options' => ['main' => 'main — стабильный', 'beta' => 'beta — тестовый']],
             'NOTIFICATIONS_DUPLICATE_WINDOW' => ['group' => 'notifications', 'path' => 'notifications.duplicate_window', 'type' => 'int', 'min' => 0, 'max' => 31536000, 'label' => 'Окно повторов, сек', 'description' => 'Повтор того же уведомления игнорируется в течение этого времени после последней сохранённой записи, даже если она прочитана. По умолчанию 3600 секунд; 0 отключает подавление.'],
             'SAY_MINIMUM_IMPORTANCE' => ['group' => 'notifications', 'path' => 'notifications.minimum_importance', 'type' => 'int', 'min' => 0, 'max' => 10, 'label' => 'Минимальная важность say', 'description' => 'Сообщения say ниже этого уровня сохраняются только в журнале. При важности от этого уровня включительно ставится фоновая доставка подписчикам. Шкала 0–10, по умолчанию 5.'],
             'WEBSOCKET_ENABLED' => ['group' => 'websocket', 'path' => 'websocket.enabled', 'type' => 'bool', 'label' => 'Вебсокет включён', 'description' => 'Разрешает выдачу тикетов и запуск сервера websocket. Выключение не ломает панель: она просто не получает обновления.'],

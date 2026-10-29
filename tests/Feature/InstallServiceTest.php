@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * 2026-10-28 — установщик проверяется на изолированной SQLite-схеме.
  * 2026-10-28 — APP_KEY создаётся автоматически и сохраняется после сбоя.
+ * 2026-10-29 — временные реквизиты SSH-мастера проверяются и удаляются после установки.
  */
 final class InstallServiceTest extends TestCase
 {
@@ -60,6 +61,8 @@ final class InstallServiceTest extends TestCase
     public function testApplyWritesEnvironmentMigratesAndCreatesAdmin(): void
     {
         $service = $this->service();
+        $service->key();
+        file_put_contents($this->root . '/var/install-connection.json', '{"db_name":"laiot","db_user":"laiot","db_password":"secret-db","cache_driver":"file"}');
         self::assertFalse($service->installed());
 
         $report = $service->apply($this->request());
@@ -69,6 +72,7 @@ final class InstallServiceTest extends TestCase
         self::assertGreaterThan(0, $report->migrationsCount());
         self::assertFileExists($this->root . '/var/installed.lock');
         self::assertFileExists($this->root . '/.env');
+        self::assertFileDoesNotExist($this->root . '/var/install-connection.json');
 
         $env = (string)file_get_contents($this->root . '/.env');
         self::assertStringContainsString('DB_NAME="laiot"', $env);
@@ -83,6 +87,22 @@ final class InstallServiceTest extends TestCase
         $user = $this->app->container()->make(UserRepository::class)->verifyAdmin('sysadmin', 'secret!123');
         self::assertNotNull($user);
         self::assertTrue($service->installed());
+    }
+
+    public function testCorruptedSshConnectionIsRejectedWithoutWritingEnvironment(): void
+    {
+        $service = $this->service();
+        self::assertNull($service->initialConnection());
+        $service->key();
+        file_put_contents($this->root . '/var/install-connection.json', 'invalid-json-secret');
+        try {
+            $service->initialConnection();
+            self::fail('Повреждённый пресет был принят.');
+        } catch (InstallException $error) {
+            self::assertStringNotContainsString('invalid-json-secret', $error->getMessage());
+            self::assertSame('storage', $error->field());
+        }
+        self::assertFileDoesNotExist($this->root . '/.env');
     }
 
     public function testInstalledSurvivesLostLockWhenAdminExists(): void

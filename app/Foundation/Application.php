@@ -30,6 +30,7 @@ use Symfony\Component\HttpFoundation\Response;
  * зависимостей, затем boot в порядке config/providers.php.
  *
  * Изменения:
+ * 2026-10-29 — дочерние core-процессы получают снимок действующей конфигурации.
  * 2026-10-26 — сборка подсистем вынесена в провайдеры, публичный API сохранён.
  * 2026-10-27 — контейнер отдаёт Blade минимальный Foundation-адаптер, чтобы
  *              компилировались новые анонимные компоненты.
@@ -174,6 +175,17 @@ final class Application
     public function config(string $key, mixed $default = null): mixed
     {
         return Arr::get($this->config, $key, $default);
+    }
+
+    /**
+     * Полная конфигурация для новых процессов без повторного чтения .env:
+     * дочерний WebSocket должен сохранить переданные приложению overrides.
+     * 2026-10-29 — снимок конфигурации для core-worker websocket.
+     * @return array<string, mixed>
+     */
+    public function configuration(): array
+    {
+        return $this->config;
     }
 
     /**

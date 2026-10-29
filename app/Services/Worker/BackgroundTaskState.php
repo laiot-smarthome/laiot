@@ -12,6 +12,7 @@ use LaIOT\Services\Cache\CacheStore;
  * Redis — рекомендуемый и фактически обязательный драйвер для production:
  * lock, heartbeat и next_run не должны зависеть от таблиц MySQL. В тестах
  * допустим array-драйвер.
+ * 2026-10-29 — heartbeat сохраняет статус долгоживущей core-службы после суток.
  */
 final readonly class BackgroundTaskState
 {
@@ -62,6 +63,11 @@ final readonly class BackgroundTaskState
         $key = $this->taskLockKey($module, $task);
         if ((int)$this->cache->get($key) === $pid) {
             $this->cache->put($key, $pid, self::LOCK_TTL);
+            $state = $this->get($module, $task);
+            if ($state !== null) {
+                $state['updated_at'] = date('Y-m-d H:i:s');
+                $this->cache->put($this->taskKey($module, $task), $state, self::TASK_TTL);
+            }
         }
     }
 
