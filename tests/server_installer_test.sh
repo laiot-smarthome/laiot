@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 2026-10-29 — swap: RAM, существующий объём, повтор/перезагрузка и отказ при нехватке диска.
 # 2026-10-29 — существующий сайт, безопасные пути и права APT без отключения подписей.
 # 2026-10-29 — итоговые доступы, пути, приватность и повторная генерация памятки.
 # 2026-10-28 — изолированные проверки мастера, без APT, сети и системных служб.
@@ -8,6 +9,10 @@ source "$script"
 test_directory=$(mktemp -d)
 STATE=$test_directory
 cleanup_test() {
+    if [[ -d $test_directory/swap ]]; then
+        rm -f "$test_directory/swap/"{meminfo,fstab,swapfile,swap-plan,swap-plan.new,swap-summary,fstab.before-swap,calls,enabled,formatted,details.log}
+        rmdir "$test_directory/swap"
+    fi
     rm -f "$test_directory/one.done" "$test_directory/count" "$test_directory/details.log" \
         "$test_directory/failure.txt" "$test_directory/cleanup.done" \
         "$test_directory/cleanup-preview.txt" "$test_directory/purge" \
@@ -30,6 +35,84 @@ cleanup_test() {
     rmdir "$test_directory"
 }
 trap cleanup_test EXIT
+
+[[ $(swap_target_mib 524288) == 2048 ]]
+[[ $(swap_target_mib 2097152) == 2048 ]]
+[[ $(swap_target_mib 3900000) == 4096 ]]
+[[ $(swap_target_mib 9437184) == 8192 ]]
+(
+    STATE=$test_directory/swap
+    mkdir "$STATE"
+    file=$STATE/swapfile
+    reset_swap_fixture() {
+        rm -f "$STATE/"{swapfile,swap-plan,swap-summary,fstab.before-swap,calls,enabled,formatted,details.log}
+        printf 'MemTotal:       2097152 kB\n' > "$STATE/meminfo"
+        printf '# keep this line\n/dev/root / ext4 defaults 0 1\n' > "$STATE/fstab"
+        EXISTING_BYTES=$((2046 * 1048576))
+        LOW_DISK=no
+        SWAPON_FAIL=no
+    }
+    # Меняются только файлы фикстуры. Реальный swapon/systemctl никогда не вызываются.
+    swapon() {
+        case "$*" in
+            '--show --bytes --noheadings --output SIZE')
+                printf '%s\n' "$EXISTING_BYTES"
+                if [[ -f $STATE/enabled ]]; then stat -c %s "$file"; fi ;;
+            '--show --noheadings --raw --output NAME')
+                printf '/dev/existing\n'
+                if [[ -f $STATE/enabled ]]; then printf '%s\n' "$file"; fi ;;
+            "-- $file")
+                printf 'swapon\n' >> "$STATE/calls"
+                [[ $SWAPON_FAIL == no ]] || return 1
+                touch "$STATE/enabled" ;;
+            *) echo 'Неожиданный вызов swapon'; return 1 ;;
+        esac
+    }
+    blkid() { if [[ -f $STATE/formatted ]]; then printf 'swap\n'; else return 2; fi; }
+    findmnt() { printf 'ext4\n'; }
+    df() { printf 'Avail\n'; if [[ $LOW_DISK == yes ]]; then printf '0\n'; else printf '10737418240\n'; fi; }
+    mkswap() { printf 'mkswap\n' >> "$STATE/calls"; touch "$STATE/formatted"; }
+    systemctl() { [[ $* == daemon-reload ]]; }
+    reset_swap_fixture
+    configure_swap "$STATE/meminfo" "$file" "$STATE/fstab"
+    [[ $(stat -c %s "$file") == $((2 * 1048576)) && $(stat -c %a "$file") == 600 ]]
+    [[ $(grep -c '^mkswap$' "$STATE/calls") == 1 ]]
+    configure_swap "$STATE/meminfo" "$file" "$STATE/fstab"
+    [[ $(grep -c '^swapon$' "$STATE/calls") == 1 ]]
+    [[ $(grep -Fc "$file none swap sw,nofail 0 0" "$STATE/fstab") == 1 ]]
+    grep -Fq '# keep this line' "$STATE/fstab"
+    # После перезагрузки готовый файл активируется без повторного форматирования.
+    rm "$STATE/enabled"
+    configure_swap "$STATE/meminfo" "$file" "$STATE/fstab"
+    [[ $(grep -c '^mkswap$' "$STATE/calls") == 1 && $(grep -c '^swapon$' "$STATE/calls") == 2 ]]
+    rm "$STATE/enabled"
+    sed -i 's/sw,nofail/noauto/' "$STATE/fstab"
+    if (configure_swap "$STATE/meminfo" "$file" "$STATE/fstab"); then echo 'Проигнорирован noauto'; exit 1; fi
+    [[ $(grep -c '^swapon$' "$STATE/calls") == 2 && ! -e $STATE/enabled ]]
+    reset_swap_fixture
+    EXISTING_BYTES=$((4096 * 1048576))
+    configure_swap "$STATE/meminfo" "$file" "$STATE/fstab"
+    [[ ! -e $file && ! -e $STATE/calls && ! -e $STATE/fstab.before-swap ]]
+    reset_swap_fixture
+    printf 'foreign contents\n' > "$file"
+    if (configure_swap "$STATE/meminfo" "$file" "$STATE/fstab"); then echo 'Чужой файл swap заменён'; exit 1; fi
+    [[ $(< "$file") == 'foreign contents' && ! -e $STATE/calls ]]
+    reset_swap_fixture
+    LOW_DISK=yes
+    if (configure_swap "$STATE/meminfo" "$file" "$STATE/fstab"); then echo 'Не проверено место на диске'; exit 1; fi
+    [[ ! -e $STATE/calls && ! -e $STATE/fstab.before-swap ]]
+    # Если администратор уже добавил swap после ошибки, старый план не создаёт лишний.
+    EXISTING_BYTES=$((4096 * 1048576))
+    configure_swap "$STATE/meminfo" "$file" "$STATE/fstab"
+    [[ ! -e $STATE/calls && ! -e $STATE/fstab.before-swap ]]
+    reset_swap_fixture
+    SWAPON_FAIL=yes
+    if (configure_swap "$STATE/meminfo" "$file" "$STATE/fstab"); then echo 'Сбой swapon не остановил этап'; exit 1; fi
+    [[ ! -e $STATE/enabled && ! -e $STATE/fstab.before-swap ]]
+    SWAPON_FAIL=no
+    configure_swap "$STATE/meminfo" "$file" "$STATE/fstab"
+    [[ -f $STATE/enabled && $(grep -c '^mkswap$' "$STATE/calls") == 1 ]]
+)
 
 for domain in mydomo.home.arpa home.example.ru a.b xn--e1afmkfd.ru; do
     valid_domain "$domain" || { echo "Не принят домен: $domain"; exit 1; }
@@ -222,4 +305,4 @@ credentials > "$STATE/report-output.txt"
 grep -Fq 'прежние данные входа' "$STATE/access.txt"
 exec 3>&-
 
-echo 'PASS: адреса, очистка, повторный запуск, готовый/новый сайт, пути, группа владельца, umask FastPanel, права ключа APT и приватность памятки.'
+echo 'PASS: swap по RAM, диск, повтор/перезагрузка, чужие файлы, адреса, очистка, сайты, пути, umask/APT и приватность памятки.'

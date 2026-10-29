@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 2026-10-29 — автоматический swap по RAM до установки панели, без замены чужого swap.
 # 2026-10-29 — готовая FastPanel, выбор сайта/каталога и права публичного ключа APT.
 # 2026-10-29 — итоговая памятка с доступами и путями повторяется после запуска служб.
 # 2026-10-28 — интерактивная подготовка Ubuntu для веб-установщика MyDoMo.
@@ -82,6 +83,90 @@ failed() {
     exit 1
 }
 as_owner() { (umask 022; runuser -u "$OWNER" -- env -u TMPDIR PATH=/opt/mydomo-node/bin:/usr/local/bin:/usr/bin:/bin "$@"); }
+
+swap_target_mib() {
+    local ram_kib=$1 gib
+    [[ $ram_kib =~ ^[1-9][0-9]*$ && ${#ram_kib} -le 12 ]] || die 'Не удалось определить объём оперативной памяти.'
+    gib=$(( (ram_kib + 1048575) / 1048576 ))
+    if (( gib < 2 )); then gib=2; fi
+    if (( gib > 8 )); then gib=8; fi
+    printf '%s\n' "$((gib * 1024))"
+}
+swap_total_bytes() {
+    local sizes
+    sizes=$(swapon --show --bytes --noheadings --output SIZE)
+    awk '{total += $1} END {printf "%.0f\n", total}' <<< "$sizes"
+}
+persist_swap() {
+    local file=$1 fstab=$2 check_only=${3:-no} entries
+    [[ -f $fstab && ! -L $fstab ]] || die 'Для сохранения swap нужен обычный файл /etc/fstab.'
+    entries=$(awk -v file="$file" '$1 == file {print $3 " " $4}' "$fstab")
+    if [[ -n $entries ]]; then
+        [[ $entries == 'swap '* && $entries != *$'\n'* ]] || die 'Конфликт записей swap в fstab.'
+        [[ ,${entries#swap }, != *,noauto,* ]] || die 'Swap отключён через noauto в fstab. Измените это вручную.'
+        return
+    fi
+    [[ $check_only != check ]] || return 0
+    if [[ ! -e $STATE/fstab.before-swap ]]; then cp -p -- "$fstab" "$STATE/fstab.before-swap"; fi
+    # Сохраняем все чужие строки; nofail не блокирует загрузку при проблеме с файлом.
+    printf '\n%s none swap sw,nofail 0 0\n' "$file" >> "$fstab"
+    systemctl daemon-reload
+}
+configure_swap() {
+    local meminfo=${1:-/proc/meminfo} file=${2:-/swapfile.mydomo} fstab=${3:-/etc/fstab}
+    local target active names planned size type status free_bytes allocated needed fs
+    local mib=1048576 reserve=5368709120
+    STEP='настройка swap'
+    target=$(swap_target_mib "$(awk '$1 == "MemTotal:" {print $2}' "$meminfo")")
+    active=$(swap_total_bytes)
+    names=$(swapon --show --noheadings --raw --output NAME)
+    # Заголовок swap занимает страницу: допуск 1 MiB предотвращает лишние файлы при повторе.
+    if (( active + mib >= target * mib )) && { [[ ! -f $STATE/swap-plan ]] || ! grep -Fxq -- "$file" <<< "$names"; }; then
+        printf 'Swap: уже достаточно, активно %s MiB, цель %s MiB.\n' "$((active / mib))" "$target" | tee "$STATE/swap-summary"
+        return
+    fi
+    [[ $file =~ ^/[a-zA-Z0-9_./-]+$ && $(realpath -m -- "$file") == "$file" ]] || die 'Неподходящий путь файла swap.'
+    # noauto и конфликтующие записи проверяем до активации, не меняя решение администратора.
+    persist_swap "$file" "$fstab" check
+    if [[ -f $STATE/swap-plan ]]; then
+        [[ $(sed -n '1p' "$STATE/swap-plan") == "$file" ]] || die 'Сохранённый путь swap отличается от текущего.'
+        planned=$(sed -n '2p' "$STATE/swap-plan")
+        [[ $planned =~ ^[1-9][0-9]*$ && ${#planned} -le 4 && $planned -le 8192 ]] || die 'Повреждён план настройки swap.'
+    else
+        [[ ! -e $file && ! -L $file ]] || die "Файл $file уже существует и не создан этим мастером. Не перезаписываю его."
+        planned=$(( (target * mib - active + mib - 1) / mib ))
+        printf '%s\n%s\n' "$file" "$planned" > "$STATE/swap-plan.new"
+        mv -- "$STATE/swap-plan.new" "$STATE/swap-plan"
+    fi
+    if [[ ! -e $file && ! -L $file ]]; then (set -o noclobber; : > "$file"); fi
+    [[ -f $file && ! -L $file && $(stat -c %u "$file") == 0 && $(stat -c %h "$file") == 1 ]] || die 'Файл swap должен быть обычным файлом root без ссылок.'
+    chmod 600 -- "$file"
+    if ! grep -Fxq -- "$file" <<< "$names"; then
+        if type=$(blkid -p -s TYPE -o value -- "$file"); then
+            [[ $type == swap && $(stat -c %s "$file") == "$((planned * mib))" ]] || die 'Файл swap имеет неожиданный формат или размер.'
+        else
+            status=$?
+            [[ $status == 2 ]] || die 'Не удалось проверить формат файла swap.'
+            fs=$(findmnt --noheadings --output FSTYPE --target "$(dirname "$file")")
+            case "$fs" in ext2|ext3|ext4|xfs) ;; *) die "Автоматический файл swap не поддержан для $fs. Настройте swap средствами этой файловой системы." ;; esac
+            free_bytes=$(df -B1 --output=avail -- "$(dirname "$file")" | awk 'NR == 2 {print $1}')
+            [[ $free_bytes =~ ^[0-9]+$ ]] || die 'Не удалось проверить свободное место для swap.'
+            allocated=$(( $(stat -c %b "$file") * 512 ))
+            needed=$((planned * mib - allocated))
+            if (( needed < 0 )); then needed=0; fi
+            (( free_bytes >= needed + reserve )) || die "Для swap нужно ещё $((needed / mib)) MiB и не менее 5 GiB свободного места после создания."
+            say "Создаём swap: $planned MiB. Существующие swap-разделы и файлы сохраняются."
+            # dd выделяет реальные блоки, в отличие от файлов с дырками и ряда fallocate-реализаций.
+            dd if=/dev/zero of="$file" bs=1M count="$planned" conv=fsync status=none >> "$STATE/details.log" 2>&1
+            mkswap -- "$file" >> "$STATE/details.log" 2>&1
+        fi
+        swapon -- "$file" >> "$STATE/details.log" 2>&1 || die "Не удалось включить $file. Проверьте журнал; повторный запуск сохранит существующий swap."
+    fi
+    persist_swap "$file" "$fstab"
+    active=$(swap_total_bytes)
+    (( active + mib >= target * mib )) || die 'Объём swap ниже требуемого. Активный файл автоматически не расширяется и не отключается.'
+    printf 'Swap: активно %s MiB, цель %s MiB; файл %s, размер %s MiB; автозапуск в fstab.\n' "$((active / mib))" "$target" "$file" "$planned" | tee "$STATE/swap-summary"
+}
 
 save_answers() {
     local name
@@ -501,6 +586,7 @@ credentials() {
     {
         printf 'MYDOMO — ДОСТУПЫ И ПУТИ\nСохраните эту памятку в надёжном месте.\n\n'
         printf 'Сервер: %s\nДомен: %s\nSSH: root@%s\n\n' "$SERVER_IP" "$DOMAIN" "$SERVER_IP"
+        if [[ -f $STATE/swap-summary ]]; then cat "$STATE/swap-summary"; printf '\n'; fi
         printf 'FastPanel: https://%s:8888\n' "$SERVER_IP"
         if [[ $PANEL_EXISTING == no ]]; then
             printf 'Логин: fastuser\nПароль: %s\n\n' "$(< "$STATE/panel-password")"
@@ -605,6 +691,8 @@ main() {
     export TMPDIR="$STATE/tmp"
     trap failed ERR
     if [[ ${CLEANUP:-no} == yes && ! -f $STATE/cleanup.done ]]; then cleanup_apps; fi
+    say 'Подготавливаем swap по объёму оперативной памяти.'
+    configure_swap
     if [[ ! -f $STATE/panel.done ]]; then
         if command -v mogwai >/dev/null; then checkpoint panel
         else run_step panel '1/8 · Устанавливаем FastPanel' panel; fi
