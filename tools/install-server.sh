@@ -361,6 +361,13 @@ discover_lan() {
     if [[ -n $LAN_IPS ]]; then say "Домашняя сеть: $LAN_NETWORKS\nАдреса сервера в ней: $LAN_IPS. Будет использоваться тот же сайт $DOMAIN."; fi
     save_answers
 }
+enable_lan() (
+    [[ -n $LAN_IPS ]] || return 0
+    trap 'revoke_panel_token' EXIT
+    panel_token
+    "$PHP_BIN" -r 'require $argv[1]; (new \LaIOT\Deployment\FastPanel($argv[2]))->enableAddresses(explode(" ",$argv[3]));' \
+        "$STATE/source/deploy/lib/FastPanel.php" "$STATE" "$LAN_IPS"
+)
 configure_lan() {
     local address
     for address in $LAN_IPS; do
@@ -588,17 +595,20 @@ revoke_panel_token() {
     panel_cli users tokens remove --id="$token_id" >> "$STATE/details.log" 2>&1
     rm -- "$STATE/panel-api-token.json"
 }
-configure_site() (
-    # Токен существует только во время настройки, доступен loopback и удаляется
-    # даже при ошибке. Пароль пользователя сайта для этого не нужен.
-    trap 'revoke_panel_token' EXIT
+panel_token() {
     revoke_panel_token
     panel_cli --json users tokens add --name=laiot-installer --constraint=127.0.0.1 \
         --expire_at="$(date -u -d tomorrow +%F)" > "$STATE/panel-api-token.json"
     chmod 600 "$STATE/panel-api-token.json"
-    "$PHP_BIN" -r 'require $argv[1]; (new \LaIOT\Deployment\FastPanel($argv[2]))->configure((int)$argv[3],$argv[4],$argv[5],(int)$argv[6],(int)$argv[7],$argv[8]);' \
+}
+configure_site() (
+    # Токен существует только во время настройки, доступен loopback и удаляется
+    # даже при ошибке. Пароль пользователя сайта для этого не нужен.
+    trap 'revoke_panel_token' EXIT
+    panel_token
+    "$PHP_BIN" -r 'require $argv[1]; (new \LaIOT\Deployment\FastPanel($argv[2]))->configure((int)$argv[3],$argv[4],$argv[5],(int)$argv[6],(int)$argv[7],$argv[8],array_values(array_filter(explode(" ",$argv[9]))));' \
         "$STATE/source/deploy/lib/FastPanel.php" "$STATE" "$SITE_ID" "$APP/public" "$PHP_VERSION" \
-        "$(awk '/^MemTotal:/{printf "%d",$2/1024}' /proc/meminfo)" "$(nproc)" "${MODE:-local}"
+        "$(awk '/^MemTotal:/{printf "%d",$2/1024}' /proc/meminfo)" "$(nproc)" "${MODE:-local}" "$LAN_IPS"
 )
 prepare_webroot() {
     local nonce response attempt probe_created=no probe_ok=no probe_scheme=http
@@ -924,11 +934,12 @@ main() {
     fi
     repair_panel_apt >> "$STATE/details.log" 2>&1
     run_step packages '2/8 · Устанавливаем PHP и Redis' packages
-    run_step site '3/8 · Подготавливаем сайт и каталог' site
-    discover_lan
-    run_step network 'Подключаем домашнюю сеть к этому же сайту' configure_lan
-    if [[ $MODE == public ]]; then run_step tls 'Выпускаем HTTPS-сертификат' certificate; fi
     run_step source 'Скачиваем исходники в закрытый каталог root' source_code
+    discover_lan
+    run_step network-enable 'Включаем домашние IP в FastPanel' enable_lan
+    run_step site '3/8 · Подготавливаем сайт и каталог' site
+    if [[ $MODE == public ]]; then run_step tls 'Выпускаем HTTPS-сертификат' certificate; fi
+    run_step network 'Подключаем домашнюю сеть к этому же сайту' configure_lan
     run_step frontend 'Автоматически настраиваем Nginx и PHP-FPM' prepare_webroot
     run_step node '4/8 · Устанавливаем Node.js 24 LTS' node_runtime
     run_step app '5/8 · Скачиваем и собираем LaIOT' application

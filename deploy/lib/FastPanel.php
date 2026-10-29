@@ -50,7 +50,8 @@ final class FastPanel
         $this->pin = 'sha256//' . base64_encode(hash('sha256', $der, true));
     }
 
-    public function configure(int $id, string $public, string $version, int $memoryMiB, int $cpus, string $mode = 'local'): void
+    /** @param list<string> $lanAddresses */
+    public function configure(int $id, string $public, string $version, int $memoryMiB, int $cpus, string $mode = 'local', array $lanAddresses = []): void
     {
         if ($id < 1 || !preg_match('~^/[a-zA-Z0-9_./-]+/public$~D', $public)
             || !preg_match('/^[0-9]+\.[0-9]+$/D', $version)) {
@@ -70,6 +71,14 @@ final class FastPanel
             throw new RuntimeException('Нестандартный nginx: безопасный автоматический откат невозможен.');
         }
         $originalBackend['work_dir'] = $oldRoot === $base ? '' : substr($oldRoot, strlen($base) + 1);
+        $ips = array_values(array_filter(
+            array_column($site['ips'] ?? [], 'ip'),
+            static fn (string $ip): bool => filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false
+        ));
+        $managed = str_contains($before['frontend'], '# LAIOT BEGIN');
+        if (!$managed) {
+            $before = $this->waitForRoot($id, $oldRoot, $ips, $lanAddresses);
+        }
         $this->save('fastpanel-before.json', ['site' => $site, 'configuration' => $before]);
         $backend = $originalBackend;
         $backend['handler'] = 'php_fpm';
@@ -79,11 +88,25 @@ final class FastPanel
         $children = self::children($memoryMiB, $cpus);
         $backend['workers_count'] = $children;
         try {
-            $this->request('PUT', '/sites/backend/' . (int) $backend['id'], $backend);
-            $configuration = $this->waitForRoot($id, $public);
+            if ($oldRoot !== $public || $originalBackend['handler'] !== $backend['handler']
+                || $originalBackend['handler_version'] !== $backend['handler_version']
+                || $originalBackend['workers_count'] !== $children) {
+                $this->request('PUT', '/sites/backend/' . (int) $backend['id'], $backend);
+            }
+            if ($managed) {
+                // FastPanel сохраняет manual changes и не добавляет в них
+                // новые IP. Собственный шаблон синхронизируем явно, чужой
+                // нестандартный конфиг этим механизмом не переписывается.
+                $configuration = $before;
+                $names = array_merge([$site['domain']], array_column($site['aliases'] ?? [], 'name'));
+                $configuration['frontend'] = self::synchronize($before['frontend'], $public, $ips, $names);
+            } else {
+                $configuration = $this->waitForRoot($id, $public, $ips, $lanAddresses);
+            }
             $configuration['backend'] = self::fpm($configuration['backend'], $children);
             $configuration['frontend'] = self::nginx($configuration['frontend'], $mode === 'public' ? $site['domain'] : null);
             $this->request('PUT', "/sites/$id/configuration", $configuration);
+            $this->waitForConfiguration($id, $configuration);
             $this->save('fastpanel-applied.json', $configuration);
             $this->save('server-profile.json', ['ram_mib' => $memoryMiB, 'cpus' => $cpus,
                 'php' => $version, 'fpm_children' => $children, 'request_seconds' => 600]);
@@ -92,6 +115,7 @@ final class FastPanel
                 $this->request('PUT', '/sites/backend/' . (int) $originalBackend['id'], $originalBackend);
                 $this->waitForRoot($id, $oldRoot);
                 $this->request('PUT', "/sites/$id/configuration", $before);
+                $this->waitForConfiguration($id, $before);
             } catch (Throwable $rollback) {
                 throw new RuntimeException($error->getMessage() . '; откат FastPanel не завершён: '
                     . $rollback->getMessage() . '. Снимок: ' . $this->state . '/fastpanel-before.json', 0, $error);
@@ -108,6 +132,33 @@ final class FastPanel
         return max(2, min(32, max(1, $cpus) * 4, (int) floor(($memoryMiB - $reserve) / 192)));
     }
 
+    /** @param list<string> $addresses */
+    public function enableAddresses(array $addresses): void
+    {
+        $available = $this->request('GET', '/ips')['data'];
+        foreach ($addresses as $address) {
+            if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false
+                || !preg_match('/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)/', $address)) {
+                throw new RuntimeException('Разрешается только назначенный серверу частный IPv4.');
+            }
+            $found = false;
+            foreach ($available as $ip) {
+                if ($ip['value'] !== $address) {
+                    continue;
+                }
+                $found = true;
+                if (!$ip['enabled']) {
+                    $ip['enabled'] = true;
+                    $this->request('PUT', '/ips/' . (int) $ip['id'], $ip);
+                }
+                break;
+            }
+            if (!$found) {
+                throw new RuntimeException('FastPanel ещё не обнаружила локальный IP ' . $address . '. Повторите после обновления списка IP в панели.');
+            }
+        }
+    }
+
     public static function root(string $frontend): string
     {
         preg_match_all('/set\s+\$root_path\s+([^;\s]+)\s*;/', $frontend, $matches);
@@ -116,6 +167,43 @@ final class FastPanel
             throw new RuntimeException('Не распознан корень nginx выбранного сайта.');
         }
         return trim(reset($paths), '"\'');
+    }
+
+    /**
+     * @param list<string> $ips
+     * @param list<string> $names
+     */
+    public static function synchronize(string $frontend, string $public, array $ips, array $names): string
+    {
+        if ($ips === []) {
+            throw new RuntimeException('У сайта отсутствует привязка к IPv4.');
+        }
+        foreach ($names as $name) {
+            if (!preg_match('/^[a-zA-Z0-9*_.:-]+$/D', $name)) {
+                throw new RuntimeException('Не распознано имя сайта в управляемом nginx.');
+            }
+        }
+        $frontend = preg_replace('/(set\s+\$root_path\s+)[^;\s]+(\s*;)/', '${1}' . $public . '${2}', $frontend);
+        $frontend = preg_replace('/server_name\s+[^;]+;/', 'server_name ' . implode(' ', array_unique($names)) . ';', $frontend);
+        $blocks = preg_split('/(?=^server\s*\{)/m', $frontend);
+        foreach ($blocks as &$block) {
+            $seen = [];
+            $block = preg_replace_callback(
+                '/^([^\S\n]*)listen\s+(?:[0-9]{1,3}\.){3}[0-9]{1,3}:(80|443)([^;]*);[^\S\n]*$/m',
+                static function (array $line) use ($ips, &$seen): string {
+                    $signature = $line[2] . $line[3];
+                    if (isset($seen[$signature])) {
+                        return '';
+                    }
+                    $seen[$signature] = true;
+                    return implode("\n", array_map(static fn (string $ip): string =>
+                        $line[1] . 'listen ' . $ip . ':' . $line[2] . $line[3] . ';', $ips));
+                },
+                $block
+            );
+        }
+        unset($block);
+        return implode('', $blocks);
     }
 
     public static function fpm(string $configuration, int $children): string
@@ -189,13 +277,26 @@ NGINX;
         return str_replace('    location = /index.php {', $managed . '    location = /index.php {', $frontend);
     }
 
-    /** @return array<string, mixed> */
-    private function waitForRoot(int $id, string $expected): array
+    /**
+     * @param list<string> $ips
+     * @param list<string> $aliases
+     * @return array<string, mixed>
+     */
+    private function waitForRoot(int $id, string $expected, array $ips = [], array $aliases = []): array
     {
         for ($attempt = 0; $attempt < 40; $attempt++) {
             try {
                 $configuration = $this->request('GET', "/sites/$id/configuration")['data'];
-                if (self::root($configuration['frontend']) === $expected) {
+                $matches = self::root($configuration['frontend']) === $expected;
+                foreach ($ips as $ip) {
+                    $matches = $matches && str_contains($configuration['frontend'], 'listen ' . $ip . ':');
+                }
+                preg_match_all('/server_name\s+([^;]+);/', $configuration['frontend'], $names);
+                $names = preg_split('/\s+/', implode(' ', $names[1]));
+                foreach ($aliases as $alias) {
+                    $matches = $matches && in_array($alias, $names, true);
+                }
+                if ($matches) {
                     return $configuration;
                 }
             } catch (RuntimeException $error) {
@@ -208,6 +309,26 @@ NGINX;
             usleep(250000);
         }
         throw new RuntimeException('FastPanel не применила новый публичный каталог.');
+    }
+
+    /** @param array<string, mixed> $expected */
+    private function waitForConfiguration(int $id, array $expected): void
+    {
+        for ($attempt = 0; $attempt < 40; $attempt++) {
+            try {
+                $actual = $this->request('GET', "/sites/$id/configuration")['data'];
+                if (trim($actual['frontend']) === trim($expected['frontend'])
+                    && trim($actual['backend']) === trim($expected['backend'])) {
+                    return;
+                }
+            } catch (RuntimeException $error) {
+                if ($error->getCode() !== 400) {
+                    throw $error;
+                }
+            }
+            usleep(250000);
+        }
+        throw new RuntimeException('FastPanel не применила запрошенную конфигурацию nginx/FPM.');
     }
 
     /** @param array<string, mixed> $data */

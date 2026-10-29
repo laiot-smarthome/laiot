@@ -42,6 +42,17 @@ trap cleanup_test EXIT
 [[ $(swap_target_mib 2097152) == 2048 ]]
 [[ $(swap_target_mib 3900000) == 4096 ]]
 [[ $(swap_target_mib 9437184) == 8192 ]]
+[[ $(ipv4_network 192.168.74.10/24) == 192.168.74.0/24 ]]
+[[ $(ipv4_network 10.20.30.40/16) == 10.20.0.0/16 ]]
+[[ $(ipv4_network 172.19.0.3/32) == 172.19.0.3/32 ]]
+if ipv4_network 192.168.0.1/33 || ipv4_network 300.168.0.1/24; then echo 'Принята неверная подсеть'; exit 1; fi
+lan_fixture=$(printf '%s\n' \
+    '2: enp1s0 inet 192.168.74.10/24 scope global' \
+    '3: enp2s0 inet 177.203.58.73/24 scope global' \
+    '4: docker0 inet 172.17.0.1/16 scope global' \
+    '5: br-abcdef inet 172.19.0.1/16 scope global' \
+    '6: wlan0 inet 10.20.30.40/16 scope global' | lan_addresses)
+[[ $lan_fixture == $'10.20.30.40/16\n192.168.74.10/24' ]]
 (
     STATE=$test_directory/swap
     mkdir "$STATE"
@@ -192,9 +203,9 @@ touch "$STATE/data/busy/content"
 ln -s "$STATE/data/busy" "$STATE/data/link"
 valid_base "$STATE/data/new" "$STATE/data" "$STATE/data/www"
 valid_base "$STATE/data/busy" "$STATE/data" "$STATE/data/busy" "$STATE/data/busy"
-mkdir "$STATE/data/busy/current"
-if valid_base "$STATE/data/busy" "$STATE/data" "$STATE/data/busy" "$STATE/data/busy"; then echo 'Принят занятый current'; exit 1; fi
-rmdir "$STATE/data/busy/current"
+touch "$STATE/data/busy/composer.json"
+if valid_base "$STATE/data/busy" "$STATE/data" "$STATE/data/busy" "$STATE/data/busy"; then echo 'Принята другая PHP-установка'; exit 1; fi
+rm "$STATE/data/busy/composer.json"
 if valid_base "$STATE/data/busy" "$STATE/data" "$STATE/data/busy" "$STATE/data/other"; then echo 'Принят корень чужого сайта'; exit 1; fi
 for rejected in "$STATE/data/../escape" "$STATE/data/busy" "$STATE/data/link/new" "$STATE/data/www/app" "$STATE/data" "$STATE/data2/app"; do
     if valid_base "$rejected" "$STATE/data" "$STATE/data/www"; then echo "Принят опасный путь $rejected"; exit 1; fi
@@ -273,7 +284,7 @@ rm "$STATE/site-created" "$STATE/site-trace"
     grep -Fq -- '--create-user' "$STATE/site-trace"
 )
 (
-    OWNER=siteuser SITE_GROUP=sitegroup BASE=/var/www/siteuser/data/apps/home APP=/var/www/siteuser/data/apps/home/current
+    OWNER=siteuser SITE_GROUP=sitegroup BASE=/var/www/siteuser/data/www/home APP=/var/www/siteuser/data/www/home
     BRANCH='beta; echo never-execute' PANEL_EXISTING=yes
     save_answers
     [[ $(stat -c %a "$STATE/answers") == 600 ]]
