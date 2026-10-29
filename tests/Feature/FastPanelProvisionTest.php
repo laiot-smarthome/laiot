@@ -118,6 +118,7 @@ final class FastPanelProvisionTest extends TestCase
         }
     }
 
+    /** @return array{id: int, frontend: string, backend: string, phpini: string} */
     private function configuration(string $root): array
     {
         return ['id' => 7, 'frontend' => 'server {' . "\n    set \$root_path $root;\n"

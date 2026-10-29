@@ -13,7 +13,7 @@ BRANCH=beta
 STATE=/root/laiot-installer
 OWNER=laiot_usr
 BASE=/var/www/laiot_usr/data/laiot
-APP=$BASE/current
+APP=$BASE
 SITE_GROUP=$OWNER
 PANEL_EXISTING=no
 TARGET_MODE=new
@@ -25,6 +25,8 @@ UI_COLOR=no
 SITE_ID=''
 SITE_DOCROOT=''
 TLS_EMAIL=''
+LAN_IPS=''
+LAN_NETWORKS=''
 
 ui_line() {
     local kind=$1 message=$2 output=${3:-1} color=''
@@ -225,7 +227,7 @@ configure_swap() {
 
 save_answers() {
     local name
-    local names=(MODE DOMAIN SERVER_IP MQTT MQTT_LAN ZIGBEE BROKER BRANCH CLEANUP PANEL_EXISTING TARGET_MODE OWNER SITE_GROUP BASE APP SCHEME PHP_BIN PHP_VERSION SITE_ID SITE_DOCROOT TLS_EMAIL)
+    local names=(MODE DOMAIN SERVER_IP MQTT MQTT_LAN ZIGBEE BROKER BRANCH CLEANUP PANEL_EXISTING TARGET_MODE OWNER SITE_GROUP BASE APP SCHEME PHP_BIN PHP_VERSION SITE_ID SITE_DOCROOT TLS_EMAIL LAN_IPS LAN_NETWORKS)
     for name in "${names[@]}"; do printf '%s=%q\n' "$name" "${!name-}"; done > "$STATE/answers.new"
     mv -- "$STATE/answers.new" "$STATE/answers"
 }
@@ -250,7 +252,7 @@ valid_base() {
     local candidate=$1 data=$2 root selected=${4:-}
     [[ $candidate == "$data/"* && $candidate =~ ^/[a-zA-Z0-9_./-]+$ ]] || return 1
     [[ $(realpath -m -- "$candidate") == "$candidate" ]] || return 1
-    # Разрешён корень выбранного сайта: nginx переключится на current/public
+    # Разрешён корень выбранного сайта: nginx переключится на public
     # до копирования исходников. Остальные сайты остаются вне установки.
     while IFS= read -r root; do
         [[ -n $root ]] || continue
@@ -259,7 +261,7 @@ valid_base() {
         [[ $candidate != "$root" && $candidate != "$root/"* && $root != "$candidate/"* ]] || return 1
     done <<< "${3:-}"
     if [[ $candidate == "$selected" && -d $candidate ]]; then
-        [[ ! -e $candidate/current && ! -L $candidate/current && ! -e $candidate/shared && ! -L $candidate/shared ]]
+        [[ ! -e $candidate/composer.json && ! -e $candidate/.env && ! -L $candidate/.env ]]
         return
     fi
     [[ ! -e $candidate || -d $candidate && -z $(find "$candidate" -mindepth 1 -maxdepth 1 -print -quit) ]]
@@ -322,14 +324,49 @@ target_questions() {
     while :; do
         ask BASE 'Каталог выбранного сайта (прежние файлы сохраняются)' "$default_base"
         [[ $BASE == "$SITE_DOCROOT" ]] && valid_base "$BASE" "$data" "$root_list" "$SITE_DOCROOT" && break
-        say "Используйте каталог выбранного сайта $SITE_DOCROOT, без ссылок и прежних current/shared."
+        say "Используйте каталог выбранного сайта $SITE_DOCROOT, без ссылок и другой PHP-установки (.env/composer.json)."
     done
-    APP=$BASE/current
+    APP=$BASE
     say "Сайт: $DOMAIN; пользователь: $OWNER; каталог: $BASE\nПубличный каталог, PHP и маршрутизацию настроим автоматически."
     yesno choice 'Использовать выбранный сайт и каталог?' нет
     [[ $choice == yes ]] || die 'Выбор отменён. Повторный запуск позволит выбрать заново.'
     save_answers
     checkpoint target
+}
+lan_addresses() {
+    # Адреса контейнерных мостов не являются домашней сетью пользователя.
+    awk '$2 !~ /^(lo|docker[0-9]*|br-|veth|virbr|cni|flannel)/ && $3 == "inet" {
+        split($4,a,"/"); if (a[1] ~ /^10\./ || a[1] ~ /^192\.168\./ || a[1] ~ /^172\.(1[6-9]|2[0-9]|3[01])\./) print $4
+    }' | sort -u
+}
+ipv4_network() {
+    local address=${1%/*} prefix=${1#*/} a b c d mask number
+    valid_ip "$address" && [[ $prefix =~ ^[0-9]{1,2}$ ]] && (( 10#$prefix <= 32 )) || return 1
+    IFS=. read -r a b c d <<< "$address"
+    number=$(( (10#$a << 24) | (10#$b << 16) | (10#$c << 8) | 10#$d ))
+    mask=$(( (0xffffffff << (32 - 10#$prefix)) & 0xffffffff ))
+    number=$(( number & mask ))
+    printf '%s.%s.%s.%s/%s\n' "$((number >> 24 & 255))" "$((number >> 16 & 255))" "$((number >> 8 & 255))" "$((number & 255))" "$prefix"
+}
+discover_lan() {
+    local cidr address
+    LAN_IPS='' LAN_NETWORKS=''
+    while IFS= read -r cidr; do
+        [[ -n $cidr ]] || continue
+        address=${cidr%/*}
+        valid_ip "$address" || die 'Не удалось проверить локальный IPv4.'
+        LAN_IPS+="${LAN_IPS:+ }$address"
+        LAN_NETWORKS+="${LAN_NETWORKS:+ }$(ipv4_network "$cidr")"
+    done < <(ip -o -4 addr show scope global | lan_addresses)
+    if [[ -n $LAN_IPS ]]; then say "Домашняя сеть: $LAN_NETWORKS\nАдреса сервера в ней: $LAN_IPS. Будет использоваться тот же сайт $DOMAIN."; fi
+    save_answers
+}
+configure_lan() {
+    local address
+    for address in $LAN_IPS; do
+        if [[ $address != "$SERVER_IP" ]]; then panel_cli sites update-frontend --id="$SITE_ID" --add-ip="$address"; fi
+        panel_cli sites update-frontend --id="$SITE_ID" --add-alias="$address"
+    done
 }
 questions() {
     local choice default_ip
@@ -492,7 +529,7 @@ site() {
     SITE_GROUP=$(id -gn "$OWNER")
     valid_base "$BASE" "/var/www/$OWNER/data" "$(cut -f4 <<< "$rows")" "$SITE_DOCROOT" || die 'Каталог установки занят, содержит ссылку или пересекается с другим сайтом.'
     install -d -o "$OWNER" -g "$SITE_GROUP" -m 755 "$BASE"
-    install -d -o "$OWNER" -g "$SITE_GROUP" -m 750 "$BASE/shared"
+    if [[ $APP != "$BASE" ]]; then install -d -o "$OWNER" -g "$SITE_GROUP" -m 750 "$BASE/shared"; fi
     save_answers
 }
 node_runtime() {
@@ -532,7 +569,9 @@ certificate() {
     [[ $status == 000 ]] || return 0
     # Проверка из интернета выполняется центром сертификации. При NAT именно
     # пользователь управляет DNS/роутером, мастер не может заменить этот шаг.
-    panel_cli certificates create-le --server-name="$DOMAIN" --email="$TLS_EMAIL"
+    if ! panel_cli certificates create-le --server-name="$DOMAIN" --email="$TLS_EMAIL"; then
+        die 'Не удалось выпустить HTTPS. Проверьте DNS домена и доступность сервера по портам 80/443; подробности — details.log.'
+    fi
     for attempt in {1..60}; do
         status=$(curl --noproxy '*' --silent --output /dev/null --write-out '%{http_code}' --max-time 10 \
             --resolve "$DOMAIN:443:$SERVER_IP" "https://$DOMAIN/") || status=000
@@ -557,9 +596,9 @@ configure_site() (
     panel_cli --json users tokens add --name=laiot-installer --constraint=127.0.0.1 \
         --expire_at="$(date -u -d tomorrow +%F)" > "$STATE/panel-api-token.json"
     chmod 600 "$STATE/panel-api-token.json"
-    "$PHP_BIN" -r 'require $argv[1]; (new \LaIOT\Deployment\FastPanel($argv[2]))->configure((int)$argv[3],$argv[4],$argv[5],(int)$argv[6],(int)$argv[7]);' \
+    "$PHP_BIN" -r 'require $argv[1]; (new \LaIOT\Deployment\FastPanel($argv[2]))->configure((int)$argv[3],$argv[4],$argv[5],(int)$argv[6],(int)$argv[7],$argv[8]);' \
         "$STATE/source/deploy/lib/FastPanel.php" "$STATE" "$SITE_ID" "$APP/public" "$PHP_VERSION" \
-        "$(awk '/^MemTotal:/{printf "%d",$2/1024}' /proc/meminfo)" "$(nproc)"
+        "$(awk '/^MemTotal:/{printf "%d",$2/1024}' /proc/meminfo)" "$(nproc)" "${MODE:-local}"
 )
 prepare_webroot() {
     local nonce response attempt probe_created=no probe_ok=no probe_scheme=http
@@ -593,7 +632,15 @@ prepare_webroot() {
     nginx -t
 }
 application() {
-    [[ -f $APP/composer.lock ]] || (umask 022; tar -C "$STATE/source" -cf - . | as_owner tar -C "$APP" -xf -)
+    local relative
+    if [[ ! -f $APP/composer.lock ]]; then
+        # Ни один прежний файл сайта не заменяется молча. В том числе .git
+        # другой установки: выбор готового сайта не означает удаление данных.
+        while IFS= read -r relative; do
+            [[ ! -e $APP/$relative && ! -L $APP/$relative ]] || die "Файл сайта уже существует: $APP/$relative. Установка остановлена без перезаписи."
+        done < <(cd "$STATE/source"; find . -type f -o -type l)
+        (umask 022; tar -C "$STATE/source" -cf - . | as_owner tar --keep-old-files -C "$APP" -xf -)
+    fi
     [[ -f $APP/app/Services/Install/InstallService.php && -f $APP/public/index.php && -f $APP/composer.lock ]] || \
         die 'В загруженной ветке нет веб-установщика LaIOT. Проверьте публикацию beta.'
     # Composer проверяет подпись установщика; зависимости и сборка идут без root.
@@ -618,16 +665,22 @@ application() {
     fi
 }
 database() {
-    if [[ ! -f $STATE/db-password ]]; then secret > "$STATE/db-password"; fi
     local password databases
-    password=$(< "$STATE/db-password")
     # Пароль передаётся штатному CLI, не сохраняется в истории SSH.
     # При сбое после создания БД не меняем её пароль и не пересоздаём данные.
-    databases=$(mogwai databases list)
+    databases=$(panel_cli databases list)
     if ! awk '$0 ~ /(^|[[:space:]])laiot_app([[:space:]]|$)/ {found=1} END {exit !found}' <<< "$databases"; then
-        mogwai databases create --server=1 --name=laiot_app --owner="$OWNER" \
+        # FastPanel ограничивает пароль БД 41 символом. При предыдущем отказе
+        # создания можно заменить неподходящий секрет, пока базы ещё нет.
+        if [[ ! -f $STATE/db-password || $(wc -L < "$STATE/db-password") -gt 41 ]]; then
+            openssl rand -hex 20 > "$STATE/db-password"
+        fi
+        password=$(< "$STATE/db-password")
+        panel_cli databases create --server=1 --name=laiot_app --owner="$OWNER" \
             --site="$DOMAIN" --username=laiot_app --password="$password"
     fi
+    [[ -s $STATE/db-password ]] || die 'Для существующей БД отсутствует сохранённый пароль. Данные не менялись.'
+    password=$(< "$STATE/db-password")
     # Убеждаемся, что существующая база действительно наша.
     DB_PASS="$password" "$PHP_BIN" -r 'new PDO("mysql:host=127.0.0.1;dbname=laiot_app", "laiot_app", getenv("DB_PASS"));'
 }
@@ -762,7 +815,13 @@ credentials() {
         printf 'Резервная конфигурация FastPanel: %s/fastpanel-before.json\nПрименённая конфигурация: %s/fastpanel-applied.json\n' "$STATE" "$STATE"
         printf 'Постоянные файлы ядра: %s/var/files/core\nФайлы модулей: %s/var/files/modules/<id>\n' "$APP" "$APP"
         printf 'Журналы приложения: %s/var/log\nКэш: %s/var/cache\n' "$APP" "$APP"
-        printf 'Общие файлы системного слоя: %s/shared\nКонфигурация агента: /etc/laiot/agent.json\n' "$BASE"
+        if [[ $APP != "$BASE" ]]; then printf 'Общие файлы прежней раскладки: %s/shared\n' "$BASE"; fi
+        printf 'Конфигурация агента: /etc/laiot/agent.json\n'
+        if [[ -n $LAN_IPS ]]; then
+            printf 'Домашние подсети: %s\n' "$LAN_NETWORKS"
+            for address in $LAN_IPS; do printf 'Доступ по локальной сети: http://%s/login\n' "$address"; done
+            printf 'Для HTTPS в домашней сети задайте в DNS роутера домен %s на локальный IPv4 сервера.\n' "$DOMAIN"
+        fi
         printf 'Службы systemd:\n  /etc/systemd/system/laiot-agent.service\n  /etc/systemd/system/laiot-core@.service\n  /etc/systemd/system/laiot-worker@.service\n  /etc/systemd/system/laiot-websocket.service\n'
         printf 'Управление службами из приложения: штатный агент, Unix-сокет /run/laiot/agent.sock, доступ только пользователю сайта и root.\n'
         printf 'Redis: /etc/redis/redis.conf\nNode.js: /opt/laiot-node\n'
@@ -846,7 +905,7 @@ main() {
     if [[ ! -f $STATE/license.done ]]; then
         if [[ $PANEL_EXISTING == no ]]; then
             if [[ ! -f $STATE/panel-password ]]; then secret > "$STATE/panel-password"; fi
-            mogwai chpasswd -u fastuser -p "$(< "$STATE/panel-password")" >> "$STATE/details.log" 2>&1
+            panel_cli chpasswd -u fastuser -p "$(< "$STATE/panel-password")" >> "$STATE/details.log" 2>&1
             say "Откройте https://$SERVER_IP:8888\nЛогин: fastuser\nПароль: $(< "$STATE/panel-password")\nАктивируйте лицензию по email."
         else
             say "Готовая FastPanel обнаружена. Прежние данные входа сохраняются."
@@ -866,6 +925,8 @@ main() {
     repair_panel_apt >> "$STATE/details.log" 2>&1
     run_step packages '2/8 · Устанавливаем PHP и Redis' packages
     run_step site '3/8 · Подготавливаем сайт и каталог' site
+    discover_lan
+    run_step network 'Подключаем домашнюю сеть к этому же сайту' configure_lan
     if [[ $MODE == public ]]; then run_step tls 'Выпускаем HTTPS-сертификат' certificate; fi
     run_step source 'Скачиваем исходники в закрытый каталог root' source_code
     run_step frontend 'Автоматически настраиваем Nginx и PHP-FPM' prepare_webroot

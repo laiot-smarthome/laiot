@@ -17,6 +17,7 @@ final class FastPanel
 {
     private string $pin = '';
 
+    /** @param (Closure(string, string, array<string, mixed>|null): array<string, mixed>)|null $transport */
     public function __construct(private readonly string $state, private readonly ?Closure $transport = null)
     {
         if ($transport !== null) {
@@ -38,16 +39,20 @@ final class FastPanel
         if ($details === false) {
             throw new RuntimeException('Не удалось закрепить TLS-ключ FastPanel.');
         }
-        $der = base64_decode(preg_replace('/-----[^-]+-----|\s/', '', $details['key']), true);
+        $encoded = preg_replace('/-----[^-]+-----|\s/', '', $details['key']);
+        if ($encoded === null) {
+            throw new RuntimeException('Не удалось прочитать TLS-ключ FastPanel.');
+        }
+        $der = base64_decode($encoded, true);
         if ($der === false) {
             throw new RuntimeException('Некорректный TLS-ключ FastPanel.');
         }
         $this->pin = 'sha256//' . base64_encode(hash('sha256', $der, true));
     }
 
-    public function configure(int $id, string $public, string $version, int $memoryMiB, int $cpus): void
+    public function configure(int $id, string $public, string $version, int $memoryMiB, int $cpus, string $mode = 'local'): void
     {
-        if ($id < 1 || !preg_match('~^/[a-zA-Z0-9_./-]+/current/public$~D', $public)
+        if ($id < 1 || !preg_match('~^/[a-zA-Z0-9_./-]+/public$~D', $public)
             || !preg_match('/^[0-9]+\.[0-9]+$/D', $version)) {
             throw new RuntimeException('Некорректные параметры сайта.');
         }
@@ -77,7 +82,7 @@ final class FastPanel
             $this->request('PUT', '/sites/backend/' . (int) $backend['id'], $backend);
             $configuration = $this->waitForRoot($id, $public);
             $configuration['backend'] = self::fpm($configuration['backend'], $children);
-            $configuration['frontend'] = self::nginx($configuration['frontend']);
+            $configuration['frontend'] = self::nginx($configuration['frontend'], $mode === 'public' ? $site['domain'] : null);
             $this->request('PUT', "/sites/$id/configuration", $configuration);
             $this->save('fastpanel-applied.json', $configuration);
             $this->save('server-profile.json', ['ram_mib' => $memoryMiB, 'cpus' => $cpus,
@@ -136,16 +141,16 @@ final class FastPanel
         return $configuration;
     }
 
-    public static function nginx(string $frontend): string
+    public static function nginx(string $frontend, ?string $secureHost = null): string
     {
         if (!str_contains($frontend, 'try_files $uri $uri/ /index.php?')) {
             throw new RuntimeException('Нестандартная маршрутизация nginx: автоматическая замена небезопасна.');
         }
         if (str_contains($frontend, '# LAIOT BEGIN')) {
-            return $frontend;
+            $frontend = preg_replace('/^    # LAIOT BEGIN[^\n]*\n.*?^    # LAIOT END\n/ms', '', $frontend);
         }
         $frontend = str_replace('location ~ \.php$ {', 'location = /index.php {', $frontend, $count);
-        if ($count === 0) {
+        if ($count === 0 && !str_contains($frontend, 'location = /index.php {')) {
             throw new RuntimeException('Не распознан обработчик PHP FastPanel.');
         }
         $managed = <<<'NGINX'
@@ -170,9 +175,21 @@ final class FastPanel
     # LAIOT END
 
 NGINX;
+        if ($secureHost !== null) {
+            if (!preg_match('/^[a-z0-9.-]+$/D', $secureHost)) {
+                throw new RuntimeException('Некорректное имя HTTPS-сайта.');
+            }
+            // Один vhost обслуживает домен и LAN-IP. Только обращение по
+            // домену переводим на HTTPS: сертификат не покрывает частные IP.
+            $redirect = '    set $laiot_origin "$scheme://$host";' . "\n"
+                . '    if ($laiot_origin = "http://' . $secureHost . '") { return 308 https://'
+                . $secureHost . '$request_uri; }' . "\n";
+            $managed = str_replace('    # LAIOT END', $redirect . '    # LAIOT END', $managed);
+        }
         return str_replace('    location = /index.php {', $managed . '    location = /index.php {', $frontend);
     }
 
+    /** @return array<string, mixed> */
     private function waitForRoot(int $id, string $expected): array
     {
         for ($attempt = 0; $attempt < 40; $attempt++) {
@@ -193,6 +210,7 @@ NGINX;
         throw new RuntimeException('FastPanel не применила новый публичный каталог.');
     }
 
+    /** @param array<string, mixed> $data */
     private function save(string $name, array $data): void
     {
         $path = $this->state . '/' . $name;
@@ -202,6 +220,10 @@ NGINX;
         }
     }
 
+    /**
+     * @param array<string, mixed>|null $data
+     * @return array<string, mixed>
+     */
     private function request(string $method, string $path, ?array $data = null): array
     {
         if ($this->transport !== null) {
@@ -223,7 +245,7 @@ NGINX;
         $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
         $error = curl_error($curl);
         curl_close($curl);
-        if ($body === false || $status < 200 || $status >= 300) {
+        if (!is_string($body) || $status < 200 || $status >= 300) {
             throw new RuntimeException("FastPanel API $method $path: HTTP $status $error", $status);
         }
         $response = json_decode($body, true, flags: JSON_THROW_ON_ERROR);

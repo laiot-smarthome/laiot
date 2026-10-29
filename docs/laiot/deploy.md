@@ -94,6 +94,7 @@ sudo deploy/setup-ubuntu.sh --force
 | `--root PATH` | `/var/www/laiot` | каталог установки |
 | `--user NAME` | владелец `ROOT` или `laiot` | пользователь служб и владелец `var` |
 | `--group NAME` | основная группа пользователя | группа владельца и сокета |
+| `--php-bin PATH` | PHP из `PATH` | CLI PHP для проверки и всех создаваемых юнитов |
 | `--socket PATH` | `/run/laiot/agent.sock` | Unix-сокет агента |
 | `--systemd-dir PATH` | `/etc/systemd/system` | каталог юнитов |
 | `--agent-config PATH` | `/etc/laiot/agent.json` | конфигурация агента |
@@ -116,7 +117,7 @@ systemd. Он не создаёт каталоги, не пишет файлы �
    `allowed_uid`. Файл получает владельца `root:GROUP` и права `0640`;
    каталог конфигурации — `0750`. Существующий файл без `--force` не
    перезаписывается: администратор мог его осознанно поправить.
-3. Рендерит `laiot-agent.service`, `laiot-worker@.service` и
+3. Рендерит `laiot-agent.service`, `laiot-worker@.service`, `laiot-websocket.service` и
    `laiot-core@.service` из `deploy/systemd` и кладёт их в
    `--systemd-dir` с правами `0644 root:root`. Если юнит уже есть и
    отличается, без `--force` скрипт останавливается, а не оставляет службу
@@ -125,7 +126,8 @@ systemd. Он не создаёт каталоги, не пишет файлы �
    `laiot-agent.service`, включает `laiot-core@queue`,
    `laiot-core@events`, `laiot-core@timeouts` и
    `laiot-core@maintenance`. С `--start` добавляет `--now`, то есть сразу
-   запускает их. Без `--start` они стартуют при загрузке сервера.
+   запускает их. Также включает `laiot-websocket.service`, с `--start`
+   запускает его. Без `--start` службы стартуют при загрузке сервера.
 5. Если найден юнит `php*-fpm.service`, печатает подсказку
    `systemctl reload`. Сам перезагружает FPM только с `--start`: без явного
    флага скрипт не трогает веб-стек.
@@ -137,9 +139,9 @@ systemd. Он не создаёт каталоги, не пишет файлы �
 не пишет в базу и не меняет код приложения. Файл `.env` он только проверяет
 на наличие и доступность записи.
 
-Шаблон `deploy/systemd/laiot-websocket.service` этим скриптом пока не
-устанавливается: WebSocket-сервер можно включить вручную по инструкции
-[websocket.md](websocket.md). Это отдельная служба, а не `core-worker`.
+WebSocket устанавливается отдельной службой, а не `core-worker`.
+Проксирование nginx описано в [websocket.md](websocket.md); SSH-мастер
+[install-server.sh](server-installer.md) настраивает его автоматически.
 
 ## Раскладка: прямой корень и releases
 

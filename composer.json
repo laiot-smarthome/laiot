@@ -55,7 +55,7 @@
     "scripts": {
         "test": "phpunit",
         "test:smoke": "php tests/routing_smoke.php && php tests/config_smoke.php",
-        "lint": "parallel-lint --exclude vendor --exclude node_modules app tests",
+        "lint": "parallel-lint --exclude vendor --exclude node_modules app deploy/lib tests",
         "analyse": "phpstan analyse --memory-limit=1G",
         "cs:check": "php-cs-fixer fix --dry-run --diff",
         "cs:fix": "php-cs-fixer fix",
