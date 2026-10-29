@@ -18,6 +18,7 @@ use Throwable;
  * Старый mysqli-слой остаётся в alpha и в новом коде не используется.
  *
  * Изменения:
+ * 2026-10-29 — отключение соединения перед fork WebSocket-сервера.
  * 2026-10-28 — общий resolver доступен валидатору без открытия соединения.
  */
 final class DatabaseManager
@@ -90,6 +91,26 @@ final class DatabaseManager
         } catch (Throwable) {
             return false;
         }
+    }
+
+    /**
+     * Закрывает соединение перед fork: дочерний процесс Workerman открывает
+     * своё подключение, а не наследует TCP-сокет родителя.
+     *
+     * 2026-10-29 — добавлено для запуска WebSocket-сервера.
+     */
+    public function disconnect(): void
+    {
+        if ($this->capsule === null) {
+            return;
+        }
+
+        try {
+            $this->capsule->getDatabaseManager()->disconnect();
+        } catch (Throwable) {
+            // Соединение могло не открыться вовсе — закрывать нечего.
+        }
+        $this->sqliteFunctionsRegistered = false;
     }
 
     /**

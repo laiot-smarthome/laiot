@@ -16,6 +16,7 @@
 @import 'knowledge-base.css';
 @import 'events.css';
 @import 'exceptions.css';
+@import 'websocket.css';
 
 /* Маскот дополняет текст состояния, поэтому изображение декоративное. */
 .md-mascot { display: block; width: 120px; max-width: 100%; height: auto; object-fit: contain; }

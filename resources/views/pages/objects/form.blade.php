@@ -152,10 +152,14 @@
                                     </td>
                                     <td><x-md.badge tone="outline">{{ $property['data_type'] }}</x-md.badge></td>
                                     <td>
-                                        <x-md.input name="values[{{ $property['id'] }}]"
-                                                    :value="$values[$property['id']] ?? ''"
-                                                    :error="$valueErrors['values.' . $property['id']][0] ?? null"
-                                                    aria-label="Значение свойства {{ $property['title'] }}" />
+                                        <div class="md-live-field"
+                                             data-live-object="{{ $object['title'] }}"
+                                             data-live-property="{{ $property['title'] }}">
+                                            <x-md.input name="values[{{ $property['id'] }}]"
+                                                        :value="$values[$property['id']] ?? ''"
+                                                        :error="$valueErrors['values.' . $property['id']][0] ?? null"
+                                                        aria-label="Значение свойства {{ $property['title'] }}" />
+                                        </div>
                                     </td>
                                     <td>
                                         @forelse ($propertyBindings[$property['id']] ?? [] as $binding)
@@ -184,6 +188,8 @@
                             @endforeach
                         </x-slot:body>
                     </x-md.table>
+                    <x-md.hint tone="info" title="Значения обновляются по WebSocket"
+                               text="Пока страница открыта, изменения свойств приходят по WebSocket. Поле, которое вы редактируете, не перезаписывается." />
                     <div class="md-ui-form-actions">
                         <x-md.button type="submit" icon="check">Сохранить значения</x-md.button>
                     </div>

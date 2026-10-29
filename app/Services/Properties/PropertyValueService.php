@@ -13,10 +13,12 @@ use LaIOT\Services\Events\PropertyExecutionRepository;
 use LaIOT\Services\History\HistoryQuery;
 use LaIOT\Services\History\HistoryRepository;
 use LaIOT\Services\Objects\ObjectRepository;
+use LaIOT\Services\WebSocket\WebSocketPublisher;
 
 /**
  * Единственный путь записи значения свойства в новом ядре.
  *
+ * 2026-10-29 — событие WebSocket пишется в outbox websocket в той же транзакции.
  * 2026-10-29 — пакет значений сохраняется атомарно вместе с заданиями событий.
  * Запись максимально короткая: сохранить значение и в той же транзакции
  * положить задание `property.changed` в очередь событий. Журнал, история,
@@ -47,7 +49,8 @@ final class PropertyValueService
         private readonly HistoryRepository $history,
         private readonly PropertyEventContext $context,
         private readonly PropertyEventQueue $events,
-        private readonly PropertyExecutionRepository $executions
+        private readonly PropertyExecutionRepository $executions,
+        private readonly ?WebSocketPublisher $websocket = null
     ) {
     }
 
@@ -179,11 +182,12 @@ final class PropertyValueService
         $token = $this->context->token($objectTitle, $propertyTitle);
         $loop = $this->context->contains($token);
         $tooDeep = $this->context->depth() >= PropertyEventContext::MAX_DEPTH;
+        $occurredAt = date('Y-m-d H:i:s');
         $this->executions->ensureTable();
 
         // Значение и задание — одна транзакция: событие не потеряется, если
         // запись упадёт, и не появится без сохранённого значения.
-        $this->database->transaction(function () use ($objectId, $propertyId, $objectTitle, $propertyTitle, $newValue, $source, $token, $loop, $tooDeep, $onlyNewValues, $property): void {
+        $this->database->transaction(function () use ($objectId, $propertyId, $objectTitle, $propertyTitle, $newValue, $source, $token, $loop, $tooDeep, $onlyNewValues, $property, $occurredAt): void {
             // Строка объекта существует и до первого значения свойства, поэтому
             // защищает также одновременное создание отсутствующего значения.
             $this->database->connection()->table('objects')->where('id', $objectId)->lockForUpdate()->first();
@@ -214,9 +218,12 @@ final class PropertyValueService
                 'loop' => $loop,
                 'parent_id' => $this->context->parentEventId(),
                 'module' => $this->context->module(),
-                'occurred_at' => date('Y-m-d H:i:s'),
+                'occurred_at' => $occurredAt,
             ]);
             $this->values->write($objectId, $propertyId, $newValue);
+            // Событие WebSocket пишется в ту же транзакцию: сервер outbox
+            // увидит его только после сохранения значения.
+            $this->websocket?->publish($objectId, $propertyId, $objectTitle, $propertyTitle, $oldValue, $newValue, $source, $occurredAt);
             $this->events->push($job, $objectId, $propertyId);
         });
 

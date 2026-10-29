@@ -58,11 +58,21 @@ $port = Config::int('REDIS_PORT', 6379);
 | `LOG_MAX_FILES` | Число суточных файлов на канал | `14` |
 | `NOTIFICATIONS_DUPLICATE_WINDOW` | Окно подавления повторных уведомлений, сек; `0` отключает | `3600` |
 | `SAY_MINIMUM_IMPORTANCE` | Минимальная важность для внешней доставки say, шкала 0–10 включительно | `5` |
+| `WEBSOCKET_ENABLED` | Выдача тикетов и запуск WebSocket-сервера | `true` |
+| `WEBSOCKET_HOST`, `WEBSOCKET_PORT`, `WEBSOCKET_PATH` | Адрес, порт и путь рукопожатия Workerman | `127.0.0.1`, `8081`, `/websocket` |
+| `WEBSOCKET_PUBLIC_URL` | Публичный ws(s)-адрес; пусто — хост панели плюс путь | Пустая строка |
+| `WEBSOCKET_WORKERS` | Число процессов сервера на Linux | `2` |
+| `WEBSOCKET_TICKET_TTL` | Срок тикета подключения, сек | `300` |
+| `WEBSOCKET_MAX_CONNECTIONS` | Подключений на процесс | `1000` |
+| `WEBSOCKET_ROOT_DOMAIN` | Корневой домен и все его поддомены в Origin; пусто — из публичного адреса, `BASE_URL` или Host | Пустая строка |
+| `WEBSOCKET_ALLOWED_ORIGINS` | Точные Origin через запятую; если заданы, заменяют правило домена | Пустая строка |
 | `RETENTION_HISTORY_DAYS` | История свойств, дней | `90` |
 | `RETENTION_EVENTS_DAYS` | Журнал событий, дней | `30` |
 | `RETENTION_QUEUE_DAYS` | Ошибки очереди, дней | `14` |
 | `RETENTION_TIMEOUTS_DAYS` | Завершённые таймеры, дней | `7` |
 | `RETENTION_ERRORS_DAYS` | Системные ошибки и файлы, дней | `90` |
+| `RETENTION_WEBSOCKET_EVENTS_DAYS` | Outbox событий WebSocket, дней | `1` |
+| `RETENTION_WEBSOCKET_TICKET_DAYS` | Тикеты WebSocket, дней | `7` |
 | `RETENTION_BATCH` | Строк в порции очистки | `5000` |
 | `RETENTION_INTERVAL` | Интервал фоновой очистки, сек | `21600` |
 
@@ -77,7 +87,8 @@ $port = Config::int('REDIS_PORT', 6379);
 ## Что настраивается PHP-конфигурацией
 
 `ConfigLoader` загружает `config/app.php`, `cache.php`, `queue.php`,
-`logging.php`, `retention.php`, `encryption.php`, `files.php`, `notifications.php`, `providers.php`; переданный конструктору
+`logging.php`, `retention.php`, `encryption.php`, `files.php`, `notifications.php`,
+`websocket.php`, `providers.php`; переданный конструктору
 Application массив рекурсивно перекрывает их. Исключение — providers: явно
 переданный список заменяет стандартный целиком. Это позволяет однозначно
 задавать порядок провайдеров в изолированной сборке. Контракт —
@@ -117,7 +128,8 @@ Application массив рекурсивно перекрывает их. Ис�
 ## Изменение через панель
 
 `/settings` доступен с правом `settings.manage`. Вкладки: «Основные»,
-«База данных», «Кэш и Redis», «Очередь», «Журналы», «Уведомления», «Хранение данных».
+«База данных», «Кэш и Redis», «Очередь», «Журналы», «Уведомления»,
+«Вебсокет», «Хранение данных».
 Поля, пояснения, поддерживаемые варианты и привязки к рабочей конфигурации
 описаны в `app/Services/Settings/SettingsSchema.php`. Значения по умолчанию берутся
 из PHP-конфигурации. `bootstrap/app.php` применяет эту же схему через

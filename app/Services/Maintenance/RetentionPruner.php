@@ -18,6 +18,7 @@ use Throwable;
  * Срок `0` отключает очистку конкретного раздела. Ошибки удаляются вместе с
  * отдельными файлами; остальные таблицы чистятся физически.
  *
+ * 2026-10-29 — outbox и тикеты websocket чистятся вместе с остальными данными.
  * 2026-10-27 — завершённые цепочки очищаются только без заданий в очереди.
  * 2026-10-27 — очистка истории, журнала, очереди, таймеров и ошибок.
  */
@@ -52,6 +53,8 @@ final class RetentionPruner
         return [
             'property_history' => $this->purgeByDate('property_history', $this->cutoff('history_days'), $batch, $dryRun),
             'property_events' => $this->purgeByDate('property_events', $this->cutoff('events_days'), $batch, $dryRun),
+            'websocket_events' => $this->purgeByDate('websocket_events', $this->cutoff('websocket_events_days'), $batch, $dryRun),
+            'websocket_tickets' => $this->purgeByDate('websocket_tickets', $this->cutoff('websocket_ticket_days'), $batch, $dryRun),
             'queue_jobs' => $this->purgeQueue($this->cutoff('queue_days'), $batch, $dryRun),
             'property_executions' => $this->purgeExecutions($this->cutoff('events_days'), $batch, $dryRun),
             'runtime_timeouts' => $this->purgeTimeouts($this->cutoff('timeouts_days'), $batch, $dryRun),

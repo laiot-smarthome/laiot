@@ -10,6 +10,7 @@ use LaIOT\Http\Controller;
 use LaIOT\Http\Session\SessionStore;
 use LaIOT\Services\Audit\ActionLogger;
 use LaIOT\Services\Auth\AdminAuthenticator;
+use LaIOT\Services\WebSocket\WebSocketTicketRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -25,7 +26,8 @@ final readonly class LoginController extends Controller
         private Factory $view,
         private SessionStore $session,
         private AdminAuthenticator $authenticator,
-        private ActionLogger $audit
+        private ActionLogger $audit,
+        private ?WebSocketTicketRepository $websocketTickets = null
     ) {
     }
 
@@ -61,6 +63,8 @@ final readonly class LoginController extends Controller
         $user = $this->session->user();
         if ($user !== null) {
             $this->audit->log('logout', 'Выход: ' . $user['username'], (string)$user['username']);
+            // Активные WebSocket-подключения закрываются на ближайшей проверке.
+            $this->websocketTickets?->revokeForUser($user['id']);
         }
         $this->session->logout();
 

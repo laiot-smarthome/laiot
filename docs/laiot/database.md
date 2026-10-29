@@ -44,6 +44,7 @@ TEXT. Query Builder и ModuleDb автоматически их не шифру�
 | Задания | queue_jobs, property_executions |
 | SDK | module_registry, module_migrations, shared_events |
 | Входящие webhook | api_webhooks |
+| WebSocket | websocket_events, websocket_tickets |
 | Настройки и миграции | settings, migrations |
 
 Справочник актуальных имён — миграции `database/migrations`.
@@ -52,15 +53,17 @@ TEXT. Query Builder и ModuleDb автоматически их не шифру�
 `/admin/modules/<id>/settings`.
 Retention (`db:prune`, `core-worker maintenance`) физически удаляет старые
 `property_history`, `property_events`, failed `queue_jobs`,
-`runtime_timeouts` и `system_errors`; сроки — в `config/retention.php`.
+`runtime_timeouts`, `system_errors`, `websocket_events` и `websocket_tickets`;
+сроки — в `config/retention.php`.
 При переносе ядровых разделов миграция 000024 переименовывает прежнюю
 `module_api_webhooks`, 000025 удаляет таблицу Shoutbox, 000026
 переименовывает `module_shared_events` в `shared_events`, а
 `2026_10_27_000001` добавляет `classes.parent_id`,
 `properties.object_id` и `methods.object_id`, `2026_10_27_000002` —
 таблицу подписок модулей `property_subscriptions`,
-`2026_10_27_000009` — описание класса `classes.description`, а
-`2026_10_27_000010` — политику повторов `properties.only_new_values`.
+`2026_10_27_000009` — описание класса `classes.description`,
+`2026_10_27_000010` — политику повторов `properties.only_new_values`, а
+`2026_10_29_000002` — outbox и тикеты WebSocket.
 Это разовые преобразования pre-release-схемы, не чтение двух схем в runtime.
 
 ## Колонки и soft delete

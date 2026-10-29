@@ -12,6 +12,7 @@ namespace LaIOT\Foundation;
  * в одном массиве.
  *
  * Изменения:
+ * 2026-10-29 — секция websocket.
  * 2026-10-29 — настройки окна повторов уведомлений вынесены в отдельную секцию.
  * 2026-10-28 — отдельная конфигурация шифрования и файлового хранилища.
  * 2026-10-27 — секция retention.
@@ -29,7 +30,7 @@ final class ConfigLoader
             return [];
         }
 
-        foreach (['cache', 'queue', 'logging', 'retention', 'encryption', 'files', 'notifications', 'providers'] as $section) {
+        foreach (['cache', 'queue', 'logging', 'retention', 'encryption', 'files', 'notifications', 'websocket', 'providers'] as $section) {
             $file = $root . '/config/' . $section . '.php';
             if (is_file($file)) {
                 $value = require $file;

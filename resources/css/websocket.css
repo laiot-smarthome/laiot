@@ -1,0 +1,94 @@
+/*
+ * WebSocket свойств.
+ *
+ * 2026-10-29 — индикатор соединения и мягкая подсветка изменившегося поля.
+ * Подсветка не перекрывает ввод и отключается при prefers-reduced-motion.
+ */
+
+.md-live-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--md-ui-muted);
+    font-size: var(--md-ui-fs-xs, 12px);
+    white-space: nowrap;
+    cursor: default;
+}
+
+.md-live-status[hidden] {
+    display: none;
+}
+
+.md-live-status__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .7;
+}
+
+.md-live-status[data-state="online"] {
+    color: var(--md-ui-success, #1f9d63);
+}
+
+.md-live-status[data-state="online"] .md-live-status__dot {
+    box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 14%, transparent);
+    opacity: 1;
+}
+
+.md-live-status[data-state="connecting"] {
+    color: var(--md-ui-warning, #b7791f);
+}
+
+.md-live-status[data-state="connecting"] .md-live-status__dot {
+    animation: md-live-pulse 1.2s ease-in-out infinite;
+    opacity: 1;
+}
+
+.md-live-status[data-state="offline"] {
+    color: var(--md-ui-muted);
+}
+
+.md-live-field {
+    position: relative;
+}
+
+.md-live-field.is-live-updated :is(input, textarea, select) {
+    animation: md-live-field-flash 900ms ease-out;
+}
+
+.md-live-field.is-live-updated::after {
+    content: '';
+    position: absolute;
+    inset-inline-end: 6px;
+    inset-block-start: 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--md-ui-primary);
+    pointer-events: none;
+    animation: md-live-dot-fade 1100ms ease-out forwards;
+}
+
+@keyframes md-live-pulse {
+    0%, 100% { opacity: .35; }
+    50% { opacity: 1; }
+}
+
+@keyframes md-live-field-flash {
+    from { background-color: color-mix(in srgb, var(--md-ui-primary) 12%, transparent); }
+    to { background-color: transparent; }
+}
+
+@keyframes md-live-dot-fade {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(.4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .md-live-status[data-state="connecting"] .md-live-status__dot,
+    .md-live-field.is-live-updated :is(input, textarea, select),
+    .md-live-field.is-live-updated::after {
+        animation: none;
+    }
+}

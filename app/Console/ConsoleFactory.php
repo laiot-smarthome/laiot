@@ -29,6 +29,7 @@ use LaIOT\Console\Commands\QueueWorkCommand;
 use LaIOT\Console\Commands\RouteListCommand;
 use LaIOT\Console\Commands\TimeoutRunCommand;
 use LaIOT\Console\Commands\UserCreateCommand;
+use LaIOT\Console\Commands\WebSocketCommand;
 use LaIOT\Console\Commands\WorkerCommand;
 use LaIOT\Foundation\Application;
 use LaIOT\Services\Auth\UserRepository;
@@ -47,6 +48,7 @@ use Symfony\Component\Console\Application as ConsoleApplication;
 /**
  * Общий реестр CLI для запуска и проверки справочника без выполнения команд.
  *
+ * 2026-10-29 — команда websocket в общем реестре CLI.
  * 2026-10-28 — регистрация вынесена из bin/laiot, чтобы документация
  * проверялась по тем же определениям аргументов и опций.
  */
@@ -82,6 +84,7 @@ final class ConsoleFactory
         $console->add(new CoreWorkerCommand($app->container()->make(CoreWorker::class)));
         $console->add(new PruneCommand($app->container()->make(RetentionPruner::class)));
         $console->add(new RouteListCommand($app));
+        $console->add(new WebSocketCommand($app));
         $console->add(new QueueStatsCommand($app));
         $console->add(new QueueWorkCommand($app));
         $console->add(new QueueFailedCommand($app));

@@ -16,9 +16,10 @@ use Symfony\Component\Console\Output\OutputInterface;
  *
  * --dry-run показывает объём без удаления; сроки берутся из config/retention.php.
  *
+ * 2026-10-29 — в очистку включены outbox и тикеты websocket.
  * 2026-10-27 — команда создана вместе с retention.
  */
-#[AsCommand(name: 'db:prune', description: 'Удалить устаревшие историю, журнал, задания, таймеры и ошибки')]
+#[AsCommand(name: 'db:prune', description: 'Удалить устаревшие данные по срокам retention')]
 final class PruneCommand extends Command
 {
     public function __construct(private readonly RetentionPruner $pruner)

@@ -29,6 +29,7 @@ order: 8
 | `queue:stats --queue=default [--json]` | Готовые, зарезервированные, failed |
 | `queue:failed --queue=default --limit=50 [--json]` | Упавшие задания |
 | `maintenance status` | Состояние файла обслуживания |
+| `websocket status` | Процесс WebSocket-сервера и число подключений |
 
 Команды используют конфигурацию текущей установки. Даже диагностические
 `health`/`doctor` обращаются к БД и кэшу; roundtrip кэша кратковременно
@@ -48,7 +49,7 @@ order: 8
 | `module:install <id>` | Реестр, миграции и install/enabled hooks |
 | `module:disable <id>` / `module:enable <id>` | Меняет состояние SDK-модуля |
 | `module:remove <id> [--purge]` | Uninstall hook, реестр, права, ассеты и файлы модуля; `--purge` — таблицы и SQLite/data |
-| `db:prune [--dry-run]` | Удаляет устаревшие историю, журнал, задания, таймеры и ошибки по `config/retention.php` |
+| `db:prune [--dry-run]` | Удаляет устаревшие данные, включая outbox websocket и тикеты, по `config/retention.php` |
 
 Не запускайте эту таблицу как готовый скрипт на рабочей установке.
 Перед первым пользователем применяются миграции ядра, включая класс Users.
@@ -81,6 +82,8 @@ order: 8
 | `core-worker system-events [--once]` | Системные события минуты, часа и дня |
 | `core-worker timeouts [--once]` | Постоянные таймеры либо один проход |
 | `core-worker maintenance [--once]` | Retention сразу и затем по `retention.interval` |
+| `websocket start` | Постоянный WebSocket-сервер до сигнала или ошибки |
+| `websocket stop` | Остановка сервера по pid-файлу (Linux) |
 
 Эти команды выполняют пользовательский или модульный код и могут иметь
 его внешние эффекты. `--once` ограничивает цикл, а не делает операцию
@@ -323,7 +326,8 @@ php bin/laiot core-worker events --once
 
 ### db:prune
 
-Удалить устаревшие историю, журнал, задания, таймеры и ошибки.
+Удалить устаревшие данные по срокам retention: историю, журнал, задания,
+таймеры, ошибки, outbox websocket и тикеты.
 
 Сроки задаются в config/retention.php. Ошибки удаляются вместе с их файлами.
 
@@ -466,6 +470,29 @@ php bin/laiot install --db-name=laiot --db-user=laiot --db-password='...' \
 ```bash
 php bin/laiot user:create <username> <name> <password> --admin
 ```
+
+### websocket
+
+Запустить или остановить WebSocket-сервер обновлений свойств и системных событий.
+
+| Параметр | Описание | Обязателен | По умолчанию |
+| --- | --- | --- | --- |
+| `action` | start, stop, restart, reload, status или connections | нет | start |
+| `--daemon` | Запустить в фоне (Linux) | нет | нет |
+| `--graceful` | Плавная остановка или перезагрузка | нет | нет |
+
+```bash
+php bin/laiot websocket start
+```
+
+```bash
+php bin/laiot websocket status
+```
+
+Сервер работает отдельным процессом и не запускается из HTTP. `start`
+остаётся в foreground и рассчитан на systemd; `-d`/`--daemon` уводит его в
+фон на Linux. Управление по pid-файлу (`stop`, `restart`, `status`) доступно
+только в Linux. Конфигурация, nginx и границы — [websocket.md](websocket.md).
 
 ### db:migrate
 

@@ -11,6 +11,7 @@ use LaIOT\Http\Controllers\ModulesController;
 use LaIOT\Http\Controllers\NotificationsController;
 use LaIOT\Http\Controllers\PanelAttentionController;
 use LaIOT\Http\Controllers\PanelSearchController;
+use LaIOT\Http\Controllers\WebSocketTicketController;
 use LaIOT\Services\Webhooks\WebhookEndpoint;
 
 return static function (Router $router): void {
@@ -36,6 +37,10 @@ return static function (Router $router): void {
         $router->get('/panel/attention', PanelAttentionController::class)
             ->middleware('auth')
             ->name('api.panel.attention');
+        // WebSocket: короткоживущий тикет подписки на свойства текущей страницы.
+        $router->post('/panel/websocket/ticket', WebSocketTicketController::class)
+            ->middleware(['auth', 'csrf'])
+            ->name('api.panel.websocket.ticket');
         // Редактор связей: поиск объектов и свойства/методы выбранного класса.
         $router->get('/panel/linked-object', LinkedObjectController::class)
             ->middleware('auth')

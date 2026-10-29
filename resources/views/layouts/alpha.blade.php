@@ -14,7 +14,19 @@
             $file = $root !== null ? $root . '/public' . $path : '';
             return $file !== '' && is_file($file) ? '?v=' . filemtime($file) : '';
         };
+        $websocket = \LaIOT\Support\AppContext::get()?->config('websocket', []);
+        $websocketEnabled = is_array($websocket) && (bool)($websocket['enabled'] ?? false);
+        $websocketMeta = [
+            'enabled' => $websocketEnabled,
+            'ticketUrl' => '/api/v1/panel/websocket/ticket',
+            'url' => is_array($websocket) ? (string)($websocket['public_url'] ?? '') : '',
+            'path' => is_array($websocket) ? (string)($websocket['path'] ?? '/websocket') : '/websocket',
+            'protocol' => 'laiot.v1',
+        ];
     @endphp
+    @if ($websocketEnabled)
+        <meta name="websocket-config" content="{{ json_encode($websocketMeta, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) }}">
+    @endif
     <link rel="stylesheet" href="/assets/admin/laiot.css{{ $assetVersion('/assets/admin/laiot.css') }}">
     @yoyo_scripts
     <script>
@@ -52,6 +64,11 @@
                 <a class="md-topbar-action" href="/status" aria-label="Состояние системы">
                     <i class="ti ti-heartbeat" aria-hidden="true"></i><span>Состояние</span>
                 </a>
+                <span class="md-topbar-action md-live-status" data-live-status data-state="offline"
+                      role="status" aria-live="polite" title="Обновления по WebSocket" hidden>
+                    <span class="md-live-status__dot" aria-hidden="true"></span>
+                    <span data-live-status-label>Вебсокет</span>
+                </span>
                 <button type="button" class="md-topbar-action md-notifications-bell" data-md-notifications-open
                         aria-label="Уведомления" title="Уведомления">
                     <i class="ti ti-bell" aria-hidden="true"></i>
