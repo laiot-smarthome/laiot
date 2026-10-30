@@ -6,6 +6,7 @@ namespace LaIOT\Yoyo;
 
 use Clickfwd\Yoyo\Component;
 use Clickfwd\Yoyo\Services\Response as YoyoResponse;
+use Composer\Semver\Comparator;
 use Illuminate\Contracts\Validation\Factory;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,6 +19,7 @@ use Throwable;
 
 /**
  * Прямой вызов через /yoyo тоже проверяет settings.manage, а изменение — POST.
+ * 2026-10-30 — действие проверки вместо служебного refresh; последние 10 выпусков и текущая версия в карусели.
  * 2026-10-29 — предпросмотр, подтверждение и отдельный аварийный доступ.
  */
 final class SystemUpdates extends Component
@@ -46,7 +48,7 @@ final class SystemUpdates extends Component
         }
     }
 
-    public function refresh(): void
+    public function checkUpdates(): void
     {
         $this->authorize(true);
         try {
@@ -105,9 +107,27 @@ final class SystemUpdates extends Component
     public function render(): mixed
     {
         $this->authorize();
-        $notes = $this->preview === [] ? '' : (new MarkdownRenderer())->render((string)($this->preview['release']['notes'] ?? ''), 'updates', [])['html'];
+        $current = $this->updates->current();
+        $renderer = new MarkdownRenderer();
+        $available = $this->updates->listing($this->channel, true);
+        $installed = array_values(array_filter($available, static fn (array $release): bool => $release['id'] === $current['id']));
+        $releases = array_slice(array_values(array_filter($available, static fn (array $release): bool => $release['id'] !== $current['id'])), 0, 10);
+        $releases = array_merge($releases, $installed);
+        foreach ($releases as &$release) {
+            $markdown = (string)($release['notes'] ?? '');
+            preg_match_all('/^[\t ]*(?:[-*+]|\d+\.)\s+.+$/mu', $markdown, $items);
+            $excerpt = $items[0] === [] ? mb_substr($markdown, 0, 400) : implode("\n", array_slice($items[0], 0, 3));
+            $release['summary'] = $renderer->render($excerpt, 'updates', [])['html'];
+            $release['notes_html'] = $renderer->render($markdown, 'updates', [])['html'];
+            $release['new'] = Comparator::greaterThan(substr((string)$release['id'], 5), (string)$current['version']);
+            $release['current'] = $release['id'] === $current['id'];
+            $release['url'] = isset($release['manifest_url'])
+                ? 'https://github.com/' . $this->updates->catalog->repository . '/releases/tag/' . rawurlencode((string)$release['id']) : '';
+        }
+        unset($release);
+        $notes = $this->preview === [] ? '' : $renderer->render((string)($this->preview['release']['notes'] ?? ''), 'updates', [])['html'];
         return $this->view('system-updates', [
-            'current' => $this->updates->current(), 'releases' => $this->updates->listing($this->channel),
+            'current' => $current, 'releases' => $releases,
             'operation' => $this->updates->state->read(), 'preview' => $this->preview, 'notes' => $notes,
             'repository' => (string)($this->updates->config['updates']['repository'] ?? 'laiot-smarthome/laiot'), 'error' => $this->error, 'channel' => $this->channel,
         ]);

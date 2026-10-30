@@ -14,6 +14,7 @@ use Throwable;
 
 /**
  * Предварительный просмотр и запуск операции. Проверки повторяются отдельным процессом перед остановкой.
+ * 2026-10-30 — полный список выбранного канала отсортирован по убыванию semver.
  * 2026-10-30 — неопределённая версия считается 0.0.0; установленный манифест имеет приоритет.
  * 2026-10-29 — номерные каналы, проверки окружения и совместимости, один снимок на исходный релиз.
  */
@@ -58,7 +59,7 @@ readonly class UpdateService
     }
 
     /** @return list<array<string, mixed>> */
-    public function listing(string $channel): array
+    public function listing(string $channel, bool $includeCurrent = false): array
     {
         $cached = UpdateFiles::read($this->state->directory . '/catalog.json');
         $remote = ($cached['repository'] ?? '') === $this->catalog->repository ? (array)($cached['releases'] ?? []) : [];
@@ -75,8 +76,18 @@ readonly class UpdateService
                 $releases[$id] = ($releases[$id] ?? ['id' => $id, 'channel' => $local['channel'], 'title' => $id, 'notes' => 'Сохранённая версия системы.']) + ['local' => true];
             }
         }
-        $current = $this->current()['id'];
-        return array_values(array_filter($releases, static fn (array $release): bool => $release['channel'] === $channel && $release['id'] !== $current));
+        $installed = $this->current();
+        $current = $installed['id'];
+        if ($includeCurrent) {
+            $releases[$current] ??= $installed + ['title' => $current, 'notes' => 'Текущая установленная версия системы.'];
+        }
+        $releases = array_values(array_filter($releases, static fn (array $release): bool => ($release['channel'] === $channel && $release['id'] !== $current) || ($includeCurrent && $release['id'] === $current)));
+        usort($releases, static function (array $left, array $right): int {
+            $leftVersion = substr((string)$left['id'], 5);
+            $rightVersion = substr((string)$right['id'], 5);
+            return Comparator::greaterThan($leftVersion, $rightVersion) ? -1 : (Comparator::lessThan($leftVersion, $rightVersion) ? 1 : 0);
+        });
+        return $releases;
     }
 
     /** @return array<string, mixed> */

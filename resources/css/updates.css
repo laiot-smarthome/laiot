@@ -30,28 +30,61 @@ body.md-update-recovery { min-height: 100vh; padding: clamp(20px, 4vw, 52px); ba
 .md-upd-section-head p { margin: 8px 0 0; color: var(--md-ui-muted); font-size: 12px; line-height: 1.7; }
 .md-upd-release-board, .md-upd-preview, .md-upd-how, .md-upd-progress-card, .md-upd-unlock, .md-upd-recovery-choice { min-width: 0; padding: 28px; border: 1px solid var(--md-ui-border); border-radius: 22px; background: var(--md-ui-surface); }
 .md-upd-release-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding-bottom: 22px; border-bottom: 1px solid var(--md-ui-border); }
-.md-upd-channel-tabs { display: inline-flex; gap: 5px; padding: 5px; border: 1px solid var(--md-ui-border); border-radius: 14px; background: var(--md-ui-bg); }
+.md-upd-channel-tabs { display: inline-flex; gap: 6px; padding: 6px; border: 1px solid var(--md-ui-border); border-radius: 16px; background: var(--md-ui-bg-soft); }
 .md-upd-button-content { display: inline-flex; align-items: center; justify-content: center; gap: 9px; }
 .md-upd-button-content .md-spinner { width: 15px; height: 15px; flex: 0 0 auto; border-width: 2px; }
 .md-upd-loading { width: 100%; margin-top: 20px; padding: 12px 0; color: var(--md-ui-primary); font-size: 12px; text-align: center; }
 .md-upd-release-results { margin-top: 22px; }
 .md-upd-release-results.is-loading { opacity: .4; pointer-events: none; }
 .md-upd-channel-tabs button:disabled { cursor: progress; opacity: .65; }
-.md-upd-channel-tabs button { display: flex; align-items: center; gap: 10px; padding: 9px 18px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--md-ui-muted); cursor: pointer; text-align: left; transition: background .18s, color .18s; }
-.md-upd-channel-tabs button > .md-icon { font-size: 20px; }
-.md-upd-channel-tabs button > span { font-size: 12px; font-weight: 600; }
-.md-upd-channel-tabs small { display: block; font-size: 9px; font-weight: 400; margin-top: 2px; }
-.md-upd-channel-tabs button[aria-pressed="true"] { border-color: var(--md-ui-border); background: var(--md-ui-surface); color: var(--md-ui-primary); box-shadow: 0 2px 5px color-mix(in srgb, var(--md-ui-text) 4%, transparent); }
-.md-upd-release-list { display: grid; gap: 10px; }
-.md-upd-release-option { display: flex; width: 100%; gap: 16px; align-items: center; padding: 18px; border: 1px solid var(--md-ui-border); border-radius: 16px; background: var(--md-ui-surface); color: var(--md-ui-text); text-align: left; cursor: pointer; transition: border-color .18s, background .18s; }
-.md-upd-release-option:hover, .md-upd-release-option[data-selected="true"] { border-color: var(--md-ui-primary); background: color-mix(in srgb, var(--md-ui-primary) 4%, var(--md-ui-surface)); }
-.md-upd-release-option:disabled { opacity: .65; cursor: progress; }
-.md-upd-release-option__icon { display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; border-radius: 13px; background: var(--md-ui-primary-soft); color: var(--md-ui-primary); font-size: 23px; }
-.md-upd-release-option__info { display: grid; flex: 1; min-width: 0; gap: 5px; }
-.md-upd-release-option__info strong { font-size: 14px; overflow-wrap: anywhere; }
-.md-upd-release-option__info > span { color: var(--md-ui-muted); font-size: 11px; }
-.md-upd-release-option__date { color: var(--md-ui-muted); font-size: 11px; }
-.md-upd-release-option__action { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--md-ui-primary); }
+.md-upd-channel-tabs button { display: flex; align-items: center; gap: 12px; min-height: 62px; padding: 10px 15px; border: 1px solid transparent; border-radius: 11px; background: transparent; color: var(--md-ui-text-soft); cursor: pointer; text-align: left; transition: background .18s, color .18s; }
+.md-upd-channel-icon { display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; border-radius: 10px; background: var(--md-ui-surface); font-size: 21px; }
+.md-upd-channel-copy { display: grid; gap: 3px; }
+.md-upd-channel-copy strong { font-size: 14px; line-height: 1.3; font-weight: 600; }
+.md-upd-channel-copy small { font-size: 12px; line-height: 1.3; color: var(--md-ui-muted); }
+.md-upd-channel-check { margin-left: 8px; font-size: 17px; opacity: 0; }
+.md-upd-channel-tabs button:hover { background: var(--md-ui-surface); }
+.md-upd-channel-tabs button[aria-pressed="true"] { border-color: color-mix(in srgb, var(--md-ui-primary) 30%, var(--md-ui-border)); background: var(--md-ui-primary-soft); color: var(--md-ui-primary); }
+.md-upd-channel-tabs button[aria-pressed="true"] .md-upd-channel-icon { background: var(--md-ui-surface); }
+.md-upd-channel-tabs button[aria-pressed="true"] .md-upd-channel-check { opacity: 1; }
+.md-upd-release-count { margin: 0; color: var(--md-ui-muted); font-size: 12px; }
+.md-upd-release-carousel { min-width: 0; }
+.md-upd-carousel-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.md-upd-carousel-navigation { display: flex; align-items: center; gap: 8px; }
+.md-upd-carousel-arrow, .md-upd-current-jump { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; min-height: 44px; padding: 0 10px; border: 1px solid var(--md-ui-border); border-radius: 11px; background: var(--md-ui-surface); color: var(--md-ui-text-soft); font: inherit; cursor: pointer; }
+.md-upd-carousel-arrow { width: 44px; font-size: 20px; }
+.md-upd-current-jump { gap: 6px; margin-right: 8px; font-size: 12px; }
+.md-upd-carousel-arrow:hover, .md-upd-current-jump:hover { color: var(--md-ui-primary); border-color: var(--md-ui-primary); }
+.md-upd-carousel-arrow:disabled, .md-upd-current-jump:disabled { opacity: .4; cursor: default; }
+.md-upd-carousel-counter { min-width: 42px; font-size: 12px; color: var(--md-ui-muted); text-align: center; font-variant-numeric: tabular-nums; }
+.md-upd-release-viewport { width: 100%; margin: 0; border-radius: 16px; }
+.md-upd-release-carousel .swiper-slide { box-sizing: border-box; height: auto; }
+.md-upd-release-card { min-width: 0; padding: 22px; border: 1px solid var(--md-ui-border); border-radius: 16px; background: var(--md-ui-surface); }
+.md-upd-release-card[data-selected="true"] { border-color: var(--md-ui-primary); background: color-mix(in srgb, var(--md-ui-primary) 3%, var(--md-ui-surface)); }
+.md-upd-release-card__head { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 14px; }
+.md-upd-release-card__icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; background: var(--md-ui-primary-soft); color: var(--md-ui-primary); font-size: 23px; }
+.md-upd-release-card__title { min-width: 0; }
+.md-upd-release-card__title h3 { overflow: hidden; margin: 0; font-size: 17px; line-height: 1.3; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.md-upd-release-card__meta { display: flex; gap: 16px; margin: 6px 0 0; color: var(--md-ui-muted); font-size: 12px; line-height: 1.4; white-space: nowrap; }
+.md-upd-release-card__meta > span { display: inline-flex; align-items: center; gap: 6px; }
+.md-upd-release-card__summary { margin: 20px 0; }
+.md-upd-release-card__summary-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.md-upd-release-card__summary h4 { margin: 0; font-size: 12px; font-weight: 600; color: var(--md-ui-text-soft); }
+.md-upd-release-card__summary .md-prose { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; max-height: 11em; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+.md-upd-release-card__summary .md-prose :is(h1, h2, h3, h4) { margin: 0 0 6px; font-size: 13px; }
+.md-upd-release-card__summary .md-prose ul, .md-upd-release-card__summary .md-prose ol { margin: 0; padding-left: 20px; }
+.md-upd-release-card__summary .md-prose li + li { margin-top: 5px; }
+.md-upd-release-card__summary .md-prose p { margin: 0; }
+.md-upd-release-card__summary > p { margin: 0; font-size: 13px; color: var(--md-ui-muted); }
+.md-upd-release-card__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding-top: 14px; border-top: 1px solid var(--md-ui-border); }
+.md-upd-release-card__more, .md-upd-release-card__github { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 0; border: 0; background: transparent; font: inherit; font-size: 12px; color: var(--md-ui-primary); text-decoration: none; cursor: pointer; }
+.md-upd-release-card__more:disabled { opacity: .6; cursor: progress; }
+.md-upd-release-card__github { color: var(--md-ui-muted); }
+.md-upd-release-card__github:hover { color: var(--md-ui-primary); }
+.md-upd-release-card__actions > .md-btn { margin-left: auto; }
+.md-upd-notes-modal .modal-body { max-height: 65vh; overflow: auto; }
+.md-upd-notes-modal .md-prose { font-size: 14px; overflow-wrap: anywhere; }
+.md-upd-notes-version { margin: 0 0 18px; color: var(--md-ui-primary); font-size: 16px; font-weight: 600; }
 .md-upd-no-releases { display: grid; justify-items: center; gap: 12px; padding: 32px 16px; text-align: center; }
 .md-upd-no-releases__icon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 18px; font-size: 28px; background: var(--md-ui-primary-soft); color: var(--md-ui-primary); }
 .md-upd-no-releases h3 { font-size: 18px; }
@@ -179,8 +212,8 @@ body.md-update-recovery { min-height: 100vh; padding: clamp(20px, 4vw, 52px); ba
 .md-snake__directions button { display: grid; place-items: center; width: 44px; height: 40px; border: 1px solid var(--md-ui-border); border-radius: 10px; background: var(--md-ui-bg-soft); color: var(--md-ui-text-soft); font-size: 19px; cursor: pointer; touch-action: manipulation; }
 .md-snake__directions button:hover { color: var(--md-ui-primary); border-color: var(--md-ui-primary); }
 .md-snake__keys { text-align: center; color: var(--md-ui-muted); font-size: 9px; margin: 12px 0 0; }
-.md-upd-channel-tabs button:focus-visible, .md-upd-release-option:focus-visible, .md-snake button:focus-visible { outline: 3px solid var(--md-ui-focus); outline-offset: 3px; }
-@media (max-width: 1050px) { .md-upd-hero { grid-template-columns: minmax(0, 1fr) 225px; padding: 30px; } .md-upd-mascot-scene { width: 230px; } .md-upd-mascot-scene > img { width: 210px; height: 210px; } .md-upd-orbit--two { width: 240px; height: 240px; } .md-upd-release-option__date { display: none; } .md-upd-preview-grid { grid-template-columns: 1fr; gap: 24px; } }
+.md-upd-channel-tabs button:focus-visible, .md-upd-carousel-navigation > button:focus-visible, .md-upd-release-viewport:focus-visible, .md-upd-release-card__actions > :focus-visible, .md-snake button:focus-visible { outline: 3px solid var(--md-ui-focus); outline-offset: 3px; }
+@media (max-width: 1050px) { .md-upd-hero { grid-template-columns: minmax(0, 1fr) 225px; padding: 30px; } .md-upd-mascot-scene { width: 230px; } .md-upd-mascot-scene > img { width: 210px; height: 210px; } .md-upd-orbit--two { width: 240px; height: 240px; } .md-upd-preview-grid { grid-template-columns: 1fr; gap: 24px; } }
 @media (max-width: 760px) { .md-upd-console-grid { grid-template-columns: 1fr; } .md-upd-how-grid { grid-template-columns: 1fr 1fr; gap: 24px; } .md-upd-unlock { grid-template-columns: 1fr; gap: 25px; } .md-upd-hero h1 { font-size: 42px; } }
 @media (max-width: 540px) {
     body.md-update-recovery { padding: 16px; } .md-upd-console, .md-updates-page, .md-upd-admin { gap: 18px; }
@@ -197,10 +230,19 @@ body.md-update-recovery { min-height: 100vh; padding: clamp(20px, 4vw, 52px); ba
     .md-upd-section-head { gap: 14px; margin-bottom: 20px; } .md-upd-section-head h2 { font-size: 21px; }
     .md-upd-section-head > .md-btn { width: 100%; }
     .md-upd-release-toolbar { align-items: stretch; } .md-upd-release-toolbar > * { width: 100%; }
-    .md-upd-channel-tabs { display: flex; } .md-upd-channel-tabs button { flex: 1; padding: 9px 12px; gap: 8px; }
-    .md-upd-release-option { padding: 14px; gap: 12px; } .md-upd-release-option__icon { width: 36px; height: 40px; font-size: 20px; }
-    .md-upd-release-option__action { font-size: 0; gap: 0; } .md-upd-release-option__action > .md-icon { font-size: 20px; }
-    .md-upd-release-option__info strong { font-size: 12px; } .md-upd-release-option__info > span { font-size: 10px; line-height: 1.7; }
+    .md-upd-channel-tabs { display: flex; } .md-upd-channel-tabs button { flex: 1; min-width: 0; padding: 9px 8px; gap: 8px; }
+    .md-upd-channel-icon { flex-basis: 28px; width: 28px; height: 32px; font-size: 19px; }
+    .md-upd-channel-copy strong { font-size: 12px; } .md-upd-channel-copy small { font-size: 12px; }
+    .md-upd-channel-check { display: none; }
+    .md-upd-carousel-navigation { width: 100%; justify-content: space-between; gap: 6px; }
+    .md-upd-current-jump { padding: 0 8px; margin-right: auto; }
+    .md-upd-release-card { padding: 16px; }
+    .md-upd-release-card__head { grid-template-columns: 38px minmax(0, 1fr); gap: 10px 12px; }
+    .md-upd-release-card__icon { width: 38px; height: 38px; font-size: 20px; }
+    .md-upd-release-card__title h3 { font-size: 15px; }
+    .md-upd-release-card__meta { gap: 12px; font-size: 11px; }
+    .md-upd-release-card__actions { gap: 8px 16px; }
+    .md-upd-release-card__actions > .md-btn { width: 100%; margin-left: 0; }
     .md-upd-departure { margin: 24px -22px -22px; padding: 22px; } .md-upd-start-form > .md-btn { width: 100%; }
     .md-upd-safety { gap: 11px; font-size: 9px; } .md-upd-source { font-size: 9px; }
     .md-upd-topline { gap: 14px; } .md-upd-wordmark { font-size: 20px; } .md-upd-topline__divider { margin: 0 12px; } .md-upd-connection { font-size: 9px; }
@@ -209,4 +251,4 @@ body.md-update-recovery { min-height: 100vh; padding: clamp(20px, 4vw, 52px); ba
     .md-upd-actions > .md-btn { width: 100%; } .md-upd-consent { font-size: 10px; }
     .md-snake { padding: 20px; } .md-snake h3 { font-size: 16px; }
 }
-@media (prefers-reduced-motion: reduce) { .md-upd-mascot-scene > img { animation: none; } .md-upd-progress-card progress::-webkit-progress-value, .md-upd-release-option, .md-upd-channel-tabs button { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .md-upd-mascot-scene > img { animation: none; } .md-upd-progress-card progress::-webkit-progress-value, .md-upd-channel-tabs button { transition: none; } }

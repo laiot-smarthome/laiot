@@ -7,6 +7,8 @@
 
 import '../css/laiot.css';
 import '../css/mqtt.css';
+import 'swiper/css';
+import 'swiper/css/a11y';
 import '../css/updates.css';
 
 import Alpine from 'alpinejs';
@@ -34,6 +36,7 @@ import {registerNameCheck} from './laiot/name-check.js';
 import {registerDropdown} from './laiot/dropdown.js';
 import {registerCallFlow} from './laiot/call-flow.js';
 import {initUpdateConsoles} from './laiot/update-console.js';
+import {registerReleaseSlider} from './laiot/release-slider.js';
 
 initUpdateConsoles();
 
@@ -210,6 +213,7 @@ registerClassesTree(Alpine);
 registerNameCheck(Alpine);
 registerDropdown(Alpine);
 registerCallFlow(Alpine);
+registerReleaseSlider(Alpine);
 
 Alpine.start();
 initSelects();

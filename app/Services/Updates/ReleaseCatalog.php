@@ -9,6 +9,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * Читает только опубликованные номерные выпуски выбранного репозитория GitHub.
+ * 2026-10-30 — все страницы каталога и явная перепроверка HTTP-кэша GitHub.
  * 2026-10-29 — готовый архив, метаданные, описание и проверка SHA-256 перед распаковкой.
  */
 final readonly class ReleaseCatalog
@@ -28,35 +29,40 @@ final readonly class ReleaseCatalog
     /** @return list<array<string, mixed>> */
     public function releases(): array
     {
-        $releases = $this->http->request('GET', 'https://api.github.com/repos/' . $this->repository . '/releases?per_page=100', [
-            'headers' => ['Accept' => 'application/vnd.github+json', 'User-Agent' => 'LaIOT-Updater'],
-            'timeout' => 15, 'max_duration' => 30,
-        ])->toArray();
         $result = [];
-        foreach ($releases as $release) {
-            if (!is_array($release) || ($release['draft'] ?? true) === true) {
-                continue;
+        for ($page = 1; ; $page++) {
+            $releases = $this->http->request('GET', 'https://api.github.com/repos/' . $this->repository . '/releases?per_page=100&page=' . $page, [
+                'headers' => ['Accept' => 'application/vnd.github+json', 'User-Agent' => 'LaIOT-Updater', 'Cache-Control' => 'no-cache, max-age=0', 'Pragma' => 'no-cache'],
+                'timeout' => 15, 'max_duration' => 30,
+            ])->toArray();
+            foreach ($releases as $release) {
+                if (!is_array($release) || ($release['draft'] ?? true) === true) {
+                    continue;
+                }
+                $id = (string)($release['tag_name'] ?? '');
+                if (preg_match('/^(main|beta)-[0-9]+\.[0-9]+\.[0-9]+/', $id) !== 1) {
+                    continue;
+                }
+                ReleaseManifest::assertId($id);
+                $assets = [];
+                foreach ((array)($release['assets'] ?? []) as $asset) {
+                    $assets[(string)$asset['name']] = $asset;
+                }
+                if (!isset($assets['laiot-release.json'], $assets['laiot.zip'])) {
+                    continue;
+                }
+                $result[] = [
+                    'id' => $id, 'channel' => str_starts_with($id, 'main-') ? 'main' : 'beta',
+                    'title' => (string)($release['name'] ?: $id), 'notes' => (string)($release['body'] ?? ''),
+                    'published_at' => (string)($release['published_at'] ?? ''),
+                    'manifest_url' => $this->assetUrl((string)$assets['laiot-release.json']['browser_download_url'], $id),
+                    'archive_url' => $this->assetUrl((string)$assets['laiot.zip']['browser_download_url'], $id),
+                    'size' => (int)($assets['laiot.zip']['size'] ?? 0),
+                ];
             }
-            $id = (string)($release['tag_name'] ?? '');
-            if (preg_match('/^(main|beta)-[0-9]+\.[0-9]+\.[0-9]+/', $id) !== 1) {
-                continue;
+            if (count($releases) < 100) {
+                break;
             }
-            ReleaseManifest::assertId($id);
-            $assets = [];
-            foreach ((array)($release['assets'] ?? []) as $asset) {
-                $assets[(string)$asset['name']] = $asset;
-            }
-            if (!isset($assets['laiot-release.json'], $assets['laiot.zip'])) {
-                continue;
-            }
-            $result[] = [
-                'id' => $id, 'channel' => str_starts_with($id, 'main-') ? 'main' : 'beta',
-                'title' => (string)($release['name'] ?: $id), 'notes' => (string)($release['body'] ?? ''),
-                'published_at' => (string)($release['published_at'] ?? ''),
-                'manifest_url' => $this->assetUrl((string)$assets['laiot-release.json']['browser_download_url'], $id),
-                'archive_url' => $this->assetUrl((string)$assets['laiot.zip']['browser_download_url'], $id),
-                'size' => (int)($assets['laiot.zip']['size'] ?? 0),
-            ];
         }
         return $result;
     }

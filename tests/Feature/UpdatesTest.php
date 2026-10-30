@@ -42,6 +42,7 @@ use ZipArchive;
 
 /**
  * Проверки обновителя работают только во временных каталогах, с SQLite и подменой HTTP/systemd.
+ * 2026-10-30 — реальный POST Yoyo обновляет каталог повторно; пагинация, сортировка и безопасные карточки.
  * 2026-10-30 — переход с неизвестной версии на первый релиз и отказ сборки несовместимых core-модулей.
  * 2026-10-29 — прерывание миграции, повтор, откат, целостность архива и защита веб-действий.
  */
@@ -145,6 +146,136 @@ final class UpdatesTest extends TestCase
     {
         $catalog = new ReleaseCatalog(new MockHttpClient([new MockResponse('[{"draft":true},{"draft":false,"tag_name":"latest"}]')]), 'laiot-smarthome/laiot');
         self::assertSame([], $catalog->releases());
+    }
+
+    public function testCatalogLoadsEveryPageAndRevalidatesHttpCache(): void
+    {
+        $first = [];
+        for ($index = 0; $index < 100; $index++) {
+            $first[] = $this->githubRelease('2.1.' . $index);
+        }
+        $responses = [new MockResponse(json_encode($first, JSON_THROW_ON_ERROR)), new MockResponse(json_encode([$this->githubRelease('2.2.0')], JSON_THROW_ON_ERROR))];
+        $http = new MockHttpClient($responses);
+        $catalog = new ReleaseCatalog($http, 'laiot-smarthome/laiot');
+        $releases = $catalog->releases();
+        self::assertCount(101, $releases);
+        self::assertSame('beta-2.2.0', $releases[100]['id']);
+        foreach ($responses as $index => $response) {
+            self::assertStringEndsWith('per_page=100&page=' . ($index + 1), $response->getRequestUrl());
+            self::assertStringContainsString('cache-control: no-cache, max-age=0', strtolower(implode("\n", $response->getRequestOptions()['headers'])));
+        }
+    }
+
+    public function testListingMergesLocalVersionsAndSortsSemverWithinChannel(): void
+    {
+        UpdateFiles::json($this->state->directory . '/catalog.json', ['repository' => 'laiot-smarthome/laiot', 'releases' => [
+            ['id' => 'beta-2.9.0', 'channel' => 'beta'], ['id' => 'beta-2.10.0', 'channel' => 'beta'],
+            ['id' => 'beta-2.0.0', 'channel' => 'beta'], ['id' => 'main-9.0.0', 'channel' => 'main'],
+        ]]);
+        UpdateFiles::json($this->directory . '/releases/beta-2.9.0/release.json', $this->manifest('2.9.0'));
+        UpdateFiles::json($this->directory . '/releases/beta-2.5.0/release.json', $this->manifest('2.5.0'));
+        $releases = $this->updates->listing('beta');
+        self::assertSame(['beta-2.10.0', 'beta-2.9.0', 'beta-2.5.0'], array_column($releases, 'id'));
+        self::assertTrue($releases[1]['local']);
+    }
+
+    public function testCheckUpdatesActionFetchesNewReleasesOnEveryClick(): void
+    {
+        $http = new MockHttpClient([
+            new MockResponse(json_encode([$this->githubRelease('2.1.0'), $this->githubRelease('2.2.0')], JSON_THROW_ON_ERROR)),
+            new MockResponse(json_encode([$this->githubRelease('2.1.0'), $this->githubRelease('2.2.0'), $this->githubRelease('2.10.0')], JSON_THROW_ON_ERROR)),
+        ]);
+        $this->useCatalog($http);
+        UpdateFiles::json($this->state->directory . '/catalog.json', ['repository' => 'laiot-smarthome/laiot', 'releases' => [
+            ['id' => 'beta-2.1.0', 'channel' => 'beta', 'title' => 'Старый список', 'notes' => ''],
+        ]]);
+        $app = $this->application();
+        foreach ([['beta-2.2.0', 'beta-2.1.0'], ['beta-2.10.0', 'beta-2.2.0', 'beta-2.1.0']] as $expected) {
+            Yoyo::request()->reset();
+            $_REQUEST = ['component' => 'system-updates/checkUpdates', 'yoyo-id' => 'fixture-update'];
+            $_SERVER['REQUEST_METHOD'] = 'POST';
+            $_SERVER['HTTP_HX_REQUEST'] = 'true';
+            Yoyo::request()->mock($_REQUEST, $_SERVER);
+            $response = $app->handle(Request::create('/yoyo', 'POST', [], [], [], ['HTTP_X_CSRF_TOKEN' => $app->session()->csrfToken()]));
+            self::assertSame(200, $response->getStatusCode(), (string)$response->getContent());
+            self::assertSame($expected, array_column($this->updates->listing('beta'), 'id'));
+            foreach ($expected as $id) {
+                self::assertStringContainsString('data-release="' . $id . '"', (string)$response->getContent());
+            }
+        }
+        self::assertSame(2, $http->getRequestsCount());
+    }
+
+    public function testFailedCheckKeepsPreviousCatalogAndReportsError(): void
+    {
+        $this->useCatalog(new MockHttpClient([new MockResponse('{}', ['http_code' => 503])]));
+        $cached = ['repository' => 'laiot-smarthome/laiot', 'checked_at' => 'previous', 'releases' => []];
+        UpdateFiles::json($this->state->directory . '/catalog.json', $cached);
+        $app = $this->application();
+        $_REQUEST = ['component' => 'system-updates/checkUpdates', 'yoyo-id' => 'fixture-update'];
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['HTTP_HX_REQUEST'] = 'true';
+        Yoyo::request()->mock($_REQUEST, $_SERVER);
+        $response = $app->handle(Request::create('/yoyo', 'POST', [], [], [], ['HTTP_X_CSRF_TOKEN' => $app->session()->csrfToken()]));
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame($cached, UpdateFiles::read($this->state->directory . '/catalog.json'));
+        self::assertStringContainsString('danger', (string)$response->headers->get('Yoyo-Browser-Event'));
+    }
+
+    public function testReleaseCardsHaveSafeNotesAndIndependentReadAndInstallActions(): void
+    {
+        $release = $this->githubRelease('2.1.0');
+        $release['body'] = "# Release\n\n- First change\n- Second change\n- Third change\n- Fourth change\n\n<script>alert('bad')</script>\n\n[Unsafe](javascript:alert(1))";
+        $this->useCatalog(new MockHttpClient([new MockResponse(json_encode([$release], JSON_THROW_ON_ERROR))]));
+        $this->updates->refresh();
+        $response = $this->application()->handle(Request::create('/admin/updates', 'GET'));
+        $html = (string)$response->getContent();
+        self::assertSame(200, $response->getStatusCode(), $html);
+        self::assertStringContainsString('Новая версия', $html);
+        self::assertStringContainsString('First change', $html);
+        self::assertStringContainsString('Читать полностью', $html);
+        self::assertStringContainsString('Проверить и установить', $html);
+        self::assertStringContainsString('https://github.com/laiot-smarthome/laiot/releases/tag/beta-2.1.0', $html);
+        self::assertStringContainsString('id="update-release-notes"', $html);
+        self::assertStringNotContainsString('<script>alert', $html);
+        self::assertStringNotContainsString('href="javascript:', $html);
+        $before = libxml_use_internal_errors(true);
+        $dom = new \DOMDocument();
+        $dom->loadHTML($html);
+        libxml_clear_errors();
+        libxml_use_internal_errors($before);
+        $xpath = new \DOMXPath($dom);
+        $card = $xpath->query('//article[@data-release="beta-2.1.0"]')->item(0);
+        self::assertNotNull($card);
+        self::assertSame(0, $xpath->query('.//button//button', $card)->length);
+        $more = $xpath->query('.//button[contains(@class, "__more")]', $card)->item(0);
+        self::assertInstanceOf(\DOMElement::class, $more);
+        self::assertStringContainsString('Fourth change', $more->getAttribute('x-on:click'));
+        self::assertSame(3, $xpath->query('.//div[contains(@class, "__summary")]//li', $card)->length);
+    }
+
+    public function testCarouselShowsTenLatestReleasesAndCurrentVersionOnce(): void
+    {
+        $releases = [$this->githubRelease('2.0.0')];
+        for ($version = 1; $version <= 14; $version++) {
+            $releases[] = $this->githubRelease('2.' . $version . '.0');
+        }
+        $this->useCatalog(new MockHttpClient([new MockResponse(json_encode($releases, JSON_THROW_ON_ERROR))]));
+        $this->updates->refresh();
+        $response = $this->application()->handle(Request::create('/admin/updates', 'GET'));
+        $html = (string)$response->getContent();
+        self::assertSame(200, $response->getStatusCode(), $html);
+        preg_match_all('/<article[^>]+data-release="([^"]+)"/', $html, $cards);
+        self::assertSame(['beta-2.14.0', 'beta-2.13.0', 'beta-2.12.0', 'beta-2.11.0', 'beta-2.10.0', 'beta-2.9.0', 'beta-2.8.0', 'beta-2.7.0', 'beta-2.6.0', 'beta-2.5.0', 'beta-2.0.0'], $cards[1]);
+        self::assertSame(1, substr_count($html, 'data-current="true"'));
+        self::assertStringContainsString('Моя версия', $html);
+        self::assertStringContainsString('Текущая версия', $html);
+        self::assertSame(['beta-2.0.0'], array_column($this->updates->listing('main', true), 'id'));
+        self::assertSame([], $this->updates->listing('main'));
+        self::assertCount(14, $this->updates->listing('beta'));
+        $installed = substr($html, (int)strpos($html, 'data-release="beta-2.0.0"'));
+        $installed = strstr($installed, '</article>', true);
+        self::assertStringNotContainsString('data-update-action="inspect"', $installed);
     }
 
     public function testArchiveCannotOverwriteEnvironmentOrThirdPartyCode(): void
@@ -355,17 +486,43 @@ final class UpdatesTest extends TestCase
     public function testYoyoRejectsGetMutationAndMissingCsrf(): void
     {
         $app = $this->application();
-        $_REQUEST = ['component' => 'system-updates/start', 'yoyo-id' => 'fixture-update'];
-        $_SERVER['REQUEST_METHOD'] = 'GET';
-        $_SERVER['HTTP_HX_REQUEST'] = 'true';
-        Yoyo::request()->mock($_REQUEST, $_SERVER);
-        $response = $app->handle(Request::create('/yoyo', 'GET'));
-        self::assertSame(403, $response->getStatusCode());
+        foreach (['start', 'checkUpdates'] as $action) {
+            Yoyo::request()->reset();
+            $_REQUEST = ['component' => 'system-updates/' . $action, 'yoyo-id' => 'fixture-update'];
+            $_SERVER['REQUEST_METHOD'] = 'GET';
+            $_SERVER['HTTP_HX_REQUEST'] = 'true';
+            Yoyo::request()->mock($_REQUEST, $_SERVER);
+            $response = $app->handle(Request::create('/yoyo', 'GET'));
+            self::assertSame(403, $response->getStatusCode());
+        }
         Yoyo::request()->reset();
         $_SERVER['REQUEST_METHOD'] = 'POST';
         Yoyo::request()->mock($_REQUEST, $_SERVER);
         self::assertSame(403, $app->handle(Request::create('/yoyo', 'POST'))->getStatusCode());
         self::assertSame([], $this->state->raw());
+    }
+
+    /** @return array<string, mixed> */
+    private function githubRelease(string $version): array
+    {
+        $id = 'beta-' . $version;
+        $prefix = 'https://github.com/laiot-smarthome/laiot/releases/download/' . $id . '/';
+        return ['draft' => false, 'tag_name' => $id, 'name' => $id, 'body' => '- Изменение системы', 'published_at' => '2026-10-30T08:00:00Z', 'assets' => [
+            ['name' => 'laiot.zip', 'browser_download_url' => $prefix . 'laiot.zip', 'size' => 1048576],
+            ['name' => 'laiot-release.json', 'browser_download_url' => $prefix . 'laiot-release.json'],
+        ]];
+    }
+
+    private function useCatalog(MockHttpClient $http): void
+    {
+        $this->updates = new UpdateFixtureService(
+            $this->updates->layout,
+            $this->state,
+            new ReleaseCatalog($http, 'laiot-smarthome/laiot'),
+            $this->database,
+            $this->host,
+            $this->updates->config
+        );
     }
 
     private function releaseBuilder(): CommandTester
