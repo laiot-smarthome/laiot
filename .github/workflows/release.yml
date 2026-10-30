@@ -68,15 +68,20 @@ jobs:
           php-version: '8.2'
           extensions: mbstring, intl, curl, pdo_mysql, pdo_sqlite, zip, pcntl, posix
           coverage: none
-      - name: Install and verify
-        run: |
-          composer install --no-interaction --prefer-dist
-          composer check
-          php tests/docs_quality_smoke.php
-          npm ci
-          npm run test:ui
-          npm run test:release
-          npm run build
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Check PHP
+        run: composer check
+      - name: Check documentation
+        run: php tests/docs_quality_smoke.php
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Test frontend
+        run: npm run test:ui
+      - name: Test release helpers
+        run: npm run test:release
+      - name: Build assets
+        run: npm run build
       - name: Collect commit descriptions
         env:
           RELEASE_CHANNEL: ${{ steps.release.outputs.channel }}
