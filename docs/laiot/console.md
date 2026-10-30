@@ -572,6 +572,8 @@ php bin/laiot update:status
 
 GitHub Actions запускает после проверки кода, production Composer install
 и сборки frontend. `.env`, var и сторонние модули не включаются.
+Несовместимые с номером выпуска требования встроенных модулей останавливают
+сборку до создания архива.
 
 ```bash
 php bin/laiot release:build beta-2.1.0-beta.1 --output /tmp/laiot-release

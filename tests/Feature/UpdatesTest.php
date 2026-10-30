@@ -7,6 +7,7 @@ namespace LaIOT\Tests\Feature;
 use Clickfwd\Yoyo\Yoyo;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 use LaIOT\Console\Commands\ReleaseBuildCommand;
 use LaIOT\Database\DatabaseManager;
 use LaIOT\Foundation\Application;
@@ -41,6 +42,7 @@ use ZipArchive;
 
 /**
  * Проверки обновителя работают только во временных каталогах, с SQLite и подменой HTTP/systemd.
+ * 2026-10-30 — переход с неизвестной версии на первый релиз и отказ сборки несовместимых core-модулей.
  * 2026-10-29 — прерывание миграции, повтор, откат, целостность архива и защита веб-действий.
  */
 final class UpdatesTest extends TestCase
@@ -77,6 +79,35 @@ final class UpdatesTest extends TestCase
         unset($_SERVER['REQUEST_METHOD'], $_SERVER['HTTP_HX_REQUEST']);
         $_REQUEST = [];
         $this->remove($this->directory);
+    }
+
+    public function testUndefinedVersionCanUpgradeToFirstRelease(): void
+    {
+        $defaults = require dirname(__DIR__, 2) . '/config/app.php';
+        self::assertSame('0.0.0', $defaults['version']);
+        UpdateFiles::json($this->directory . '/releases/beta-0.0.1/release.json', $this->manifest('0.0.1'));
+        foreach ([[], ['version' => null], ['version' => '']] as $config) {
+            $updates = new UpdateFixtureService(
+                $this->updates->layout,
+                $this->state,
+                $this->updates->catalog,
+                $this->database,
+                $this->host,
+                $config + ['updates' => ['channel' => 'beta']]
+            );
+            self::assertSame('0.0.0', $updates->current()['version']);
+            self::assertSame('beta-0.0.0', $updates->current()['id']);
+            self::assertTrue($updates->preview('beta-0.0.1')['ready']);
+        }
+    }
+
+    public function testInstalledReleaseVersionTakesPriorityOverFallback(): void
+    {
+        UpdateFiles::write($this->directory . '/config/app.php', '<?php return ["version" => "0.0.0"];');
+        UpdateFiles::json($this->directory . '/release.json', $this->manifest('0.0.1'));
+        self::assertSame('0.0.1', ConfigLoader::load($this->directory)['version']);
+        self::assertSame('0.0.1', $this->updates->current()['version']);
+        self::assertSame('beta-0.0.1', $this->updates->current()['id']);
     }
 
     public function testInterruptedStateUsesLockRatherThanStalePid(): void
@@ -222,15 +253,14 @@ final class UpdatesTest extends TestCase
 
     public function testReleaseBuilderExcludesEnvironmentStorageAndThirdPartyModules(): void
     {
-        if ((new ExecutableFinder())->find('git') === null) {
-            self::markTestSkipped('Для проверки сборки нужен локальный Git.');
-        }
-        (new Process(['git', 'init', '--quiet', $this->directory]))->mustRun();
-        (new Process(['git', '-C', $this->directory, '-c', 'user.name=Update Test', '-c', 'user.email=update@example.invalid', 'commit', '--quiet', '--allow-empty', '-m', 'fixture']))->mustRun();
-        UpdateFiles::json($this->directory . '/composer.lock', ['packages' => []]);
-        $tester = new CommandTester(new ReleaseBuildCommand($this->directory));
-        self::assertSame(0, $tester->execute(['tag' => 'beta-2.1.0', '--output' => $this->directory . '/build']));
+        $tester = $this->releaseBuilder();
+        UpdateFiles::json($this->directory . '/modules/core/supported/module.json', [
+            'id' => 'supported', 'type' => 'core', 'namespace' => 'Supported\\', 'version' => '1.0.0',
+            'requires' => ['laiot' => '>=0.0.0'],
+        ]);
+        self::assertSame(0, $tester->execute(['tag' => 'beta-0.0.1', '--output' => $this->directory . '/build']));
         $manifest = UpdateFiles::read($this->directory . '/build/laiot-release.json');
+        self::assertSame('0.0.1', $manifest['version']);
         self::assertSame(hash_file('sha256', $this->directory . '/build/laiot.zip'), $manifest['sha256']);
         $zip = new ZipArchive();
         self::assertTrue($zip->open($this->directory . '/build/laiot.zip'));
@@ -242,6 +272,23 @@ final class UpdatesTest extends TestCase
         (new ReleasePackage())->extract($this->directory . '/build/laiot.zip', $this->directory . '/unpacked', new ReleaseManifest($manifest));
         self::assertFileExists($this->directory . '/unpacked/vendor/autoload.php');
         self::assertFileDoesNotExist($this->directory . '/unpacked/.env');
+    }
+
+    public function testReleaseBuilderRejectsIncompatibleCoreModuleBeforePackaging(): void
+    {
+        $tester = $this->releaseBuilder();
+        UpdateFiles::json($this->directory . '/modules/core/future/module.json', [
+            'id' => 'future', 'type' => 'core', 'namespace' => 'Future\\', 'version' => '1.0.0',
+            'requires' => ['laiot' => '>=2.0.0'],
+        ]);
+        try {
+            $tester->execute(['tag' => 'beta-0.0.1', '--output' => $this->directory . '/build']);
+            self::fail('Несовместимый core-модуль попал в релиз.');
+        } catch (InvalidArgumentException $error) {
+            self::assertStringContainsString('future требует laiot >=2.0.0', $error->getMessage());
+        }
+        self::assertFileDoesNotExist($this->directory . '/build/laiot.zip');
+        self::assertFileDoesNotExist($this->directory . '/build/laiot-release.json');
     }
 
     public function testModuleManagerDiscoversPersistentThirdPartyDirectory(): void
@@ -319,6 +366,17 @@ final class UpdatesTest extends TestCase
         Yoyo::request()->mock($_REQUEST, $_SERVER);
         self::assertSame(403, $app->handle(Request::create('/yoyo', 'POST'))->getStatusCode());
         self::assertSame([], $this->state->raw());
+    }
+
+    private function releaseBuilder(): CommandTester
+    {
+        if ((new ExecutableFinder())->find('git') === null) {
+            self::markTestSkipped('Для проверки сборки нужен локальный Git.');
+        }
+        (new Process(['git', 'init', '--quiet', $this->directory]))->mustRun();
+        (new Process(['git', '-C', $this->directory, '-c', 'core.hooksPath=' . $this->directory . '/no-hooks', '-c', 'user.name=Update Test', '-c', 'user.email=update@example.invalid', 'commit', '--quiet', '--allow-empty', '-m', 'fixture']))->mustRun();
+        UpdateFiles::json($this->directory . '/composer.lock', ['packages' => []]);
+        return new CommandTester(new ReleaseBuildCommand($this->directory));
     }
 
     private function application(): Application
