@@ -16,6 +16,7 @@ use Throwable;
  * Предварительный просмотр и запуск операции. Проверки повторяются отдельным процессом перед остановкой.
  * 2026-10-30 — полный список выбранного канала отсортирован по убыванию semver.
  * 2026-10-30 — неопределённая версия считается 0.0.0; установленный манифест имеет приоритет.
+ * 2026-10-30 — общие требования проверяются в PHP приложения и CLI, pcntl требуется только CLI.
  * 2026-10-29 — номерные каналы, проверки окружения и совместимости, один снимок на исходный релиз.
  */
 readonly class UpdateService
@@ -145,21 +146,11 @@ readonly class UpdateService
             }
         };
         $check('Платформа и пользователь', fn (): string => $this->runtimeIdentity());
-        $check('PHP и расширения', static function () use ($manifest): string {
-            if (!Semver::satisfies(PHP_VERSION, (string)$manifest->data['php'])) {
-                throw new RuntimeException('Релиз требует PHP ' . $manifest->data['php']);
-            }
-            foreach ((array)($manifest->data['php_requirements'] ?? []) as $requirement) {
-                if (!is_string($requirement) || !Semver::satisfies(PHP_VERSION, $requirement)) {
-                    throw new RuntimeException('Зависимости релиза требуют другую версию PHP: ' . (string)$requirement);
-                }
-            }
-            foreach ($manifest->data['extensions'] as $extension) {
-                if (!is_string($extension) || !extension_loaded($extension)) {
-                    throw new RuntimeException('Необходимо расширение PHP ' . (string)$extension);
-                }
-            }
-            return 'PHP ' . PHP_VERSION . '; требования релиза выполнены.';
+        $check('PHP и расширения', function () use ($manifest): string {
+            $this->assertPhpPlatform($manifest, PHP_VERSION, get_loaded_extensions(), false);
+            $cli = $this->host->platform();
+            $this->assertPhpPlatform($manifest, $cli['version'], $cli['extensions'], true);
+            return 'PHP приложения ' . PHP_VERSION . '; PHP CLI ' . $cli['version'] . '; требования релиза выполнены.';
         });
         $check('Файлы и место на диске', function (): string {
             foreach ([$this->layout->installation, $this->layout->storage] as $directory) {
@@ -216,6 +207,27 @@ readonly class UpdateService
             return 'Установленные модули совместимы; сторонний код сохранится.';
         });
         return $checks;
+    }
+
+    /** @param list<string> $extensions */
+    private function assertPhpPlatform(ReleaseManifest $manifest, string $version, array $extensions, bool $cli): void
+    {
+        $context = $cli ? 'PHP CLI' : 'PHP приложения';
+        foreach (array_merge([$manifest->data['php']], (array)($manifest->data['php_requirements'] ?? [])) as $requirement) {
+            if (!is_string($requirement) || !Semver::satisfies($version, $requirement)) {
+                throw new RuntimeException($context . ' ' . $version . ' не соответствует требованию релиза: ' . (string)$requirement);
+            }
+        }
+        $extensions = array_map('strtolower', $extensions);
+        foreach ($manifest->data['extensions'] as $extension) {
+            // В Ubuntu pcntl встроен только в CLI; его отсутствие в FPM не мешает сайту.
+            if (!$cli && $extension === 'pcntl') {
+                continue;
+            }
+            if (!is_string($extension) || !in_array(strtolower($extension), $extensions, true)) {
+                throw new RuntimeException('Необходимо расширение ' . $context . ' ' . (string)$extension);
+            }
+        }
     }
 
     /** @return array<string, array<string, mixed>> */

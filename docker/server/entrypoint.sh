@@ -38,10 +38,8 @@ use LaIOT\Foundation\ConfigLoader;
 use LaIOT\Services\Updates\UpdateFactory;
 use LaIOT\Services\Updates\UpdateFiles;
 $root = '/srv/laiot';
-$var = $root . '/var';
 $updates = UpdateFactory::make($root, ConfigLoader::load($root));
 UpdateFiles::json($root . '/release.json', $updates->current());
-UpdateFiles::json($var . '/install-connection.json', ['db_host' => '127.0.0.1', 'db_port' => '3306', 'db_name' => 'laiot', 'db_user' => 'laiot', 'db_password' => 'laiot', 'cache_driver' => 'redis', 'redis_host' => '127.0.0.1', 'redis_port' => '6379', 'redis_database' => '0']);
 PHP
     chown -R laiot:laiot "$root"
     chmod 0600 "$root/.env"

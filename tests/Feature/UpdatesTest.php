@@ -46,6 +46,7 @@ use ZipArchive;
  * 2026-10-30 — реальный POST Yoyo обновляет каталог повторно; пагинация, сортировка и безопасные карточки.
  * 2026-10-30 — переход с неизвестной версии на первый релиз и отказ сборки несовместимых core-модулей.
  * 2026-10-29 — прерывание миграции, повтор, откат, целостность архива и защита веб-действий.
+ * 2026-10-30 — pcntl проверяется в CLI; версия CLI и общие расширения остаются обязательными.
  */
 final class UpdatesTest extends TestCase
 {
@@ -110,6 +111,37 @@ final class UpdatesTest extends TestCase
         self::assertSame('0.0.1', ConfigLoader::load($this->directory)['version']);
         self::assertSame('0.0.1', $this->updates->current()['version']);
         self::assertSame('beta-0.0.1', $this->updates->current()['id']);
+    }
+
+    public function testPcntlIsCheckedInCliAndExtensionNamesAreCaseInsensitive(): void
+    {
+        $manifest = $this->manifest('2.1.0');
+        $manifest['extensions'] = ['pcntl', 'json', 'phar'];
+        $native = new UpdateService($this->updates->layout, $this->state, $this->updates->catalog, $this->database, $this->host, []);
+        $this->host->php = ['version' => PHP_VERSION, 'extensions' => ['pcntl', 'JSON', 'Phar']];
+        $checks = array_column($native->checks(new ReleaseManifest($manifest)), null, 'title');
+        self::assertTrue($checks['PHP и расширения']['ok']);
+
+        $this->host->php['extensions'] = ['JSON', 'Phar'];
+        $checks = array_column($native->checks(new ReleaseManifest($manifest)), null, 'title');
+        self::assertFalse($checks['PHP и расширения']['ok']);
+        self::assertStringContainsString('PHP CLI pcntl', $checks['PHP и расширения']['detail']);
+    }
+
+    public function testCliVersionAndApplicationExtensionsRemainMandatory(): void
+    {
+        $manifest = $this->manifest('2.1.0');
+        $native = new UpdateService($this->updates->layout, $this->state, $this->updates->catalog, $this->database, $this->host, []);
+        $this->host->php = ['version' => '8.1.0', 'extensions' => []];
+        $checks = array_column($native->checks(new ReleaseManifest($manifest)), null, 'title');
+        self::assertFalse($checks['PHP и расширения']['ok']);
+        self::assertStringContainsString('PHP CLI 8.1.0', $checks['PHP и расширения']['detail']);
+
+        $manifest['extensions'] = ['fixture_missing_extension'];
+        $this->host->php = ['version' => PHP_VERSION, 'extensions' => ['fixture_missing_extension']];
+        $checks = array_column($native->checks(new ReleaseManifest($manifest)), null, 'title');
+        self::assertFalse($checks['PHP и расширения']['ok']);
+        self::assertStringContainsString('PHP приложения fixture_missing_extension', $checks['PHP и расширения']['detail']);
     }
 
     public function testInterruptedStateUsesLockRatherThanStalePid(): void
@@ -541,6 +573,8 @@ final class UpdatesTest extends TestCase
         self::assertSame('update-install-form', $submit->getAttribute('form'));
         self::assertFalse($submit->hasAttribute('disabled'));
         self::assertStringContainsString('!confirmed', $submit->getAttribute('x-bind:disabled'));
+        self::assertStringNotContainsString('@js(', $submit->getAttribute('x-bind:disabled'));
+        self::assertSame('outerHTML settle:0ms', $xpath->query('//*[@hx-swap]')->item(0)?->attributes?->getNamedItem('hx-swap')?->nodeValue);
         self::assertStringContainsString("mdModal.show('update-release-install')", $html);
         self::assertSame(0, $xpath->query('//section[contains(@class, "md-upd-preview")]')->length);
         self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//img[contains(@src, "/success.png")]')->length);
@@ -756,12 +790,19 @@ final class UpdateFixtureDatabase extends UpdateDatabase
  */
 final class UpdateFixtureHost extends UpdateHost
 {
+    /** @var array{version:string,extensions:list<string>} */
+    public array $php;
     public int $launches = 0;
     public bool $failMigration = false;
     /** @var list<string> */
     public array $active = ['laiot-core@queue.service'];
     public function __construct(private readonly UpdateFixtureDatabase $fixture)
     {
+        $this->php = ['version' => PHP_VERSION, 'extensions' => get_loaded_extensions()];
+    }
+    public function platform(): array
+    {
+        return $this->php;
     }
     public function services(bool $includeStarting = false): array
     {

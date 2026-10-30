@@ -29,6 +29,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  *
  * 2026-10-28 — пошаговый мастер вместо одной формы.
  * 2026-10-29 — подготовленное SSH-мастером подключение читается только после проверки ключа.
+ * 2026-10-30 — успешная проверка сохраняет пароли в черновике до перерисовки формы.
  */
 final readonly class InstallController extends Controller
 {
@@ -118,9 +119,13 @@ final readonly class InstallController extends Controller
 
         $preflight = $this->installer->preflight($install);
         $blocked = $this->blocked($preflight);
+        if (!$blocked) {
+            $this->storeDraft($install);
+            $draft = $this->draft();
+            $values = $this->connectionValues($install, true);
+        }
         $action = (string)$request->request->get('action', '');
         if ($action === 'check' || $blocked) {
-            $notices = $blocked ? [] : ['Подключения в порядке — можно продолжать.'];
             $errors = $blocked ? ['global' => 'Без подключения установка не пойдёт. Проверь отмеченное ниже.'] : [];
 
             return $this->renderStep(
@@ -130,13 +135,9 @@ final readonly class InstallController extends Controller
                 $errors,
                 $preflight,
                 $blocked ? 422 : 200,
-                $values,
-                $notices
+                $values
             );
         }
-
-        $this->storeDraft($install);
-        $draft = $this->draft();
 
         return $this->renderStep(4, $token, $draft, [], [], 200, $this->adminValues([]));
     }
@@ -197,7 +198,6 @@ final readonly class InstallController extends Controller
      * @param array<string, string> $errors
      * @param list<InstallCheck> $preflight
      * @param array<string, mixed> $values
-     * @param list<string> $notices
      */
     private function renderStep(
         int $step,
@@ -206,8 +206,7 @@ final readonly class InstallController extends Controller
         array $errors,
         array $preflight,
         int $status,
-        array $values = [],
-        array $notices = []
+        array $values = []
     ): Response {
         $checks = $step === 2 ? $this->installer->requirements() : [];
         if ($step === 3 && $values === []) {
@@ -228,7 +227,6 @@ final readonly class InstallController extends Controller
             'preflight' => array_map(static fn (InstallCheck $check): array => $check->toArray(), $preflight),
             'errors' => $errors,
             'values' => $values,
-            'notices' => $notices,
             'blocked' => $this->blocked($checks) || $this->blocked($preflight),
             'draftExists' => $draft !== [],
             'summary' => $step === 4 ? [
@@ -255,7 +253,8 @@ final readonly class InstallController extends Controller
             'redis_port' => $request->redisPort,
             'redis_database' => $request->redisDatabase,
             'redis_password' => '',
-            'password_saved' => $draftExists,
+            'db_password_saved' => $draftExists && $request->dbPassword !== '',
+            'redis_password_saved' => $draftExists && $request->redisPassword !== '',
         ];
     }
 

@@ -237,7 +237,7 @@ final class InstallService
             : InstallCheck::fail('php', 'PHP', 'Нужен PHP 8.2 или новее, а сейчас ' . PHP_VERSION);
 
         $required = ['pdo_mysql', 'mbstring', 'intl', 'curl', 'openssl'];
-        $optional = ['fileinfo', 'pcntl', 'posix', 'zip'];
+        $optional = ['fileinfo', 'zip'];
         $missingRequired = array_values(array_filter($required, static fn (string $name): bool => !extension_loaded($name)));
         $missingOptional = array_values(array_filter($optional, static fn (string $name): bool => !extension_loaded($name)));
         if ($missingRequired !== []) {

@@ -11,6 +11,7 @@ use Symfony\Component\Process\Process;
 /**
  * Работа с Linux-службами остаётся за агентом; код релиза исполняется пользователем сайта.
  * 2026-10-29 — проверка CLI, миграции и запуск нового ядра до открытия записи.
+ * 2026-10-30 — окружение CLI берётся у агента, а не из PHP-FPM.
  */
 class UpdateHost
 {
@@ -40,6 +41,22 @@ class UpdateHost
     public function launch(): void
     {
         $this->agent->request(['action' => 'update.start']);
+    }
+
+    /** @return array{version:string,extensions:list<string>} */
+    public function platform(): array
+    {
+        $data = $this->agent->request(['action' => 'update.services']);
+        $php = $data['php'] ?? null;
+        if (!is_array($php) || !is_string($php['version'] ?? null) || $php['version'] === ''
+            || !is_array($php['extensions'] ?? null)) {
+            throw new RuntimeException('Агент не сообщает окружение PHP CLI. Обновите и перезапустите laiot-agent.');
+        }
+        $extensions = array_values(array_filter($php['extensions'], 'is_string'));
+        if (count($extensions) !== count($php['extensions'])) {
+            throw new RuntimeException('Агент вернул некорректный список расширений PHP CLI.');
+        }
+        return ['version' => $php['version'], 'extensions' => $extensions];
     }
 
     public function restartAgent(): void

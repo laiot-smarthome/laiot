@@ -1,6 +1,7 @@
 /* Мастер установки LaIOT.
    2026-10-28 — пошаговый сценарий: приветствие, проверки, подключение,
-   аккаунт. Анимации только декоративные и отключаются при reduced motion. */
+   аккаунт. Анимации только декоративные и отключаются при reduced motion.
+   2026-10-30 — компактная проверка подключений и отступы между контролами. */
 
 :root {
     --md-setup-radius: 26px;
@@ -458,8 +459,33 @@ body.md-admin-shell.md-setup::after {
     border-radius: 0;
 }
 
+.md-setup__connection-result {
+    margin-bottom: 20px;
+}
+
+.md-setup__connection-result[data-status="ok"] .md-spoiler__icon {
+    color: var(--md-ui-success);
+}
+
+.md-setup__connection-result[data-status="warn"] .md-spoiler__icon {
+    color: var(--md-ui-warning);
+}
+
+.md-setup__connection-result[data-status="fail"] .md-spoiler__icon {
+    color: var(--md-ui-danger);
+}
+
+.md-setup__checks--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 16px;
+    margin: 0;
+}
+
 .md-setup__checks--compact .md-setup__check {
+    grid-template-columns: 22px minmax(0, 1fr);
     padding: 7px 9px;
+    border: 0;
+    border-radius: 10px;
 }
 
 .md-setup__check-icon {
@@ -539,6 +565,11 @@ body.md-admin-shell.md-setup::after {
 
 .md-setup__grid .md-field {
     margin: 0;
+}
+
+body.md-admin-shell.md-setup .md-setup__group > .md-check,
+.md-setup__grid + .md-setup__grid {
+    margin-top: 16px;
 }
 
 .md-setup__actions {
@@ -725,6 +756,7 @@ body.md-admin-shell.md-setup::after {
     }
 
     .md-setup__grid,
+    .md-setup__checks--compact,
     .md-setup__features,
     .md-setup__summary {
         grid-template-columns: minmax(0, 1fr);

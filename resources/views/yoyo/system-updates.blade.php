@@ -1,6 +1,6 @@
-<div class="md-upd-admin" x-data="{busy: '', activeRelease: {id: '', html: '', url: ''}}"
+{{-- 2026-10-30 — немедленный settle сохраняет Alpine-стили диалога при повторной проверке. --}}
+<div class="md-upd-admin" hx-swap="outerHTML settle:0ms" x-data="{busy: '', activeRelease: {id: '', html: '', url: ''}}"
      x-on:htmx:before-request.camel="busy = $event.detail.elt.closest('[data-update-action]')?.dataset.updateAction || 'request'"
-     x-on:htmx:before-swap.camel="if ($event.detail.shouldSwap && ['inspect', 'start'].includes(busy)) $store.mdModal.close()"
      x-on:htmx:after-request.camel="busy = ''; if ($event.detail.failed) $store.mdToasts.push({tone: 'danger', text: $event.detail.xhr?.status === 403 ? 'Доступ к запросу отклонён. Обновите страницу и проверьте авторизацию.' : 'Не удалось выполнить запрос. Проверьте соединение и повторите попытку.'})">
 <header class="md-upd-hero">
     <div class="md-upd-hero__copy">
@@ -47,7 +47,7 @@
                     <div class="md-upd-release-card__actions">
                         <button type="button" class="md-upd-release-card__more" x-on:click="activeRelease = @js(['id' => $release['id'], 'html' => $release['notes_html'], 'url' => $release['url']]); $store.mdModal.show('update-release-notes')" x-bind:disabled="busy !== ''">Читать полностью <x-md.icon name="arrows-maximize" /></button>
                         @if ($release['url'] !== '')<a href="{{ $release['url'] }}" target="_blank" rel="noopener noreferrer" class="md-upd-release-card__github"><x-md.icon name="brand-github" /> Релиз на GitHub <x-md.icon name="external-link" /></a>@endif
-                        @unless ($release['current'])<x-md.button id="prepare-{{ $release['id'] }}" variant="secondary" yoyo:get="inspect('{{ $release['id'] }}')" data-update-action="inspect" x-bind:disabled="busy !== ''" iconAfter="arrow-right">Подготовить установку</x-md.button>@endunless
+                        @unless ($release['current'])<x-md.button id="prepare-{{ hash('sha256', $release['id']) }}" variant="secondary" yoyo:get="inspect('{{ $release['id'] }}')" data-update-action="inspect" x-bind:disabled="busy !== ''" iconAfter="arrow-right">Подготовить установку</x-md.button>@endunless
                     </div>
                 </article>
             @endforeach
@@ -69,7 +69,7 @@
 </x-md.modal>
 
 @if ($installRequested)
-<div x-data="{confirmed: false}" x-init="$nextTick(() => { document.getElementById(@js('prepare-' . $selected))?.focus(); $store.mdModal.show('update-release-install') })">
+<div x-data="{confirmed: false}" x-init="$nextTick(() => { document.getElementById(@js('prepare-' . hash('sha256', $selected)))?.focus(); $store.mdModal.show('update-release-install') })">
     <x-md.modal id="update-release-install" title="Подготовка установки" size="lg" class="md-upd-install-modal">
         @if ($preview !== [])
             <div class="md-upd-install-version"><span>{{ $current['id'] }}</span><x-md.icon name="arrow-right" /><strong>{{ $preview['manifest']['id'] }}</strong></div>
@@ -96,7 +96,7 @@
             <x-md.button variant="secondary" x-on:click="$store.mdModal.close()" x-bind:disabled="busy !== ''">Закрыть</x-md.button>
             @if ($preview !== [])
                 <x-md.button variant="secondary" yoyo:get="inspect('{{ $preview['manifest']['id'] }}')" data-update-action="inspect" x-bind:disabled="busy !== ''"><span x-show="busy !== 'inspect'">Повторить проверку</span><span x-show="busy === 'inspect'" x-cloak><span class="md-upd-button-content"><span class="md-spinner" aria-hidden="true"></span> Проверка…</span></span></x-md.button>
-                <x-md.button type="submit" form="update-install-form" :disabled="!$canInstall" x-bind:disabled="busy !== '' || !confirmed || @js(!$canInstall)"><span x-show="busy !== 'start'">{{ $preview['snapshot'] !== [] ? 'Восстановить версию' : 'Установить релиз' }}</span><span x-show="busy === 'start'" x-cloak><span class="md-upd-button-content"><span class="md-spinner" aria-hidden="true"></span> Подготовка обновления…</span></span></x-md.button>
+                <x-md.button type="submit" form="update-install-form" :disabled="!$canInstall" x-bind:disabled="busy !== '' || !confirmed || {{ $canInstall ? 'false' : 'true' }}"><span x-show="busy !== 'start'">{{ $preview['snapshot'] !== [] ? 'Восстановить версию' : 'Установить релиз' }}</span><span x-show="busy === 'start'" x-cloak><span class="md-upd-button-content"><span class="md-spinner" aria-hidden="true"></span> Подготовка обновления…</span></span></x-md.button>
             @endif
         </x-slot:actions>
     </x-md.modal>

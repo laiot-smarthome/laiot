@@ -38,6 +38,7 @@ COPY docker/server/entrypoint.sh /usr/local/sbin/laiot-server-entrypoint
 COPY docker/server/prepare.sh /usr/local/sbin/laiot-server-prepare
 COPY docker/server/systemd/ /etc/systemd/system/
 RUN chmod 0755 /usr/local/sbin/laiot-server-entrypoint /usr/local/sbin/laiot-server-prepare \
+    && find /etc/systemd/system -type f -exec chmod 0644 {} + \
     && systemctl enable nginx php8.3-fpm mariadb redis-server mosquitto \
        laiot-server-prepare.service laiot-after-install.path \
     && systemctl mask systemd-udevd.service systemd-udevd-control.socket \

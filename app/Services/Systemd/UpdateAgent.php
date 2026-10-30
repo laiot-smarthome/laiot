@@ -10,6 +10,7 @@ use RuntimeException;
 /**
  * Запускает защищённую службу обновления под пользователем сайта, без произвольных root-команд.
  * 2026-10-29 — фиксированные действия запуска и остановки фонового runtime.
+ * 2026-10-30 — ответ сообщает PHP CLI агента, которым запускаются службы обновления.
  */
 final readonly class UpdateAgent
 {
@@ -52,7 +53,8 @@ final readonly class UpdateAgent
             if ($account === false) {
                 throw new RuntimeException('Пользователь службы обновления не найден.');
             }
-            return ['units' => $units, 'uid' => $account['uid']];
+            return ['units' => $units, 'uid' => $account['uid'],
+                'php' => ['version' => PHP_VERSION, 'extensions' => get_loaded_extensions()]];
         }
         if (!in_array($action, ['update.services.stop', 'update.services.start'], true) || !is_array($payload['units'] ?? null)) {
             throw new RuntimeException('Недопустимое действие обновителя.');

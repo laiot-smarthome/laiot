@@ -3,6 +3,7 @@
     Шаги серверные: каждый проверяет свои поля и не пускает дальше с ошибкой.
     2026-10-28 — мастер с приветствием, подсказками и анимациями вместо
     одной технической формы.
+    2026-10-30 — компактные результаты подключения и явное состояние сохранённых паролей.
 --}}
 @php
     $assetVersion = static function (string $path): string {
@@ -136,8 +137,6 @@
                 <h2>Что дальше</h2>
                 <ol>
                     <li>Войди в панель — кнопка ниже.</li>
-                    <li>Запусти фоновые службы <code>queue</code>, <code>events</code> и <code>timeouts</code>:
-                        без них не работают история и автоматизации. Инструкция — <code>docs/laiot/deploy.md</code>.</li>
                     <li>Добавь этаж, комнату и первое устройство.</li>
                 </ol>
             </div>
@@ -283,7 +282,17 @@
                     @endif
 
                     @if ($preflight !== [])
-                        <ul class="md-setup__checks md-setup__checks--compact">
+                        @php
+                            $connectionStatus = $blocked ? 'fail' : (in_array('warn', array_column($preflight, 'status'), true) ? 'warn' : 'ok');
+                        @endphp
+                        <x-md.spoiler
+                            :title="$connectionStatus === 'ok' ? 'Подключения проверены' : 'Проверьте результаты подключения'"
+                            :icon="$icon($connectionStatus)"
+                            :open="$connectionStatus !== 'ok'"
+                            variant="card"
+                            class="md-setup__connection-result"
+                            :data-status="$connectionStatus">
+                        <ul class="md-setup__checks md-setup__checks--compact" aria-label="Результаты проверки подключений">
                             @foreach ($preflight as $check)
                                 <li @class(['md-setup__check', 'md-setup__check--' . $check['status']])
                                     style="--i: {{ $loop->index }}">
@@ -297,11 +306,8 @@
                                 </li>
                             @endforeach
                         </ul>
+                        </x-md.spoiler>
                     @endif
-
-                    @foreach ($notices as $notice)
-                        <x-md.alert type="success" :text="$notice" />
-                    @endforeach
 
                     <form method="post" action="/install" class="md-setup__form">
                         <input type="hidden" name="_token" value="{{ $csrf }}">
@@ -329,7 +335,8 @@
                                 <x-md.input id="db-password" name="db_password" type="password" label="Пароль"
                                             :value="$values['db_password']" :error="$errors['db_password'] ?? null"
                                             autocomplete="new-password"
-                                            :description="$values['password_saved']
+                                            :placeholder="$values['db_password_saved'] ? 'Пароль сохранён' : null"
+                                            :description="$values['db_password_saved']
                                                 ? 'Оставь пустым — сохранённый пароль не изменится.'
                                                 : 'Пароль из FastPanel. Хранится только в .env на сервере.'" />
                             </div>
@@ -361,7 +368,8 @@
                                             description="0–15. Лучше отдельная, не 0." />
                                 <x-md.input id="redis-password" name="redis_password" type="password" label="Пароль Redis"
                                             :value="$values['redis_password']" autocomplete="new-password"
-                                            :description="$values['password_saved']
+                                            :placeholder="$values['redis_password_saved'] ? 'Пароль сохранён' : null"
+                                            :description="$values['redis_password_saved']
                                                 ? 'Оставь пустым — сохранённый пароль не изменится.'
                                                 : 'Если Redis без пароля — оставь пустым.'" />
                             </div>

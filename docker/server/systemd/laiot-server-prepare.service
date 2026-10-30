@@ -1,12 +1,13 @@
 [Unit]
 Description=Prepare isolated LaIOT server
-After=mariadb.service redis-server.service php8.3-fpm.service nginx.service
+After=mariadb.service redis-server.service
 Requires=mariadb.service
-Wants=redis-server.service php8.3-fpm.service nginx.service
+Wants=redis-server.service
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/laiot-server-prepare
+ExecStartPost=/usr/bin/systemctl start nginx.service php8.3-fpm.service
 RemainAfterExit=yes
 
 [Install]
