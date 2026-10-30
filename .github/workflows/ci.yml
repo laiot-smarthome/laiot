@@ -33,7 +33,7 @@ jobs:
       - name: Validate Composer
         run: |
           composer validate --strict
-          composer audit --no-dev
+          composer audit --locked --no-dev
 
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist
