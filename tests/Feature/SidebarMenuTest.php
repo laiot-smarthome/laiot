@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Меню панели: группы, каталоги, бейджи и ключи раскрытия.
  *
+ * 2026-10-30 — X-ray входит в каталог диагностики.
  * Проверка не поднимает приложение: состав меню — статический реестр, а
  * разметка проверяется в AlphaLayoutTest и в тестах страниц.
  * 2026-10-29 — каталог обслуживания включает штатный раздел обновления системы.
@@ -34,7 +35,7 @@ final class SidebarMenuTest extends TestCase
 
         self::assertSame(['modules', 'users', 'settings'], $flat);
         self::assertSame(['diagnostics', 'api', 'service'], array_keys($catalogs));
-        self::assertSame(['actions_log', 'system_errors'], $catalogs['diagnostics']);
+        self::assertSame(['actions_log', 'xray', 'system_errors'], $catalogs['diagnostics']);
         self::assertSame(['api', 'api_docs', 'tokens'], $catalogs['api']);
         self::assertSame(['notifications', 'maintenance', 'updates', 'ui_kit'], $catalogs['service']);
 

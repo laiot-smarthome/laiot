@@ -9,6 +9,7 @@ use InvalidArgumentException;
 /**
  * Запуск пользовательского сценария.
  *
+ * 2026-10-30 — название сценария передаётся в журнал X-ray.
  * Сценарий — доверенный PHP без тегов, как в alpha. `use_core` определяет
  * окружение: с ядром код выполняется в текущем процессе и видит обёртки
  * `gg/sg/callMethod`, без ядра — отдельным процессом как обычный PHP-файл.
@@ -40,7 +41,8 @@ final readonly class ScriptRunner
         return $this->executor->runValue(
             (string)$script['code'],
             is_array($params) ? $params : [],
-            (bool)$script['use_core']
+            (bool)$script['use_core'],
+            (string)$script['title']
         );
     }
 

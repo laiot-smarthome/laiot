@@ -15,6 +15,8 @@ return [
     'queue_days' => 14,
     'timeouts_days' => 7,
     'errors_days' => 90,
+    // X-ray хранит изменения независимо от keep_history и WebSocket.
+    'xray_days' => 3,
     // Outbox событий WebSocket нужен только до следующего чтения сервером;
     // сутки оставляем для диагностики. Тикеты — неделя после выпуска.
     'websocket_events_days' => 1,

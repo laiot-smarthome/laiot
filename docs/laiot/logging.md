@@ -120,6 +120,10 @@ PHP-исходники могут содержать чувствительны�
 
 ## Retention
 
+Отдельный журнал [X-Ray](xray.md) хранит изменения свойств независимо от
+истории, значения `debmes()`/`dump()`, запуски сценариев и системные события.
+`xray_entries` очищается по `xray_days` (по умолчанию 3 суток).
+
 Сроки хранения задаёт `config/retention.php`: `history_days`, `events_days`,
 `queue_days`, `timeouts_days`, `errors_days`, `websocket_events_days`,
 `websocket_ticket_days`, `batch` и `interval`. `0`

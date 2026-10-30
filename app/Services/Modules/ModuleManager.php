@@ -25,6 +25,7 @@ use Throwable;
  * enabled=1 в `module_registry`. Все манифесты валидируются ModuleManifest.
  *
  * Изменения:
+ * 2026-10-30 — supervisor перечитывает каталог без повторной регистрации обработчиков.
  * 2026-10-29 — до создания схемы реестр не запрашивается; ошибки подключения продолжают журналироваться.
  * 2026-10-29 — сторонние модули обнаруживаются в постоянном каталоге установки после смены релиза.
  * 2026-10-27 — настройки и подписки в ModuleContext.
@@ -41,6 +42,9 @@ final class ModuleManager
 
     /** @var array<string, ModuleSettings> */
     private array $moduleSettings = [];
+
+    /** @var array<string, true> Повторное discovery не накапливает автозагрузчики. */
+    private array $autoloaders = [];
 
     private readonly ModuleRegistry $registry;
 
@@ -65,6 +69,14 @@ final class ModuleManager
     public function all(): array
     {
         return $this->modules;
+    }
+
+    /** Перечитать манифесты и enabled, не регистрируя повторно события и маршруты. */
+    public function refreshCatalog(): void
+    {
+        $this->modules = [];
+        $this->discovered = [];
+        $this->discover();
     }
 
     /**
@@ -436,6 +448,11 @@ final class ModuleManager
     {
         $prefix = (string)$module['namespace'];
         $src = (string)$module['path'] . '/' . (string)$module['src'];
+        $key = $prefix . ':' . $src;
+        if (isset($this->autoloaders[$key])) {
+            return;
+        }
+        $this->autoloaders[$key] = true;
 
         spl_autoload_register(static function (string $class) use ($prefix, $src): void {
             if (!str_starts_with($class, $prefix)) {

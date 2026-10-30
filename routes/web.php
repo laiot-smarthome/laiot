@@ -20,6 +20,7 @@ use LaIOT\Http\Controllers\Core\SystemErrorsController;
 use LaIOT\Http\Controllers\Core\UiKitController;
 use LaIOT\Http\Controllers\Core\UpdatesController;
 use LaIOT\Http\Controllers\Core\UsersController;
+use LaIOT\Http\Controllers\Core\XrayController;
 use LaIOT\Http\Controllers\DashboardController;
 use LaIOT\Http\Controllers\HealthController;
 use LaIOT\Http\Controllers\InstallController;
@@ -170,6 +171,7 @@ return static function (Router $router): void {
             $router->post('/scripts/{id}/delete', [ScriptsController::class, 'delete'])->whereNumber('id')->middleware('csrf')->name('scripts.delete');
 
             $router->get('/events', [EventsController::class, 'index'])->name('events.index');
+            $router->get('/xray', [XrayController::class, 'index'])->middleware('can:settings.manage')->name('xray.index');
 
             $router->get('/jobs', [JobsController::class, 'index'])->name('jobs.index');
             $router->post('/jobs/failed/{id}/retry', [JobsController::class, 'retry'])->whereNumber('id')->middleware('csrf')->name('jobs.retry');

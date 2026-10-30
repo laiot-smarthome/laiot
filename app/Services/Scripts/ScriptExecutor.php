@@ -6,6 +6,7 @@ namespace LaIOT\Services\Scripts;
 
 use LaIOT\Foundation\Application;
 use LaIOT\Services\Runtime\CodeRunner;
+use LaIOT\Services\Xray\XrayJournal;
 use RuntimeException;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
@@ -14,6 +15,7 @@ use Throwable;
 /**
  * Выполнение кода сценария в выбранном окружении.
  *
+ * 2026-10-30 — все запуски, результаты и ошибки доступны в X-ray.
  * С ядром код идёт через `CodeRunner` в текущем процессе: доступны обёртки
  * `gg/sg/callMethod`, `$params` и сервисы, загруженные ядром. Без ядра код
  * запускается отдельным процессом `php` с временным файлом: ядро и его
@@ -65,7 +67,8 @@ PHP;
 
     public function __construct(
         private CodeRunner $runner,
-        private Application $app
+        private Application $app,
+        private ?XrayJournal $xray = null
     ) {
     }
 
@@ -74,7 +77,25 @@ PHP;
      *
      * @param array<string, mixed> $params
      */
-    public function runValue(string $code, array $params, bool $useCore): mixed
+    public function runValue(string $code, array $params, bool $useCore, string $name = 'Сценарий'): mixed
+    {
+        $started = hrtime(true);
+        $this->xray?->enter($name);
+        try {
+            $value = $this->runCode($code, $params, $useCore);
+        } catch (Throwable $error) {
+            $this->xray?->script($name, false, $this->elapsed($started), null, $error::class . ': ' . $error->getMessage());
+            throw $error;
+        } finally {
+            $this->xray?->leave();
+        }
+        $this->xray?->script($name, true, $this->elapsed($started), $value);
+
+        return $value;
+    }
+
+    /** @param array<string, mixed> $params */
+    private function runCode(string $code, array $params, bool $useCore): mixed
     {
         if ($useCore) {
             return $this->runner->run($code, $params);
@@ -97,19 +118,22 @@ PHP;
      * @param array<string, mixed> $params
      * @return array{ok:bool,output:string,result:string,error:string,duration_ms:int}
      */
-    public function execute(string $code, array $params, bool $useCore): array
+    public function execute(string $code, array $params, bool $useCore, string $name = 'Редактор сценария'): array
     {
         if (!$useCore) {
-            return $this->standalone($code, $params);
+            $report = $this->standalone($code, $params);
+            $this->xray?->script($name, $report['ok'], $report['duration_ms'], $report['result'], $report['error'], $report['output']);
+
+            return $report;
         }
 
         $started = hrtime(true);
         ob_start();
+        $this->xray?->enter($name);
         try {
             $value = $this->runner->run($code, $params);
             $output = (string)ob_get_clean();
-
-            return [
+            $report = [
                 'ok' => true,
                 'output' => $output,
                 'result' => $this->display($value),
@@ -118,15 +142,20 @@ PHP;
             ];
         } catch (Throwable $error) {
             $output = (string)ob_get_clean();
-
-            return [
+            $value = null;
+            $report = [
                 'ok' => false,
                 'output' => $output,
                 'result' => '',
                 'error' => $error::class . ': ' . $error->getMessage(),
                 'duration_ms' => $this->elapsed($started),
             ];
+        } finally {
+            $this->xray?->leave();
         }
+        $this->xray?->script($name, $report['ok'], $report['duration_ms'], $value, $report['error'], $report['output']);
+
+        return $report;
     }
 
     /**

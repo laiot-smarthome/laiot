@@ -325,6 +325,9 @@
     <x-md.card title="Редактор кода" subtitle="Подсветка PHP, поиск, отмена и повтор изменений."><x-md.code name="kit_code" label="Метод" :value="'// Включить свет при движении' . PHP_EOL . 'if ($this->get(\'motion\')) {' . PHP_EOL . '    $this->set(\'light\', 1);' . PHP_EOL . '}'" /></x-md.card>
     <x-md.code-sample title="Просмотр кода PHP" language="php" :code="'// Записать значение свойства' . PHP_EOL . 'sg(\'Kitchen.light\', 1);'" />
     <x-md.json-view title="Просмотр JSON" :data="['object' => 'Kitchen', 'property' => 'temperature', 'value' => 22.5, 'online' => true]" />
+    <x-md.card title="Изменение значения" subtitle="Компактная пара «было → стало», длинные значения доступны при наведении."><x-md.value-change old="21.5" new="22.5" /></x-md.card>
+    <x-md.card title="Типизированные данные" subtitle="Массивы, объекты и скалярные значения с вложенной структурой."><x-md.data-view :value="['temperature' => 22.5, 'online' => true, 'value' => null]" /></x-md.card>
+    <x-md.card title="Данные в строке таблицы"><x-md.data-view :value="['occurred_at' => '2026-10-30T21:05:00+03:00']" compact /></x-md.card>
     </section>
     <section id="smarthome" class="md-kit-section"><x-md.section-heading eyebrow="10 · Умный дом" title="Устройства и датчики" />
         <div class="md-ui-card-grid"><x-md.device-card name="Основной свет" room="Кухня" type="Освещение" icon="bulb" value="65" unit="%" updated="Только что" connection="Zigbee"><x-md.switch label="Включён" checked /></x-md.device-card><x-md.sensor label="Температура" value="23,1" unit="°C" icon="temperature" hint="Гостиная" /><x-md.sensor label="Влажность" value="48" unit="%" icon="droplet" tone="info" /></div>

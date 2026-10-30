@@ -26,6 +26,7 @@ use Symfony\Component\HttpFoundation\Response;
  * на странице списка: отдельной страницы и форм на главной больше нет.
  *
  * Изменения:
+ * 2026-10-30 — ручной запуск подписывается названием сценария в X-ray.
  * 2026-10-29 — создание, сохранение и удаление подтверждаются через Notify.
  * 2026-10-28 — результаты операций передаются Notify без текста в URL.
  * 2026-10-27 — кнопка «Выполнить» и выбор окружения с ядром/без ядра;
@@ -224,7 +225,7 @@ final readonly class ScriptsController extends Controller
         // не нужна: иначе вкладки той же сессии ждут запуск, а не работают
         // параллельно. CSRF-токен к этому моменту уже проверен и прочитан.
         $this->session->releaseLock();
-        $result = $this->executor->execute($code, [], $this->useCore($request));
+        $result = $this->executor->execute($code, [], $this->useCore($request), (string)($script['title'] ?? 'Редактор сценария'));
 
         return $this->form($script, null, $request->request->all(), 200, null, $result);
     }

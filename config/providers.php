@@ -14,6 +14,7 @@ use LaIOT\Providers\UpdateServiceProvider;
 use LaIOT\Providers\ValidationServiceProvider;
 use LaIOT\Providers\ViewServiceProvider;
 use LaIOT\Providers\WebSocketServiceProvider;
+use LaIOT\Providers\XrayServiceProvider;
 
 // 2026-10-26 — порядок boot подсистем; register сначала выполняется у всех.
 // 2026-10-28 — общий валидатор доступен до запуска HTTP и SDK-модулей.
@@ -23,6 +24,7 @@ return [
     FilesServiceProvider::class,
     ValidationServiceProvider::class,
     WebSocketServiceProvider::class,
+    XrayServiceProvider::class,
     DomainServiceProvider::class,
     ViewServiceProvider::class,
     HttpServiceProvider::class,

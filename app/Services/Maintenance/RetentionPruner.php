@@ -11,6 +11,7 @@ use Throwable;
 /**
  * Retention: удаление устаревших данных по срокам из config/retention.php.
  *
+ * 2026-10-30 — трёхсуточный журнал X-ray очищается общим maintenance-worker.
  * История и журнал свойств растут на каждой записи значения, поэтому без
  * очистки база перестаёт быть предсказуемой. Очистка идёт порциями: длинная
  * транзакция на миллионы строк заблокировала бы запись значений и события.
@@ -51,6 +52,7 @@ final class RetentionPruner
         $batch = max(100, min(50000, (int)($this->policy['batch'] ?? 5000)));
 
         return [
+            'xray_entries' => $this->purgeByDate('xray_entries', $this->cutoff('xray_days'), $batch, $dryRun),
             'property_history' => $this->purgeByDate('property_history', $this->cutoff('history_days'), $batch, $dryRun),
             'property_events' => $this->purgeByDate('property_events', $this->cutoff('events_days'), $batch, $dryRun),
             'websocket_events' => $this->purgeByDate('websocket_events', $this->cutoff('websocket_events_days'), $batch, $dryRun),

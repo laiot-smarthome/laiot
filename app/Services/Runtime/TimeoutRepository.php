@@ -9,6 +9,7 @@ use LaIOT\Database\DatabaseManager;
 /**
  * Отложенные задачи `setTimeOut` без автоматических циклов.
  *
+ * 2026-10-30 — адресная отмена таймера из X-ray без удаления одноимённых задач.
  * Аренда защищает от двойного выполнения: таймер забирает один процесс,
  * подтверждение и снятие привязаны к токену. Просроченная аренда снова
  * доступна — так падение процесса не «замораживает» запись навсегда.
@@ -49,6 +50,18 @@ final readonly class TimeoutRepository
             ->whereNull('executed_at')
             ->whereNull('deleted_at')
             ->update(['deleted_at' => $now, 'updated_at' => $now]) > 0;
+    }
+
+    /** Нельзя отменить код, уже захваченный выполняющим процессом. */
+    public function cancel(int $id): bool
+    {
+        $now = date('Y-m-d H:i:s');
+
+        return $this->database->connection()->table('runtime_timeouts')
+            ->where('id', $id)->whereNull('executed_at')->whereNull('deleted_at')
+            ->where(static function ($query): void {
+                $query->whereNull('claimed_at')->orWhere('claimed_at', '<=', date('Y-m-d H:i:s', time() - self::CLAIM_SECONDS));
+            })->update(['deleted_at' => $now, 'updated_at' => $now]) > 0;
     }
 
     /**

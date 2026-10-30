@@ -1,0 +1,25 @@
+/* 2026-10-30 — общие компоненты данных и компактного изменения значения. */
+.md-value-change { display: flex; align-items: center; gap: 8px; min-width: 0; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.md-value-change > .md-icon { flex: 0 0 auto; color: var(--md-ui-muted); }
+.md-value-change__old, .md-value-change__new { display: inline-block; max-width: 46%; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md-value-change__old { color: var(--md-ui-muted); }
+.md-value-change__new { color: var(--md-ui-primary); }
+.md-data-view { padding: 12px 16px; border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-sm); background: var(--md-ui-surface-2); font: 13px/1.75 ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+.md-data-children { margin-left: 6px; padding-left: 18px; border-left: 1px solid var(--md-ui-border-strong); }
+.md-data-key { color: var(--md-ui-text); }
+.md-data-arrow, .md-data-hint { color: var(--md-ui-muted); }
+.md-data-hint { margin-left: 10px; font-size: 11px; }
+.md-data-type { color: var(--md-ui-primary); }
+.md-data-type > span { color: var(--md-ui-muted); }
+.md-data-group > summary { cursor: pointer; }
+.md-data-scalar { white-space: pre-wrap; }
+.md-data-scalar--string { color: color-mix(in srgb, var(--md-ui-success) 80%, var(--md-ui-text)); }
+.md-data-scalar--int, .md-data-scalar--float { color: var(--md-ui-primary); }
+.md-data-scalar--bool { color: var(--md-ui-warning); }
+.md-data-scalar--null { color: var(--md-ui-muted); font-style: italic; }
+.md-data-disclosure { min-width: 0; max-width: 100%; }
+.md-data-disclosure > summary { cursor: pointer; display: flex; gap: 6px; align-items: center; min-height: 24px; }
+.md-data-disclosure > summary::before { content: '›'; color: var(--md-ui-primary); font-size: 17px; }
+.md-data-disclosure[open] > summary::before { transform: rotate(90deg); }
+.md-data-summary { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 580px; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--md-ui-text-soft); }
+.md-data-disclosure > .md-data-view { margin-top: 8px; }

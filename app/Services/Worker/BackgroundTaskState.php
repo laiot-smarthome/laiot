@@ -9,6 +9,7 @@ use LaIOT\Services\Cache\CacheStore;
 /**
  * Состояние фоновых задач в Redis (через CacheStore).
  *
+ * 2026-10-30 — отдельное время heartbeat и дедупликация ошибок длинных задач.
  * Redis — рекомендуемый и фактически обязательный драйвер для production:
  * lock, heartbeat и next_run не должны зависеть от таблиц MySQL. В тестах
  * допустим array-драйвер.
@@ -55,6 +56,7 @@ final readonly class BackgroundTaskState
         $current = $this->cache->get($this->lockKey($module));
         if ((int)$current === $pid) {
             $this->cache->put($this->lockKey($module), $pid, self::LOCK_TTL);
+            $this->heartbeat($module);
         }
     }
 
@@ -63,6 +65,7 @@ final readonly class BackgroundTaskState
         $key = $this->taskLockKey($module, $task);
         if ((int)$this->cache->get($key) === $pid) {
             $this->cache->put($key, $pid, self::LOCK_TTL);
+            $this->heartbeat($module . '.' . $task);
             $state = $this->get($module, $task);
             if ($state !== null) {
                 $state['updated_at'] = date('Y-m-d H:i:s');
@@ -75,6 +78,7 @@ final readonly class BackgroundTaskState
     {
         if ((int)$this->cache->get($this->lockKey($module)) === $pid) {
             $this->cache->forget($this->lockKey($module));
+            $this->cache->forget('worker.heartbeat.' . $module);
         }
     }
 
@@ -83,12 +87,14 @@ final readonly class BackgroundTaskState
         $key = $this->taskLockKey($module, $task);
         if ((int)$this->cache->get($key) === $pid) {
             $this->cache->forget($key);
+            $this->cache->forget('worker.heartbeat.' . $module . '.' . $task);
         }
     }
 
     public function start(string $module, string $task, int $pid, string $nextRunAt): void
     {
         $now = date('Y-m-d H:i:s');
+        $previous = $this->get($module, $task);
         $this->cache->put($this->taskKey($module, $task), [
             'module' => $module,
             'task' => $task,
@@ -98,6 +104,7 @@ final readonly class BackgroundTaskState
             'finished_at' => null,
             'next_run_at' => $nextRunAt,
             'error' => null,
+            'last_reported_error' => $previous['last_reported_error'] ?? null,
             'updated_at' => $now,
         ], self::TASK_TTL);
     }
@@ -111,6 +118,7 @@ final readonly class BackgroundTaskState
         $state['finished_at'] = date('Y-m-d H:i:s');
         $state['next_run_at'] = $nextRunAt;
         $state['error'] = $error;
+        $state['last_reported_error'] = $status === 'error' ? $error : null;
         $state['updated_at'] = date('Y-m-d H:i:s');
         $this->cache->put($this->taskKey($module, $task), $state, self::TASK_TTL);
     }
@@ -145,6 +153,14 @@ final readonly class BackgroundTaskState
     private function taskKey(string $module, string $task): string
     {
         return 'worker.task.' . $module . '.' . $task;
+    }
+
+    private function heartbeat(string $key): void
+    {
+        $now = time();
+        if ($this->cache->get('worker.heartbeat.' . $key) !== $now) {
+            $this->cache->put('worker.heartbeat.' . $key, $now, self::LOCK_TTL);
+        }
     }
 
     private function lockKey(string $module): string

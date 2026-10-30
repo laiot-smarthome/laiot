@@ -10,6 +10,7 @@ use RuntimeException;
 /**
  * Привилегированные операции systemd для worker-модулей.
  *
+ * 2026-10-30 — NRestarts передаётся supervisor для регистрации восстановившихся сбоев.
  * 2026-10-29 — поиск модулей следует current после обновления прямой установки.
  * PHP-пользователь не вызывает systemctl напрямую: только агент. Все имена
  * юнитов строятся из проверенного id модуля, без shell-строк.
@@ -222,7 +223,7 @@ final readonly class SystemdController
             'show',
             $unit,
             '--no-pager',
-            '--property=ActiveState,SubState,MainPID,ExecMainStartTimestamp',
+            '--property=ActiveState,SubState,MainPID,ExecMainStartTimestamp,NRestarts',
         ]);
         if (!$result->successful()) {
             throw new RuntimeException('systemctl show не удался: ' . trim($result->stderr));
@@ -241,6 +242,7 @@ final readonly class SystemdController
             'sub' => $values['SubState'] ?? 'unknown',
             'pid' => (int)($values['MainPID'] ?? 0),
             'started' => $values['ExecMainStartTimestamp'] ?? '',
+            'restarts' => (int)($values['NRestarts'] ?? 0),
         ];
     }
 

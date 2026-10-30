@@ -50,7 +50,7 @@ final class SystemdControllerTest extends TestCase
         $root = $this->root();
         try {
             $runner = new FakeProcessRunner([
-                'systemctl show laiot-worker@demo --no-pager --property=ActiveState,SubState,MainPID,ExecMainStartTimestamp' =>
+                'systemctl show laiot-worker@demo --no-pager --property=ActiveState,SubState,MainPID,ExecMainStartTimestamp,NRestarts' =>
                     new ProcessResult(0, "ActiveState=active\nSubState=running\nMainPID=4242\nExecMainStartTimestamp=Mon 2026-10-26 22:00:00 MSK\n", ''),
             ]);
             $status = (new SystemdController($runner, $root))->status('demo');

@@ -10,6 +10,7 @@ use LaIOT\Services\Queue\Queue;
 /**
  * Системные события: доставка модулям и ядровым наблюдателям.
  *
+ * 2026-10-30 — каталог фактически зарегистрированных подписок для X-ray.
  * Имя события определяет владельца: ядро отправляет `system.*`
  * (`system.minute` и т.п.), модуль — `module.<id>.*`
  * (`module.mqtt.ready`). Одна форма на всех: получатель видит, кто источник.
@@ -76,6 +77,19 @@ final class SystemEvents
                 ]);
             }
         }
+    }
+
+    /** @return list<array{module:string,event:string,handlers:int}> */
+    public function subscriptions(): array
+    {
+        $result = [];
+        foreach ($this->listeners as $module => $events) {
+            foreach ($events as $event => $listeners) {
+                $result[] = ['module' => $module, 'event' => $event, 'handlers' => count($listeners)];
+            }
+        }
+
+        return $result;
     }
 
     /** @param array<string, mixed> $payload */

@@ -14,10 +14,12 @@ use LaIOT\Services\History\HistoryQuery;
 use LaIOT\Services\History\HistoryRepository;
 use LaIOT\Services\Objects\ObjectRepository;
 use LaIOT\Services\WebSocket\WebSocketPublisher;
+use LaIOT\Services\Xray\XrayJournal;
 
 /**
  * Единственный путь записи значения свойства в новом ядре.
  *
+ * 2026-10-30 — каждое изменение атомарно пишется в трёхсуточный журнал X-ray.
  * 2026-10-29 — событие WebSocket пишется в outbox websocket в той же транзакции.
  * 2026-10-29 — пакет значений сохраняется атомарно вместе с заданиями событий.
  * Запись максимально короткая: сохранить значение и в той же транзакции
@@ -50,7 +52,8 @@ final class PropertyValueService
         private readonly PropertyEventContext $context,
         private readonly PropertyEventQueue $events,
         private readonly PropertyExecutionRepository $executions,
-        private readonly ?WebSocketPublisher $websocket = null
+        private readonly ?WebSocketPublisher $websocket = null,
+        private readonly ?XrayJournal $xray = null
     ) {
     }
 
@@ -221,6 +224,12 @@ final class PropertyValueService
                 'occurred_at' => $occurredAt,
             ]);
             $this->values->write($objectId, $propertyId, $newValue);
+            if ($oldValue !== $newValue) {
+                $this->xray?->append('property', $objectTitle . '.' . $propertyTitle, $source, [
+                    'object_id' => $objectId, 'property_id' => $propertyId,
+                    'old_value' => $oldValue, 'new_value' => $newValue,
+                ]);
+            }
             // Событие WebSocket пишется в ту же транзакцию: сервер outbox
             // увидит его только после сохранения значения.
             $this->websocket?->publish($objectId, $propertyId, $objectTitle, $propertyTitle, $oldValue, $newValue, $source, $occurredAt);

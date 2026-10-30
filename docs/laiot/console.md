@@ -92,6 +92,7 @@ order: 8
 | `core-worker system-events [--once]` | Системные события минуты, часа и дня |
 | `core-worker timeouts [--once]` | Постоянные таймеры либо один проход |
 | `core-worker maintenance [--once]` | Retention сразу и затем по `retention.interval` |
+| `core-worker supervisor [--once]` | Автозапуск включённых циклов и контроль каждые 5 секунд; `--once` — один проход |
 | `core-worker websocket` | Постоянный сервер WebSocket; `--once` не поддерживается |
 
 Эти команды выполняют пользовательский или модульный код и могут иметь

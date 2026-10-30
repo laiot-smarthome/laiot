@@ -18,6 +18,7 @@ use Throwable;
 /**
  * Worker одного модуля.
  *
+ * 2026-10-30 — heartbeat во время длинной задачи и регистрация сбоев в журнале ошибок.
  * Один процесс на модуль. Задачи берутся из `module.json`, выполняются
  * последовательно; каждая — один вызов метода без собственного цикла.
  * Таймаут задачи enforced через fork, если pcntl доступен.
@@ -212,6 +213,10 @@ final class Worker
                 'task' => $taskName,
                 'error' => $error,
             ]);
+            $previous = $this->state->get($moduleId, $taskName);
+            if (($previous['last_reported_error'] ?? '') !== $error) {
+                $this->errors->record('error', 'Ошибка цикла ' . $moduleId . '.' . $taskName, ['exception' => $exception, 'module' => $moduleId, 'task' => $taskName], '');
+            }
         }
         $this->state->finish(
             $moduleId,
@@ -254,6 +259,7 @@ final class Worker
         $deadline = $context->deadline();
         $forwarded = false;
         while (true) {
+            $this->state->refresh($context->module->id(), getmypid() ?: 0);
             if ($this->stop && !$forwarded) {
                 // Docker stop приходит только PID 1 (этому процессу). Задаче
                 // нужно передать SIGTERM, иначе её длинный цикл (MQTT)

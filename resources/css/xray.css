@@ -1,0 +1,104 @@
+/* 2026-10-30 — штатные карточки, сводка и состояния диагностики MD. */
+.md-xray, .md-xray-content { display: grid; gap: 20px; min-width: 0; }
+.md-xray-workspace { position: relative; min-height: 330px; min-width: 0; }
+.md-xray-kpis { margin: 0; }
+.md-xray-stat { appearance: none; border: 0; padding: 0; background: none; text-align: left; color: inherit; border-radius: var(--md-ui-radius-lg); cursor: pointer; min-width: 0; }
+.md-xray-stat .md-kpi { height: 100%; transition: border-color .15s ease; }
+.md-xray-stat:hover .md-kpi { border-color: var(--md-ui-primary); }
+.md-xray-stat:focus-visible { outline: 2px solid var(--md-ui-primary); outline-offset: 3px; }
+.md-xray-tabs { flex-wrap: wrap; }
+.md-xray-section-head, .md-xray-toolbar, .md-xray-footer, .md-xray-console__bar, .md-xray-record__head, .md-xray-record__footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.md-xray-section-head h2 { font-size: var(--md-ui-fs-lg); font-weight: 600; margin: 0 0 5px; }
+.md-xray-section-head p { color: var(--md-ui-muted); font-size: var(--md-ui-fs-sm); margin: 0; }
+.md-xray-live { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--md-ui-success); white-space: nowrap; }
+.md-xray-live > span { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.md-xray-live.is-paused { color: var(--md-ui-muted); }
+.md-xray-toolbar { padding: 14px 18px; background: var(--md-ui-surface); border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-lg); }
+.md-xray-toolbar > input { flex: 1 1 260px; max-width: 540px; min-width: 0; }
+.md-xray-loading { display: none; justify-items: center; align-content: start; min-height: 330px; padding: 36px 20px; gap: 10px; background: var(--md-ui-surface); border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-lg); color: var(--md-ui-text); text-align: center; }
+.md-xray-loading.is-active { display: grid; }
+.md-xray-content.is-loading { display: none; }
+.md-xray-loading__mascot { width: 120px; height: 120px; object-fit: contain; }
+.md-xray-loading > span:not(.md-loader) { color: var(--md-ui-muted); font-size: var(--md-ui-fs-sm); }
+.md-xray-console { border: 1px solid var(--md-ui-border); background: var(--md-ui-surface); border-radius: var(--md-ui-radius-lg); overflow: hidden; min-width: 0; }
+.md-xray-console__bar { padding: 14px 20px; border-bottom: 1px solid var(--md-ui-border); color: var(--md-ui-muted); font-size: var(--md-ui-fs-sm); background: var(--md-ui-surface-2); }
+.md-xray-console__bar > span, .md-xray-console__bar label { display: flex; align-items: center; gap: 8px; }
+.md-xray-console__bar label { min-height: 32px; cursor: pointer; }
+.md-xray-feed { max-height: 620px; overflow: auto; overscroll-behavior: contain; }
+.md-xray-feed:focus-visible { outline: 2px solid var(--md-ui-primary); outline-offset: -2px; }
+.md-xray-record { display: flex; gap: 14px; padding: 18px 20px; border-bottom: 1px solid var(--md-ui-border); }
+.md-xray-record:last-child { border-bottom: 0; }
+.md-xray-record__icon { flex: 0 0 34px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--md-ui-primary-soft); color: var(--md-ui-primary); }
+.md-xray-record--debug .md-xray-record__icon { background: var(--md-ui-info-soft); color: var(--md-ui-info); }
+.md-xray-record--event .md-xray-record__icon { background: var(--md-ui-warning-soft); color: var(--md-ui-warning); }
+.md-xray-record--script .md-xray-record__icon { background: var(--md-ui-success-soft); color: var(--md-ui-success); }
+.md-xray-record__content { flex: 1; min-width: 0; display: grid; gap: 10px; }
+.md-xray-record__head strong { overflow-wrap: anywhere; font-size: var(--md-ui-fs-sm); }
+.md-xray-record__head time, .md-xray-record__footer { font-size: 12px; color: var(--md-ui-muted); }
+.md-xray-record__footer > span { overflow-wrap: anywhere; min-width: 0; }
+.md-xray-diff { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+.md-xray-diff code { padding: 4px 9px; border-radius: 6px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.md-xray-diff .is-old { color: var(--md-ui-text-soft); background: var(--md-ui-surface-3); }
+.md-xray-diff .is-new { color: var(--md-ui-success); background: var(--md-ui-success-soft); }
+.md-xray-preview { background: var(--md-ui-surface-2); border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-sm); padding: 10px 12px; min-width: 0; }
+.md-xray-preview summary { cursor: pointer; font-size: var(--md-ui-fs-sm); overflow-wrap: anywhere; }
+.md-xray-preview summary > span { margin-left: 10px; }
+.md-xray-preview__hint { color: var(--md-ui-muted); font-size: 12px; }
+.md-xray-scalar { display: flex; gap: 10px; align-items: flex-start; }
+.md-xray-scalar pre { flex: 1; margin: 0; padding: 8px 12px; border: 1px solid var(--md-ui-border); background: var(--md-ui-surface-2); border-radius: 8px; }
+.md-xray pre { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; margin-bottom: 0; }
+.md-xray-value { margin: 8px 0; }
+.md-xray-value__children { padding-left: 16px; border-left: 1px solid var(--md-ui-border); }
+.md-xray-value summary { cursor: pointer; padding: 6px 0; overflow-wrap: anywhere; }
+.md-xray-values, .md-xray-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.md-xray-values section { min-width: 0; padding: 16px; border: 1px solid var(--md-ui-border); background: var(--md-ui-surface); border-radius: 12px; }
+.md-xray-error { color: var(--md-ui-danger); }
+.md-xray-card-grid .md-card { min-width: 0; margin: 0; }
+.md-xray-timer__countdown { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--md-ui-primary); }
+.md-xray-timer__countdown > strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+.md-xray-facts { display: grid; gap: 10px; margin: 18px 0; }
+.md-xray-facts > div { display: flex; justify-content: space-between; gap: 10px; font-size: var(--md-ui-fs-sm); }
+.md-xray-facts dt { color: var(--md-ui-muted); font-weight: 400; }
+.md-xray-facts dd { margin: 0; text-align: right; }
+.md-xray-card-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--md-ui-border); margin-top: 18px; padding-top: 14px; }
+.md-xray-process-table .md-table td { padding: 8px 12px; font-size: 13px; }
+.md-xray-process-table .md-table th:last-child { width: 110px; }
+.md-xray-process-table .md-ui-actions { flex-wrap: nowrap; gap: 5px; }
+.md-xray-properties .md-table__scroll { max-height: 580px; }
+.md-xray-properties table { table-layout: fixed; min-width: 720px; }
+.md-xray-properties .md-table th { position: sticky; top: 0; z-index: 1; background: var(--md-ui-surface-2); }
+.md-xray-properties .md-table td { padding: 4px 10px; height: 34px; font-size: 12px; line-height: 1.3; }
+.md-xray-properties .md-table th { padding: 10px; font-size: 12px; }
+.md-xray-properties .md-table td > :not(button):not(.md-value-change) { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md-xray-properties .md-table th:nth-child(1) { width: 76px; }
+.md-xray-properties .md-table th:nth-child(2) { width: 25%; }
+.md-xray-properties .md-table th:nth-child(4) { width: 120px; }
+.md-xray-property-old { color: var(--md-ui-muted); }
+.md-xray-property-new { color: var(--md-ui-primary); }
+.md-xray-debug-list { overflow: hidden; min-width: 0; border: 1px solid var(--md-ui-border); border-radius: var(--md-ui-radius-lg); background: var(--md-ui-surface); }
+.md-xray-debug-entry { padding: 18px 20px; border-bottom: 1px solid var(--md-ui-border); }
+.md-xray-debug-entry:last-child { border-bottom: 0; }
+.md-xray-debug-entry__head, .md-xray-debug-entry__head > div, .md-xray-debug-entry__footer { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.md-xray-debug-entry__head > div { justify-content: flex-start; }
+.md-xray-debug-entry__head strong { font-size: var(--md-ui-fs-sm); }
+.md-xray-debug-entry__head > div > .md-icon { color: var(--md-ui-primary); }
+.md-xray-debug-entry__head time, .md-xray-debug-entry__head > div > span, .md-xray-debug-entry__footer { font-size: 12px; color: var(--md-ui-muted); }
+.md-xray-debug-code { margin: 12px 0 6px; }
+.md-xray-debug-entry__footer > span { overflow-wrap: anywhere; }
+@media (max-width: 1100px) { .md-xray-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+    .md-xray-card-grid, .md-xray-values { grid-template-columns: 1fr; }
+    .md-xray-stat .md-kpi { padding: 14px; }
+    .md-xray-record { gap: 10px; padding: 14px; }
+    .md-xray-record__head { align-items: flex-start; }
+    .md-xray-record__head > .md-ui-actions { width: 100%; }
+    .md-xray-record__footer { gap: 5px; }
+    .md-xray-toolbar { padding: 12px; }
+    .md-xray-feed { max-height: 65vh; }
+}
+@media (prefers-reduced-motion: reduce) { .md-xray-stat .md-kpi { transition: none; } }
+
+.md-xray-events .md-table td { padding: 7px 12px; font-size: 12px; vertical-align: top; }
+.md-xray-events .md-table th:first-child { width: 82px; }
+.md-xray-events .md-table th:nth-child(2) { width: 210px; }
+.md-xray-events .md-table__scroll { max-height: 540px; }

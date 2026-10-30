@@ -21,7 +21,7 @@ readonly ROOT_DEFAULT='/var/www/laiot'
 # Ядровые процессы, которые обязательны по docs/laiot/runtime.md. Порядок
 # в массиве — порядок включения; events обслуживает OnChange, историю и
 # доставку модулям, без него очередь событий растёт.
-CORE_TASKS=(queue events timeouts maintenance websocket)
+CORE_TASKS=(queue events timeouts maintenance system-events websocket supervisor)
 
 ROOT=''
 USER_NAME=''

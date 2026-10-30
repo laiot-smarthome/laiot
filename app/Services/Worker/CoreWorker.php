@@ -22,6 +22,7 @@ use Throwable;
 /**
  * Критичные ядровые процессы: очередь, события свойств, setTimeOut и retention.
  *
+ * 2026-10-30 — supervisor автоматически запускает и контролирует включённые циклы.
  * Они не делят процесс с модульными задачами и запускаются отдельными
  * systemd-юнитами `laiot-core@queue`/`laiot-core@events`/`laiot-core@timeouts`/
  * `laiot-core@maintenance`.
@@ -41,7 +42,7 @@ use Throwable;
  */
 final class CoreWorker
 {
-    public const TASKS = ['queue', 'events', 'timeouts', 'maintenance', 'system-events', 'websocket'];
+    public const TASKS = ['queue', 'events', 'timeouts', 'maintenance', 'system-events', 'websocket', 'supervisor'];
 
     private bool $stop = false;
 
@@ -58,7 +59,8 @@ final class CoreWorker
         private readonly SystemEventTicker $systemEvents,
         private readonly Clock $clock,
         private readonly ErrorRepository $errors,
-        private readonly ?WebSocketServer $websocket = null
+        private readonly ?WebSocketServer $websocket = null,
+        private readonly ?RuntimeSupervisor $supervisor = null
     ) {
     }
 
@@ -98,6 +100,8 @@ final class CoreWorker
                         $this->runSystemEvents($once, $pid);
                     } elseif ($task === 'maintenance') {
                         $this->runMaintenance($once, $pid);
+                    } elseif ($task === 'supervisor') {
+                        $this->runSupervisor($once, $pid);
                     } elseif ($task === 'websocket') {
                         if ($this->websocket === null) {
                             throw new RuntimeException('Сервер WebSocket не зарегистрирован в контейнере.');
@@ -161,6 +165,27 @@ final class CoreWorker
                 usleep(100_000);
             }
         }
+    }
+
+    private function runSupervisor(bool $once, int $pid): void
+    {
+        if ($this->supervisor === null) {
+            throw new RuntimeException('Supervisor не зарегистрирован в контейнере.');
+        }
+        do {
+            $this->state->refreshTask('core', 'supervisor', $pid);
+            try {
+                $this->supervisor->tick();
+            } catch (Throwable $error) {
+                $this->errors->record('error', 'Ошибка контроля фоновых циклов', ['exception' => $error], '');
+            }
+            if ($once) {
+                return;
+            }
+            for ($wait = 0; $wait < 50 && !$this->stop; $wait++) {
+                usleep(100_000);
+            }
+        } while (!$this->stop);
     }
 
     /**

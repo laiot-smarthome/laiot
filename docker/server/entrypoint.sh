@@ -28,7 +28,7 @@ if [[ ! -f "$root/.server-initialized" ]]; then
     # Чистая установка использует обычный .env; раскладку релизов подготовит штатный обновитель.
     if [[ ! -e "$root/.env" ]]; then
         umask 0077
-        printf 'APP_ENV=production\nAPP_DEBUG=false\nAPP_URL=%s\nAPP_TIMEZONE=Europe/Moscow\nDB_HOST=127.0.0.1\nDB_PORT=3306\nDB_NAME=\nDB_USER=laiot\nDB_PASSWORD=laiot\nCACHE_DRIVER=file\nUPDATE_REPOSITORY=laiot-smarthome/laiot\nUPDATE_CHANNEL=beta\n' "${LAIOT_SERVER_URL:-http://127.0.0.1:8082}" > "$root/.env"
+        printf 'APP_ENV=production\nAPP_DEBUG=false\nAPP_URL=%s\nAPP_TIMEZONE=Europe/Moscow\nDB_HOST=127.0.0.1\nDB_PORT=3306\nDB_NAME=\nDB_USER=laiot\nDB_PASSWORD=laiot\nCACHE_DRIVER=file\nUPDATE_REPOSITORY=laiot-smarthome/laiot\nUPDATE_CHANNEL=beta\n' "${LAIOT_SERVER_URL:-http://127.0.0.1:8080}" > "$root/.env"
         umask 0022
     fi
     /usr/bin/php <<'PHP'

@@ -8,6 +8,9 @@ Wants=redis-server.service
 Type=oneshot
 ExecStart=/usr/local/sbin/laiot-server-prepare
 ExecStartPost=/usr/bin/systemctl start nginx.service php8.3-fpm.service
+# Setup добавляет зависимости после начальной транзакции загрузки; наблюдатель запускаем явно.
+# Без --no-block возникнет ожидание этой же prepare-службы через After/Requires наблюдателя.
+ExecStartPost=/usr/bin/systemctl start --no-block laiot-after-install.path
 RemainAfterExit=yes
 
 [Install]

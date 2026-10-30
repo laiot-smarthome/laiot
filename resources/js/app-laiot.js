@@ -10,6 +10,8 @@ import '../css/mqtt.css';
 import 'swiper/css';
 import 'swiper/css/a11y';
 import '../css/updates.css';
+import '../css/xray.css';
+import '../css/data-view.css';
 
 import Alpine from 'alpinejs';
 import 'tom-select/dist/css/tom-select.css';
@@ -37,10 +39,12 @@ import {registerDropdown} from './laiot/dropdown.js';
 import {registerCallFlow} from './laiot/call-flow.js';
 import {initUpdateConsoles} from './laiot/update-console.js';
 import {registerReleaseSlider} from './laiot/release-slider.js';
+import {registerXray} from './laiot/xray.js';
 
 initUpdateConsoles();
 
 window.Alpine = Alpine;
+registerXray(Alpine);
 
 Alpine.data('mdDateTimePicker', (type, initial) => ({
     type, value: initial, open: false, year: 0, month: 0, hour: '00', minute: '00',

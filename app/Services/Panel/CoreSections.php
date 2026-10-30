@@ -7,6 +7,7 @@ namespace LaIOT\Services\Panel;
 /**
  * Реестр ядровых разделов админки и сборка бокового меню.
  *
+ * 2026-10-30 — X-ray добавлен в диагностику.
  * 2026-10-29 — обновления и восстановление в каталоге «Сервис».
  * 2026-10-27 — разделы перегруппированы в каталоги: «Система» больше не один
  * длинный список, а плоские пункты плюс раскрывающиеся «Диагностика»,
@@ -70,6 +71,7 @@ final class CoreSections
             ['id' => 'settings', 'label' => 'Настройки', 'href' => '/settings', 'icon' => 'ti-settings', 'group' => 'system'],
 
             ['id' => 'actions_log', 'label' => 'Журнал', 'href' => '/journal', 'icon' => 'ti-list-details', 'group' => 'system', 'catalog' => 'diagnostics'],
+            ['id' => 'xray', 'label' => 'X-Ray', 'href' => '/xray', 'icon' => 'ti-activity-heartbeat', 'group' => 'system', 'catalog' => 'diagnostics'],
             ['id' => 'system_errors', 'label' => 'Ошибки', 'href' => '/errors', 'icon' => 'ti-alert-triangle', 'group' => 'system', 'catalog' => 'diagnostics'],
 
             ['id' => 'api', 'label' => 'API и webhooks', 'href' => '/api', 'icon' => 'ti-api', 'group' => 'system', 'catalog' => 'api'],

@@ -1,5 +1,5 @@
 # 2026-10-30 — отдельный чистый Linux-стенд для установки, обновления и восстановления.
-name: laiot-server
+name: laiot
 
 services:
   server:
@@ -7,13 +7,13 @@ services:
       context: ../..
       dockerfile: docker/server/Dockerfile
     image: laiot-server:local
-    hostname: laiot-server
+    hostname: laiot
     environment:
       container: docker
       TZ: Europe/Moscow
-      LAIOT_SERVER_URL: http://127.0.0.1:${LAIOT_SERVER_PORT:-8082}
+      LAIOT_SERVER_URL: http://127.0.0.1:${LAIOT_SERVER_PORT:-8080}
     ports:
-      - "127.0.0.1:${LAIOT_SERVER_PORT:-8082}:80"
+      - "127.0.0.1:${LAIOT_SERVER_PORT:-8080}:80"
     # systemd управляет только собственной иерархией контейнера; host cgroup не монтируется.
     cgroup: private
     cap_add:

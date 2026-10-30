@@ -6,4 +6,4 @@ Requires=laiot-server-prepare.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/bin/systemctl start laiot-core@queue.service laiot-core@events.service laiot-core@timeouts.service laiot-core@maintenance.service laiot-core@websocket.service
+ExecStart=/usr/bin/systemctl start laiot-core@queue.service laiot-core@events.service laiot-core@timeouts.service laiot-core@maintenance.service laiot-core@system-events.service laiot-core@websocket.service laiot-core@supervisor.service
