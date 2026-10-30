@@ -221,7 +221,7 @@ readonly class UpdateService
         $extensions = array_map('strtolower', $extensions);
         foreach ($manifest->data['extensions'] as $extension) {
             // В Ubuntu pcntl встроен только в CLI; его отсутствие в FPM не мешает сайту.
-            if (!$cli && $extension === 'pcntl') {
+            if (!$cli && is_string($extension) && strtolower($extension) === 'pcntl') {
                 continue;
             }
             if (!is_string($extension) || !in_array(strtolower($extension), $extensions, true)) {

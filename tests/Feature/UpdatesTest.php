@@ -117,7 +117,14 @@ final class UpdatesTest extends TestCase
     {
         $manifest = $this->manifest('2.1.0');
         $manifest['extensions'] = ['pcntl', 'json', 'phar'];
-        $native = new UpdateService($this->updates->layout, $this->state, $this->updates->catalog, $this->database, $this->host, []);
+        $native = new UpdateService(
+            $this->updates->layout,
+            $this->state,
+            $this->updates->catalog,
+            $this->database,
+            $this->host,
+            ['database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']]
+        );
         $this->host->php = ['version' => PHP_VERSION, 'extensions' => ['pcntl', 'JSON', 'Phar']];
         $checks = array_column($native->checks(new ReleaseManifest($manifest)), null, 'title');
         self::assertTrue($checks['PHP и расширения']['ok']);
@@ -131,7 +138,14 @@ final class UpdatesTest extends TestCase
     public function testCliVersionAndApplicationExtensionsRemainMandatory(): void
     {
         $manifest = $this->manifest('2.1.0');
-        $native = new UpdateService($this->updates->layout, $this->state, $this->updates->catalog, $this->database, $this->host, []);
+        $native = new UpdateService(
+            $this->updates->layout,
+            $this->state,
+            $this->updates->catalog,
+            $this->database,
+            $this->host,
+            ['database' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']]
+        );
         $this->host->php = ['version' => '8.1.0', 'extensions' => []];
         $checks = array_column($native->checks(new ReleaseManifest($manifest)), null, 'title');
         self::assertFalse($checks['PHP и расширения']['ok']);

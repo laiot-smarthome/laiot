@@ -17,6 +17,7 @@ use LaIOT\Services\Auth\UserRepository;
 use LaIOT\Services\Security\EncryptionKey;
 use LaIOT\Services\Settings\EnvFile;
 use LaIOT\Services\Systemd\SystemdAgentClient;
+use LaIOT\Services\Updates\UpdateHost;
 use PDO;
 use PDOException;
 use Predis\Client as RedisClient;
@@ -39,6 +40,7 @@ use Throwable;
  *
  * 2026-10-28 — APP_KEY автоматически создаётся один раз при записи окружения.
  * 2026-10-28 — первая реализация установщика вместо alpha `install.php`.
+ * 2026-10-30 — pcntl и posix проверяются в CLI агента, отдельно от расширений веб-PHP.
  */
 final class InstallService
 {
@@ -601,9 +603,19 @@ final class InstallService
             );
         }
         try {
-            (new SystemdAgentClient($path, 2.0))->coreStatus('queue');
+            $agent = new SystemdAgentClient($path, 2.0);
+            $agent->coreStatus('queue');
+            $cli = (new UpdateHost($agent))->platform();
+            $missing = array_diff(['pcntl', 'posix'], $cli['extensions']);
+            if (version_compare($cli['version'], '8.2.0', '<') || $missing !== []) {
+                return InstallCheck::warn(
+                    'agent',
+                    'Фоновые службы',
+                    'Для фоновых служб и обновлений требуется PHP CLI 8.2+ с pcntl и posix. Сейчас PHP CLI ' . $cli['version'] . '.'
+                );
+            }
 
-            return InstallCheck::ok('agent', 'Фоновые службы', 'Агент отвечает — службами можно управлять из панели');
+            return InstallCheck::ok('agent', 'Фоновые службы', 'PHP CLI ' . $cli['version'] . '; pcntl и posix доступны; агент отвечает.');
         } catch (Throwable $error) {
             return InstallCheck::warn('agent', 'Фоновые службы', 'Агент не отвечает: ' . $error->getMessage());
         }
