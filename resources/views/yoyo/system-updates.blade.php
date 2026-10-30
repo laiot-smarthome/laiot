@@ -1,5 +1,6 @@
 <div class="md-upd-admin" x-data="{busy: '', activeRelease: {id: '', html: '', url: ''}}"
      x-on:htmx:before-request.camel="busy = $event.detail.elt.closest('[data-update-action]')?.dataset.updateAction || 'request'"
+     x-on:htmx:before-swap.camel="if ($event.detail.shouldSwap && ['inspect', 'start'].includes(busy)) $store.mdModal.close()"
      x-on:htmx:after-request.camel="busy = ''; if ($event.detail.failed) $store.mdToasts.push({tone: 'danger', text: $event.detail.xhr?.status === 403 ? 'Доступ к запросу отклонён. Обновите страницу и проверьте авторизацию.' : 'Не удалось выполнить запрос. Проверьте соединение и повторите попытку.'})">
 <header class="md-upd-hero">
     <div class="md-upd-hero__copy">
@@ -46,7 +47,7 @@
                     <div class="md-upd-release-card__actions">
                         <button type="button" class="md-upd-release-card__more" x-on:click="activeRelease = @js(['id' => $release['id'], 'html' => $release['notes_html'], 'url' => $release['url']]); $store.mdModal.show('update-release-notes')" x-bind:disabled="busy !== ''">Читать полностью <x-md.icon name="arrows-maximize" /></button>
                         @if ($release['url'] !== '')<a href="{{ $release['url'] }}" target="_blank" rel="noopener noreferrer" class="md-upd-release-card__github"><x-md.icon name="brand-github" /> Релиз на GitHub <x-md.icon name="external-link" /></a>@endif
-                        @unless ($release['current'])<x-md.button variant="secondary" yoyo:get="inspect('{{ $release['id'] }}')" data-update-action="inspect" x-bind:disabled="busy !== ''" iconAfter="arrow-right">{{ ($preview['manifest']['id'] ?? '') === $release['id'] ? 'Проверить повторно' : 'Проверить и установить' }}</x-md.button>@endunless
+                        @unless ($release['current'])<x-md.button id="prepare-{{ $release['id'] }}" variant="secondary" yoyo:get="inspect('{{ $release['id'] }}')" data-update-action="inspect" x-bind:disabled="busy !== ''" iconAfter="arrow-right">Подготовить установку</x-md.button>@endunless
                     </div>
                 </article>
             @endforeach
@@ -67,20 +68,39 @@
     </x-slot:actions>
 </x-md.modal>
 
-@if ($preview !== [])
-    <section class="md-upd-preview">
-        <div class="md-upd-section-head"><div><span class="md-upd-kicker">СВЕДЕНИЯ О РЕЛИЗЕ</span><h2>{{ $preview['manifest']['id'] }}</h2></div><x-md.badge :tone="$preview['ready'] ? 'success' : 'warning'" dot>{{ $preview['ready'] ? 'Проверки пройдены' : 'Обнаружены замечания' }}</x-md.badge></div>
-        <div class="md-upd-preview-grid"><div class="md-upd-release-notes"><span class="md-upd-mini-label">ИЗМЕНЕНИЯ В РЕЛИЗЕ</span>@if ($notes !== '')<div class="md-prose">{!! $notes !!}</div>@else<p>У этого выпуска пока нет описания изменений.</p>@endif</div>
-            <div class="md-upd-preflight"><h3><x-md.icon name="clipboard-check" /> Проверка перед установкой</h3><ul>@foreach ($preview['checks'] as $check)<li data-ok="{{ $check['ok'] ? 'true' : 'false' }}"><x-md.icon :name="$check['ok'] ? 'circle-check' : 'alert-circle'" /><div><strong>{{ $check['title'] }}</strong><p>{{ $check['detail'] }}</p></div></li>@endforeach</ul></div>
-        </div>
-        <div class="md-upd-departure"><div class="md-upd-departure__note"><x-md.icon name="coffee" /><div><strong>На время обновления система будет приостановлена</strong><p>Перед изменениями остановятся запись и фоновые процессы. После сохранения снимка БД начнётся установка релиза.</p></div></div>
-            @if ($preview['snapshot'] !== [])<div class="md-upd-data-warning"><x-md.icon name="history" /><div><strong>Вернём базу к {{ $preview['snapshot']['created_at'] }}</strong><p>Более новые пользовательский код, сценарии, привязки, настройки и другие данные MySQL будут потеряны. Сторонние модули и файлы var сохранятся.</p></div></div>@endif
-            <form yoyo:post="start" data-update-action="start"><fieldset class="md-upd-start-form" x-bind:disabled="busy !== ''"><input type="hidden" name="release" value="{{ $preview['manifest']['id'] }}"><x-md.checkbox name="confirmed" label="Понимаю последствия и разрешаю переключение версии" required />
-                @if ($error !== '')<p role="alert">{{ $error }}</p>@endif
-                <x-md.button type="submit" :disabled="!$preview['ready'] || in_array($operation['status'] ?? '', ['queued','running','failed','interrupted'], true)"><span x-show="busy !== 'start'">{{ $preview['snapshot'] !== [] ? 'Восстановить версию' : 'Установить релиз' }}</span><span x-show="busy === 'start'" x-cloak><span class="md-upd-button-content"><span class="md-spinner" aria-hidden="true"></span> Подготовка обновления…</span></span></x-md.button>
+@if ($installRequested)
+<div x-data="{confirmed: false}" x-init="$nextTick(() => { document.getElementById(@js('prepare-' . $selected))?.focus(); $store.mdModal.show('update-release-install') })">
+    <x-md.modal id="update-release-install" title="Подготовка установки" size="lg" class="md-upd-install-modal">
+        @if ($preview !== [])
+            <div class="md-upd-install-version"><span>{{ $current['id'] }}</span><x-md.icon name="arrow-right" /><strong>{{ $preview['manifest']['id'] }}</strong></div>
+            <section class="md-upd-install-status" data-ready="{{ $canInstall ? 'true' : 'false' }}" role="status">
+                <div class="md-upd-install-status__copy"><span class="md-upd-install-status__label">ПРОВЕРКА РЕЛИЗА</span><h3>{{ $canInstall ? 'Установка доступна' : 'Установка недоступна' }}</h3><p>{{ $operationBusy ? 'Сначала завершите или восстановите предыдущую операцию.' : ($canInstall ? 'Проверки пройдены. Подтвердите последствия, чтобы продолжить.' : 'Для установки необходимо устранить обнаруженные ошибки.') }}</p>@if ($operationBusy)<x-md.button href="/admin/updates/recovery" variant="secondary" size="sm">Открыть восстановление</x-md.button>@else<span class="md-upd-install-status__count">Пройдено проверок: {{ $checksPassed }} из {{ count($checks) }}</span>@endif</div>
+                <x-md.mascot :pose="$canInstall ? 'success' : 'error'" />
+            </section>
+            <ul class="md-upd-install-checks" aria-label="Результаты проверок">
+                @foreach ($checks as $check)
+                    <li data-ok="{{ $check['ok'] ? 'true' : 'false' }}"><x-md.spoiler :title="$check['title']" :icon="$check['ok'] ? 'circle-check' : 'circle-x'" :aria-label="$check['title'] . ': ' . ($check['ok'] ? 'проверка пройдена' : 'ошибка')" variant="flush"><p>{{ $check['detail'] }}</p></x-md.spoiler></li>
+                @endforeach
+            </ul>
+            @if ($notes !== '')<x-md.spoiler title="Изменения в релизе" icon="list-details" class="md-upd-install-notes"><div class="md-prose">{!! $notes !!}</div></x-md.spoiler>@endif
+            <form id="update-install-form" yoyo:post="start" data-update-action="start"><fieldset class="md-upd-install-consent" x-bind:disabled="busy !== ''">
+                <input type="hidden" name="release" value="{{ $preview['manifest']['id'] }}">
+                <div class="md-upd-install-consequences"><strong>Система будет временно приостановлена</strong><p>Перед изменениями остановятся запись и фоновые процессы. Установка начнётся после сохранения снимка базы данных.</p></div>
+                @if ($preview['snapshot'] !== [])<div class="md-upd-data-warning"><x-md.icon name="history" /><div><strong>База данных будет восстановлена на {{ $preview['snapshot']['created_at'] }}</strong><p>Более новые пользовательский код, сценарии, привязки и настройки MySQL будут потеряны. Сторонние модули и файлы var сохранятся.</p></div></div>@endif
+                <x-md.checkbox name="confirmed" x-model="confirmed" :disabled="!$canInstall" label="Понимаю последствия и разрешаю переключение версии" required />
+                @if (!$canInstall)<p class="md-upd-install-hint">Подтверждение станет доступно после устранения причин блокировки.</p>@endif
             </fieldset></form>
-        </div>
-    </section>
+        @endif
+        @if ($error !== '')<p class="md-upd-install-error" role="alert">{{ $error }}</p>@endif
+        <x-slot:actions>
+            <x-md.button variant="secondary" x-on:click="$store.mdModal.close()" x-bind:disabled="busy !== ''">Закрыть</x-md.button>
+            @if ($preview !== [])
+                <x-md.button variant="secondary" yoyo:get="inspect('{{ $preview['manifest']['id'] }}')" data-update-action="inspect" x-bind:disabled="busy !== ''"><span x-show="busy !== 'inspect'">Повторить проверку</span><span x-show="busy === 'inspect'" x-cloak><span class="md-upd-button-content"><span class="md-spinner" aria-hidden="true"></span> Проверка…</span></span></x-md.button>
+                <x-md.button type="submit" form="update-install-form" :disabled="!$canInstall" x-bind:disabled="busy !== '' || !confirmed || @js(!$canInstall)"><span x-show="busy !== 'start'">{{ $preview['snapshot'] !== [] ? 'Восстановить версию' : 'Установить релиз' }}</span><span x-show="busy === 'start'" x-cloak><span class="md-upd-button-content"><span class="md-spinner" aria-hidden="true"></span> Подготовка обновления…</span></span></x-md.button>
+            @endif
+        </x-slot:actions>
+    </x-md.modal>
+</div>
 @endif
 
 <section class="md-upd-how"><div class="md-upd-section-head"><div><span class="md-upd-kicker">ПОРЯДОК ВЫПОЛНЕНИЯ</span><h2>Как выполняется обновление</h2></div></div><div class="md-upd-how-grid">

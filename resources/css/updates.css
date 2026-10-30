@@ -85,6 +85,37 @@ body.md-update-recovery { min-height: 100vh; padding: clamp(20px, 4vw, 52px); ba
 .md-upd-notes-modal .modal-body { max-height: 65vh; overflow: auto; }
 .md-upd-notes-modal .md-prose { font-size: 14px; overflow-wrap: anywhere; }
 .md-upd-notes-version { margin: 0 0 18px; color: var(--md-ui-primary); font-size: 16px; font-weight: 600; }
+.md-upd-install-modal .modal-content { max-height: calc(100dvh - 64px); }
+.md-upd-install-modal .modal-body { min-height: 0; max-height: 68vh; overflow: auto; }
+.md-upd-install-modal .modal-footer { gap: 10px; }
+.md-upd-install-version { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 14px; overflow-wrap: anywhere; }
+.md-upd-install-version > span { color: var(--md-ui-muted); }
+.md-upd-install-version > strong { color: var(--md-ui-primary); }
+.md-upd-install-status { display: grid; grid-template-columns: minmax(0, 1fr) 120px; align-items: center; gap: 20px; margin-bottom: 18px; padding: 20px; border-radius: 16px; background: var(--md-ui-primary-soft); }
+.md-upd-install-status[data-ready="true"] { background: var(--md-ui-success-soft); }
+.md-upd-install-status__copy { min-width: 0; }
+.md-upd-install-status__label { font-size: 10px; font-weight: 600; letter-spacing: .08em; color: var(--md-ui-primary); }
+.md-upd-install-status h3 { margin: 8px 0; font-size: 23px; line-height: 1.2; font-weight: 600; letter-spacing: -.02em; }
+.md-upd-install-status p { margin: 0; color: var(--md-ui-text-soft); font-size: 13px; line-height: 1.6; }
+.md-upd-install-status .md-mascot { width: 120px; height: 120px; object-fit: contain; }
+.md-upd-install-status__count { display: block; margin-top: 12px; font-size: 12px; color: var(--md-ui-muted); }
+.md-upd-install-status .md-btn { margin-top: 12px; }
+.md-upd-install-checks { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.md-upd-install-checks > li + li { border-top: 1px solid var(--md-ui-border); }
+body.md-admin-shell .md-upd-install-checks .md-spoiler { margin: 0; }
+body.md-admin-shell .md-upd-install-checks .md-spoiler__summary { min-height: 44px; padding: 9px 0; gap: 10px; }
+body.md-admin-shell .md-upd-install-checks .md-spoiler__title { font-size: 13px; }
+body.md-admin-shell .md-upd-install-checks .md-spoiler__icon { font-size: 19px; color: var(--md-ui-success); }
+body.md-admin-shell .md-upd-install-checks > li[data-ok="false"] .md-spoiler__icon { color: var(--md-ui-danger); }
+body.md-admin-shell .md-upd-install-checks .md-spoiler__body { padding: 2px 0 12px 28px; margin: 0; border: 0; }
+.md-upd-install-checks .md-spoiler__body p { margin: 0; color: var(--md-ui-muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.md-upd-install-notes { margin-top: 18px; }
+.md-upd-install-notes .md-prose { max-height: 260px; overflow: auto; font-size: 13px; }
+.md-upd-install-consent { display: grid; gap: 16px; min-width: 0; margin: 20px 0 0; padding: 16px 0 0; border: 0; border-top: 1px solid var(--md-ui-border); }
+.md-upd-install-consequences { font-size: 13px; }
+.md-upd-install-consequences p { margin: 6px 0 0; color: var(--md-ui-muted); line-height: 1.6; }
+.md-upd-install-hint { margin: 0; color: var(--md-ui-muted); font-size: 12px; line-height: 1.6; }
+.md-upd-install-error { margin: 16px 0 0; color: var(--md-ui-danger); font-size: 13px; }
 .md-upd-no-releases { display: grid; justify-items: center; gap: 12px; padding: 32px 16px; text-align: center; }
 .md-upd-no-releases__icon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 18px; font-size: 28px; background: var(--md-ui-primary-soft); color: var(--md-ui-primary); }
 .md-upd-no-releases h3 { font-size: 18px; }
@@ -243,6 +274,11 @@ body.md-update-recovery { min-height: 100vh; padding: clamp(20px, 4vw, 52px); ba
     .md-upd-release-card__meta { gap: 12px; font-size: 11px; }
     .md-upd-release-card__actions { gap: 8px 16px; }
     .md-upd-release-card__actions > .md-btn { width: 100%; margin-left: 0; }
+    .md-upd-install-modal .modal-footer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .md-upd-install-modal .modal-footer > .md-btn:last-child { grid-column: 1 / -1; width: 100%; }
+    .md-upd-install-status { grid-template-columns: minmax(0, 1fr) 76px; gap: 10px; padding: 16px; }
+    .md-upd-install-status h3 { font-size: 20px; }
+    .md-upd-install-status .md-mascot { width: 76px; height: 76px; }
     .md-upd-departure { margin: 24px -22px -22px; padding: 22px; } .md-upd-start-form > .md-btn { width: 100%; }
     .md-upd-safety { gap: 11px; font-size: 9px; } .md-upd-source { font-size: 9px; }
     .md-upd-topline { gap: 14px; } .md-upd-wordmark { font-size: 20px; } .md-upd-topline__divider { margin: 0 12px; } .md-upd-connection { font-size: 9px; }

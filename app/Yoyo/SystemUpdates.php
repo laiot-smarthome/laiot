@@ -19,6 +19,7 @@ use Throwable;
 
 /**
  * Прямой вызов через /yoyo тоже проверяет settings.manage, а изменение — POST.
+ * 2026-10-30 — подготовка установки в диалоге; причины блокировки и ошибки подтверждения остаются видимыми.
  * 2026-10-30 — действие проверки вместо служебного refresh; последние 10 выпусков и текущая версия в карусели.
  * 2026-10-29 — предпросмотр, подтверждение и отдельный аварийный доступ.
  */
@@ -34,6 +35,7 @@ final class SystemUpdates extends Component
     private Request $httpRequest;
     /** @var array<string, mixed> */
     private array $preview = [];
+    private bool $installRequested = false;
     private string $error = '';
 
     public function mount(UpdateService $updates, Authorization $authorization, Factory $validator, Request $request): void
@@ -72,6 +74,7 @@ final class SystemUpdates extends Component
     public function inspect(string $id): void
     {
         $this->authorize();
+        $this->installRequested = true;
         $this->selected = $id;
         try {
             $this->preview = $this->updates->preview($id);
@@ -83,12 +86,18 @@ final class SystemUpdates extends Component
     public function start(): void
     {
         $this->authorize(true);
+        $this->installRequested = true;
+        $release = $this->getQueryParam('release', '');
+        $this->selected = is_string($release) ? $release : '';
         $validation = $this->validator->make([
-            'release' => $this->getQueryParam('release', ''), 'confirmed' => $this->getQueryParam('confirmed', ''), 'channel' => $this->channel,
+            'release' => $release, 'confirmed' => $this->getQueryParam('confirmed', ''), 'channel' => $this->channel,
         ], ['release' => ['required', 'string', 'max:120'], 'confirmed' => ['accepted'], 'channel' => [Rule::in(['main', 'beta'])]], [
             'confirmed.accepted' => 'Подтвердите остановку системы и возможную потерю более новых данных БД.',
         ]);
         if ($validation->fails()) {
+            if (!$validation->errors()->has('release')) {
+                $this->inspect($this->selected);
+            }
             $this->error = $validation->errors()->first();
             $this->dispatchBrowserEvent('md:notify', ['tone' => 'danger', 'text' => $this->error]);
             return;
@@ -100,6 +109,7 @@ final class SystemUpdates extends Component
                 ->withHttpOnly(true)->withSameSite('strict'));
             YoyoResponse::getInstance()->redirect('/admin/updates/recovery');
         } catch (Throwable $error) {
+            $this->inspect($this->selected);
             $this->fail($error);
         }
     }
@@ -126,9 +136,16 @@ final class SystemUpdates extends Component
         }
         unset($release);
         $notes = $this->preview === [] ? '' : $renderer->render((string)($this->preview['release']['notes'] ?? ''), 'updates', [])['html'];
+        $operation = $this->updates->state->read();
+        $operationBusy = in_array($operation['status'] ?? '', ['queued', 'running', 'failed', 'interrupted'], true);
+        $checks = (array)($this->preview['checks'] ?? []);
+        usort($checks, static fn (array $left, array $right): int => (int)$left['ok'] <=> (int)$right['ok']);
         return $this->view('system-updates', [
             'current' => $current, 'releases' => $releases,
-            'operation' => $this->updates->state->read(), 'preview' => $this->preview, 'notes' => $notes,
+            'operation' => $operation, 'preview' => $this->preview, 'notes' => $notes, 'checks' => $checks,
+            'installRequested' => $this->installRequested, 'selected' => $this->selected, 'operationBusy' => $operationBusy,
+            'canInstall' => ($this->preview['ready'] ?? false) && !$operationBusy,
+            'checksPassed' => count(array_filter($checks, static fn (array $check): bool => $check['ok'] === true)),
             'repository' => (string)($this->updates->config['updates']['repository'] ?? 'laiot-smarthome/laiot'), 'error' => $this->error, 'channel' => $this->channel,
         ]);
     }

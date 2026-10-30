@@ -42,6 +42,7 @@ use ZipArchive;
 
 /**
  * Проверки обновителя работают только во временных каталогах, с SQLite и подменой HTTP/systemd.
+ * 2026-10-30 — диалог установки, сохранение ошибок, обязательное подтверждение и отказ запуска при блокировках.
  * 2026-10-30 — реальный POST Yoyo обновляет каталог повторно; пагинация, сортировка и безопасные карточки.
  * 2026-10-30 — переход с неизвестной версии на первый релиз и отказ сборки несовместимых core-модулей.
  * 2026-10-29 — прерывание миграции, повтор, откат, целостность архива и защита веб-действий.
@@ -234,7 +235,7 @@ final class UpdatesTest extends TestCase
         self::assertStringContainsString('Новая версия', $html);
         self::assertStringContainsString('First change', $html);
         self::assertStringContainsString('Читать полностью', $html);
-        self::assertStringContainsString('Проверить и установить', $html);
+        self::assertStringContainsString('Подготовить установку', $html);
         self::assertStringContainsString('https://github.com/laiot-smarthome/laiot/releases/tag/beta-2.1.0', $html);
         self::assertStringContainsString('id="update-release-notes"', $html);
         self::assertStringNotContainsString('<script>alert', $html);
@@ -525,6 +526,123 @@ final class UpdatesTest extends TestCase
         );
     }
 
+    public function testInspectOpensInstallDialogWithConsentAndLinkedSubmit(): void
+    {
+        UpdateFiles::json($this->directory . '/releases/beta-2.1.0/release.json', $this->manifest('2.1.0'));
+        $response = $this->updateRequest($this->application(), 'inspect', ['actionArgs' => ['beta-2.1.0']], 'GET');
+        $html = (string)$response->getContent();
+        self::assertSame(200, $response->getStatusCode(), $html);
+        $xpath = $this->htmlXPath($html);
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install" and @role="dialog"]')->length);
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//form[@id="update-install-form"]')->length);
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//input[@name="confirmed" and @x-model="confirmed" and @required]')->length);
+        $submit = $xpath->query('//*[@id="update-release-install"]//button[@type="submit"]')->item(0);
+        self::assertInstanceOf(\DOMElement::class, $submit);
+        self::assertSame('update-install-form', $submit->getAttribute('form'));
+        self::assertFalse($submit->hasAttribute('disabled'));
+        self::assertStringContainsString('!confirmed', $submit->getAttribute('x-bind:disabled'));
+        self::assertStringContainsString("mdModal.show('update-release-install')", $html);
+        self::assertSame(0, $xpath->query('//section[contains(@class, "md-upd-preview")]')->length);
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//img[contains(@src, "/success.png")]')->length);
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//ul[contains(@class, "md-upd-install-checks")]//details[contains(@class, "md-spoiler") and not(@open)]')->length);
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//details[contains(@class, "md-upd-install-notes") and contains(@class, "md-spoiler")]')->length);
+        $close = $xpath->query('//*[@id="update-release-install"]//button[contains(@class, "btn-close")]')->item(0);
+        self::assertInstanceOf(\DOMElement::class, $close);
+        self::assertSame('$store.mdModal.close()', $close->getAttribute('x-on:click'));
+        self::assertFalse($close->hasAttribute('hx-get'));
+        $dialog = $xpath->query('//*[@id="update-release-install"]')->item(0);
+        self::assertInstanceOf(\DOMElement::class, $dialog);
+        self::assertSame('$store.mdModal.close()', $dialog->getAttribute('x-on:keydown.escape.window'));
+        self::assertSame('trap($event)', $dialog->getAttribute('x-on:keydown.tab'));
+    }
+
+    public function testFailedChecksStayVisibleAndCannotBeBypassedWithConsent(): void
+    {
+        UpdateFiles::json($this->directory . '/releases/beta-2.1.0/release.json', $this->manifest('2.1.0'));
+        $this->updates = new UpdateFixtureService(
+            $this->updates->layout,
+            $this->state,
+            $this->updates->catalog,
+            $this->database,
+            $this->host,
+            $this->updates->config + ['fixture_checks' => [
+                ['title' => 'База данных', 'ok' => true, 'detail' => 'SQLite fixture'],
+                ['title' => 'PHP и расширения', 'ok' => false, 'detail' => 'Необходимо расширение PHP zip'],
+            ]]
+        );
+        $app = $this->application();
+        $response = $this->updateRequest($app, 'inspect', ['actionArgs' => ['beta-2.1.0']], 'GET');
+        $xpath = $this->htmlXPath((string)$response->getContent());
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//button[@type="submit" and @disabled]')->length);
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//input[@name="confirmed" and @disabled]')->length);
+        self::assertStringContainsString('Необходимо расширение PHP zip', (string)$response->getContent());
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//img[contains(@src, "/error.png")]')->length);
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//li[@data-ok="false"]//i[contains(@class, "ti-circle-x")]')->length);
+        $first = $xpath->query('//*[@id="update-release-install"]//li')->item(0);
+        self::assertInstanceOf(\DOMElement::class, $first);
+        self::assertSame('false', $first->getAttribute('data-ok'));
+        $response = $this->updateRequest($app, 'start', ['release' => 'beta-2.1.0', 'confirmed' => '1']);
+        self::assertStringContainsString('id="update-release-install"', (string)$response->getContent());
+        self::assertStringContainsString('Исправьте ошибки предварительной проверки.', (string)$response->getContent());
+        self::assertSame([], $this->state->raw());
+        self::assertSame(0, $this->host->launches);
+    }
+
+    public function testMissingConsentKeepsInstallDialogAndDoesNotStartUpdate(): void
+    {
+        UpdateFiles::json($this->directory . '/releases/beta-2.1.0/release.json', $this->manifest('2.1.0'));
+        $response = $this->updateRequest($this->application(), 'start', ['release' => 'beta-2.1.0']);
+        $xpath = $this->htmlXPath((string)$response->getContent());
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//input[@name="confirmed" and not(@checked)]')->length);
+        self::assertStringContainsString('Подтвердите остановку системы', (string)$response->getContent());
+        self::assertSame([], $this->state->raw());
+        self::assertSame(0, $this->host->launches);
+    }
+
+    public function testConfirmedReadyReleaseIsQueuedAndRedirectsToRecovery(): void
+    {
+        UpdateFiles::json($this->directory . '/releases/beta-2.1.0/release.json', $this->manifest('2.1.0'));
+        $response = $this->updateRequest($this->application(), 'start', ['release' => 'beta-2.1.0', 'confirmed' => '1']);
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('/admin/updates/recovery', $response->headers->get('HX-Redirect'));
+        self::assertSame('queued', $this->state->raw()['status']);
+        self::assertSame('beta-2.1.0', $this->state->raw()['target']['id']);
+        self::assertSame(1, $this->host->launches);
+    }
+
+    public function testExistingOperationExplainsWhyInstallIsBlockedInDialog(): void
+    {
+        UpdateFiles::json($this->directory . '/releases/beta-2.1.0/release.json', $this->manifest('2.1.0'));
+        $this->state->save(['status' => 'failed']);
+        $response = $this->updateRequest($this->application(), 'inspect', ['actionArgs' => ['beta-2.1.0']], 'GET');
+        $xpath = $this->htmlXPath((string)$response->getContent());
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//button[@type="submit" and @disabled]')->length);
+        self::assertSame(1, $xpath->query('//*[@id="update-release-install"]//a[@href="/admin/updates/recovery"]')->length);
+        self::assertStringContainsString('Сначала завершите или восстановите предыдущую операцию.', (string)$response->getContent());
+        self::assertSame(0, $this->host->launches);
+    }
+
+    /** @param array<string, mixed> $parameters */
+    private function updateRequest(Application $app, string $action, array $parameters, string $method = 'POST'): \Symfony\Component\HttpFoundation\Response
+    {
+        Yoyo::request()->reset();
+        $_REQUEST = ['component' => 'system-updates/' . $action, 'yoyo-id' => 'fixture-update'] + $parameters;
+        $_SERVER['REQUEST_METHOD'] = $method;
+        $_SERVER['HTTP_HX_REQUEST'] = 'true';
+        Yoyo::request()->mock($_REQUEST, $_SERVER);
+        return $app->handle(Request::create('/yoyo', $method, $parameters, [], [], ['HTTP_X_CSRF_TOKEN' => $app->session()->csrfToken()]));
+    }
+
+    private function htmlXPath(string $html): \DOMXPath
+    {
+        $previous = libxml_use_internal_errors(true);
+        $dom = new \DOMDocument();
+        $dom->loadHTML($html);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        return new \DOMXPath($dom);
+    }
+
     private function releaseBuilder(): CommandTester
     {
         if ((new ExecutableFinder())->find('git') === null) {
@@ -632,9 +750,13 @@ final class UpdateFixtureDatabase extends UpdateDatabase
     }
 }
 
-/** 2026-10-29 — systemd и дочерний PHP подменены, сеть и процессы не запускаются. */
+/**
+ * 2026-10-29 — systemd и дочерний PHP подменены, сеть и процессы не запускаются.
+ * 2026-10-30 — запуск службы учитывается без обращения к системному агенту.
+ */
 final class UpdateFixtureHost extends UpdateHost
 {
+    public int $launches = 0;
     public bool $failMigration = false;
     /** @var list<string> */
     public array $active = ['laiot-core@queue.service'];
@@ -647,6 +769,10 @@ final class UpdateFixtureHost extends UpdateHost
     }
     public function restartAgent(): void
     {
+    }
+    public function launch(): void
+    {
+        $this->launches++;
     }
     public function control(string $action, array $units): void
     {
@@ -663,7 +789,10 @@ final class UpdateFixtureHost extends UpdateHost
     }
 }
 
-/** 2026-10-29 — проверки ОС/сервисов подменены только для сценариев отказа самого конвейера. */
+/**
+ * 2026-10-29 — проверки ОС/сервисов подменены только для сценариев отказа самого конвейера.
+ * 2026-10-30 — отказы предварительных проверок задаются тестовой конфигурацией.
+ */
 final readonly class UpdateFixtureService extends UpdateService
 {
     public function runtimeIdentity(): string
@@ -672,7 +801,7 @@ final readonly class UpdateFixtureService extends UpdateService
     }
     public function checks(ReleaseManifest $manifest, array $snapshot = []): array
     {
-        return [['title' => 'Fixture', 'ok' => true, 'detail' => 'isolated']];
+        return $this->config['fixture_checks'] ?? [['title' => 'Fixture', 'ok' => true, 'detail' => 'isolated']];
     }
     public function inventory(): array
     {
