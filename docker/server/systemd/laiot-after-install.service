@@ -1,0 +1,9 @@
+[Unit]
+Description=Start installed LaIOT core services
+After=laiot-server-prepare.service
+Requires=laiot-server-prepare.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/systemctl start laiot-core@queue.service laiot-core@events.service laiot-core@timeouts.service laiot-core@maintenance.service laiot-core@websocket.service

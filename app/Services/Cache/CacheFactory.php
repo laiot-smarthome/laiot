@@ -13,13 +13,14 @@ use Illuminate\Container\Container;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Redis\RedisManager;
 use LaIOT\Database\DatabaseManager;
+use Predis\ClientInterface;
 use RuntimeException;
 
 /**
  * Сборка CacheStore по конфигурации.
  *
- * Redis-драйвер появится отдельным этапом; сейчас поддерживаются array,
- * file и database, чтобы ядро и тесты не зависели от инфраструктуры.
+ * Поддерживаются array, file, database и Redis с очисткой только своего namespace.
+ * 2026-10-30 — корректные опции Predis SCAN; повреждённый ответ не считается успешной очисткой.
  */
 final class CacheFactory
 {
@@ -64,17 +65,21 @@ final class CacheFactory
         ]);
 
         $clear = static function () use ($manager, $prefix): bool {
-            $connection = $manager->connection();
+            $client = $manager->connection()->client();
+            if (!$client instanceof ClientInterface) {
+                throw new RuntimeException('Для очистки Redis-кэша необходим настроенный клиент Predis.');
+            }
             $cursor = '0';
             do {
                 /** @var mixed $result */
-                $result = $connection->scan($cursor, $prefix . '*');
-                if (!is_array($result) || count($result) < 2) {
-                    break;
+                $result = $client->scan($cursor, ['match' => $prefix . '*', 'count' => 500]);
+                if (!is_array($result) || !isset($result[0], $result[1])
+                    || !is_scalar($result[0]) || !ctype_digit((string)$result[0]) || !is_array($result[1])) {
+                    throw new RuntimeException('Redis вернул некорректный ответ SCAN при очистке кэша.');
                 }
                 [$cursor, $keys] = $result;
-                if (is_array($keys) && $keys !== []) {
-                    $connection->del($keys);
+                if ($keys !== []) {
+                    $client->del($keys);
                 }
             } while ((string)$cursor !== '0');
 

@@ -17,6 +17,84 @@ production-развёртывание: nginx и PHP-FPM в отдельных к
 
 ## Запуск
 
+### Серверный стенд для проверки обновлений
+
+`docker/server/compose.yml` поднимает отдельную Ubuntu 24.04 с systemd,
+nginx, PHP 8.3 FPM/CLI, MariaDB, Redis, Mosquitto и штатным агентом LaIOT.
+Код, `.env`, база и конфиги хранятся в собственных Linux-томах.
+Текущий стенд на 8080 продолжает работать отдельно.
+
+Из корня репозитория:
+
+```bash
+docker compose -p laiot-server -f docker/server/compose.yml up --build -d
+```
+
+Открыть `http://127.0.0.1:8082/install`. Это чистая установка: администратора
+нужно создать в мастере. Соединение подготовлено: база `laiot`, пользователь
+`laiot`, локальный пароль `laiot`, сервер `127.0.0.1:3306`; Redis —
+`127.0.0.1:6379`, база 0. Доступ к установке подтверждается ключом:
+
+```bash
+docker compose -p laiot-server -f docker/server/compose.yml exec server cat /srv/laiot/var/install.key
+```
+
+После завершения мастера core-службы запускаются автоматически. Начальная
+версия — `beta-0.0.0`; далее можно проверять готовые GitHub-релизы,
+снимки БД, переключение `current` и восстановление после прерывания.
+Проверки прав, PHP, БД и агента выполняются штатно.
+
+Войти в терминал сервера и управлять конфигами:
+
+```bash
+docker compose -p laiot-server -f docker/server/compose.yml exec server bash
+nano /srv/laiot/.env
+nano /etc/laiot/nginx.conf
+nano /etc/laiot/php-fpm.conf
+nano /etc/laiot/php.ini
+nano /etc/laiot/mariadb.cnf
+systemctl reload nginx
+systemctl restart php8.3-fpm
+systemctl status laiot-agent 'laiot-core@*' --no-pager
+journalctl -u laiot-update -n 100 --no-pager
+```
+
+CLI приложения и обновителя запускайте от владельца файлов:
+
+```bash
+docker compose -p laiot-server -f docker/server/compose.yml exec --user laiot server php /srv/laiot/bin/laiot update:status
+```
+
+Приложение находится в `/srv/laiot`, снимки — в `/srv/laiot/var/backups`,
+системные конфиги — в `/etc/laiot`. После первого обновления `.env`
+активного релиза ссылается на постоянный файл `/srv/laiot/.env`.
+Перезапуск или пересоздание контейнера сохраняет тома и выбранный релиз;
+новые версии приложения устанавливаются через обновитель. Пересборка
+образа обновляет ОС и исходную заготовку для нового пустого тома.
+
+Порт можно изменить переменной `LAIOT_SERVER_PORT`. Он публикуется только
+на `127.0.0.1`. systemd использует собственный cgroup namespace и права
+`SYS_ADMIN`/`SYS_NICE`; `PrivateUsers` отключён только у Redis из-за
+ограничений вложенного sandbox Docker, остальные настройки службы сохранены.
+Это локальная модель сервера с ядром Docker Desktop, а не отдельная VM;
+она позволяет проверить настоящий конвейер обновления.
+
+Остановить и снова запустить сервер с сохранением данных:
+
+```bash
+docker compose -p laiot-server -f docker/server/compose.yml stop
+docker compose -p laiot-server -f docker/server/compose.yml start
+```
+
+Полный сброс **удаляет приложение, БД, ключи и конфиги этого стенда**:
+
+```bash
+docker compose -p laiot-server -f docker/server/compose.yml down --volumes
+docker compose -p laiot-server -f docker/server/compose.yml up -d
+```
+
+### Быстрый стенд с исходниками на хосте
+
 Нужны Docker и уже установленные зависимости хоста (`vendor/`), потому что
 исходники монтируются в контейнер:
 

@@ -6,14 +6,25 @@ namespace LaIOT\Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Redis\Connections\PredisConnection;
+use Illuminate\Redis\Connectors\PredisConnector;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use LaIOT\Database\DatabaseManager;
 use LaIOT\Services\Cache\CacheFactory;
+use LaIOT\Services\Cache\CacheStore;
 use LaIOT\Services\Worker\BackgroundTaskState;
 use PHPUnit\Framework\TestCase;
+use Predis\Client;
+use Predis\Command\CommandInterface;
+use Predis\Connection\ConnectionInterface;
+use ReflectionProperty;
+use RuntimeException;
 
-/** 2026-10-29 — heartbeat сохраняет состояние непрерывной core-службы более суток. */
+/**
+ * 2026-10-29 — heartbeat сохраняет состояние непрерывной core-службы более суток.
+ * 2026-10-30 — настоящий сериализатор Predis с подменённым транспортом: SCAN без сети и чужих ключей.
+ */
 final class CacheTest extends TestCase
 {
     private string $directory;
@@ -128,5 +139,53 @@ final class CacheTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
         $cache->put('bad key', 'value');
+    }
+
+    public function testRedisClearUsesValidScanOptionsAndKeepsOtherNamespaces(): void
+    {
+        $transport = $this->createMock(ConnectionInterface::class);
+        $remaining = ['laiot.first' => 1, 'laiot.second' => 2, 'other.keep' => 3];
+        $pages = ['0' => ['7', ['laiot.first']], '7' => ['9', []], '9' => ['0', ['laiot.second']]];
+        $transport->expects(self::exactly(5))->method('executeCommand')->willReturnCallback(
+            static function (CommandInterface $command) use (&$remaining, $pages): mixed {
+                $arguments = array_map(strval(...), $command->getArguments());
+                if ($command->getId() === 'SCAN') {
+                    self::assertSame(['MATCH', 'laiot.*', 'COUNT', '500'], array_slice($arguments, 1));
+                    return $pages[$arguments[0]];
+                }
+                self::assertSame('DEL', $command->getId());
+                foreach ($arguments as $key) {
+                    self::assertStringStartsWith('laiot.', $key);
+                    unset($remaining[$key]);
+                }
+                return count($arguments);
+            }
+        );
+        self::assertTrue($this->redisWithTransport($transport)->clear());
+        self::assertSame(['other.keep' => 3], $remaining);
+    }
+
+    public function testRedisClearRejectsMalformedScanResponse(): void
+    {
+        $transport = $this->createMock(ConnectionInterface::class);
+        $transport->expects(self::once())->method('executeCommand')->willReturn(['broken']);
+        $cache = $this->redisWithTransport($transport);
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('некорректный ответ SCAN');
+        $cache->clear();
+    }
+
+    private function redisWithTransport(ConnectionInterface $transport): CacheStore
+    {
+        $cache = CacheFactory::create(['driver' => 'redis', 'redis' => ['host' => '127.0.0.1', 'port' => 1]], new DatabaseManager([]));
+        // Фабрика остаётся штатной; подменяется только транспорт до первого сетевого обращения.
+        $repository = (new ReflectionProperty(CacheStore::class, 'repository'))->getValue($cache);
+        $manager = $repository->getStore()->getRedis();
+        $connector = $this->createMock(PredisConnector::class);
+        $connector->expects(self::once())->method('connect')->willReturn(new PredisConnection(new Client($transport)));
+        $manager->extend('predis', function () use ($connector): PredisConnector {
+            return $connector;
+        });
+        return $cache;
     }
 }

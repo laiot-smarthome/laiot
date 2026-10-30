@@ -1,0 +1,14 @@
+.git
+.idea
+.codex
+node_modules
+var
+.env
+.env.*
+modules/*
+!modules/core
+!modules/core/**
+public/assets/modules
+tests
+*.log
+*.zip

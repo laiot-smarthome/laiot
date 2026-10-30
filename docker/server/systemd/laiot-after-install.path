@@ -1,0 +1,11 @@
+[Unit]
+Description=Start LaIOT workers after completing installation
+After=laiot-server-prepare.service
+Requires=laiot-server-prepare.service
+
+[Path]
+PathExists=/srv/laiot/var/installed.lock
+Unit=laiot-after-install.service
+
+[Install]
+WantedBy=multi-user.target
