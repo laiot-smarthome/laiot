@@ -27,6 +27,8 @@ php -S 127.0.0.1:8080 -t public tools/dev-server.php
 `http://127.0.0.1:8080`, администратор `sysadmin` / `laiot!`. Подробности —
 [docs/laiot/docker.md](docs/laiot/docker.md).
 
+
+
 ## Проверки
 
 ```bash
