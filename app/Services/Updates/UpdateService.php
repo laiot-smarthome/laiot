@@ -14,6 +14,7 @@ use Throwable;
 
 /**
  * Предварительный просмотр и запуск операции. Проверки повторяются отдельным процессом перед остановкой.
+ * 2026-10-30 — неопределённая версия считается 0.0.0; установленный манифест имеет приоритет.
  * 2026-10-29 — номерные каналы, проверки окружения и совместимости, один снимок на исходный релиз.
  */
 readonly class UpdateService
@@ -36,7 +37,10 @@ readonly class UpdateService
         if ($manifest !== []) {
             return (new ReleaseManifest($manifest))->data;
         }
-        $version = (string)($this->config['version'] ?? '2.0.0-dev');
+        $version = trim((string)($this->config['version'] ?? ''));
+        if ($version === '') {
+            $version = '0.0.0';
+        }
         $channel = (string)($this->config['updates']['channel'] ?? 'beta');
         return [
             'id' => $channel . '-' . $version, 'version' => $version, 'channel' => $channel,

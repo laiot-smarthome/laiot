@@ -81,7 +81,7 @@ modules/weather/
     "icon": "ti-cloud"
   },
   "requires": {
-    "laiot": ">=2.0.0-dev",
+    "laiot": ">=0.0.0",
     "php": ">=8.2"
   },
   "dependencies": [],

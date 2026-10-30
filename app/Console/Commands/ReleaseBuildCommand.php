@@ -23,6 +23,7 @@ use ZipArchive;
 
 /**
  * Поставка строится из чистого checkout CI после проверки и production Composer install.
+ * 2026-10-30 — несовместимость встроенного модуля с номером выпуска останавливает сборку до упаковки.
  * 2026-10-29 — готовый zip с vendor и статикой, без .env, var и сторонних модулей.
  */
 #[AsCommand(name: 'release:build', description: 'Собрать готовый номерной релиз LaIOT')]
@@ -44,11 +45,13 @@ final class ReleaseBuildCommand extends Command
         $id = (string)$input->getArgument('tag');
         ReleaseManifest::assertId($id);
         $channel = str_starts_with($id, 'main-') ? 'main' : 'beta';
+        $version = substr($id, strlen($channel) + 1);
         $git = new Process(['git', 'rev-parse', 'HEAD'], $this->root);
         $git->mustRun();
         $modules = [];
         foreach (glob($this->root . '/modules/core/*/module.json') ?: [] as $file) {
             $module = ModuleManifest::fromFile($file, 'modules/core/' . basename(dirname($file)), 'core');
+            $module->assertCompatible($version, PHP_VERSION);
             $modules[$module->id()] = $module->data;
         }
         $lock = UpdateFiles::read($this->root . '/composer.lock');
@@ -64,7 +67,7 @@ final class ReleaseBuildCommand extends Command
             }
         }
         $manifest = new ReleaseManifest([
-            'id' => $id, 'version' => substr($id, strlen($channel) + 1), 'channel' => $channel,
+            'id' => $id, 'version' => $version, 'channel' => $channel,
             'commit' => trim($git->getOutput()), 'php' => '>=8.2', 'php_requirements' => array_values(array_unique($requirements)),
             'extensions' => array_values(array_unique($extensions)), 'modules' => $modules, 'built_at' => gmdate('c'),
         ]);
