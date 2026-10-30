@@ -13,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Методы класса: сохранение и проверка синтаксиса кода.
  *
+ * 2026-10-30 — ошибка фикстуры однозначно расположена во второй строке на PHP 8.2–8.4.
  * 2026-10-27 — невалидный код метода не сохраняется, строка подсвечивается.
  * 2026-10-26 — HTTP-проверки используют действующего пользователя SQLite.
  */
@@ -47,7 +48,7 @@ final class CoreMethodsTest extends TestCase
             '_token' => $session->csrfToken(),
             'class_id' => 1,
             'title' => 'broken',
-            'code' => "echo 1;\nif (true {\n    echo 2;\n}",
+            'code' => "echo 1;\n\$value = ;",
         ]));
 
         self::assertSame(422, $create->getStatusCode());

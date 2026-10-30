@@ -4,23 +4,43 @@ declare(strict_types=1);
 
 namespace LaIOT\Tests\Feature;
 
+use Illuminate\Container\Container;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
+use LaIOT\Database\DatabaseManager;
 use LaIOT\Foundation\Application;
 use LaIOT\Http\Session\ArraySession;
 use LaIOT\Services\Files\FileStorage;
 use LaIOT\Services\Modules\ModuleInstaller;
+use LaIOT\Services\Modules\ModuleManager;
 use LaIOT\Services\Modules\ModuleManifest;
+use LaIOT\Support\HelperLoader;
 use PHPUnit\Framework\TestCase;
 
 /**
  * LaIOT SDK: манифест, реестр, install/enable/disable/remove, миграции и
  * подключение установленного стороннего модуля.
+ * 2026-10-29 — discovery не читает отсутствующий реестр до создания схемы.
  * 2026-10-28 — удаление модуля очищает только его файловый диск без --purge.
  */
 final class ModuleSdkTest extends TestCase
 {
+    public function testDiscoveryDoesNotQueryRegistryBeforeItsMigration(): void
+    {
+        $database = new DatabaseManager(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
+        $selected = false;
+        $database->connection()->beforeExecuting(static function (string $query) use (&$selected): void {
+            if (str_contains($query, 'from "module_registry"')) {
+                $selected = true;
+            }
+        });
+        $root = sys_get_temp_dir() . '/laiot-no-modules-' . bin2hex(random_bytes(8));
+        $manager = new ModuleManager($root, $database, new Container(), new HelperLoader($root . '/helpers'));
+        self::assertSame([], $manager->discovered());
+        self::assertFalse($selected, 'Discovery не должен выполнять SELECT из ещё не созданной таблицы.');
+    }
+
     public function testManifestValidation(): void
     {
         $manifest = ModuleManifest::fromArray([

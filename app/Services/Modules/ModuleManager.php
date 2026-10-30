@@ -25,6 +25,7 @@ use Throwable;
  * enabled=1 в `module_registry`. Все манифесты валидируются ModuleManifest.
  *
  * Изменения:
+ * 2026-10-29 — до создания схемы реестр не запрашивается; ошибки подключения продолжают журналироваться.
  * 2026-10-29 — сторонние модули обнаруживаются в постоянном каталоге установки после смены релиза.
  * 2026-10-27 — настройки и подписки в ModuleContext.
  * 2026-10-27 — core-модуль читает enabled из строки реестра и выключается.
@@ -294,7 +295,9 @@ final class ModuleManager
         $registry = [];
         if ($this->database->isConfigured()) {
             try {
-                foreach ($this->registry->all() as $row) {
+                // До установки таблицы ещё нет: discovery по манифестам не требует готовой схемы.
+                $rows = $this->database->schema()->hasTable('module_registry') ? $this->registry->all() : [];
+                foreach ($rows as $row) {
                     $registry[(string)$row['module_id']] = $row;
                 }
             } catch (Throwable $error) {

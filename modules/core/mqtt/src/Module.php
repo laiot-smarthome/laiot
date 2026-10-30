@@ -39,6 +39,7 @@ use Throwable;
  * копятся. Между пакетами выполняется разбор очереди команд, поэтому
  * отправка не ждёт следующего входящего сообщения.
  *
+ * 2026-10-30 — очистка истории не перезаписывает статус соединения процесса приёма.
  * 2026-10-27 — MQTT перенесён из alpha в core-модуль на SDK и Yoyo.
  */
 final class Module extends BaseModule
@@ -312,7 +313,7 @@ final class Module extends BaseModule
         if ($removed > 0) {
             $container->make(LoggerInterface::class)->info('MQTT: история очищена', ['rows' => $removed]);
         }
-        $container->make(RuntimeState::class)->flush(true);
+        // Статус соединения и heartbeat пишет serve: отдельный процесс очистки не знает его состояния.
     }
 
     public function disabled(ModuleContext $context): void

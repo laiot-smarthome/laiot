@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LaIOT\Tests\Feature;
 
 use Clickfwd\Yoyo\Yoyo;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 use LaIOT\Database\Migrator;
@@ -35,6 +36,7 @@ use PHPUnit\Framework\TestCase;
  * PublisherInterface, поэтому тест не зависит от сети.
  *
  * 2026-10-27 — модуль MQTT перенесён в ядро.
+ * 2026-10-30 — fork проверяется с отдельными файловыми БД/кэшем и зарезервированным локальным портом.
  */
 final class MqttModuleTest extends TestCase
 {
@@ -48,6 +50,12 @@ final class MqttModuleTest extends TestCase
         unset($_SERVER['HTTP_HX_REQUEST'], $_SERVER['REQUEST_METHOD']);
         $_REQUEST = [];
         if ($this->database !== null) {
+            $cache = realpath($this->database . '.cache');
+            if ($cache !== false) {
+                self::assertSame(realpath(sys_get_temp_dir()), dirname($cache));
+                self::assertSame(basename($this->database) . '.cache', basename($cache));
+                (new Filesystem())->deleteDirectory($cache);
+            }
             @unlink($this->database);
             $this->database = null;
         }
@@ -165,15 +173,28 @@ final class MqttModuleTest extends TestCase
 
     public function testWorkerRunsServeTaskOnceWithoutBroker(): void
     {
-        $app = $this->boot();
-        $started = microtime(true);
-        $app->container()->make(Worker::class)->run('mqtt', true);
+        $app = $this->boot(true);
+        // Порт занят нашим сокетом без listen: соединение отклоняется и не попадёт к рабочему брокеру.
+        $endpoint = stream_socket_server('tcp://127.0.0.1:0', $errorCode, $errorMessage, STREAM_SERVER_BIND);
+        self::assertIsResource($endpoint, (string)$errorMessage);
+        try {
+            $address = (string)stream_socket_get_name($endpoint, false);
+            $port = (int)substr($address, (int)strrpos($address, ':') + 1);
+            $app->container()->make(Settings::class)->save(['host' => '127.0.0.1', 'port' => $port]);
+            $started = microtime(true);
+            $app->container()->make(Worker::class)->run('mqtt', true);
 
-        self::assertLessThan(15.0, microtime(true) - $started);
-        $status = $app->container()->make(RuntimeState::class)->status();
-        self::assertFalse((bool)$status['connected']);
-        self::assertTrue((bool)$status['worker_alive']);
-        self::assertNotSame('', (string)$status['last_error']);
+            self::assertLessThan(15.0, microtime(true) - $started);
+            $status = $app->container()->make(RuntimeState::class)->status();
+            self::assertFalse((bool)$status['connected']);
+            self::assertTrue((bool)$status['worker_alive']);
+            self::assertNotSame('', (string)$status['last_error']);
+            if (function_exists('pcntl_fork')) {
+                self::assertNotSame(getmypid(), (int)$status['worker_pid']);
+            }
+        } finally {
+            fclose($endpoint);
+        }
     }
 
     public function testBrokerHandshakeCannotHangForever(): void
@@ -400,7 +421,7 @@ final class MqttModuleTest extends TestCase
             'debug' => true,
             'environment_file' => sys_get_temp_dir() . '/laiot-mqtt-env-' . bin2hex(random_bytes(6)),
             'view_cache' => sys_get_temp_dir() . '/laiot-mqtt-views-' . bin2hex(random_bytes(6)),
-            'cache' => ['driver' => 'array'],
+            'cache' => $persistent ? ['driver' => 'file', 'path' => $database . '.cache'] : ['driver' => 'array'],
             'log' => 'php://stderr',
             'session' => $session,
             'database' => ['driver' => 'sqlite', 'database' => $database, 'prefix' => ''],

@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Сценарии: CRUD, проверка синтаксиса, категории в модалке, экспорт и импорт.
  *
+ * 2026-10-30 — ошибка фикстуры однозначно расположена во второй строке на PHP 8.2–8.4.
  * 2026-10-28 — результаты действий проверяются в событии Notify.
  * 2026-10-27 — категории управляются Yoyo-компонентом, вместо расписания —
  *              системное событие; невалидный код не сохраняется.
@@ -92,7 +93,7 @@ final class CoreScriptsTest extends TestCase
         $create = $app->handle(Request::create('/scripts/create', 'POST', [
             '_token' => $session->csrfToken(),
             'title' => 'Сломанный скрипт',
-            'code' => "echo 1;\nif (true {\n    echo 2;\n}",
+            'code' => "echo 1;\n\$value = ;",
             'description' => '',
             'category_id' => '0',
             'event_name' => '',
